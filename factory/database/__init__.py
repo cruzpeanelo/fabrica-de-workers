@@ -1,21 +1,18 @@
 """
-Factory Database Package
+Factory Database Package v4.0
 """
 from .connection import Base, SessionLocal, get_db, init_db, reset_db, engine
 from .models import (
     Project,
-    Story,
-    Agent,
-    Skill,
-    Task,
-    ActivityLog,
-    FactoryEvent,
-    Template,
+    Job,
+    Worker,
+    FailureHistory,
     User,
+    ActivityLog,
     ProjectStatus,
-    AgentStatus,
-    TaskStatus,
-    SkillType
+    JobStatus,
+    JobStep,
+    WorkerStatus
 )
 
 __all__ = [
@@ -28,17 +25,14 @@ __all__ = [
     "engine",
     # Models
     "Project",
-    "Story",
-    "Agent",
-    "Skill",
-    "Task",
-    "ActivityLog",
-    "FactoryEvent",
-    "Template",
+    "Job",
+    "Worker",
+    "FailureHistory",
     "User",
+    "ActivityLog",
     # Enums
     "ProjectStatus",
-    "AgentStatus",
-    "TaskStatus",
-    "SkillType"
+    "JobStatus",
+    "JobStep",
+    "WorkerStatus"
 ]

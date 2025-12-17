@@ -1,7 +1,7 @@
 """
-Fabrica de Agentes
-Sistema de agentes autonomos para construcao de aplicacoes
+Fabrica de Workers
+Sistema de desenvolvimento autonomo com Workers Claude
 """
 
-__version__ = "2.0.0"
-__author__ = "Fabrica de Agentes"
+__version__ = "4.0.0"
+__author__ = "Fabrica de Workers"

@@ -99,13 +99,11 @@ async def seed_data():
         if not admin:
             print("[Seed] Criando usuario admin...")
             admin = User(
-                id=str(uuid.uuid4()),
                 username="admin",
                 email="admin@fabrica.local",
                 password_hash=get_password_hash("admin123"),
                 role="ADMIN",
-                active=True,
-                created_at=datetime.utcnow()
+                active=True
             )
             db.add(admin)
             db.commit()
@@ -120,17 +118,17 @@ async def seed_data():
 
         if not example_project:
             print("[Seed] Criando projeto de exemplo...")
+            project_id = f"PRJ-{datetime.now().strftime('%Y%m%d%H%M%S')}"
             project = Project(
-                id=f"PRJ-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                project_id=project_id,
                 name="Projeto Exemplo",
                 description="Projeto de exemplo para demonstracao da Fabrica v4.0",
                 project_type="api-service",
-                status="active",
-                created_at=datetime.utcnow()
+                status="PLANNING"
             )
             db.add(project)
             db.commit()
-            print(f"[Seed] Projeto exemplo criado: {project.id}")
+            print(f"[Seed] Projeto exemplo criado: {project.project_id}")
         else:
             print("[Seed] Projeto exemplo ja existe")
 

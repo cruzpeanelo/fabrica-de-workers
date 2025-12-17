@@ -690,6 +690,97 @@ class SQLiteJobQueue:
         finally:
             db.close()
 
+    async def list_jobs(
+        self,
+        status: str = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[dict]:
+        """Lista jobs com filtros"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Job
+
+        db = SessionLocal()
+        try:
+            query = db.query(Job)
+            if status:
+                query = query.filter(Job.status == status)
+            query = query.order_by(Job.created_at.desc())
+            jobs = query.offset(offset).limit(limit).all()
+            return [job.to_dict() for job in jobs]
+        finally:
+            db.close()
+
+    async def update_job(self, job_id: str, updates: dict) -> Optional[dict]:
+        """Atualiza campos do job"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Job
+
+        db = SessionLocal()
+        try:
+            job = db.query(Job).filter(Job.job_id == job_id).first()
+            if not job:
+                return None
+
+            for key, value in updates.items():
+                if hasattr(job, key):
+                    setattr(job, key, value)
+
+            db.commit()
+            db.refresh(job)
+            return job.to_dict()
+        finally:
+            db.close()
+
+    async def cancel_job(self, job_id: str) -> bool:
+        """Cancela um job pendente"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Job
+
+        db = SessionLocal()
+        try:
+            job = db.query(Job).filter(Job.job_id == job_id).first()
+            if not job:
+                return False
+
+            if job.status not in ["pending", "queued"]:
+                return False
+
+            job.status = "cancelled"
+            job.completed_at = datetime.utcnow()
+            db.commit()
+
+            self._trigger("job_cancelled", job.to_dict())
+            return True
+        finally:
+            db.close()
+
+    async def add_job_log(self, job_id: str, step: str, message: str, success: bool = True):
+        """Adiciona log ao job"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Job
+
+        db = SessionLocal()
+        try:
+            job = db.query(Job).filter(Job.job_id == job_id).first()
+            if not job:
+                return
+
+            log_entry = {
+                "step": step,
+                "message": message,
+                "success": success,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+
+            step_logs = job.step_logs or []
+            step_logs.append(log_entry)
+            job.step_logs = step_logs
+
+            db.commit()
+        finally:
+            db.close()
+
     async def get_workers(self) -> List[dict]:
         """Lista workers"""
         from factory.database.connection import SessionLocal
@@ -699,6 +790,100 @@ class SQLiteJobQueue:
         try:
             workers = db.query(Worker).all()
             return [w.to_dict() for w in workers]
+        finally:
+            db.close()
+
+    async def get_worker(self, worker_id: str) -> Optional[dict]:
+        """Busca worker por ID"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            worker = db.query(Worker).filter(Worker.worker_id == worker_id).first()
+            return worker.to_dict() if worker else None
+        finally:
+            db.close()
+
+    async def get_active_workers(self) -> List[dict]:
+        """Lista workers ativos"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            workers = db.query(Worker).filter(Worker.status != "offline").all()
+            return [w.to_dict() for w in workers]
+        finally:
+            db.close()
+
+    async def register_worker(self, worker_id: str, **kwargs) -> dict:
+        """Registra um worker no pool"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            worker = Worker(
+                worker_id=worker_id,
+                status="idle",
+                model=kwargs.get("model", "claude-sonnet-4-20250514"),
+                hostname=kwargs.get("hostname"),
+                ip_address=kwargs.get("ip_address"),
+                started_at=datetime.utcnow(),
+                last_heartbeat=datetime.utcnow()
+            )
+            db.add(worker)
+            db.commit()
+            db.refresh(worker)
+            return worker.to_dict()
+        finally:
+            db.close()
+
+    async def worker_heartbeat(self, worker_id: str):
+        """Atualiza heartbeat do worker"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            worker = db.query(Worker).filter(Worker.worker_id == worker_id).first()
+            if worker:
+                worker.last_heartbeat = datetime.utcnow()
+                db.commit()
+        finally:
+            db.close()
+
+    async def update_worker_metrics(self, worker_id: str, job_duration: int, success: bool):
+        """Atualiza metricas do worker"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            worker = db.query(Worker).filter(Worker.worker_id == worker_id).first()
+            if worker:
+                if success:
+                    worker.jobs_completed = (worker.jobs_completed or 0) + 1
+                else:
+                    worker.jobs_failed = (worker.jobs_failed or 0) + 1
+                worker.total_processing_time = (worker.total_processing_time or 0) + job_duration
+                total = (worker.jobs_completed or 0) + (worker.jobs_failed or 0)
+                if total > 0:
+                    worker.avg_job_duration = worker.total_processing_time / total
+                db.commit()
+        finally:
+            db.close()
+
+    async def unregister_worker(self, worker_id: str):
+        """Remove worker do pool"""
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Worker
+
+        db = SessionLocal()
+        try:
+            db.query(Worker).filter(Worker.worker_id == worker_id).delete()
+            db.commit()
         finally:
             db.close()
 

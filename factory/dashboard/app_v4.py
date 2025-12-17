@@ -8,8 +8,15 @@ Dashboard simplificado focado em:
 - Metricas em tempo real
 """
 import os
+import sys
+from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
+
+# Adicionar raiz do projeto ao path
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,8 +88,11 @@ try:
     from factory.api.auth import auth_router
     app.include_router(api_router)
     app.include_router(auth_router)
-except ImportError as e:
-    print(f"[Dashboard v4] Aviso: Erro ao importar routers: {e}")
+    print(f"[Dashboard v4] Routers registrados: {len(api_router.routes)} + {len(auth_router.routes)} rotas")
+except Exception as e:
+    import traceback
+    print(f"[Dashboard v4] Erro ao importar routers: {e}")
+    traceback.print_exc()
 
 
 # =============================================================================
@@ -464,10 +474,10 @@ def run():
     """Roda o dashboard"""
     import uvicorn
     uvicorn.run(
-        "factory.dashboard.app_v4:app",
+        app,
         host=DASHBOARD_HOST,
         port=DASHBOARD_PORT,
-        reload=True
+        reload=False
     )
 
 

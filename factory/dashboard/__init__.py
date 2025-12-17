@@ -1,6 +1,6 @@
 """
-Dashboard Package - Fabrica de Agentes
+Dashboard Package v4.0 - Fabrica de Workers
 """
-from .app import app, run_dashboard
+from .app_v4 import app, run
 
-__all__ = ["app", "run_dashboard"]
+__all__ = ["app", "run"]

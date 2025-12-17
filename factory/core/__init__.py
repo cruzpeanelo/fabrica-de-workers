@@ -1,7 +1,16 @@
 """
-Core Package - Fabrica de Agentes
+Core Package v4.0 - Fabrica de Workers
 Componentes centrais do sistema
 """
-from .project_manager import ProjectManager, get_project_manager
+from .job_queue import get_queue, RedisJobQueue, SQLiteJobQueue
+from .worker import ClaudeWorker, WorkerPool
+from .autonomous_loop import AutonomousLoop
 
-__all__ = ["ProjectManager", "get_project_manager"]
+__all__ = [
+    "get_queue",
+    "RedisJobQueue",
+    "SQLiteJobQueue",
+    "ClaudeWorker",
+    "WorkerPool",
+    "AutonomousLoop"
+]
