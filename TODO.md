@@ -1,8 +1,50 @@
 # Fabrica de Agentes - Atividades Pendentes e Roadmap
 
-**Ultima Atualizacao:** 2025-12-17
+**Ultima Atualizacao:** 2025-12-17 07:00
 **Responsavel:** Luis Cruz
-**Status Geral:** 85% Funcional
+**Status Geral:** 90% Funcional
+
+---
+
+## GitHub Issues - Status
+
+### Issues RESOLVIDOS (Prontos para Fechar)
+
+| Issue | Titulo | Commit | Status |
+|-------|--------|--------|--------|
+| #4 | [MEDIA] Criar Suite de Testes Automatizados | 84e5ed7 | FEITO |
+| #5 | [MEDIA] Completar Documentacao OpenAPI/Swagger | 84e5ed7 | FEITO |
+| #6 | [MEDIA] Implementar Sistema de Logs Estruturados | 84e5ed7 | FEITO |
+| #2 | [ALTA] Testar Fluxo Completo de Desenvolvimento Autonomo | 98b84df | FEITO |
+
+**Para fechar esses issues, execute:**
+```bash
+gh issue close 4 --comment "Resolvido no commit 84e5ed7 - Suite de testes criada em factory/tests/"
+gh issue close 5 --comment "Resolvido no commit 84e5ed7 - OpenAPI docs em /docs e /redoc"
+gh issue close 6 --comment "Resolvido no commit 84e5ed7 - Logging estruturado implementado"
+gh issue close 2 --comment "Resolvido no commit 98b84df - Fluxo testado: 242 agentes, 39 skills, stress test 10/10 OK"
+```
+
+### Issues Pendentes (20 restantes)
+
+**ALTA Prioridade:**
+- #1 - Testar Modo Inteligente com Claude AI
+- #3 - Validar Skills de Processamento Multimidia
+
+**MEDIA Prioridade:**
+- #7 - Integracao Automatica com GitHub
+- #8 - Containerizacao com Docker
+- #9 - Configurar CI/CD com GitHub Actions
+- #10 - Adicionar Suporte a Mais Linguagens
+
+**ENTERPRISE:**
+- #11-14 - Integrações enterprise (Multi-LLM, RBAC, SSO, Jira/Azure DevOps)
+
+**SAAS/CLOUD:**
+- #15-17 - Multi-tenant, Cloud providers, Terraform
+
+**INTEGRAÇÕES:**
+- #18-24 - Salesforce, SAP, Microsoft, Notificações
 
 ---
 
@@ -21,14 +63,17 @@
 | Hierarquia Corporativa | OK | 6 niveis (CEO -> Analistas) |
 | Geracao de Codigo | OK | FastAPI, SQLAlchemy, Vue.js, pytest |
 | Sistema de Memoria | OK | Persistencia em JSON |
+| Story ID Generation | OK | Timestamp + UUID (race condition fix) |
+| Stress Testing | OK | 10/10 concurrent requests success |
+| UX/UI | OK | Chart.js, Inter font, Font Awesome |
 
 ### O Que Precisa de Atencao
 
 | Item | Prioridade | Descricao |
 |------|------------|-----------|
 | Limpeza do Banco de Dados | ALTA | Remover referencias Belgo das descricoes de projetos |
-| Testes Automatizados | MEDIA | Criar suite de testes para CI/CD |
-| Documentacao de API | MEDIA | Completar OpenAPI/Swagger |
+| Modo Inteligente | ALTA | Testar com ANTHROPIC_API_KEY |
+| Skills Multimedia | MEDIA | Validar com arquivos reais |
 | Integracao GitHub | BAIXA | Automatizar push de projetos gerados |
 
 ---
