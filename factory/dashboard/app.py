@@ -75,8 +75,46 @@ except ImportError:
 # Initialize database
 init_db()
 
-# FastAPI App
-app = FastAPI(title=DASHBOARD_TITLE, version="3.0.0")
+# Import OpenAPI config
+try:
+    from factory.api.openapi_config import TAGS_METADATA, OPENAPI_METADATA
+    HAS_OPENAPI_CONFIG = True
+except ImportError:
+    HAS_OPENAPI_CONFIG = False
+    TAGS_METADATA = []
+    OPENAPI_METADATA = {}
+
+# Import logging middleware
+try:
+    from factory.api.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
+    HAS_MIDDLEWARE = True
+except ImportError:
+    HAS_MIDDLEWARE = False
+
+# Import structured logging
+try:
+    from factory.core.logging_system import get_logger, log_info, log_error
+    HAS_STRUCTURED_LOGGING = True
+    logger = get_logger()
+except ImportError:
+    HAS_STRUCTURED_LOGGING = False
+
+# FastAPI App with OpenAPI config
+app = FastAPI(
+    title=OPENAPI_METADATA.get("title", DASHBOARD_TITLE),
+    description=OPENAPI_METADATA.get("description", "API da Fabrica de Agentes"),
+    version=OPENAPI_METADATA.get("version", "3.0.0"),
+    openapi_tags=TAGS_METADATA if TAGS_METADATA else None,
+    contact=OPENAPI_METADATA.get("contact"),
+    license_info=OPENAPI_METADATA.get("license_info"),
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Add middleware
+if HAS_MIDDLEWARE:
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS
 app.add_middleware(
