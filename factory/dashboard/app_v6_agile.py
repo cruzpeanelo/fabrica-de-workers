@@ -585,9 +585,14 @@ LISTA DE STORIES:
 def execute_assistant_action(action: dict, db) -> str:
     """Executa uma acao determinada pelo assistente"""
     story_repo = StoryRepository(db)
+    task_repo = StoryTaskRepository(db)
+    project_repo = ProjectRepository(db)
     action_type = action.get("action")
     result = ""
 
+    # =========================================================================
+    # ACOES DE STORY
+    # =========================================================================
     if action_type == "move_story":
         story_id = action.get("story_id")
         new_status = action.get("status")
@@ -605,9 +610,15 @@ def execute_assistant_action(action: dict, db) -> str:
                 result = format_story_details(story)
 
     elif action_type == "list_stories":
-        stories = story_repo.get_all()
+        project_id = action.get("project_id")
+        if project_id:
+            stories = story_repo.get_by_project(project_id)
+        else:
+            stories = story_repo.get_all()
         if stories:
             result = "\n".join([f"- {s.story_id}: {s.title} [{s.status}] ({s.story_points} pts)" for s in stories])
+        else:
+            result = "Nenhuma story encontrada"
 
     elif action_type == "update_story":
         story_id = action.get("story_id")
@@ -615,6 +626,174 @@ def execute_assistant_action(action: dict, db) -> str:
         if story_id and updates:
             story_repo.update(story_id, updates)
             result = f"Story {story_id} atualizada"
+
+    elif action_type == "create_story":
+        story_data = action.get("story_data", {})
+        if story_data.get("project_id") and story_data.get("title"):
+            story = story_repo.create(story_data)
+            result = f"Story {story.story_id} criada: {story.title}"
+        else:
+            result = "Erro: project_id e title sao obrigatorios"
+
+    # =========================================================================
+    # ACOES DE EXECUCAO/STATUS
+    # =========================================================================
+    elif action_type == "check_execution_status":
+        story_id = action.get("story_id")
+        task_id = action.get("task_id")
+
+        if task_id:
+            # Status de task especifica
+            task = task_repo.get_by_id(task_id)
+            if task:
+                result = f"Task {task_id}: {task.title}\n"
+                result += f"Status: {task.status}\n"
+                result += f"Progresso: {task.progress}%\n"
+                if task.started_at:
+                    result += f"Iniciada em: {task.started_at}\n"
+                if task.completed_at:
+                    result += f"Concluida em: {task.completed_at}\n"
+                if task.code_output:
+                    result += f"Output: {task.code_output[:200]}..."
+        elif story_id:
+            # Status de story e suas tasks
+            story = story_repo.get_by_id(story_id)
+            if story:
+                result = f"Story {story_id}: {story.title}\n"
+                result += f"Status: {story.status}\n"
+                result += f"Progresso: {story.tasks_completed}/{story.tasks_total} tasks\n\n"
+                result += "Tasks:\n"
+                for t in story.story_tasks:
+                    status_icon = "✅" if t.status == "completed" else "🔄" if t.status == "in_progress" else "⏳"
+                    result += f"{status_icon} {t.task_id}: {t.title} [{t.status}] {t.progress}%\n"
+
+    elif action_type == "force_execute":
+        story_id = action.get("story_id")
+        if story_id:
+            story = story_repo.get_by_id(story_id)
+            if story:
+                # Mover para ready para que o watcher processe
+                if story.status in ['backlog', 'done', 'testing']:
+                    story_repo.move_story(story_id, 'ready')
+                    result = f"Story {story_id} movida para 'ready'. O Story Watcher ira processa-la automaticamente."
+                elif story.status == 'ready':
+                    result = f"Story {story_id} ja esta em 'ready' e sera processada pelo Story Watcher."
+                elif story.status == 'in_progress':
+                    # Verificar tasks pendentes
+                    pending = [t for t in story.story_tasks if t.status == 'pending']
+                    if pending:
+                        result = f"Story {story_id} ja esta em execucao. {len(pending)} tasks pendentes."
+                    else:
+                        result = f"Story {story_id} em execucao, todas as tasks ja iniciadas ou concluidas."
+
+    # =========================================================================
+    # ACOES DE PROJETO
+    # =========================================================================
+    elif action_type == "create_project":
+        project_data = action.get("project_data", {})
+        if project_data.get("name"):
+            # Definir defaults
+            project_data.setdefault("project_type", "web-app")
+            project_data.setdefault("status", "planning")
+            project = project_repo.create(project_data)
+            result = f"Projeto criado: {project.project_id} - {project.name}"
+        else:
+            result = "Erro: nome do projeto e obrigatorio"
+
+    elif action_type == "list_projects":
+        projects = project_repo.get_all()
+        if projects:
+            result = "\n".join([
+                f"- {p.project_id}: {p.name} [{p.status}] ({p.project_type})"
+                for p in projects
+            ])
+        else:
+            result = "Nenhum projeto encontrado"
+
+    elif action_type == "get_project_details":
+        project_id = action.get("project_id")
+        if project_id:
+            project = project_repo.get_by_id(project_id)
+            if project:
+                stories = story_repo.get_by_project(project_id)
+                result = f"Projeto: {project.project_id} - {project.name}\n"
+                result += f"Tipo: {project.project_type} | Status: {project.status}\n"
+                result += f"Descricao: {project.description or 'N/A'}\n"
+                result += f"Total de Stories: {len(stories)}\n"
+                if stories:
+                    by_status = {}
+                    for s in stories:
+                        by_status[s.status] = by_status.get(s.status, 0) + 1
+                    result += f"Por status: {by_status}"
+
+    # =========================================================================
+    # ACOES DE ANALISE DE ARQUIVOS
+    # =========================================================================
+    elif action_type == "analyze_file_for_stories":
+        file_path = action.get("file_path")
+        project_id = action.get("project_id")
+        file_content = action.get("file_content")
+
+        if file_content and project_id:
+            # Claude ja analisou o conteudo e esta pedindo para criar stories
+            # O conteudo aqui seria as stories sugeridas pelo Claude
+            result = f"Analise do arquivo para projeto {project_id} concluida. Use create_story para criar as stories sugeridas."
+        elif file_path:
+            # Tentar ler arquivo
+            try:
+                upload_path = Path(UPLOAD_DIR) / file_path
+                if upload_path.exists():
+                    with open(upload_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    result = f"Conteudo do arquivo ({len(content)} chars):\n{content[:2000]}"
+                    if len(content) > 2000:
+                        result += "\n... (truncado)"
+                else:
+                    result = f"Arquivo nao encontrado: {file_path}"
+            except Exception as e:
+                result = f"Erro ao ler arquivo: {str(e)}"
+
+    elif action_type == "list_attachments":
+        story_id = action.get("story_id")
+        attachment_repo = AttachmentRepository(db)
+        if story_id:
+            attachments = attachment_repo.get_by_story(story_id)
+        else:
+            # Listar todos os uploads recentes
+            attachments = db.query(Attachment).order_by(Attachment.created_at.desc()).limit(20).all()
+
+        if attachments:
+            result = "\n".join([
+                f"- {a.attachment_id}: {a.original_filename} ({a.file_size} bytes)"
+                for a in attachments
+            ])
+        else:
+            result = "Nenhum arquivo encontrado"
+
+    elif action_type == "read_attachment":
+        attachment_id = action.get("attachment_id")
+        attachment_repo = AttachmentRepository(db)
+        attachment = attachment_repo.get_by_id(attachment_id)
+
+        if attachment:
+            try:
+                file_path = Path(attachment.file_path)
+                if file_path.exists():
+                    # Verificar tipo de arquivo
+                    if attachment.mime_type and attachment.mime_type.startswith('text'):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        result = f"Arquivo: {attachment.original_filename}\n\nConteudo:\n{content[:3000]}"
+                        if len(content) > 3000:
+                            result += "\n... (truncado)"
+                    else:
+                        result = f"Arquivo: {attachment.original_filename} ({attachment.mime_type}) - {attachment.file_size} bytes\nArquivo binario, nao pode ser exibido como texto."
+                else:
+                    result = f"Arquivo nao encontrado no disco: {attachment.original_filename}"
+            except Exception as e:
+                result = f"Erro ao ler arquivo: {str(e)}"
+        else:
+            result = f"Attachment {attachment_id} nao encontrado"
 
     return result
 
@@ -646,32 +825,56 @@ def generate_assistant_response(content: str, project_id: str, story_id: str, db
 
                 # System prompt para o assistente
                 system_prompt = f"""Voce e o Assistente Inteligente da Fabrica de Agentes, um sistema de gestao Agile.
-Seu papel e ajudar usuarios a gerenciar User Stories, Tasks e o desenvolvimento de projetos.
+Seu papel e ajudar usuarios a gerenciar User Stories, Tasks, Projetos e o desenvolvimento autonomo.
 
 SUAS CAPACIDADES:
-1. Responder perguntas sobre stories, tasks e o projeto
-2. Executar acoes como mover stories, listar informacoes, atualizar dados
-3. Analisar documentos e arquivos anexados
-4. Sugerir melhorias e boas praticas Agile
+1. Gerenciar stories (criar, editar, mover, listar, ver detalhes)
+2. Verificar status de execucao de stories e tasks
+3. Forcar execucao de stories (envia para processamento automatico)
+4. Criar e gerenciar projetos
+5. Analisar documentos/arquivos para criar stories
+6. Sugerir melhorias e boas praticas Agile
 
-ACOES DISPONIVEIS (responda com JSON quando quiser executar):
-- {{"action": "move_story", "story_id": "STR-XXXX", "status": "ready|in_progress|testing|done"}}
+=== ACOES DISPONIVEIS ===
+
+STORIES:
 - {{"action": "get_story_details", "story_id": "STR-XXXX"}}
-- {{"action": "list_stories"}}
-- {{"action": "update_story", "story_id": "STR-XXXX", "updates": {{"title": "...", "story_points": N}}}}
+- {{"action": "list_stories", "project_id": "PRJ-XXXX"}}  (project_id opcional)
+- {{"action": "move_story", "story_id": "STR-XXXX", "status": "backlog|ready|in_progress|review|testing|done"}}
+- {{"action": "update_story", "story_id": "STR-XXXX", "updates": {{"title": "...", "story_points": N, "priority": "high"}}}}
+- {{"action": "create_story", "story_data": {{"project_id": "PRJ-XXXX", "title": "...", "persona": "...", "action": "...", "benefit": "...", "story_points": N, "acceptance_criteria": ["..."]}}}}
 
-FORMATO DE RESPOSTA:
+EXECUCAO E STATUS:
+- {{"action": "check_execution_status", "story_id": "STR-XXXX"}}  (mostra progresso de tasks)
+- {{"action": "check_execution_status", "task_id": "STSK-XXXX"}}  (status de task especifica)
+- {{"action": "force_execute", "story_id": "STR-XXXX"}}  (envia para fila de execucao automatica)
+
+PROJETOS:
+- {{"action": "list_projects"}}
+- {{"action": "get_project_details", "project_id": "PRJ-XXXX"}}
+- {{"action": "create_project", "project_data": {{"name": "...", "description": "...", "project_type": "web-app|api-service|data-analysis"}}}}
+
+ARQUIVOS E DOCUMENTOS:
+- {{"action": "list_attachments", "story_id": "STR-XXXX"}}  (lista arquivos anexados)
+- {{"action": "read_attachment", "attachment_id": "XXX"}}  (le conteudo do arquivo)
+
+=== FORMATO DE RESPOSTA ===
 - Responda de forma clara e util em portugues
-- Se precisar executar uma acao, inclua o JSON da acao NO FINAL da resposta, entre marcadores <action> e </action>
-- Exemplo: "Vou mover a story para Ready. <action>{{"action": "move_story", "story_id": "STR-0001", "status": "ready"}}</action>"
+- Para executar acoes, inclua o JSON entre <action> e </action> NO FINAL da resposta
+- Voce pode executar MULTIPLAS acoes em uma unica resposta
+- Exemplo: "Vou criar o projeto e a primeira story. <action>{{"action": "create_project", "project_data": {{"name": "Meu App"}}}}</action><action>{{"action": "create_story", "story_data": {{"project_id": "PRJ-0001", "title": "Login"}}}}</action>"
 
+=== CONTEXTO ATUAL ===
 {project_context}
 {current_story_context}
 
-IMPORTANTE:
-- Seja proativo e execute acoes quando o usuario pedir
-- Forneca detalhes completos quando perguntado sobre stories
-- Use os dados reais do projeto listados acima"""
+=== INSTRUCOES ===
+- Seja proativo: quando o usuario pedir algo, EXECUTE a acao
+- Para verificar status de execucao, use check_execution_status
+- Para iniciar execucao automatica de uma story, use force_execute
+- Ao analisar arquivos para criar stories, primeiro use read_attachment, depois crie as stories com create_story
+- Use os dados REAIS do projeto listados acima
+- Se o usuario enviar um documento para analise, leia-o e sugira stories baseadas no conteudo"""
 
                 # Chamar Claude
                 response = claude.chat(
