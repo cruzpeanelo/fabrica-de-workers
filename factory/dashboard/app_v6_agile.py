@@ -1362,6 +1362,187 @@ HTML_TEMPLATE = """
             font-size: 0.8rem;
         }
         .shortcut-desc { color: #6B7280; }
+
+        /* Loading States */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #E5E7EB;
+            border-top-color: #003B4A;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .spinner-sm {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .skeleton-card {
+            height: 120px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+
+        /* Enhanced Drag and Drop */
+        .kanban-column.drop-active {
+            background-color: rgba(0, 59, 74, 0.05) !important;
+            border: 2px dashed #003B4A !important;
+        }
+        .story-card.sortable-chosen {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25) !important;
+            transform: rotate(2deg) scale(1.02);
+        }
+        .story-card.sortable-ghost {
+            opacity: 0.4;
+            background: #E5E7EB;
+        }
+
+        /* Quick Actions */
+        .story-card {
+            position: relative;
+        }
+        .quick-actions {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .story-card:hover .quick-actions {
+            opacity: 1;
+        }
+        .quick-btn {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            background: white;
+            border: 1px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+            color: #6B7280;
+            transition: all 0.15s;
+        }
+        .quick-btn:hover {
+            background: #F3F4F6;
+            color: #374151;
+            transform: scale(1.1);
+        }
+        .quick-btn.danger:hover {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+        .quick-btn.success:hover {
+            background: #D1FAE5;
+            color: #059669;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            min-width: 180px;
+            padding: 4px 0;
+            z-index: 9999;
+            animation: menuIn 0.15s ease;
+        }
+        @keyframes menuIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #374151;
+            transition: background 0.1s;
+        }
+        .context-menu-item:hover {
+            background: #F3F4F6;
+        }
+        .context-menu-item.danger {
+            color: #DC2626;
+        }
+        .context-menu-item.danger:hover {
+            background: #FEE2E2;
+        }
+        .context-menu-divider {
+            height: 1px;
+            background: #E5E7EB;
+            margin: 4px 0;
+        }
+
+        /* Micro-interactions */
+        .btn-animate {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-animate:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-animate:active {
+            transform: translateY(0);
+        }
+        .card-animate {
+            animation: cardEnter 0.3s ease;
+        }
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -1530,9 +1711,24 @@ HTML_TEMPLATE = """
                             <!-- Story Card -->
                             <div v-for="story in column" :key="story.story_id"
                                  @click="openStoryDetail(story)"
+                                 @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
-                                 :class="['story-card bg-white rounded-lg shadow p-3',
+                                 :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                           'priority-' + story.priority]">
+                                <!-- Quick Actions -->
+                                <div class="quick-actions" @click.stop>
+                                    <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        </svg>
+                                    </button>
+                                    <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
                                 <!-- Epic + Points -->
                                 <div class="flex items-center justify-between mb-2">
                                     <span v-if="story.epic_id" class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">
@@ -2234,6 +2430,42 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- CONTEXT MENU -->
+        <div v-if="contextMenu.visible"
+             class="context-menu"
+             :style="{top: contextMenu.y + 'px', left: contextMenu.x + 'px'}"
+             @click.stop>
+            <div class="context-menu-item" @click="contextMenuAction('open')">
+                <span>📋</span> Abrir detalhes
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" @click="contextMenuAction('backlog')">
+                <span>1️⃣</span> Mover para Backlog
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('ready')">
+                <span>2️⃣</span> Mover para Ready
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('in_progress')">
+                <span>3️⃣</span> Mover para In Progress
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('review')">
+                <span>4️⃣</span> Mover para Review
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('testing')">
+                <span>5️⃣</span> Mover para Testing
+            </div>
+            <div class="context-menu-item" @click="contextMenuAction('done')">
+                <span>6️⃣</span> Mover para Done
+            </div>
+            <div class="context-menu-divider"></div>
+            <div class="context-menu-item" @click="contextMenuAction('copy')">
+                <span>📄</span> Copiar ID
+            </div>
+            <div class="context-menu-item danger" @click="contextMenuAction('delete')">
+                <span>🗑️</span> Excluir
+            </div>
+        </div>
+
         <!-- TOAST CONTAINER -->
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id"
@@ -2285,6 +2517,17 @@ HTML_TEMPLATE = """
                 confirmText: 'Excluir',
                 onConfirm: null
             });
+
+            // Context Menu
+            const contextMenu = ref({
+                visible: false,
+                x: 0,
+                y: 0,
+                story: null
+            });
+
+            // Loading State
+            const isLoading = ref(false);
 
             // Modals
             const showNewStoryModal = ref(false);
@@ -2877,6 +3120,61 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Move to next column (quick action)
+            const moveToNextColumn = async (story) => {
+                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+                const currentIndex = statuses.indexOf(story.status);
+                if (currentIndex < statuses.length - 1) {
+                    const newStatus = statuses[currentIndex + 1];
+                    await moveStoryToStatus(story, newStatus);
+                } else {
+                    addToast('info', 'Ja esta em Done', 'Story ja esta na ultima coluna');
+                }
+            };
+
+            // Context Menu
+            const showContextMenu = (event, story) => {
+                contextMenu.value = {
+                    visible: true,
+                    x: event.clientX,
+                    y: event.clientY,
+                    story: story
+                };
+            };
+
+            const hideContextMenu = () => {
+                contextMenu.value.visible = false;
+                contextMenu.value.story = null;
+            };
+
+            const contextMenuAction = async (action) => {
+                const story = contextMenu.value.story;
+                hideContextMenu();
+
+                if (!story) return;
+
+                switch (action) {
+                    case 'open':
+                        openStoryDetail(story);
+                        break;
+                    case 'backlog':
+                    case 'ready':
+                    case 'in_progress':
+                    case 'review':
+                    case 'testing':
+                    case 'done':
+                        await moveStoryToStatus(story, action);
+                        break;
+                    case 'copy':
+                        navigator.clipboard.writeText(story.story_id);
+                        addToast('success', 'ID copiado', story.story_id);
+                        break;
+                    case 'delete':
+                        deleteStoryWithConfirm(story);
+                        break;
+                }
+            };
+
             // Watch project change
             watch(selectedProjectId, () => {
                 loadChatHistory();
@@ -2888,6 +3186,11 @@ HTML_TEMPLATE = """
 
                 // Setup keyboard shortcuts
                 document.addEventListener('keydown', handleKeyboard);
+
+                // Close context menu on click outside
+                document.addEventListener('click', () => {
+                    hideContextMenu();
+                });
 
                 // Welcome message
                 chatHistory.value.push({
@@ -2904,6 +3207,7 @@ HTML_TEMPLATE = """
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 showShortcutsModal, showConfirmModal, confirmModal,
+                contextMenu, isLoading,
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, searchQuery, searchInput, toasts,
@@ -2913,7 +3217,8 @@ HTML_TEMPLATE = """
                 sendMessage, getTaskStatusClass, getDocTypeClass,
                 formatTime, formatFileSize, renderMarkdown,
                 addToast, removeToast, getToastIcon, handleUndo,
-                cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm
+                cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
+                showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn
             };
         }
     }).mount('#app');
