@@ -5901,6 +5901,47 @@ HTML_TEMPLATE = """
                 projects.value = await res.json();
             };
 
+            
+            // Pair Programming Methods (#59)
+            const checkPairStatus = async () => {
+                try {
+                    const response = await fetch('/api/pair-program/status');
+                    if (response.ok) pairStatus.value = await response.json();
+                } catch (error) {
+                    pairStatus.value = { available: false, active_sessions: 0, modes: [] };
+                }
+            };
+
+            const sendPairMessage = async () => {
+                if (\!pairMessage.value.trim() || pairLoading.value) return;
+                const message = pairMessage.value;
+                pairMessage.value = '';
+                pairLoading.value = true;
+                pairChatHistory.value.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
+                try {
+                    const response = await fetch('/api/pair-program', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: message, selected_code: selectedStory.value?.code_output || '' })
+                    });
+                    const data = await response.json();
+                    pairChatHistory.value.push({ role: 'assistant', content: response.ok ? data.response : ('Erro: ' + (data.detail || 'Falha')), timestamp: new Date().toISOString() });
+                    if (data.session_id) pairSessionId.value = data.session_id;
+                } catch (error) {
+                    pairChatHistory.value.push({ role: 'assistant', content: 'Erro: ' + error.message, timestamp: new Date().toISOString() });
+                } finally { pairLoading.value = false; }
+            };
+
+            const pairAction = async (action) => {
+                const prompts = { explain: 'Explique o codigo', refactor: 'Sugira refatoracoes', bugs: 'Detecte bugs', next: 'Sugira proximos passos' };
+                pairMessage.value = prompts[action] || 'Analise';
+                await sendPairMessage();
+            };
+
+            const formatChatMessage = (c) => c ? c.replace(/
+/g, '<br>') : '';
+            const formatTime = (t) => t ? new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+
             const loadProjectData = async () => {
                 if (!selectedProjectId.value) return;
 
@@ -6358,6 +6399,32 @@ HTML_TEMPLATE = """
                     addToast('error', 'Erro ao gerar testes', e.message);
                 } finally {
                     generatingTests.value = null;
+                }
+            };
+
+            // Review Code with AI
+            const reviewCodeWithAI = async () => {
+                if (!selectedStory.value?.story_id) return;
+                reviewingCode.value = true;
+                try {
+                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/review-code`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        codeReviewResult.value = result;
+                        showReviewResultModal.value = true;
+                        const quality = result.score >= 80 ? 'Excelente' : result.score >= 50 ? 'Aceitavel' : 'Precisa melhorias';
+                        addToast('success', `Code Review: ${result.score}/100 - ${quality}`, result.summary);
+                    } else {
+                        const err = await res.json();
+                        throw new Error(err.detail || 'Erro ao revisar codigo');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro no Code Review', e.message);
+                } finally {
+                    reviewingCode.value = false;
                 }
             };
 
@@ -7074,6 +7141,11 @@ Process ${data.status}`);
                 loadDarkMode();
                 loadNotificationSoundPreference();
 
+                // Initialize mobile scroll tracking after DOM is ready
+                nextTick(() => {
+                    initKanbanScrollTracking();
+                });
+
                 // Connect WebSocket for real-time notifications
                 connectWebSocket();
 
@@ -7105,6 +7177,9 @@ Process ${data.status}`);
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, filteredStoriesCount, searchQuery, searchInput, toasts,
                 filterPriority, filterAssignee, clearFilters,
+                // Swimlanes
+                groupBy, groupedStories, collapsedSwimlanes,
+                toggleSwimlane, isSwimlaneCollapsed, getSwimlaneStoryCount, getSwimlanePoints,
                 loadProjectData, getColumnTitle, getColumnPoints, getEpicName,
                 openStoryDetail, createStory, createTask, toggleTaskComplete,
                 createEpic, createSprint, createDoc, editStory, uploadFile, filterByEpic,
