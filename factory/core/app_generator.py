@@ -681,6 +681,10 @@ class AppGenerator:
         if self.project_type == "python" and analysis.get("models"):
             return self._generate_python_app(analysis["models"])
 
+        # Node.js/Express support (Issue #75)
+        if self.project_type == "nodejs":
+            return self._generate_nodejs_app(analysis.get("models", []))
+
         return {
             "success": False,
             "message": "Nao foi possivel gerar aplicacao automaticamente. Projeto ainda em desenvolvimento."
@@ -919,24 +923,177 @@ if __name__ == "__main__":
 '''
         return content
 
+    # ============================================================
+    # NODE.JS/EXPRESS APP GENERATION (Issue #75)
+    # ============================================================
+
+    def _generate_nodejs_app(self, models: List[Dict]) -> Dict:
+        """Gera uma aplicacao Express.js baseada nos modelos encontrados."""
+        if not self.project_path:
+            return {"success": False, "message": "Caminho do projeto nao encontrado"}
+
+        # Gerar app.js
+        app_content = self._generate_express_main(models)
+        app_file = self.project_path / "app.js"
+        app_file.write_text(app_content, encoding="utf-8")
+
+        # Gerar package.json se nao existir
+        package_file = self.project_path / "package.json"
+        package_created = False
+        if not package_file.exists():
+            package_content = self._generate_package_json(models)
+            package_file.write_text(package_content, encoding="utf-8")
+            package_created = True
+
+        # Gerar script de inicializacao para Windows
+        start_script = self.project_path / "iniciar_app.bat"
+        start_bat = f"""@echo off
+echo ========================================
+echo   Iniciando Aplicacao Node.js - {self.project_id}
+echo ========================================
+echo.
+echo Instalando dependencias...
+call npm install
+echo.
+echo Iniciando servidor...
+echo Acesse: http://localhost:3000
+echo.
+node app.js
+pause
+"""
+        start_script.write_text(start_bat, encoding="utf-8")
+
+        return {
+            "success": True,
+            "message": f"Aplicacao Express.js gerada com sucesso! {len(models)} modelos encontrados.",
+            "app_url": "http://localhost:3000",
+            "docs_url": "http://localhost:3000/api-docs",
+            "start_command": "npm start",
+            "start_script": str(start_script),
+            "files_created": [str(app_file), str(package_file) if package_created else None, str(start_script)]
+        }
+
+    def _generate_package_json(self, models: List[Dict]) -> str:
+        """Gera o arquivo package.json para o projeto Express."""
+        orm_deps = {}
+        for model in models:
+            orm_type = model.get("orm_type", model.get("type", ""))
+            if orm_type == "sequelize":
+                orm_deps["sequelize"] = "^6.35.0"
+                orm_deps["sqlite3"] = "^5.1.6"
+            elif orm_type == "typeorm":
+                orm_deps["typeorm"] = "^0.3.17"
+                orm_deps["reflect-metadata"] = "^0.1.13"
+            elif orm_type == "mongoose":
+                orm_deps["mongoose"] = "^8.0.0"
+
+        package = {
+            "name": self.project_id.lower().replace(" ", "-").replace("_", "-"),
+            "version": "1.0.0",
+            "description": "Aplicacao de teste gerada pela Fabrica de Agentes",
+            "main": "app.js",
+            "scripts": {"start": "node app.js", "dev": "nodemon app.js"},
+            "dependencies": {"express": "^4.18.2", "cors": "^2.8.5", "swagger-ui-express": "^5.0.0", "swagger-jsdoc": "^6.2.8", **orm_deps},
+            "devDependencies": {"nodemon": "^3.0.1"},
+            "author": "Fabrica de Agentes",
+            "license": "MIT"
+        }
+        return json.dumps(package, indent=2, ensure_ascii=False)
+
+    def _generate_express_main(self, models: List[Dict]) -> str:
+        """Gera o arquivo app.js do Express com CRUD endpoints."""
+        model_names = [m["name"] for m in models]
+        routes_code = self._generate_express_routes(models)
+        sample_data = self._generate_sample_data(models)
+
+        return f'''/**
+ * Aplicacao de Teste - {self.project_id}
+ * Gerada automaticamente pela Fabrica de Agentes - {datetime.now().strftime("%Y-%m-%d %H:%M")}
+ */
+const express = require('express');
+const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+
+const swaggerDocs = swaggerJsdoc({{
+    definition: {{
+        openapi: '3.0.0',
+        info: {{ title: '{self.project_id} API', version: '1.0.0' }},
+        servers: [{{ url: 'http://localhost:' + PORT }}]
+    }},
+    apis: ['./app.js']
+}});
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+{sample_data}
+
+app.get('/', (req, res) => res.send('<h1>{self.project_id}</h1><p>API rodando!</p><a href="/api-docs">Swagger Docs</a>'));
+app.get('/health', (req, res) => res.json({{ status: 'healthy', project: '{self.project_id}' }}));
+
+{routes_code}
+
+app.listen(PORT, () => console.log('Servidor rodando em http://localhost:' + PORT));
+module.exports = app;
+'''
+
+    def _generate_express_routes(self, models: List[Dict]) -> str:
+        """Gera rotas CRUD Express para cada modelo."""
+        if not models:
+            return "app.get('/api/items', (req, res) => res.json({ data: itemData }));"
+        routes = ""
+        for m in models:
+            n = m["name"].lower()
+            routes += f"app.get('/api/{n}s', (req, res) => res.json({{ data: {n}Data }}));\n"
+            routes += f"app.get('/api/{n}s/:id', (req, res) => {{ const i = {n}Data.find(x => x.id === +req.params.id); i ? res.json(i) : res.status(404).json({{error: 'Not found'}}); }});\n"
+            routes += f"app.post('/api/{n}s', (req, res) => {{ const i = {{id: {n}Data.length+1, ...req.body}}; {n}Data.push(i); res.status(201).json(i); }});\n"
+            routes += f"app.put('/api/{n}s/:id', (req, res) => {{ const idx = {n}Data.findIndex(x => x.id === +req.params.id); if(idx===-1) return res.status(404).json({{error:'Not found'}}); {n}Data[idx] = {{...{n}Data[idx], ...req.body}}; res.json({n}Data[idx]); }});\n"
+            routes += f"app.delete('/api/{n}s/:id', (req, res) => {{ const idx = {n}Data.findIndex(x => x.id === +req.params.id); if(idx===-1) return res.status(404).json({{error:'Not found'}}); {n}Data.splice(idx,1); res.json({{success:true}}); }});\n"
+        return routes
+
+    def _generate_sample_data(self, models: List[Dict]) -> str:
+        """Gera dados de exemplo para os modelos."""
+        if not models:
+            return "let itemData = [{ id: 1, name: 'Exemplo' }];"
+        return "\n".join([f"let {m['name'].lower()}Data = [{{id: 1, name: 'Exemplo 1'}}, {{id: 2, name: 'Exemplo 2'}}];" for m in models])
+
+    def _start_nodejs_app(self) -> Dict:
+        """Inicia uma aplicacao Node.js."""
+        app_file = self.project_path / "app.js"
+        if not app_file.exists():
+            return {"success": False, "message": "Arquivo app.js nao encontrado"}
+        try:
+            process = subprocess.Popen(
+                ["node", str(app_file)],
+                cwd=str(self.project_path),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+            )
+            return {"success": True, "message": "Aplicacao Node.js iniciada!", "app_url": "http://localhost:3000", "pid": process.pid}
+        except Exception as e:
+            return {"success": False, "message": f"Erro: {str(e)}"}
+
     def start_app(self) -> Dict:
         """Inicia a aplicacao para teste."""
         analysis = self.analyze_project()
 
         if not analysis.get("ready_to_test"):
-            # Tentar gerar primeiro
             gen_result = self.generate_testable_app()
             if not gen_result.get("success"):
                 return gen_result
 
-        # Iniciar a aplicacao
         if self.project_type == "python":
             return self._start_python_app()
+        if self.project_type == "nodejs":
+            return self._start_nodejs_app()
 
-        return {
-            "success": False,
-            "message": "Tipo de projeto nao suportado para inicio automatico"
-        }
+        return {"success": False, "message": "Tipo de projeto nao suportado para inicio automatico"}
 
     def _start_python_app(self) -> Dict:
         """Inicia uma aplicacao Python."""
