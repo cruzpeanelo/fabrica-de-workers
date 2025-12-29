@@ -1,4 +1,4 @@
-# Arquitetura Técnica - Fábrica de Agentes
+# Arquitetura Técnica - Fábrica de Agentes v7.0
 
 ## Documentação para Equipes de TI
 
@@ -20,6 +20,9 @@ Este documento descreve a arquitetura completa, componentes, artefatos e fluxos 
 10. [Seguranca](#10-seguranca)
 11. [Monitoramento](#11-monitoramento)
 12. [Extensibilidade](#12-extensibilidade)
+13. [Modulos Enterprise](#13-modulos-enterprise)
+14. [Integracoes Corporativas](#14-integracoes-corporativas)
+15. [Infraestrutura Cloud](#15-infraestrutura-cloud)
 
 ---
 
@@ -890,4 +893,436 @@ projects/{project_id}/
 
 ---
 
-*Documentação Técnica v6.5 - Última atualização: Dezembro 2025*
+---
+
+## 13. Modulos Enterprise
+
+### 13.1 Multi-LLM Support (`factory/ai/llm_manager.py`)
+
+Suporte a múltiplos provedores de LLM com interface unificada:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      LLM MANAGER                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐│
+│  │   Claude    │  │ Azure OpenAI│  │ AWS Bedrock │  │ Vertex  ││
+│  │ (Anthropic) │  │  (OpenAI)   │  │  (Amazon)   │  │ (Google)││
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └────┬────┘│
+│         │                │                │               │     │
+│         └────────────────┴────────────────┴───────────────┘     │
+│                              │                                   │
+│                    ┌─────────┴─────────┐                        │
+│                    │   LLMManager      │                        │
+│                    │   (Interface)     │                        │
+│                    └───────────────────┘                        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Provedores Suportados:**
+| Provedor | Modelos | Configuração |
+|----------|---------|--------------|
+| Claude (Anthropic) | claude-opus-4-5, claude-sonnet-4, haiku | `ANTHROPIC_API_KEY` |
+| Azure OpenAI | gpt-4, gpt-4-turbo, gpt-3.5 | `AZURE_OPENAI_KEY`, `AZURE_OPENAI_ENDPOINT` |
+| AWS Bedrock | claude, titan, llama | `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `AWS_REGION` |
+| Google Vertex | gemini-pro, palm-2 | `GOOGLE_PROJECT_ID`, `GOOGLE_APPLICATION_CREDENTIALS` |
+
+### 13.2 Autenticação e Autorização (`factory/auth/`)
+
+**SSO - Single Sign-On (`sso.py`)**
+- SAML 2.0 para integração com Identity Providers
+- Azure AD / Entra ID integration
+- Google Workspace SSO
+- Okta, OneLogin, Auth0
+
+**RBAC - Role-Based Access Control (`rbac.py`)**
+```python
+# Roles disponíveis
+ADMIN      # Acesso total
+MANAGER    # Gerenciar projetos e equipes
+DEVELOPER  # Criar e editar stories/tasks
+VIEWER     # Apenas visualização
+```
+
+### 13.3 Multi-Tenancy e Billing (`factory/billing/`)
+
+Sistema completo de multi-tenancy para SaaS:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MULTI-TENANT ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐    │
+│  │ Tenant A  │  │ Tenant B  │  │ Tenant C  │  │ Tenant N  │    │
+│  │ (Empresa) │  │ (Empresa) │  │ (Empresa) │  │ (Empresa) │    │
+│  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘    │
+│        │              │              │              │           │
+│        └──────────────┴──────────────┴──────────────┘           │
+│                              │                                   │
+│              ┌───────────────┴───────────────┐                  │
+│              │      TENANT SERVICE           │                  │
+│              │  - Isolamento de dados        │                  │
+│              │  - Configurações por tenant   │                  │
+│              │  - Limites de uso             │                  │
+│              └───────────────────────────────┘                  │
+│                              │                                   │
+│              ┌───────────────┴───────────────┐                  │
+│              │      BILLING SERVICE          │                  │
+│              │  - Planos: Free, Pro, Enterprise│                │
+│              │  - Métricas de uso            │                  │
+│              │  - Faturamento automático     │                  │
+│              └───────────────────────────────┘                  │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Planos Disponíveis:**
+| Plano | Projetos | Stories/mês | API Calls | Suporte |
+|-------|----------|-------------|-----------|---------|
+| Free | 3 | 50 | 1.000 | Community |
+| Pro | 20 | 500 | 50.000 | Email |
+| Enterprise | Ilimitado | Ilimitado | Ilimitado | 24/7 |
+
+### 13.4 SDK Público (`factory/sdk/`)
+
+SDK Python para integração programática:
+
+```python
+from factory_sdk import FactoryClient
+
+# Inicializar cliente
+client = FactoryClient(api_key="your-api-key")
+
+# Criar projeto
+project = await client.projects.create(
+    name="Meu Projeto",
+    description="Descrição"
+)
+
+# Criar story
+story = await client.stories.create(
+    project_id=project.id,
+    title="Implementar login",
+    persona="usuário",
+    action="fazer login",
+    benefit="acessar o sistema"
+)
+
+# Monitorar execução
+status = await client.stories.get_status(story.id)
+```
+
+### 13.5 WebSocket Real-time (`factory/websocket/`)
+
+Notificações em tempo real via WebSocket:
+
+```javascript
+// Cliente JavaScript
+const ws = new WebSocket('ws://localhost:9001/ws/notifications');
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    switch(data.type) {
+        case 'story_updated':
+            updateStoryCard(data.story);
+            break;
+        case 'task_completed':
+            showNotification(data.message);
+            break;
+        case 'agent_status':
+            updateAgentIndicator(data.status);
+            break;
+    }
+};
+```
+
+### 13.6 MCP Tools Integration (`factory/mcp/`)
+
+Model Context Protocol para extensibilidade:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       MCP ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────┐         ┌─────────────────┐                │
+│  │   MCP Server    │◄───────►│   MCP Client    │                │
+│  │  (factory/mcp)  │         │   (Claude)      │                │
+│  └────────┬────────┘         └─────────────────┘                │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌─────────────────────────────────────────────┐                │
+│  │              TOOLS DISPONÍVEIS              │                │
+│  ├─────────────────────────────────────────────┤                │
+│  │  create_project    │  Criar novo projeto    │                │
+│  │  create_story      │  Criar user story      │                │
+│  │  list_stories      │  Listar stories        │                │
+│  │  execute_story     │  Executar story        │                │
+│  │  get_project_files │  Listar arquivos       │                │
+│  │  run_tests         │  Executar testes       │                │
+│  └─────────────────────────────────────────────┘                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 14. Integracoes Corporativas
+
+### 14.1 SAP Integration (`factory/integrations/sap_*/`)
+
+**SAP S/4HANA (`sap_s4/`)**
+- OData v4 Client para APIs REST
+- Graph Client para Business Graph
+- Analyzers: CDS, RAP, Fiori
+
+**SAP ECC (`sap_ecc/`)**
+- RFC Client para chamadas BAPI
+- OData Client para OData Services
+- Analyzers: ABAP, BAdI, Config, Table
+
+**SAP CPI (`sap_cpi/`)**
+- iFlow Manager para integração
+- Package Manager para deployment
+- Analyzers: iFlow, Mapping, Script
+
+### 14.2 Salesforce Integration (`factory/integrations/salesforce/`)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   SALESFORCE INTEGRATION                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   REST API  │  │  Bulk API   │  │ Tooling API │              │
+│  │   Client    │  │   Client    │  │   Client    │              │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
+│         │                │                │                      │
+│         └────────────────┴────────────────┘                      │
+│                         │                                        │
+│              ┌──────────┴──────────┐                            │
+│              │  ANALYZERS          │                            │
+│              │  - Object Analyzer  │                            │
+│              │  - Flow Analyzer    │                            │
+│              │  - Apex Analyzer    │                            │
+│              └─────────────────────┘                            │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 14.3 Microsoft Integration (`factory/integrations/teams/`, `email/`)
+
+**Microsoft Teams**
+- Graph Client para API do Teams
+- Webhook Client para incoming webhooks
+- Bot Framework para interações
+- Adaptive Cards para notificações ricas
+
+**Exchange/Outlook**
+- Graph Mail Client para envio/leitura
+- SMTP Client como fallback
+- Templates HTML para emails
+
+### 14.4 DevOps Integration (`factory/integrations/jira.py`, `azure_devops.py`)
+
+**Jira**
+- Sincronização bidirecional de issues
+- Mapeamento Story → Issue
+- Webhooks para atualizações
+
+**Azure DevOps**
+- Work Items sync
+- Pipeline triggers
+- Repository integration
+
+---
+
+## 15. Infraestrutura Cloud
+
+### 15.1 Terraform IaC (`terraform/`)
+
+```
+terraform/
+├── main.tf              # Configuração principal
+├── variables.tf         # Variáveis de entrada
+├── outputs.tf           # Outputs
+├── modules/
+│   ├── aws/             # Módulo AWS
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   ├── azure/           # Módulo Azure
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   └── gcp/             # Módulo GCP
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+└── environments/
+    ├── dev.tfvars
+    ├── staging.tfvars
+    └── prod.tfvars
+```
+
+### 15.2 Kubernetes (`k8s/`)
+
+```yaml
+# Estrutura de manifests
+k8s/
+├── namespace.yaml       # Namespace fabrica-agentes
+├── configmap.yaml       # Configurações
+├── secrets.yaml         # Secrets (template)
+├── ingress.yaml         # Ingress controller
+├── api/
+│   ├── deployment.yaml  # API deployment
+│   ├── service.yaml     # API service
+│   └── hpa.yaml         # Horizontal Pod Autoscaler
+├── workers/
+│   ├── deployment.yaml  # Workers deployment
+│   └── hpa.yaml         # Workers autoscaler
+└── storage/
+    └── pvc.yaml         # Persistent Volume Claims
+```
+
+### 15.3 Helm Charts (`helm/`)
+
+```yaml
+# helm/fabrica-agentes/values.yaml
+replicaCount: 3
+
+image:
+  repository: fabrica-agentes
+  tag: latest
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+```
+
+### 15.4 Cloud Providers (`factory/cloud/`)
+
+**AWS (`aws/`)**
+- EC2 para compute
+- S3 para storage
+- RDS para banco de dados
+- Lambda para funções serverless
+
+**Azure (`azure/`)**
+- Virtual Machines
+- Blob Storage
+- Azure SQL
+- Functions
+
+**GCP (`gcp/`)**
+- Compute Engine
+- Cloud Storage
+- Cloud SQL
+- Cloud Functions
+
+### 15.5 Logging Stack (`config/`, `docker-compose.logging.yml`)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    OBSERVABILITY STACK                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Promtail  │  │    Loki     │  │   Grafana   │              │
+│  │   (Agent)   │──│   (Store)   │──│   (UI)      │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                                                                  │
+│  OU                                                              │
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  Logstash   │  │Elasticsearch│  │   Kibana    │              │
+│  │   (Agent)   │──│   (Store)   │──│   (UI)      │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 16. Arquitetura de Alto Nível v7.0
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              FABRICA DE AGENTES v7.0                                     │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                           CAMADA DE APRESENTAÇÃO                                  │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐                  │   │
+│  │  │ Dashboard  │  │    SDK     │  │ Public API │  │    MCP     │                  │   │
+│  │  │  (Web UI)  │  │  (Python)  │  │   (REST)   │  │  (Tools)   │                  │   │
+│  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘                  │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                              CAMADA DE SEGURANÇA                                  │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐                  │   │
+│  │  │    SSO     │  │    RBAC    │  │ Rate Limit │  │  API Keys  │                  │   │
+│  │  │(SAML/OIDC) │  │  (Roles)   │  │  (Tiers)   │  │  (Auth)    │                  │   │
+│  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘                  │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                              CAMADA DE NEGÓCIO                                    │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐                  │   │
+│  │  │   Story    │  │    Test    │  │   Chatbot  │  │ Marketplace│                  │   │
+│  │  │ Generator  │  │ Generator  │  │  Builder   │  │ Templates  │                  │   │
+│  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘                  │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                           CAMADA DE INTELIGÊNCIA                                  │   │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐                  │   │
+│  │  │   Claude   │  │Azure OpenAI│  │AWS Bedrock │  │Google Vertex│                 │   │
+│  │  │(Anthropic) │  │  (OpenAI)  │  │  (Amazon)  │  │  (Google)  │                  │   │
+│  │  └────────────┘  └────────────┘  └────────────┘  └────────────┘                  │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                            CAMADA DE INTEGRAÇÃO                                   │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │   │
+│  │  │   SAP    │  │Salesforce│  │  Teams   │  │   Jira   │  │  GitHub  │           │   │
+│  │  │S4/ECC/CPI│  │   CRM    │  │ Outlook  │  │Azure DevO│  │ Actions  │           │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                          │                                               │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                          CAMADA DE INFRAESTRUTURA                                 │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │   │
+│  │  │   AWS    │  │  Azure   │  │   GCP    │  │Kubernetes│  │ Terraform│           │   │
+│  │  │ EC2/S3   │  │  VMs/Blob│  │ GCE/GCS  │  │  Helm    │  │   IaC    │           │   │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘           │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Contato e Suporte
+
+- **GitHub**: https://github.com/cruzpeanelo/fabrica-de-workers
+- **Documentação Usuário**: [README.md](../README.md)
+
+---
+
+*Documentação Técnica v7.0 - Última atualização: Dezembro 2025*

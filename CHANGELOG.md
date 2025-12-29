@@ -7,6 +7,128 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [7.0.0] - 2025-12-29
+
+### Enterprise Edition - Integrações Corporativas e Multi-Cloud
+
+Esta versão representa uma **evolução major** da Fábrica de Agentes, adicionando suporte completo a integrações corporativas, multi-tenancy, e infraestrutura cloud.
+
+#### Novas Funcionalidades Enterprise
+
+##### Multi-LLM Support (`factory/ai/llm_manager.py`) - #11
+- **Interface Unificada** - Trabalhe com múltiplos provedores de LLM
+- **Provedores Suportados**:
+  - Claude (Anthropic) - claude-opus-4-5, claude-sonnet-4, haiku
+  - Azure OpenAI - gpt-4, gpt-4-turbo, gpt-3.5
+  - AWS Bedrock - claude, titan, llama
+  - Google Vertex AI - gemini-pro, palm-2
+- **Model Selector** - Seleção inteligente de modelo baseado em task
+
+##### SSO e RBAC (`factory/auth/`) - #12, #13
+- **SSO via SAML 2.0** - Integração com Azure AD, Okta, OneLogin
+- **RBAC Completo** - Roles: Admin, Manager, Developer, Viewer
+- **Permissões Granulares** - Controle de acesso por projeto/story
+
+##### Multi-Tenancy e Billing (`factory/billing/`) - #15
+- **Isolamento de Tenants** - Dados separados por empresa
+- **Planos de Assinatura** - Free, Pro, Enterprise
+- **Métricas de Uso** - Tracking de API calls, stories, storage
+- **Limites por Plano** - Rate limiting inteligente
+
+##### Integrações SAP (`factory/integrations/sap_*/`) - #19, #20, #21
+- **SAP S/4HANA** - OData v4, Business Graph, analyzers CDS/RAP/Fiori
+- **SAP ECC** - RFC Client, BAPI calls, analyzers ABAP/BAdI
+- **SAP CPI** - iFlow Manager, Package deployment
+
+##### Salesforce CRM (`factory/integrations/salesforce/`) - #18
+- **REST API Client** - CRUD de objetos
+- **Bulk API Client** - Operações em massa
+- **Tooling API** - Apex, Flows, Metadata
+- **Analyzers** - Object, Flow, Apex analysis
+
+##### Microsoft Integration (`factory/integrations/teams/`, `email/`) - #22, #23
+- **Microsoft Teams** - Graph API, Webhooks, Bot Framework, Adaptive Cards
+- **Exchange/Outlook** - Graph Mail, SMTP fallback, Email templates
+
+##### DevOps Integration (`factory/integrations/`) - #14, #54
+- **Jira** - Sincronização bidirecional, webhooks
+- **Azure DevOps** - Work Items, Pipelines, Repos
+
+##### Notifications Multi-Canal (`factory/notifications/`) - #24
+- **Canais Suportados** - Email, Teams, Slack, Webhook
+- **Rules Engine** - Regras de notificação por evento
+- **Templates** - Templates HTML para cada canal
+
+##### WebSocket Real-time (`factory/websocket/`) - #25
+- **Notificações em Tempo Real** - Updates instantâneos
+- **Event System** - story_updated, task_completed, agent_status
+- **Room Management** - Canais por projeto/story
+
+##### MCP Tools (`factory/mcp/`) - #27
+- **MCP Server** - Server para Claude Code
+- **MCP Client** - Client para integração
+- **Tools Built-in** - create_project, create_story, execute_story, run_tests
+
+##### SDK Público (`factory/sdk/`) - #61
+- **Python SDK** - Client assíncrono completo
+- **Models** - Tipos Pydantic para responses
+- **Exceptions** - Error handling customizado
+
+##### Public API (`factory/api/`) - #61, #62
+- **API v1** - REST API completa
+- **API Key Auth** - Autenticação por chave
+- **Rate Limiting v2** - Limites por tier
+
+#### Infraestrutura Cloud
+
+##### Terraform IaC (`terraform/`) - #17
+- **Multi-Cloud** - AWS, Azure, GCP modules
+- **Environments** - dev, staging, prod configurations
+- **Modular** - Componentes reutilizáveis
+
+##### Kubernetes (`k8s/`) - #30
+- **Manifests Completos** - Namespace, ConfigMaps, Secrets, Ingress
+- **API Deployment** - Deployment, Service, HPA
+- **Workers Deployment** - Deployment com autoscaling
+- **Storage** - PVC para persistência
+
+##### Helm Charts (`helm/`)
+- **Chart Fabrica-Agentes** - Chart completo para deploy
+- **Values Customizáveis** - Replicas, resources, autoscaling
+
+##### CI/CD (`/.github/workflows/`) - #9
+- **GitHub Actions** - CI/CD automatizado
+- **Release Workflow** - Releases automáticos
+
+##### Logging Stack (`config/`, `docker-compose.logging.yml`) - #28
+- **Loki + Promtail + Grafana** - Stack de logs moderna
+- **Dashboards** - Dashboards Grafana pré-configurados
+
+#### Core Features
+
+##### Test Generator (`factory/core/test_generator.py`) - #53
+- **Auto Test Generation** - Gera testes automaticamente
+- **Unit Tests** - pytest tests
+- **Integration Tests** - API tests
+
+##### Chatbot Builder (`factory/core/chatbot_builder.py`) - #67
+- **Chatbot Framework** - Framework para criar chatbots
+- **Templates** - Templates de conversação
+- **Integrations** - Integração com canais
+
+##### Marketplace (`factory/core/marketplace.py`) - #56
+- **Template Marketplace** - Templates de projetos
+- **Skills Marketplace** - Skills reutilizáveis
+- **Categories** - Organização por categoria
+
+#### Estatísticas
+
+- **177 arquivos** criados/modificados
+- **80.001 linhas** de código adicionadas
+- **32 issues** fechadas nesta release
+
+---
+
 ## [6.5.0] - 2025-12-29
 
 ### App Generator - Teste de Aplicações com 1 Clique
