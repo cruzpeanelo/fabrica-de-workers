@@ -292,3 +292,361 @@ def cleanup_test_files():
             test_db_path.unlink()
         except PermissionError:
             pass
+
+
+# =============================================================================
+# WORKER FLOW TEST FIXTURES (Issue #29)
+# =============================================================================
+
+import tempfile
+import shutil
+import json
+import asyncio
+from unittest.mock import MagicMock, AsyncMock
+
+
+def pytest_configure(config):
+    """Configuracao inicial do pytest - registra markers customizados"""
+    config.addinivalue_line("markers", "unit: marca testes unitarios")
+    config.addinivalue_line("markers", "integration: marca testes de integracao")
+    config.addinivalue_line("markers", "e2e: marca testes end-to-end")
+    config.addinivalue_line("markers", "slow: marca testes lentos")
+
+
+@pytest.fixture
+def temp_project_dir():
+    """Cria diretorio temporario para projetos de teste"""
+    temp_dir = tempfile.mkdtemp(prefix="fabrica_test_")
+    yield Path(temp_dir)
+    # Cleanup apos o teste
+    if Path(temp_dir).exists():
+        shutil.rmtree(temp_dir)
+
+
+@pytest.fixture
+def minimal_loop_config(temp_project_dir):
+    """Configuracao minima do loop (todas validacoes desabilitadas)"""
+    from factory.core.autonomous_loop import LoopConfig
+    return LoopConfig(
+        max_attempts=1,
+        lint_enabled=False,
+        type_check_enabled=False,
+        test_enabled=False,
+        security_scan_enabled=False,
+        auto_commit=False,
+        project_base_dir=temp_project_dir
+    )
+
+
+@pytest.fixture
+def standard_loop_config(temp_project_dir):
+    """Configuracao padrao do loop para testes rapidos"""
+    from factory.core.autonomous_loop import LoopConfig
+    return LoopConfig(
+        max_attempts=3,
+        lint_enabled=False,
+        type_check_enabled=False,
+        test_enabled=False,
+        security_scan_enabled=False,
+        auto_commit=False,
+        project_base_dir=temp_project_dir
+    )
+
+
+@pytest.fixture
+def full_loop_config(temp_project_dir):
+    """Configuracao completa do loop (todas validacoes habilitadas)"""
+    from factory.core.autonomous_loop import LoopConfig
+    return LoopConfig(
+        max_attempts=2,
+        lint_enabled=True,
+        type_check_enabled=True,
+        test_enabled=True,
+        security_scan_enabled=True,
+        auto_commit=True,
+        project_base_dir=temp_project_dir
+    )
+
+
+@pytest.fixture
+def sqlite_queue_config():
+    """Configuracao de fila SQLite"""
+    from factory.core.job_queue import QueueConfig, QueueBackend
+    return QueueConfig(
+        backend=QueueBackend.SQLITE,
+        max_workers=1,
+        job_timeout=60
+    )
+
+
+@pytest.fixture
+def redis_queue_config():
+    """Configuracao de fila Redis"""
+    from factory.core.job_queue import QueueConfig, QueueBackend
+    return QueueConfig(
+        backend=QueueBackend.REDIS,
+        redis_url=os.getenv("REDIS_URL", "redis://localhost:6379"),
+        max_workers=3,
+        job_timeout=600
+    )
+
+
+@pytest.fixture
+def mock_claude_client():
+    """Mock do cliente Claude API com resposta padrao para geracao de codigo"""
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(text="""
+---FILE: main.py---
+from fastapi import FastAPI
+
+app = FastAPI(title="Generated API")
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World", "status": "ok"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+---END FILE---
+
+---FILE: requirements.txt---
+fastapi>=0.104.0
+uvicorn>=0.24.0
+---END FILE---
+
+---FILE: tests/test_main.py---
+from fastapi.testclient import TestClient
+from main import app
+
+client = TestClient(app)
+
+def test_root():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+def test_health():
+    response = client.get("/health")
+    assert response.status_code == 200
+---END FILE---
+""")]
+    mock_client.messages.create.return_value = mock_response
+    return mock_client
+
+
+@pytest.fixture
+def mock_claude_client_error():
+    """Mock do cliente Claude API que retorna erro"""
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = Exception("Claude API unavailable")
+    return mock_client
+
+
+@pytest.fixture
+def sample_story_data():
+    """Dados de exemplo para uma User Story (para testes de worker flow)"""
+    from factory.core.story_generator import DEFAULT_DOD
+    return {
+        "project_id": "TEST-PROJECT-001",
+        "title": "Implementar endpoint de login",
+        "persona": "usuario do sistema",
+        "action": "fazer login com email e senha",
+        "benefit": "acessar minha conta de forma segura",
+        "acceptance_criteria": [
+            "Usuario pode fazer login com email valido",
+            "Senha deve ter minimo 8 caracteres",
+            "Sistema retorna token JWT apos sucesso"
+        ],
+        "definition_of_done": DEFAULT_DOD,
+        "story_points": 5,
+        "complexity": "medium",
+        "priority": "high"
+    }
+
+
+@pytest.fixture
+def sample_job_data():
+    """Dados de exemplo para um Job (para testes de worker flow)"""
+    return {
+        "description": "Criar API REST para gerenciamento de tarefas",
+        "tech_stack": "python, fastapi, sqlite",
+        "features": ["CRUD de tarefas", "Autenticacao JWT", "Documentacao OpenAPI"],
+        "created_by": "test_user"
+    }
+
+
+@pytest.fixture
+def autonomous_loop(standard_loop_config):
+    """Instancia do AutonomousLoop para testes"""
+    from factory.core.autonomous_loop import AutonomousLoop
+    return AutonomousLoop(standard_loop_config)
+
+
+@pytest.fixture
+def autonomous_loop_with_claude(standard_loop_config, mock_claude_client):
+    """AutonomousLoop configurado com mock do Claude"""
+    from factory.core.autonomous_loop import AutonomousLoop
+
+    loop = AutonomousLoop(standard_loop_config)
+    loop._claude_client = mock_claude_client
+    loop._model = "claude-sonnet-4-20250514"
+
+    return loop
+
+
+@pytest.fixture
+def mock_worker():
+    """Mock de um ClaudeWorker"""
+    from factory.core.worker import ClaudeWorker
+
+    worker = ClaudeWorker(worker_id="test-worker")
+    worker._queue = AsyncMock()
+    worker._client = MagicMock()
+    worker._running = False
+
+    return worker
+
+
+@pytest.fixture
+def mock_redis_queue():
+    """Mock completo da RedisJobQueue"""
+    from factory.core.job_queue import RedisJobQueue, QueueConfig, QueueBackend
+
+    config = QueueConfig(backend=QueueBackend.REDIS)
+    queue = RedisJobQueue(config)
+
+    # Mock Redis client
+    mock_redis = AsyncMock()
+    mock_redis.ping = AsyncMock(return_value=True)
+    mock_redis.hset = AsyncMock()
+    mock_redis.hget = AsyncMock()
+    mock_redis.hgetall = AsyncMock(return_value={})
+    mock_redis.rpush = AsyncMock()
+    mock_redis.blpop = AsyncMock()
+    mock_redis.llen = AsyncMock(return_value=0)
+    mock_redis.lrange = AsyncMock(return_value=[])
+    mock_redis.publish = AsyncMock()
+    mock_redis.hdel = AsyncMock()
+    mock_redis.close = AsyncMock()
+
+    queue._redis = mock_redis
+
+    return queue
+
+
+@pytest.fixture
+def python_project_structure(temp_project_dir):
+    """Cria estrutura de projeto Python para testes"""
+    # main.py
+    (temp_project_dir / "main.py").write_text('''
+from fastapi import FastAPI
+
+app = FastAPI(title="Test API")
+
+@app.get("/")
+async def root():
+    return {"message": "Hello", "status": "ok"}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+''')
+
+    # requirements.txt
+    (temp_project_dir / "requirements.txt").write_text('''
+fastapi>=0.104.0
+uvicorn>=0.24.0
+sqlalchemy>=2.0.0
+''')
+
+    # pyproject.toml
+    (temp_project_dir / "pyproject.toml").write_text('''
+[project]
+name = "test-project"
+version = "0.1.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+''')
+
+    # tests directory
+    tests_dir = temp_project_dir / "tests"
+    tests_dir.mkdir(exist_ok=True)
+    (tests_dir / "__init__.py").write_text("")
+    (tests_dir / "test_main.py").write_text('''
+def test_example():
+    assert True
+''')
+
+    return temp_project_dir
+
+
+@pytest.fixture
+def python_project_with_models(temp_project_dir):
+    """Cria projeto Python com modelos SQLAlchemy para testes de AppGenerator"""
+    # main.py
+    (temp_project_dir / "main.py").write_text('''
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
+@app.get("/users")
+def list_users():
+    return []
+''')
+
+    # models.py
+    (temp_project_dir / "models.py").write_text('''
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100))
+    email = Column(String(200), unique=True)
+
+    tasks = relationship("Task", back_populates="user")
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200))
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    user = relationship("User", back_populates="tasks")
+''')
+
+    # requirements.txt
+    (temp_project_dir / "requirements.txt").write_text('''
+fastapi>=0.104.0
+uvicorn>=0.24.0
+sqlalchemy>=2.0.0
+''')
+
+    return temp_project_dir
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Cria event loop para testes assincronos"""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
