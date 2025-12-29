@@ -242,6 +242,78 @@ TEST_PLANS = [
     },
 ]
 
+# Additional test tenants for multi-tenancy testing (Issue #124)
+ADDITIONAL_TEST_TENANTS = [
+    {
+        "tenant_id": "STARTUP-001",
+        "name": "Tech Startup Inc",
+        "slug": "startup",
+        "plan": TenantPlan.STARTER.value,
+        "status": TenantStatus.ACTIVE.value,
+        "email": "admin@techstartup.io",
+        "users": [
+            {"username": "startup_founder", "email": "founder@techstartup.io", "role": "ADMIN", "password": "startup123"},
+            {"username": "startup_dev", "email": "dev@techstartup.io", "role": "DEVELOPER", "password": "startup123"},
+        ],
+        "branding": {
+            "primary_color": "#6366F1",
+            "secondary_color": "#EC4899",
+            "logo_url": "/static/logos/startup-logo.png",
+            "display_name": "Tech Startup Platform",
+        },
+        "settings": {
+            "max_projects": 10,
+            "max_stories_per_project": 200,
+            "max_members": 5,
+            "max_tokens_per_month": 100000,
+        }
+    },
+    {
+        "tenant_id": "AGENCY-001",
+        "name": "Digital Agency",
+        "slug": "agency",
+        "plan": TenantPlan.PROFESSIONAL.value,
+        "status": TenantStatus.ACTIVE.value,
+        "email": "admin@digitalagency.co",
+        "users": [
+            {"username": "agency_admin", "email": "admin@digitalagency.co", "role": "ADMIN", "password": "agency123"},
+            {"username": "agency_pm", "email": "pm@digitalagency.co", "role": "ADMIN", "password": "agency123"},
+            {"username": "agency_dev1", "email": "dev1@digitalagency.co", "role": "DEVELOPER", "password": "agency123"},
+        ],
+        "branding": {
+            "primary_color": "#059669",
+            "secondary_color": "#F59E0B",
+            "logo_url": "/static/logos/agency-logo.png",
+            "display_name": "Digital Agency Hub",
+        },
+        "settings": {
+            "max_projects": 50,
+            "max_stories_per_project": 500,
+            "max_members": 20,
+            "max_tokens_per_month": 500000,
+        }
+    },
+    {
+        "tenant_id": "TRIAL-001",
+        "name": "Trial User Company",
+        "slug": "trial",
+        "plan": TenantPlan.PROFESSIONAL.value,
+        "status": TenantStatus.TRIAL.value,
+        "email": "trial@example.com",
+        "trial_ends_at": datetime.utcnow() + timedelta(days=7),
+        "users": [
+            {"username": "trial_user", "email": "trial@example.com", "role": "ADMIN", "password": "trial123"},
+        ],
+        "branding": None,
+        "settings": {
+            "max_projects": 5,
+            "max_stories_per_project": 100,
+            "max_members": 3,
+            "max_tokens_per_month": 50000,
+        }
+    },
+]
+
 SAMPLE_PROJECTS = [
     {
         "name": "E-commerce Platform",
@@ -643,10 +715,13 @@ class DataSeeder:
         # Seed plans first
         self.seed_plans()
 
+        # Combine all test tenants (Issue #124)
+        all_tenants = TEST_TENANTS + ADDITIONAL_TEST_TENANTS
+
         # Filter tenants if specified
-        tenants_to_seed = TEST_TENANTS
+        tenants_to_seed = all_tenants
         if tenant_filter:
-            tenants_to_seed = [t for t in TEST_TENANTS if t["slug"] == tenant_filter]
+            tenants_to_seed = [t for t in all_tenants if t["slug"] == tenant_filter]
             if not tenants_to_seed:
                 print(f"Warning: No tenant found with slug '{tenant_filter}'")
                 return

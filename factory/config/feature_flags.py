@@ -384,6 +384,150 @@ DEFAULT_FLAGS: Dict[str, FeatureFlag] = {
         tags=["debug"]
     ),
 
+
+    # =============================================================================
+    # SECURITY & TENANT ISOLATION FLAGS (Issue #122, #125)
+    # =============================================================================
+
+    "security_tenant_isolation": FeatureFlag(
+        key="security_tenant_isolation",
+        name="Tenant Isolation",
+        description="Enable strict tenant data isolation",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: True,
+        },
+        tags=["security", "tenant"]
+    ),
+
+    "security_tenant_encryption": FeatureFlag(
+        key="security_tenant_encryption",
+        name="Per-Tenant Encryption",
+        description="Enable per-tenant data encryption",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: False,  # Optional in dev
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: True,
+        },
+        tags=["security", "tenant", "enterprise"]
+    ),
+
+    "security_cross_tenant_audit": FeatureFlag(
+        key="security_cross_tenant_audit",
+        name="Cross-Tenant Access Audit",
+        description="Log all cross-tenant access attempts",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: True,
+        },
+        tags=["security", "audit"]
+    ),
+
+    "security_rate_limiting": FeatureFlag(
+        key="security_rate_limiting",
+        name="API Rate Limiting",
+        description="Enable API rate limiting per tenant",
+        default_value=True,
+        flag_type=FlagType.TENANT,
+        environments={
+            Environment.DEVELOPMENT.value: False,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: True,
+        },
+        tags=["security", "api"]
+    ),
+
+    # =============================================================================
+    # RUNTIME TOGGLE FLAGS (Issue #125)
+    # =============================================================================
+
+    "runtime_hot_reload": FeatureFlag(
+        key="runtime_hot_reload",
+        name="Hot Reload Config",
+        description="Allow runtime configuration changes without restart",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: False,
+        },
+        tags=["runtime", "config"]
+    ),
+
+    "runtime_dynamic_workers": FeatureFlag(
+        key="runtime_dynamic_workers",
+        name="Dynamic Worker Scaling",
+        description="Allow dynamic worker pool scaling",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: True,
+        },
+        tags=["runtime", "workers"]
+    ),
+
+    "runtime_feature_toggle_api": FeatureFlag(
+        key="runtime_feature_toggle_api",
+        name="Feature Toggle API",
+        description="Expose API for runtime feature toggling",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: False,  # Disable in prod by default
+        },
+        tags=["runtime", "api"]
+    ),
+
+    # =============================================================================
+    # LOCAL DEV FLAGS (Issue #123)
+    # =============================================================================
+
+    "dev_mock_external_services": FeatureFlag(
+        key="dev_mock_external_services",
+        name="Mock External Services",
+        description="Use mock implementations for external services in dev",
+        default_value=True,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: False,
+            Environment.PRODUCTION.value: False,
+        },
+        tags=["dev", "mock"]
+    ),
+
+    "dev_seed_data_on_start": FeatureFlag(
+        key="dev_seed_data_on_start",
+        name="Auto-seed Data",
+        description="Automatically seed test data on application start",
+        default_value=False,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: False,
+            Environment.PRODUCTION.value: False,
+        },
+        tags=["dev", "data"]
+    ),
+
+    "dev_detailed_errors": FeatureFlag(
+        key="dev_detailed_errors",
+        name="Detailed Error Messages",
+        description="Show detailed error messages and stack traces",
+        default_value=False,
+        environments={
+            Environment.DEVELOPMENT.value: True,
+            Environment.STAGING.value: True,
+            Environment.PRODUCTION.value: False,
+        },
+        tags=["dev", "debug"]
+    ),
+
     "debug_sql_logging": FeatureFlag(
         key="debug_sql_logging",
         name="SQL Query Logging",

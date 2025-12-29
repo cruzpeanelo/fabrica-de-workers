@@ -1,2 +1,64 @@
-# Security Module
-from .vault_client import VaultClient
+# -*- coding: utf-8 -*-
+"""
+Security Module for Fabrica de Agentes
+======================================
+
+This module provides security features including:
+- Tenant isolation (Issue #122)
+- Row-level security
+- Query interceptors
+- Audit logging for cross-tenant access attempts
+- Per-tenant encryption
+
+Author: Fabrica de Agentes
+"""
+
+try:
+    from factory.config.vault_client import VaultClient
+except ImportError:
+    VaultClient = None
+
+from .tenant_isolation import (
+    TenantIsolation,
+    TenantContext,
+    get_tenant_context,
+    set_tenant_context,
+    clear_tenant_context,
+    require_tenant,
+    TenantQueryInterceptor,
+    tenant_query_interceptor,
+    TenantEncryption,
+    get_tenant_encryption,
+    CrossTenantAccessAudit,
+    audit_cross_tenant_access,
+    TenantIsolationError,
+    CrossTenantAccessError,
+    TenantNotFoundError,
+    TenantIsolationMiddleware,
+    IsolationLevel,
+    AccessType,
+    initialize_tenant_isolation,
+)
+
+__all__ = [
+    "VaultClient",
+    "TenantIsolation",
+    "TenantContext",
+    "get_tenant_context",
+    "set_tenant_context",
+    "clear_tenant_context",
+    "require_tenant",
+    "TenantQueryInterceptor",
+    "tenant_query_interceptor",
+    "TenantEncryption",
+    "get_tenant_encryption",
+    "CrossTenantAccessAudit",
+    "audit_cross_tenant_access",
+    "TenantIsolationError",
+    "CrossTenantAccessError",
+    "TenantNotFoundError",
+    "TenantIsolationMiddleware",
+    "IsolationLevel",
+    "AccessType",
+    "initialize_tenant_isolation",
+]

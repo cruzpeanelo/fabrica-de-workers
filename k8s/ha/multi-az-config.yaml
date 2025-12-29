@@ -1,0 +1,228 @@
+# Multi-AZ Configuration - Issue #110
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fabrica-api
+  namespace: fabrica-agentes
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fabrica-api
+  template:
+    metadata:
+      labels:
+        app: fabrica-api
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - fabrica-api
+              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - fabrica-api
+                topologyKey: topology.kubernetes.io/zone
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: fabrica-api
+      containers:
+        - name: api
+          image: fabrica-agentes/api:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fabrica-workers
+  namespace: fabrica-agentes
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: fabrica-workers
+  template:
+    metadata:
+      labels:
+        app: fabrica-workers
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - fabrica-workers
+              topologyKey: kubernetes.io/hostname
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: fabrica-workers
+      containers:
+        - name: worker
+          image: fabrica-agentes/worker:latest
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fabrica-postgres
+  namespace: fabrica-agentes
+spec:
+  serviceName: fabrica-postgres
+  replicas: 3
+  selector:
+    matchLabels:
+      app: fabrica-postgres
+  template:
+    metadata:
+      labels:
+        app: fabrica-postgres
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - fabrica-postgres
+              topologyKey: kubernetes.io/hostname
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - fabrica-postgres
+              topologyKey: topology.kubernetes.io/zone
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: fabrica-postgres
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard-regional
+        resources:
+          requests:
+            storage: 100Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fabrica-api-pdb
+  namespace: fabrica-agentes
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: fabrica-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fabrica-workers-pdb
+  namespace: fabrica-agentes
+spec:
+  maxUnavailable: 2
+  selector:
+    matchLabels:
+      app: fabrica-workers
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fabrica-postgres-pdb
+  namespace: fabrica-agentes
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: fabrica-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrica-api-global
+  namespace: fabrica-agentes
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: fabrica-api
+  ports:
+    - port: 443
+      targetPort: 8000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fabrica-failover-config
+  namespace: fabrica-agentes
+data:
+  failover.yaml: |
+    primary_region: us-east-1
+    secondary_regions:
+      - us-west-2
+      - eu-west-1
+    failover_policy:
+      automatic: true
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fabrica-api-hpa
+  namespace: fabrica-agentes
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fabrica-api
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard-regional
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+  replication-type: regional-pd
+volumeBindingMode: WaitForFirstConsumer
