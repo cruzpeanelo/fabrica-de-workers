@@ -43,6 +43,7 @@ from factory.database.models import (
     Story, StoryStatus, StoryCategory, StoryComplexity,
     StoryTask, StoryTaskType, StoryTaskStatus,
     StoryDocumentation, DocType,
+    StoryDesign, DesignType,
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
     TaskPriority
@@ -174,6 +175,23 @@ class DocCreate(BaseModel):
     test_instructions: Optional[str] = None
     test_cases: Optional[List[dict]] = []
     deploy_instructions: Optional[str] = None
+
+
+class DesignCreate(BaseModel):
+    story_id: str
+    title: str
+    design_type: Optional[str] = "wireframe"
+    description: Optional[str] = None
+    content: Optional[str] = None
+    thumbnail: Optional[str] = None
+
+
+class DesignUpdate(BaseModel):
+    title: Optional[str] = None
+    design_type: Optional[str] = None
+    description: Optional[str] = None
+    content: Optional[str] = None
+    thumbnail: Optional[str] = None
 
 
 class ChatMessageCreate(BaseModel):
@@ -427,6 +445,371 @@ def delete_story_doc(doc_id: str):
         raise HTTPException(404, "Doc not found")
     finally:
         db.close()
+
+
+# =============================================================================
+# API ENDPOINTS - DESIGNS
+# =============================================================================
+
+@app.get("/api/stories/{story_id}/designs")
+def list_story_designs(story_id: str):
+    """Lista designs de uma story"""
+    db = SessionLocal()
+    try:
+        designs = db.query(StoryDesign).filter(StoryDesign.story_id == story_id).all()
+        return [d.to_dict() for d in designs]
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/{story_id}/designs")
+def create_story_design(story_id: str, design: DesignCreate):
+    """Cria um novo design"""
+    db = SessionLocal()
+    try:
+        new_design = StoryDesign(
+            design_id=f"DES-{uuid.uuid4().hex[:8].upper()}",
+            story_id=story_id,
+            title=design.title,
+            design_type=design.design_type or "wireframe",
+            description=design.description,
+            content=design.content,
+            thumbnail=design.thumbnail,
+            created_at=datetime.utcnow()
+        )
+        db.add(new_design)
+        db.commit()
+        db.refresh(new_design)
+        return new_design.to_dict()
+    finally:
+        db.close()
+
+
+@app.put("/api/story-designs/{design_id}")
+def update_story_design(design_id: str, data: DesignUpdate):
+    """Atualiza um design"""
+    db = SessionLocal()
+    try:
+        design = db.query(StoryDesign).filter(StoryDesign.design_id == design_id).first()
+        if not design:
+            raise HTTPException(404, "Design not found")
+
+        if data.title is not None:
+            design.title = data.title
+        if data.design_type is not None:
+            design.design_type = data.design_type
+        if data.description is not None:
+            design.description = data.description
+        if data.content is not None:
+            design.content = data.content
+        if data.thumbnail is not None:
+            design.thumbnail = data.thumbnail
+
+        design.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(design)
+        return design.to_dict()
+    finally:
+        db.close()
+
+
+@app.delete("/api/story-designs/{design_id}")
+def delete_story_design(design_id: str):
+    """Remove um design"""
+    db = SessionLocal()
+    try:
+        design = db.query(StoryDesign).filter(StoryDesign.design_id == design_id).first()
+        if not design:
+            raise HTTPException(404, "Design not found")
+        db.delete(design)
+        db.commit()
+        return {"message": "Design deleted"}
+    finally:
+        db.close()
+
+
+# =============================================================================
+# API ENDPOINTS - DOC GENERATION
+# =============================================================================
+
+class GenerateDocsRequest(BaseModel):
+    doc_type: str  # readme, api, user_guide, technical
+
+
+@app.post("/api/stories/{story_id}/generate-docs")
+def generate_story_docs(story_id: str, request: GenerateDocsRequest):
+    """Gera documentacao automaticamente usando IA"""
+    db = SessionLocal()
+    try:
+        story_repo = StoryRepository(db)
+        doc_repo = StoryDocumentationRepository(db)
+
+        # Buscar story completa
+        story_data = story_repo.get_with_tasks(story_id)
+        if not story_data:
+            raise HTTPException(404, "Story not found")
+
+        # Gerar documentacao
+        doc_content = generate_documentation_with_ai(story_data, request.doc_type, db)
+
+        # Criar documento
+        doc_data = {
+            "story_id": story_id,
+            "doc_type": map_doc_type(request.doc_type),
+            "title": doc_content["title"],
+            "content": doc_content["content"],
+            "test_instructions": doc_content.get("test_instructions", ""),
+            "test_cases": doc_content.get("test_cases", [])
+        }
+
+        new_doc = doc_repo.create(doc_data)
+        return new_doc.to_dict()
+
+    except Exception as e:
+        raise HTTPException(500, f"Error generating documentation: {str(e)}")
+    finally:
+        db.close()
+
+
+def map_doc_type(doc_type: str) -> str:
+    """Mapeia tipo de doc da UI para tipo do banco"""
+    mapping = {
+        "readme": "technical",
+        "api": "api",
+        "user_guide": "user",
+        "technical": "technical"
+    }
+    return mapping.get(doc_type, "technical")
+
+
+def generate_documentation_with_ai(story_data: dict, doc_type: str, db) -> dict:
+    """
+    Gera documentacao usando Claude AI ou template basico
+
+    Args:
+        story_data: Dados completos da story (com tasks)
+        doc_type: Tipo de documentacao (readme, api, user_guide, technical)
+        db: Sessao do banco
+
+    Returns:
+        dict com title, content, test_instructions, test_cases
+    """
+
+    # Se Claude disponivel, usar IA
+    if HAS_CLAUDE:
+        try:
+            claude = get_claude_client()
+            if claude.is_available():
+                return generate_docs_with_claude(story_data, doc_type, claude)
+        except Exception as e:
+            print(f"[GenerateDocs] Erro ao usar Claude: {e}")
+            # Fallback para template basico
+
+    # Template basico (fallback)
+    return generate_docs_template(story_data, doc_type)
+
+
+def generate_docs_with_claude(story_data: dict, doc_type: str, claude) -> dict:
+    """Gera documentacao usando Claude AI"""
+
+    story = story_data.get("story", story_data)
+    tasks = story_data.get("tasks", [])
+
+    # Montar contexto da story
+    story_context = f"""
+STORY: {story.get('story_id')} - {story.get('title')}
+
+NARRATIVA:
+Como um {story.get('persona', '[persona]')}, eu quero {story.get('action', '[acao]')},
+para que {story.get('benefit', '[beneficio]')}.
+
+CRITERIOS DE ACEITE:
+{chr(10).join(f"- {c}" for c in story.get('acceptance_criteria', []))}
+
+DEFINITION OF DONE:
+{chr(10).join(f"- {d}" for d in story.get('definition_of_done', []))}
+
+NOTAS TECNICAS:
+{story.get('technical_notes', 'N/A')}
+
+TASKS ({len(tasks)}):
+{chr(10).join(f"- [{t.get('status')}] {t.get('title')}" for t in tasks)}
+"""
+
+    # Prompts especificos por tipo de doc
+    prompts = {
+        "readme": """Gere um README.md completo para esta funcionalidade.
+
+Deve incluir:
+1. Titulo e descricao breve
+2. O que foi implementado
+3. Como instalar/configurar
+4. Como usar (exemplos praticos)
+5. Estrutura de arquivos criados
+6. Proximos passos
+
+Use Markdown formatado.""",
+
+        "api": """Gere documentacao de API para esta funcionalidade.
+
+Deve incluir:
+1. Endpoints implementados
+2. Metodos HTTP
+3. Parametros (path, query, body)
+4. Exemplos de request/response
+5. Codigos de status
+6. Autenticacao necessaria (se aplicavel)
+
+Use Markdown formatado com blocos de codigo.""",
+
+        "user_guide": """Gere um guia do usuario para esta funcionalidade.
+
+Deve incluir:
+1. Introducao: O que esta funcionalidade faz
+2. Passo a passo para usar
+3. Screenshots ou descricoes de telas (se aplicavel)
+4. Casos de uso comuns
+5. FAQ e troubleshooting
+6. Dicas e boas praticas
+
+Use linguagem simples e clara. Markdown formatado.""",
+
+        "technical": """Gere documentacao tecnica detalhada.
+
+Deve incluir:
+1. Arquitetura da solucao
+2. Decisoes tecnicas e justificativas
+3. Tecnologias usadas
+4. Estrutura de codigo
+5. Fluxo de dados
+6. Consideracoes de seguranca
+7. Performance e escalabilidade
+8. Instrucoes de teste
+9. Deploy
+
+Use Markdown formatado com diagramas em texto quando util."""
+    }
+
+    system_prompt = f"""Voce e um escritor tecnico experiente especializado em documentacao de software.
+Sua tarefa e gerar documentacao clara, completa e util baseada em User Stories Agile.
+
+Gere a documentacao em PORTUGUES BRASILEIRO.
+Use Markdown bem formatado com headers, listas, blocos de codigo, etc.
+
+Responda APENAS com JSON valido no seguinte formato:
+{{
+    "title": "Titulo da documentacao",
+    "content": "Conteudo completo em Markdown",
+    "test_instructions": "Instrucoes de como testar (resumo)",
+    "test_cases": [
+        {{"description": "Caso de teste 1", "steps": ["passo 1", "passo 2"], "expected": "resultado esperado"}},
+        {{"description": "Caso de teste 2", "steps": ["passo 1"], "expected": "resultado esperado"}}
+    ]
+}}"""
+
+    prompt = prompts.get(doc_type, prompts["technical"])
+
+    message = f"""{prompt}
+
+{story_context}
+
+Gere a documentacao agora em JSON."""
+
+    response = claude.chat(message, system_prompt, max_tokens=4096)
+
+    if response.success:
+        try:
+            import json
+            # Tentar extrair JSON do response
+            content = response.content.strip()
+
+            # Remover markdown code blocks se presentes
+            if content.startswith("```"):
+                lines = content.split("\n")
+                content = "\n".join(lines[1:-1])
+
+            result = json.loads(content)
+            return result
+        except json.JSONDecodeError:
+            # Se falhar o parse, usar como texto direto
+            return {
+                "title": f"Documentacao {doc_type.upper()} - {story.get('title')}",
+                "content": response.content,
+                "test_instructions": "Veja secao de testes na documentacao",
+                "test_cases": []
+            }
+
+    # Fallback se Claude falhar
+    return generate_docs_template(story_data, doc_type)
+
+
+def generate_docs_template(story_data: dict, doc_type: str) -> dict:
+    """Gera documentacao usando template basico (fallback)"""
+
+    story = story_data.get("story", story_data)
+    tasks = story_data.get("tasks", [])
+
+    title = f"{doc_type.upper().replace('_', ' ')} - {story.get('title')}"
+
+    # Template basico Markdown
+    content = f"""# {story.get('title')}
+
+## Descricao
+
+**Como um** {story.get('persona', '[persona]')}, **eu quero** {story.get('action', '[acao]')}, **para que** {story.get('benefit', '[beneficio]')}.
+
+## Criterios de Aceite
+
+{chr(10).join(f"- {c}" for c in story.get('acceptance_criteria', [])) or '- N/A'}
+
+## Definition of Done
+
+{chr(10).join(f"- {d}" for d in story.get('definition_of_done', [])) or '- N/A'}
+
+## Implementacao
+
+### Tasks Realizadas
+
+{chr(10).join(f"- [{t.get('status', 'pending')}] {t.get('title')}" for t in tasks) or '- Nenhuma task criada'}
+
+### Notas Tecnicas
+
+{story.get('technical_notes') or 'N/A'}
+
+## Como Testar
+
+1. Execute o projeto
+2. Verifique os criterios de aceite acima
+3. Teste cada cenario descrito
+
+## Proximos Passos
+
+- Revisar codigo
+- Executar testes automatizados
+- Deploy em ambiente de homologacao
+"""
+
+    test_instructions = """
+1. Verificar criterios de aceite
+2. Testar fluxos principais
+3. Validar casos extremos
+4. Conferir performance
+"""
+
+    test_cases = [
+        {
+            "description": "Teste basico de funcionalidade",
+            "steps": ["Executar funcionalidade", "Verificar resultado"],
+            "expected": "Funcionalidade deve atender criterios de aceite"
+        }
+    ]
+
+    return {
+        "title": title,
+        "content": content,
+        "test_instructions": test_instructions.strip(),
+        "test_cases": test_cases
+    }
 
 
 # =============================================================================
@@ -1168,6 +1551,142 @@ def get_status():
 
 
 # =============================================================================
+# API ENDPOINTS - TERMINAL
+# =============================================================================
+
+import subprocess
+import threading
+import queue
+
+# Global terminal processes storage
+terminal_processes = {}
+terminal_outputs = {}
+
+class TerminalExecuteRequest(BaseModel):
+    command: str
+    cwd: Optional[str] = None
+
+@app.post("/api/projects/{project_id}/terminal/execute")
+def execute_terminal_command(project_id: str, request: TerminalExecuteRequest):
+    """Executa comando no terminal"""
+    try:
+        # Define working directory
+        if request.cwd:
+            cwd = request.cwd
+        else:
+            cwd = os.path.join(r'C:\Users\lcruz\Fabrica de Agentes\projects', project_id)
+
+        # Ensure directory exists
+        os.makedirs(cwd, exist_ok=True)
+
+        # Stop any existing process for this project
+        if project_id in terminal_processes:
+            try:
+                terminal_processes[project_id].terminate()
+            except:
+                pass
+
+        # Initialize output queue
+        terminal_outputs[project_id] = queue.Queue()
+
+        # Determine shell based on command
+        if request.command.startswith('npm ') or request.command.startswith('python '):
+            # Create process
+            process = subprocess.Popen(
+                request.command,
+                cwd=cwd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True
+            )
+
+            # Store process
+            terminal_processes[project_id] = process
+
+            # Thread to read output
+            def read_output():
+                try:
+                    for line in process.stdout:
+                        terminal_outputs[project_id].put(line)
+                    process.wait()
+                    terminal_outputs[project_id].put(f"\n[Process exited with code {process.returncode}]\n")
+                except Exception as e:
+                    terminal_outputs[project_id].put(f"\n[Error: {str(e)}]\n")
+
+            thread = threading.Thread(target=read_output, daemon=True)
+            thread.start()
+
+            return {
+                "status": "started",
+                "command": request.command,
+                "cwd": cwd,
+                "pid": process.pid
+            }
+        else:
+            # Simple command execution (non-blocking)
+            result = subprocess.run(
+                request.command,
+                cwd=cwd,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            return {
+                "status": "completed",
+                "command": request.command,
+                "output": result.stdout + result.stderr,
+                "returncode": result.returncode
+            }
+    except Exception as e:
+        raise HTTPException(500, f"Failed to execute command: {str(e)}")
+
+
+@app.get("/api/projects/{project_id}/terminal/output")
+def get_terminal_output(project_id: str):
+    """Retorna output do terminal (stream)"""
+    if project_id not in terminal_outputs:
+        return {"output": "", "has_more": False}
+
+    output_lines = []
+    try:
+        # Get all available output
+        while not terminal_outputs[project_id].empty():
+            output_lines.append(terminal_outputs[project_id].get_nowait())
+    except queue.Empty:
+        pass
+
+    has_process = project_id in terminal_processes and terminal_processes[project_id].poll() is None
+
+    return {
+        "output": "".join(output_lines),
+        "has_more": has_process
+    }
+
+
+@app.post("/api/projects/{project_id}/terminal/stop")
+def stop_terminal_process(project_id: str):
+    """Para processo do terminal"""
+    if project_id not in terminal_processes:
+        raise HTTPException(404, "No running process found")
+
+    try:
+        process = terminal_processes[project_id]
+        process.terminate()
+        process.wait(timeout=5)
+        del terminal_processes[project_id]
+        return {"status": "stopped"}
+    except subprocess.TimeoutExpired:
+        process.kill()
+        del terminal_processes[project_id]
+        return {"status": "killed"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to stop process: {str(e)}")
+
+
+# =============================================================================
 # FRONTEND - HTML/Vue.js
 # =============================================================================
 
@@ -1184,6 +1703,9 @@ HTML_TEMPLATE = """
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- xterm.js for terminal -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -1223,6 +1745,36 @@ HTML_TEMPLATE = """
         .priority-low { border-left: 4px solid #10B981; }
 
         .kanban-column { min-height: 400px; }
+
+        /* Swimlanes */
+        .swimlane {
+            border-bottom: 2px solid #e5e7eb;
+            padding: 16px 0;
+            margin-bottom: 16px;
+        }
+        .swimlane:last-child {
+            border-bottom: none;
+        }
+        .swimlane-header {
+            font-weight: 600;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .swimlane-content {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 0 8px;
+        }
+        .swimlane-column {
+            flex-shrink: 0;
+            width: 280px;
+        }
 
         .narrative-box {
             background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
@@ -1823,6 +2375,15 @@ HTML_TEMPLATE = """
                                 <option value="unassigned">Sem assignee</option>
                             </select>
                         </div>
+                        <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
+                            <span class="text-xs text-gray-500">Agrupar:</span>
+                            <select v-model="groupBy" class="text-sm border-0 bg-transparent focus:ring-0 cursor-pointer">
+                                <option value="">Nenhum</option>
+                                <option value="epic">Por Epic</option>
+                                <option value="assignee">Por Assignee</option>
+                                <option value="priority">Por Prioridade</option>
+                            </select>
+                        </div>
                         <div v-if="searchQuery || filterPriority || filterAssignee"
                              class="flex items-center gap-2 text-xs text-gray-500">
                             <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
@@ -1869,9 +2430,11 @@ HTML_TEMPLATE = """
                         </button>
                     </div>
 
-                    <!-- Colunas do Kanban -->
-                    <div v-for="(column, status) in filteredStoryBoard" :key="status"
-                         class="flex-shrink-0 w-80 bg-gray-100 rounded-lg">
+                    <!-- Kanban View Toggle: Normal vs Swimlanes -->
+                    <div v-if="!groupBy" class="flex gap-4 overflow-x-auto">
+                        <!-- Colunas do Kanban (Vista Normal) -->
+                        <div v-for="(column, status) in filteredStoryBoard" :key="status"
+                             class="flex-shrink-0 w-80 bg-gray-100 rounded-lg">
                         <!-- Header da Coluna -->
                         <div class="p-3 border-b border-gray-200 bg-white rounded-t-lg">
                             <div class="flex items-center justify-between">
@@ -1956,6 +2519,108 @@ HTML_TEMPLATE = """
                             </div>
                         </div>
                     </div>
+                    </div>
+
+                    <!-- Swimlanes View -->
+                    <div v-else class="swimlanes-container">
+                        <div v-for="(group, groupKey) in groupedStories" :key="groupKey" class="swimlane">
+                            <!-- Swimlane Header -->
+                            <div class="swimlane-header">
+                                <span :style="group.color ? {borderLeft: `4px solid ${group.color}`} : {}"
+                                      class="pl-2">
+                                    {{ group.name }}
+                                </span>
+                            </div>
+
+                            <!-- Swimlane Content (Columns) -->
+                            <div class="swimlane-content">
+                                <div v-for="status in ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done']"
+                                     :key="status"
+                                     class="swimlane-column bg-gray-100 rounded-lg">
+                                    <!-- Column Header -->
+                                    <div class="p-2 border-b border-gray-200 bg-white rounded-t-lg">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs font-semibold text-gray-700">{{ getColumnTitle(status) }}</span>
+                                            <span class="bg-gray-200 text-gray-600 text-xs px-1.5 py-0.5 rounded-full">
+                                                {{ group[status]?.length || 0 }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Stories in Column -->
+                                    <div :id="'swimlane-' + groupKey + '-' + status"
+                                         class="kanban-column p-2 space-y-2 overflow-y-auto"
+                                         style="min-height: 200px; max-height: 300px;">
+                                        <!-- Story Card (same as regular Kanban) -->
+                                        <div v-for="story in group[status]" :key="story.story_id"
+                                             @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
+                                             @contextmenu.prevent="showContextMenu($event, story)"
+                                             :data-id="story.story_id"
+                                             :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                                      'priority-' + story.priority,
+                                                      selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
+                                            <!-- Bulk Select Checkbox -->
+                                            <div v-if="bulkSelectMode" class="absolute top-2 left-2" @click.stop>
+                                                <input type="checkbox"
+                                                       :checked="selectedStories.includes(story.story_id)"
+                                                       @change="toggleBulkSelect(story)"
+                                                       class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                                            </div>
+                                            <!-- Quick Actions -->
+                                            <div class="quick-actions" @click.stop>
+                                                <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                    </svg>
+                                                </button>
+                                                <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <!-- Epic + Points -->
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span v-if="story.epic_id" class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                                                    {{ getEpicName(story.epic_id) }}
+                                                </span>
+                                                <span v-else class="text-xs text-gray-400">Sem Epic</span>
+                                                <span class="text-xs font-medium text-gray-600">{{ story.story_points }} pts</span>
+                                            </div>
+
+                                            <!-- Titulo -->
+                                            <h4 class="font-medium text-gray-800 text-sm mb-2 line-clamp-2">
+                                                {{ story.title }}
+                                            </h4>
+
+                                            <!-- Progress Bar -->
+                                            <div class="mb-2">
+                                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                                    <span>{{ story.tasks_completed }}/{{ story.tasks_total }} tasks</span>
+                                                    <span>{{ Math.round(story.progress) }}%</span>
+                                                </div>
+                                                <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div class="progress-bar h-full bg-green-500 rounded-full"
+                                                         :style="{width: story.progress + '%'}"></div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Footer -->
+                                            <div class="flex items-center justify-between text-xs text-gray-500">
+                                                <span>{{ story.story_id }}</span>
+                                                <span v-if="story.assignee" class="flex items-center gap-1">
+                                                    <span class="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center text-xs">
+                                                        {{ story.assignee.charAt(0).toUpperCase() }}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
 
@@ -2029,7 +2694,7 @@ HTML_TEMPLATE = """
                 <!-- Tabs -->
                 <div class="border-b border-gray-200">
                     <div class="flex">
-                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Anexos']" :key="tab"
+                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos']" :key="tab"
                                 @click="activeTab = tab"
                                 :class="['px-4 py-3 text-sm font-medium',
                                          activeTab === tab ? 'tab-active' : 'text-gray-500 hover:text-gray-700']">
@@ -2170,14 +2835,61 @@ HTML_TEMPLATE = """
                         <p v-else class="text-gray-400 text-sm italic">Nenhuma task criada</p>
                     </div>
 
-                    <!-- Tab: Docs -->
+                                        <!-- Tab: Docs -->
                     <div v-if="activeTab === 'Docs'" class="p-4">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-semibold">Documentacao</h3>
-                            <button @click="showNewDocModal = true"
-                                    class="text-sm bg-[#FF6C00] text-white px-3 py-1 rounded hover:bg-orange-600">
-                                + Novo Doc
-                            </button>
+                            <div class="flex gap-2">
+                                <!-- Gerar com IA -->
+                                <div class="relative inline-block">
+                                    <button @click="showGenerateDocsDropdown = !showGenerateDocsDropdown"
+                                            class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                        </svg>
+                                        Gerar com IA
+                                    </button>
+                                    <!-- Dropdown -->
+                                    <div v-if="showGenerateDocsDropdown"
+                                         @click.stop
+                                         class="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                        <div class="py-1">
+                                            <button @click="generateDocs('readme')"
+                                                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                                                <span>📄</span> README
+                                            </button>
+                                            <button @click="generateDocs('api')"
+                                                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                                                <span>🔌</span> API Docs
+                                            </button>
+                                            <button @click="generateDocs('user_guide')"
+                                                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                                                <span>📖</span> User Guide
+                                            </button>
+                                            <button @click="generateDocs('technical')"
+                                                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2">
+                                                <span>⚙️</span> Technical
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button @click="showNewDocModal = true"
+                                        class="text-sm bg-[#FF6C00] text-white px-3 py-1 rounded hover:bg-orange-600">
+                                    + Manual
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div v-if="generatingDocs" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
+                            <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-blue-900">Gerando documentacao...</div>
+                                <div class="text-sm text-blue-700">A IA esta analisando a story e criando a documentacao</div>
+                            </div>
                         </div>
 
                         <div v-if="selectedStory.docs?.length" class="space-y-3">
@@ -2190,16 +2902,29 @@ HTML_TEMPLATE = """
                                         </span>
                                         <span class="font-medium text-sm">{{ doc.title }}</span>
                                     </div>
+                                    <!-- Botoes de acao -->
+                                    <div class="flex gap-1">
+                                        <button @click="copyDocContent(doc.content)"
+                                                class="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100"
+                                                title="Copiar conteudo">
+                                            📋
+                                        </button>
+                                        <button @click="downloadDoc(doc)"
+                                                class="text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-gray-100"
+                                                title="Download como Markdown">
+                                            ⬇️
+                                        </button>
+                                    </div>
                                 </div>
-                                <div v-if="doc.content" class="text-sm text-gray-600 markdown-content"
+                                <div v-if="doc.content" class="text-sm text-gray-600 markdown-content prose prose-sm max-w-none"
                                      v-html="renderMarkdown(doc.content)"></div>
                                 <div v-if="doc.test_instructions" class="mt-2 pt-2 border-t border-gray-100">
                                     <span class="text-xs font-medium text-gray-500">Como Testar:</span>
-                                    <p class="text-sm text-gray-600">{{ doc.test_instructions }}</p>
+                                    <p class="text-sm text-gray-600 whitespace-pre-line">{{ doc.test_instructions }}</p>
                                 </div>
                             </div>
                         </div>
-                        <p v-else class="text-gray-400 text-sm italic">Nenhuma documentacao</p>
+                        <p v-else class="text-gray-400 text-sm italic">Nenhuma documentacao. Use "Gerar com IA" para criar automaticamente.</p>
                     </div>
 
                     <!-- Tab: Anexos -->
@@ -2231,6 +2956,96 @@ HTML_TEMPLATE = """
                 </div>
             </div>
         </div>
+
+        <!-- Terminal and Preview Section -->
+        <div v-if="selectedProjectId" class="bg-white rounded-lg shadow p-4 mt-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-700">Ambiente de Teste</h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Projeto: {{ selectedProjectId }}</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Terminal -->
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-medium text-gray-600">Terminal</h4>
+                        <div class="flex gap-2">
+                            <button @click="startApp"
+                                    :disabled="terminalRunning"
+                                    class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#9654; Iniciar App
+                            </button>
+                            <button @click="runTests"
+                                    :disabled="terminalRunning"
+                                    class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#129514; Testes
+                            </button>
+                            <button @click="stopProcess"
+                                    :disabled="!terminalRunning"
+                                    class="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#9632; Parar
+                            </button>
+                        </div>
+                    </div>
+                    <div id="terminal-container" class="bg-black rounded border border-gray-300" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <div class="flex gap-2">
+                            <input v-model="terminalCommand"
+                                   @keyup.enter="executeTerminalCommand"
+                                   type="text"
+                                   placeholder="Digite um comando..."
+                                   class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                            <button @click="executeTerminalCommand"
+                                    class="px-3 py-1 bg-[#FF6C00] text-white rounded text-xs hover:bg-orange-600">
+                                Executar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Preview -->
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-medium text-gray-600">Preview</h4>
+                        <div class="flex items-center gap-2">
+                            <select v-model="previewViewport" class="text-xs border border-gray-300 rounded px-2 py-1">
+                                <option value="desktop">Desktop</option>
+                                <option value="tablet">Tablet (768px)</option>
+                                <option value="mobile">Mobile (375px)</option>
+                            </select>
+                            <button @click="refreshPreview"
+                                    class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                &#8635; Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 rounded border border-gray-300 flex items-center justify-center" style="height: 400px;">
+                        <iframe ref="previewFrame"
+                                :src="previewUrl"
+                                :style="{
+                                    width: previewViewport === 'mobile' ? '375px' : previewViewport === 'tablet' ? '768px' : '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'white'
+                                }"
+                                class="transition-all duration-300">
+                        </iframe>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <input v-model="previewUrl"
+                               type="text"
+                               placeholder="http://localhost:3000"
+                               class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                        <button @click="refreshPreview"
+                                class="px-3 py-1 bg-[#003B4A] text-white rounded text-xs hover:bg-blue-900">
+                                Carregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- MODAL: Nova Story -->
         <div v-if="showNewStoryModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -2520,6 +3335,74 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Novo Design -->
+        <div v-if="showNewDesignModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[500px]">
+                <div class="p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold">Novo Diagrama</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                            <input v-model="newDesign.title" type="text"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                   placeholder="Ex: Arquitetura do Sistema">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select v-model="newDesign.design_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="wireframe">Wireframe</option>
+                                <option value="architecture">Arquitetura</option>
+                                <option value="flow">Fluxograma</option>
+                                <option value="database">Banco de Dados</option>
+                                <option value="mockup">Mockup</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea v-model="newDesign.description" rows="2"
+                                  class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                  placeholder="Breve descricao do diagrama..."></textarea>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
+                    <button @click="showNewDesignModal = false"
+                            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                    <button @click="createDesign"
+                            class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">Criar e Editar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Editor Draw.io -->
+        <div v-if="showDesignEditor" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[95vw] h-[95vh] flex flex-col">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">{{ currentDesign?.title || 'Editor de Diagramas' }}</h2>
+                    <div class="flex gap-2">
+                        <button @click="saveDesign"
+                                class="px-4 py-2 bg-[#003B4A] text-white rounded-lg hover:bg-opacity-90">
+                            Salvar
+                        </button>
+                        <button @click="closeDesignEditor"
+                                class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 relative">
+                    <iframe
+                        ref="drawioFrame"
+                        id="drawio-iframe"
+                        :src="'https://embed.diagrams.net/?embed=1&spin=1&proto=json&ui=kennedy&libraries=1'"
+                        class="w-full h-full border-0">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL: Confirmacao de Exclusao -->
         <div v-if="showConfirmModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
             <div class="confirm-modal bg-white rounded-lg w-[400px] shadow-xl">
@@ -2744,6 +3627,13 @@ HTML_TEMPLATE = """
         setup() {
             // State
             const projects = ref([]);
+            const terminalCommand = ref('');
+            const terminalRunning = ref(false);
+            const terminal = ref(null);
+            const terminalOutputInterval = ref(null);
+            const previewUrl = ref('http://localhost:3000');
+            const previewViewport = ref('desktop');
+
             const selectedProjectId = ref('');
             const selectedSprintId = ref('');
             const selectedEpicId = ref('');
@@ -2761,6 +3651,7 @@ HTML_TEMPLATE = """
             const searchInput = ref(null);
             const filterPriority = ref('');
             const filterAssignee = ref('');
+            const groupBy = ref('');
 
             // Toast Notifications
             const toasts = ref([]);
@@ -2793,6 +3684,10 @@ HTML_TEMPLATE = """
             const showNewEpicModal = ref(false);
             const showNewSprintModal = ref(false);
             const showNewDocModal = ref(false);
+            const showGenerateDocsDropdown = ref(false);
+            const generatingDocs = ref(false);
+            const showNewDesignModal = ref(false);
+            const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
 
@@ -2876,6 +3771,9 @@ HTML_TEMPLATE = """
             const newEpic = ref({ title: '', description: '', color: '#003B4A' });
             const newSprint = ref({ name: '', goal: '', capacity: 0 });
             const newDoc = ref({ title: '', doc_type: 'technical', content: '', test_instructions: '' });
+            const newDesign = ref({ title: '', design_type: 'wireframe', description: '' });
+            const currentDesign = ref(null);
+            const drawioFrame = ref(null);
 
             // Story Templates
             const selectedTemplate = ref('');
@@ -3034,11 +3932,112 @@ HTML_TEMPLATE = """
                 return count;
             });
 
+            // Grouped Stories for Swimlanes
+            const groupedStories = computed(() => {
+                if (!groupBy.value) return null;
+
+                const groups = {};
+                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+
+                // Initialize columns for each group
+                const initGroup = () => {
+                    const obj = {};
+                    statuses.forEach(status => obj[status] = []);
+                    return obj;
+                };
+
+                // Group by Epic
+                if (groupBy.value === 'epic') {
+                    // Add group for each epic
+                    epics.value.forEach(epic => {
+                        groups[epic.epic_id] = { name: epic.title, ...initGroup() };
+                    });
+                    // Add "Sem Epic" group
+                    groups['no_epic'] = { name: 'Sem Epic', ...initGroup() };
+
+                    // Distribute stories
+                    Object.entries(filteredStoryBoard.value).forEach(([status, stories]) => {
+                        stories.forEach(story => {
+                            const groupKey = story.epic_id || 'no_epic';
+                            if (groups[groupKey]) {
+                                groups[groupKey][status].push(story);
+                            }
+                        });
+                    });
+                }
+
+                // Group by Assignee
+                else if (groupBy.value === 'assignee') {
+                    const assignees = new Set();
+                    Object.values(filteredStoryBoard.value).forEach(stories => {
+                        stories.forEach(story => {
+                            if (story.assignee) assignees.add(story.assignee);
+                        });
+                    });
+
+                    // Add group for each assignee
+                    assignees.forEach(assignee => {
+                        groups[assignee] = { name: assignee, ...initGroup() };
+                    });
+                    // Add "Não atribuído" group
+                    groups['unassigned'] = { name: 'Não atribuído', ...initGroup() };
+
+                    // Distribute stories
+                    Object.entries(filteredStoryBoard.value).forEach(([status, stories]) => {
+                        stories.forEach(story => {
+                            const groupKey = story.assignee || 'unassigned';
+                            if (!groups[groupKey]) {
+                                groups[groupKey] = { name: groupKey, ...initGroup() };
+                            }
+                            groups[groupKey][status].push(story);
+                        });
+                    });
+                }
+
+                // Group by Priority
+                else if (groupBy.value === 'priority') {
+                    const priorities = [
+                        { key: 'urgent', name: 'Urgente', color: '#EF4444' },
+                        { key: 'high', name: 'Alta', color: '#F59E0B' },
+                        { key: 'medium', name: 'Média', color: '#3B82F6' },
+                        { key: 'low', name: 'Baixa', color: '#10B981' }
+                    ];
+
+                    priorities.forEach(p => {
+                        groups[p.key] = { name: p.name, color: p.color, ...initGroup() };
+                    });
+
+                    // Distribute stories
+                    Object.entries(filteredStoryBoard.value).forEach(([status, stories]) => {
+                        stories.forEach(story => {
+                            const groupKey = story.priority || 'medium';
+                            if (groups[groupKey]) {
+                                groups[groupKey][status].push(story);
+                            }
+                        });
+                    });
+                }
+
+                // Filter out empty groups
+                const filtered = {};
+                Object.entries(groups).forEach(([key, group]) => {
+                    const hasStories = Object.values(group).some(col =>
+                        Array.isArray(col) && col.length > 0
+                    );
+                    if (hasStories) {
+                        filtered[key] = group;
+                    }
+                });
+
+                return filtered;
+            });
+
             // Clear all filters
             const clearFilters = () => {
                 searchQuery.value = '';
                 filterPriority.value = '';
                 filterAssignee.value = '';
+                groupBy.value = '';
             };
 
             // Methods
@@ -3220,6 +4219,8 @@ HTML_TEMPLATE = """
 
             const setupSortable = () => {
                 const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+
+                // Regular Kanban columns
                 statuses.forEach(status => {
                     const el = document.getElementById('column-' + status);
                     if (el) {
@@ -3230,7 +4231,7 @@ HTML_TEMPLATE = """
                             dragClass: 'sortable-drag',
                             onEnd: async (evt) => {
                                 const storyId = evt.item.dataset.id;
-                                const newStatus = evt.to.id.replace('column-', '');
+                                const newStatus = evt.to.id.replace('column-', '').replace(/^swimlane-.*?-/, '');
                                 const newOrder = evt.newIndex;
 
                                 try {
@@ -3249,6 +4250,41 @@ HTML_TEMPLATE = """
                         });
                     }
                 });
+
+                // Swimlane columns
+                if (groupedStories.value) {
+                    Object.keys(groupedStories.value).forEach(groupKey => {
+                        statuses.forEach(status => {
+                            const el = document.getElementById('swimlane-' + groupKey + '-' + status);
+                            if (el) {
+                                new Sortable(el, {
+                                    group: 'stories',
+                                    animation: 150,
+                                    ghostClass: 'sortable-ghost',
+                                    dragClass: 'sortable-drag',
+                                    onEnd: async (evt) => {
+                                        const storyId = evt.item.dataset.id;
+                                        const newStatus = evt.to.id.split('-').pop();
+                                        const newOrder = evt.newIndex;
+
+                                        try {
+                                            await fetch(`/api/stories/${storyId}/move`, {
+                                                method: 'PATCH',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ status: newStatus, order: newOrder })
+                                            });
+                                            addToast('success', 'Story movida', storyId + ' -> ' + getColumnTitle(newStatus));
+                                            loadProjectData();
+                                        } catch (e) {
+                                            addToast('error', 'Erro ao mover', 'Nao foi possivel mover a story');
+                                            loadProjectData();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
             };
 
             const getColumnTitle = (status) => {
@@ -3275,6 +4311,11 @@ HTML_TEMPLATE = """
             const openStoryDetail = async (story) => {
                 const res = await fetch(`/api/stories/${story.story_id}`);
                 selectedStory.value = await res.json();
+
+                // Load designs
+                const designsRes = await fetch(`/api/stories/${story.story_id}/designs`);
+                selectedStory.value.designs = await designsRes.json();
+
                 activeTab.value = 'Detalhes';
             };
 
@@ -3407,6 +4448,58 @@ HTML_TEMPLATE = """
                     selectedStory.value = await storyRes.json();
                 } catch (e) {
                     addToast('error', 'Erro ao criar documentacao', 'Verifique os dados e tente novamente');
+                }
+            };
+
+            const generateDocs = async (docType) => {
+                showGenerateDocsDropdown.value = false;
+                generatingDocs.value = true;
+
+                try {
+                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/generate-docs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ doc_type: docType })
+                    });
+
+                    if (res.ok) {
+                        const created = await res.json();
+                        addToast('success', 'Documentacao gerada', created.title);
+                        const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                        selectedStory.value = await storyRes.json();
+                    } else {
+                        throw new Error('Erro ao gerar documentacao');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao gerar docs', e.message);
+                } finally {
+                    generatingDocs.value = false;
+                }
+            };
+
+            const copyDocContent = async (content) => {
+                try {
+                    await navigator.clipboard.writeText(content);
+                    addToast('success', 'Copiado', 'Conteudo copiado');
+                } catch (e) {
+                    addToast('error', 'Erro ao copiar', 'Use Ctrl+C');
+                }
+            };
+
+            const downloadDoc = (doc) => {
+                try {
+                    const blob = new Blob([doc.content], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${doc.doc_id}-${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.md`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    addToast('success', 'Download iniciado', doc.title);
+                } catch (e) {
+                    addToast('error', 'Erro no download', 'Tente novamente');
                 }
             };
 
@@ -3783,12 +4876,146 @@ HTML_TEMPLATE = """
             };
 
             // Watch project change
+
+            // Terminal Methods
+            const initTerminal = () => {
+                if (typeof Terminal === 'undefined') {
+                    console.error('xterm.js not loaded');
+                    return;
+                }
+
+                terminal.value = new Terminal({
+                    cursorBlink: true,
+                    fontSize: 13,
+                    fontFamily: 'Courier New, monospace',
+                    theme: {
+                        background: '#000000',
+                        foreground: '#ffffff'
+                    },
+                    rows: 20,
+                    cols: 80
+                });
+
+                const container = document.getElementById('terminal-container');
+                if (container) {
+                    terminal.value.open(container);
+                    terminal.value.writeln('Terminal ready. Select a project to start.');
+                    terminal.value.writeln('');
+                }
+            };
+
+            const executeTerminalCommand = async () => {
+                if (!terminalCommand.value.trim() || !selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ command: terminalCommand.value })
+                    });
+
+                    const data = await res.json();
+
+                    if (data.status === 'started') {
+                        terminal.value.writeln(`$ ${terminalCommand.value}`);
+                        terminalRunning.value = true;
+                        startOutputPolling();
+                    } else if (data.status === 'completed') {
+                        terminal.value.writeln(`$ ${terminalCommand.value}`);
+                        terminal.value.writeln(data.output);
+                    }
+
+                    terminalCommand.value = '';
+                } catch (error) {
+                    terminal.value.writeln(`Error: ${error.message}`);
+                }
+            };
+
+            const startApp = async () => {
+                if (!selectedProjectId.value) return;
+                terminalCommand.value = 'npm run dev';
+                await executeTerminalCommand();
+            };
+
+            const runTests = async () => {
+                if (!selectedProjectId.value) return;
+                terminalCommand.value = 'npm test';
+                await executeTerminalCommand();
+            };
+
+            const stopProcess = async () => {
+                if (!selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/terminal/stop`, {
+                        method: 'POST'
+                    });
+
+                    const data = await res.json();
+                    terminal.value.writeln(`
+Process ${data.status}`);
+                    terminal.value.writeln('');
+                    terminalRunning.value = false;
+                    stopOutputPolling();
+                } catch (error) {
+                    terminal.value.writeln(`Error stopping process: ${error.message}`);
+                }
+            };
+
+            const startOutputPolling = () => {
+                if (terminalOutputInterval.value) {
+                    clearInterval(terminalOutputInterval.value);
+                }
+
+                terminalOutputInterval.value = setInterval(async () => {
+                    if (!selectedProjectId.value) return;
+
+                    try {
+                        const res = await fetch(`/api/projects/${selectedProjectId.value}/terminal/output`);
+                        const data = await res.json();
+
+                        if (data.output) {
+                            terminal.value.write(data.output);
+                        }
+
+                        if (!data.has_more) {
+                            terminalRunning.value = false;
+                            stopOutputPolling();
+                        }
+                    } catch (error) {
+                        console.error('Error polling output:', error);
+                    }
+                }, 500);
+            };
+
+            const stopOutputPolling = () => {
+                if (terminalOutputInterval.value) {
+                    clearInterval(terminalOutputInterval.value);
+                    terminalOutputInterval.value = null;
+                }
+            };
+
+            const refreshPreview = () => {
+                const iframe = document.querySelector('iframe[ref="previewFrame"]');
+                if (iframe) {
+                    iframe.src = iframe.src;
+                }
+            };
+
             watch(selectedProjectId, () => {
                 loadChatHistory();
             });
 
+            // Watch groupBy change to reinitialize sortable
+            watch(groupBy, () => {
+                nextTick(() => {
+                    setupSortable();
+                });
+            });
+
             // Init
             onMounted(() => {
+                initTerminal();
                 loadProjects();
                 loadDarkMode();
 
@@ -3831,7 +5058,9 @@ HTML_TEMPLATE = """
                 selectedTemplate, applyTemplate, isDarkMode, toggleDarkMode,
                 showBurndownModal, burndownData, updateBurndownChart,
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
-                cancelBulkSelect, bulkMoveStories, bulkDeleteStories
+                cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
+                terminalCommand, terminalRunning, previewUrl, previewViewport,
+                executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview
             };
         }
     }).mount('#app');

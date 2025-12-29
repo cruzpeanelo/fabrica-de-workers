@@ -636,6 +636,7 @@ class Story(Base):
     # Relacionamentos
     story_tasks = relationship("StoryTask", back_populates="story", cascade="all, delete-orphan")
     documentation = relationship("StoryDocumentation", back_populates="story", cascade="all, delete-orphan")
+    designs = relationship("StoryDesign", back_populates="story", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="story", cascade="all, delete-orphan",
                                foreign_keys="Attachment.story_id")
 
@@ -877,6 +878,86 @@ class StoryDocumentation(Base):
 
     def __repr__(self):
         return f"<StoryDocumentation {self.doc_id}: {self.title[:30]} [{self.doc_type}]>"
+
+
+# =============================================================================
+# STORY_DESIGN - Mockups, Wireframes, Diagramas (Draw.io)
+# =============================================================================
+
+class DesignType(str, Enum):
+    """Tipos de design/diagrama"""
+    WIREFRAME = "wireframe"
+    ARCHITECTURE = "architecture"
+    FLOW = "flow"
+    DATABASE = "database"
+    UI_MOCKUP = "ui_mockup"
+    SEQUENCE = "sequence"
+    OTHER = "other"
+
+
+class StoryDesign(Base):
+    """
+    Modelo para Designs de Stories
+    Armazena mockups, wireframes, diagramas de arquitetura (Draw.io)
+    """
+    __tablename__ = "story_designs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    design_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Relacionamentos
+    story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=True, index=True)
+    story = relationship("Story", back_populates="designs")
+
+    project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=True, index=True)
+
+    # Tipo e titulo
+    design_type = Column(String(30), default=DesignType.WIREFRAME.value)
+    title = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Conteudo do Draw.io (XML)
+    content = Column(Text, nullable=True)
+
+    # Thumbnail (Base64 PNG)
+    thumbnail = Column(Text, nullable=True)
+
+    # Arquivo exportado
+    file_path = Column(String(500), nullable=True)
+    file_format = Column(String(10), default="drawio")  # drawio, png, svg, pdf
+
+    # Metadados
+    tags = Column(JSON, default=list)
+    version = Column(String(20), default="1.0")
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Autor
+    created_by = Column(String(100), default="system")
+
+    def to_dict(self):
+        return {
+            "design_id": self.design_id,
+            "story_id": self.story_id,
+            "project_id": self.project_id,
+            "design_type": self.design_type,
+            "title": self.title,
+            "description": self.description,
+            "content": self.content,
+            "thumbnail": self.thumbnail,
+            "file_path": self.file_path,
+            "file_format": self.file_format,
+            "tags": self.tags or [],
+            "version": self.version,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by
+        }
+
+    def __repr__(self):
+        return f"<StoryDesign {self.design_id}: {self.title[:30]} [{self.design_type}]>"
 
 
 # =============================================================================
