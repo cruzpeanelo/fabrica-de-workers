@@ -1282,8 +1282,8 @@ class CodeVersion(Base):
     parent_hash = Column(String(20), nullable=True, index=True)  # Versao anterior
     branch = Column(String(100), default="main", index=True)     # Nome da branch
 
-    # Metadados extras
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (renomeado pois 'metadata' e reservado pelo SQLAlchemy)
+    version_metadata = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -1299,7 +1299,7 @@ class CodeVersion(Base):
             "file_hashes": self.file_hashes or {},
             "parent_hash": self.parent_hash,
             "branch": self.branch,
-            "metadata": self.metadata or {},
+            "version_metadata": self.version_metadata or {},
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
