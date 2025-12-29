@@ -1,0 +1,71 @@
+# =============================================================================
+# Fabrica de Agentes - Helm Chart
+# =============================================================================
+# Chart principal para deployment da Fabrica de Agentes
+#
+# Instalacao:
+#   helm install fabrica-agentes ./helm/fabrica-agentes -n fabrica-agentes --create-namespace
+#
+# Upgrade:
+#   helm upgrade fabrica-agentes ./helm/fabrica-agentes -n fabrica-agentes
+# =============================================================================
+
+apiVersion: v2
+name: fabrica-agentes
+description: Plataforma de desenvolvimento autonomo com agentes IA - Dashboard Agile, Workers e Kanban Watcher
+type: application
+version: 1.0.0
+appVersion: "6.0.0"
+
+# Informacoes do projeto
+home: https://github.com/belgo/fabrica-agentes
+icon: https://raw.githubusercontent.com/belgo/fabrica-agentes/main/assets/logo.png
+sources:
+  - https://github.com/belgo/fabrica-agentes
+
+# Maintainers
+maintainers:
+  - name: Fabrica de Agentes Team
+    email: fabrica@belgo.com.br
+
+# Keywords para busca
+keywords:
+  - agile
+  - dashboard
+  - kanban
+  - ai
+  - claude
+  - autonomous
+  - workers
+  - development
+
+# Anotacoes
+annotations:
+  category: Development
+  license: MIT
+
+# Dependencias (subcharts)
+dependencies:
+  # PostgreSQL - usar se nao tiver managed service
+  - name: postgresql
+    version: "13.2.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    tags:
+      - database
+
+  # Redis - usar se nao tiver managed service
+  - name: redis
+    version: "18.4.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    tags:
+      - cache
+
+  # Ingress NGINX (opcional)
+  - name: ingress-nginx
+    version: "4.8.3"
+    repository: "https://kubernetes.github.io/ingress-nginx"
+    condition: ingress-nginx.enabled
+    tags:
+      - ingress

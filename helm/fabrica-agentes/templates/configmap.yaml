@@ -1,0 +1,54 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - ConfigMap
+=============================================================================
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+data:
+  # Configuracoes da API
+  API_HOST: "0.0.0.0"
+  API_PORT: {{ .Values.api.service.port | quote }}
+  DASHBOARD_PORT: {{ .Values.api.service.port | quote }}
+
+  # Configuracoes do Worker
+  WORKER_HOST: "0.0.0.0"
+  WORKER_PORT: {{ .Values.worker.service.port | quote }}
+  WORKER_CONCURRENCY: "2"
+  WORKER_POLL_INTERVAL: {{ .Values.watcher.interval | quote }}
+
+  # Configuracoes de Log
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+
+  # Configuracoes de Ambiente
+  ENVIRONMENT: {{ .Values.global.environment | quote }}
+  DEBUG: {{ .Values.config.debug | quote }}
+
+  # Configuracoes de Banco de Dados
+  DB_POOL_SIZE: {{ .Values.config.dbPoolSize | quote }}
+  DB_MAX_OVERFLOW: {{ .Values.config.dbMaxOverflow | quote }}
+
+  # Configuracoes de Aplicacao
+  MAX_STORIES_PER_PAGE: {{ .Values.config.maxStoriesPerPage | quote }}
+  MAX_TASKS_PER_STORY: {{ .Values.config.maxTasksPerStory | quote }}
+  FILE_UPLOAD_MAX_SIZE: {{ .Values.config.fileUploadMaxSize | quote }}
+
+  # URLs
+  {{- if .Values.externalDatabase.enabled }}
+  DATABASE_HOST: {{ .Values.externalDatabase.host | quote }}
+  DATABASE_PORT: {{ .Values.externalDatabase.port | quote }}
+  DATABASE_NAME: {{ .Values.externalDatabase.database | quote }}
+  {{- end }}
+
+  {{- if .Values.externalRedis.enabled }}
+  REDIS_HOST: {{ .Values.externalRedis.host | quote }}
+  REDIS_PORT: {{ .Values.externalRedis.port | quote }}
+  REDIS_DB: {{ .Values.externalRedis.db | quote }}
+  REDIS_URL: {{ include "fabrica-agentes.redisUrl" . | quote }}
+  {{- end }}

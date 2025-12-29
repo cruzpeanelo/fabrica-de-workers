@@ -1,0 +1,13 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - Namespace
+=============================================================================
+*/}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+  annotations:
+    description: "Namespace da Fabrica de Agentes - Plataforma de desenvolvimento autonomo"

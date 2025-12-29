@@ -1,0 +1,338 @@
+# =============================================================================
+# Fabrica de Agentes - Helm Values
+# =============================================================================
+# Configuracoes padrao do chart
+# Sobrescreva com: helm install ... -f custom-values.yaml
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Configuracoes Globais
+# -----------------------------------------------------------------------------
+global:
+  # Namespace (sera criado se nao existir)
+  namespace: fabrica-agentes
+
+  # Ambiente
+  environment: production
+
+  # Labels comuns
+  labels:
+    app.kubernetes.io/managed-by: helm
+
+  # Imagem base
+  imageRegistry: ""  # Ex: ghcr.io, docker.io
+  imagePullSecrets:
+    - name: fabrica-registry-credentials
+
+# -----------------------------------------------------------------------------
+# API - Dashboard Agile v6
+# -----------------------------------------------------------------------------
+api:
+  enabled: true
+  name: fabrica-api
+
+  # Imagem
+  image:
+    repository: fabrica-agentes-api
+    tag: "6.0"
+    pullPolicy: Always
+
+  # Replicas
+  replicaCount: 2
+
+  # Recursos
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+  # Porta
+  service:
+    type: ClusterIP
+    port: 9001
+    nodePort: 30901  # Apenas se type: NodePort
+
+  # Auto-scaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Health checks
+  healthCheck:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# -----------------------------------------------------------------------------
+# Workers - Processamento Autonomo
+# -----------------------------------------------------------------------------
+worker:
+  enabled: true
+  name: fabrica-worker
+
+  # Imagem
+  image:
+    repository: fabrica-agentes-worker
+    tag: "6.0"
+    pullPolicy: Always
+
+  # Replicas
+  replicaCount: 2
+
+  # Recursos (workers precisam de mais recursos)
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+  # Porta
+  service:
+    type: ClusterIP
+    port: 9000
+
+  # Auto-scaling
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+
+  # Health checks
+  healthCheck:
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 30
+
+  # Termination grace period (workers podem demorar)
+  terminationGracePeriodSeconds: 120
+
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# -----------------------------------------------------------------------------
+# Watcher - Kanban Watcher (Singleton)
+# -----------------------------------------------------------------------------
+watcher:
+  enabled: true
+  name: fabrica-watcher
+
+  # Imagem
+  image:
+    repository: fabrica-agentes-watcher
+    tag: "6.0"
+    pullPolicy: Always
+
+  # Sempre 1 replica (singleton)
+  replicaCount: 1
+
+  # Recursos
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  # Intervalo de verificacao (segundos)
+  interval: 30
+
+# -----------------------------------------------------------------------------
+# Ingress
+# -----------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+
+  # Hosts
+  hosts:
+    - host: fabrica.exemplo.com.br
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api
+
+  # TLS
+  tls:
+    enabled: true
+    secretName: fabrica-tls-secret
+    hosts:
+      - fabrica.exemplo.com.br
+
+  # Anotacoes
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+# -----------------------------------------------------------------------------
+# Persistencia
+# -----------------------------------------------------------------------------
+persistence:
+  # Projetos gerados
+  projects:
+    enabled: true
+    storageClass: standard
+    accessMode: ReadWriteMany
+    size: 20Gi
+
+  # Uploads
+  uploads:
+    enabled: true
+    storageClass: standard
+    accessMode: ReadWriteMany
+    size: 10Gi
+
+  # Database (SQLite - apenas desenvolvimento)
+  database:
+    enabled: true
+    storageClass: standard
+    accessMode: ReadWriteOnce
+    size: 5Gi
+
+# -----------------------------------------------------------------------------
+# Secrets
+# -----------------------------------------------------------------------------
+secrets:
+  # IMPORTANTE: Substitua estes valores em producao!
+  anthropicApiKey: "sk-ant-api-key-example"  # OBRIGATORIO
+  databaseUser: "fabrica"
+  databasePassword: "fabrica_secret_strong_password"
+  jwtSecret: "fabrica-jwt-secret-change-in-production"
+  sessionSecret: "fabrica-session-secret-change-in-production"
+
+  # Usar External Secrets Operator
+  externalSecrets:
+    enabled: false
+    secretStoreRef:
+      kind: ClusterSecretStore
+      name: aws-secrets-manager
+
+# -----------------------------------------------------------------------------
+# ConfigMap
+# -----------------------------------------------------------------------------
+config:
+  logLevel: INFO
+  logFormat: json
+  debug: "false"
+  dbPoolSize: "10"
+  dbMaxOverflow: "20"
+  maxStoriesPerPage: "50"
+  maxTasksPerStory: "100"
+  fileUploadMaxSize: "10485760"
+
+# -----------------------------------------------------------------------------
+# PostgreSQL (subchart)
+# -----------------------------------------------------------------------------
+postgresql:
+  enabled: false  # Desativar se usar managed service
+  auth:
+    username: fabrica
+    password: fabrica_secret
+    database: fabrica_db
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+# -----------------------------------------------------------------------------
+# Redis (subchart)
+# -----------------------------------------------------------------------------
+redis:
+  enabled: false  # Desativar se usar managed service
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+
+# -----------------------------------------------------------------------------
+# URLs Externas (quando usar managed services)
+# -----------------------------------------------------------------------------
+externalDatabase:
+  enabled: true
+  host: "postgres-service.fabrica-agentes.svc.cluster.local"
+  port: 5432
+  database: fabrica_db
+
+externalRedis:
+  enabled: true
+  host: "redis-service.fabrica-agentes.svc.cluster.local"
+  port: 6379
+  db: 0
+
+# -----------------------------------------------------------------------------
+# Ingress NGINX (subchart)
+# -----------------------------------------------------------------------------
+ingress-nginx:
+  enabled: false  # Ativar se precisar instalar ingress controller
+
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  # annotations:
+  #   eks.amazonaws.com/role-arn: arn:aws:iam::xxx:role/fabrica-role
+
+# -----------------------------------------------------------------------------
+# Network Policies
+# -----------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Pod Security
+# -----------------------------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -----------------------------------------------------------------------------
+# Affinity e Tolerations
+# -----------------------------------------------------------------------------
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+
+tolerations: []
+# tolerations:
+#   - key: "workload"
+#     operator: "Equal"
+#     value: "fabrica"
+#     effect: "NoSchedule"
+
+nodeSelector: {}
+# nodeSelector:
+#   workload: fabrica
