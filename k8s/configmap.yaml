@@ -1,0 +1,193 @@
+# =============================================================================
+# Fabrica de Agentes - ConfigMaps Kubernetes
+# =============================================================================
+# Configuracoes nao-sensiveis da aplicacao
+#
+# Aplicar com: kubectl apply -f configmap.yaml
+# =============================================================================
+
+---
+# =============================================================================
+# ConfigMap Principal - Configuracoes da Aplicacao
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fabrica-agentes-config
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: config
+data:
+  # Configuracoes da API
+  API_HOST: "0.0.0.0"
+  API_PORT: "9001"
+  DASHBOARD_PORT: "9001"
+
+  # Configuracoes do Worker
+  WORKER_HOST: "0.0.0.0"
+  WORKER_PORT: "9000"
+  WORKER_CONCURRENCY: "2"
+  WORKER_POLL_INTERVAL: "30"
+
+  # Configuracoes de Log
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+
+  # Configuracoes de Ambiente
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+
+  # Configuracoes de Banco de Dados
+  DB_POOL_SIZE: "10"
+  DB_MAX_OVERFLOW: "20"
+  DB_POOL_TIMEOUT: "30"
+
+  # Configuracoes de Aplicacao
+  MAX_STORIES_PER_PAGE: "50"
+  MAX_TASKS_PER_STORY: "100"
+  FILE_UPLOAD_MAX_SIZE: "10485760"  # 10MB
+
+---
+# =============================================================================
+# ConfigMap de URLs - Endpoints de servicos
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fabrica-agentes-urls
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: config
+data:
+  # URLs internas do cluster
+  # Usar managed services em producao (RDS, Cloud SQL, ElastiCache, etc)
+  DATABASE_HOST: "postgres-service.fabrica-agentes.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "fabrica_db"
+
+  REDIS_HOST: "redis-service.fabrica-agentes.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+
+  # URLs montadas (para uso no codigo)
+  # DATABASE_URL sera montado via secret
+  REDIS_URL: "redis://redis-service.fabrica-agentes.svc.cluster.local:6379/0"
+
+---
+# =============================================================================
+# ConfigMap de Nginx - Configuracao para proxy reverso (opcional)
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fabrica-agentes-nginx
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: nginx
+data:
+  nginx.conf: |
+    upstream api {
+        server fabrica-api-service:9001;
+        keepalive 32;
+    }
+
+    upstream worker {
+        server fabrica-worker-service:9000;
+        keepalive 16;
+    }
+
+    server {
+        listen 80;
+        server_name _;
+
+        # Compressao
+        gzip on;
+        gzip_types text/plain text/css application/json application/javascript;
+
+        # Headers de seguranca
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        # API Dashboard
+        location / {
+            proxy_pass http://api;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+            proxy_connect_timeout 60s;
+            proxy_read_timeout 120s;
+        }
+
+        # Worker API
+        location /worker/ {
+            proxy_pass http://worker/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+        }
+
+        # Health check
+        location /nginx-health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
+
+---
+# =============================================================================
+# ConfigMap de Inicializacao - Scripts de startup
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fabrica-agentes-init-scripts
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: init
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "=== Fabrica de Agentes - Inicializacao do Banco de Dados ==="
+
+    # Aguardar banco de dados ficar disponivel
+    echo "Aguardando PostgreSQL..."
+    until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
+      echo "PostgreSQL nao disponivel, aguardando..."
+      sleep 2
+    done
+    echo "PostgreSQL disponivel!"
+
+    # Executar migrations (se houver)
+    echo "Executando migrations..."
+    python -c "from factory.database.connection import init_db; init_db()"
+
+    echo "=== Inicializacao concluida ==="
+
+  wait-for-services.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Aguardando servicos dependentes..."
+
+    # Aguardar Redis
+    until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping; do
+      echo "Redis nao disponivel, aguardando..."
+      sleep 2
+    done
+    echo "Redis disponivel!"
+
+    echo "Todos os servicos estao disponiveis!"

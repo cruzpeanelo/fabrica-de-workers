@@ -1,0 +1,240 @@
+# =============================================================================
+# Fabrica de Agentes - Ingress Configuration
+# =============================================================================
+# Ingress para expor a aplicacao externamente com TLS
+#
+# Prerequisitos:
+# - Ingress Controller instalado (nginx-ingress, traefik, etc)
+# - cert-manager para certificados automaticos (opcional)
+#
+# Aplicar com: kubectl apply -f ingress.yaml
+# =============================================================================
+
+---
+# =============================================================================
+# Ingress Principal - NGINX Ingress Controller
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fabrica-agentes-ingress
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Classe do Ingress Controller
+    kubernetes.io/ingress.class: "nginx"
+
+    # SSL/TLS - cert-manager automatico
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Redirecionamento HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Configuracoes de proxy
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+
+    # WebSocket support (para dashboard real-time)
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # Seguranca
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+spec:
+  ingressClassName: nginx
+
+  # Configuracao TLS
+  tls:
+    - hosts:
+        - fabrica.exemplo.com.br
+        - api.fabrica.exemplo.com.br
+      secretName: fabrica-tls-secret
+
+  rules:
+    # Dashboard Agile v6 (dominio principal)
+    - host: fabrica.exemplo.com.br
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fabrica-api-service
+                port:
+                  number: 9001
+
+    # API (subdominio)
+    - host: api.fabrica.exemplo.com.br
+      http:
+        paths:
+          # API REST
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: fabrica-api-service
+                port:
+                  number: 9001
+          # Workers API
+          - path: /worker
+            pathType: Prefix
+            backend:
+              service:
+                name: fabrica-worker-service
+                port:
+                  number: 9000
+
+---
+# =============================================================================
+# ClusterIssuer para cert-manager (Let's Encrypt)
+# =============================================================================
+# NOTA: Requer cert-manager instalado no cluster
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+spec:
+  acme:
+    # Servidor ACME do Let's Encrypt (producao)
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email para notificacoes de certificado
+    email: admin@exemplo.com.br
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      # HTTP-01 challenge (requer Ingress acessivel publicamente)
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# =============================================================================
+# ClusterIssuer para Let's Encrypt (Staging/Desenvolvimento)
+# =============================================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+spec:
+  acme:
+    # Servidor de staging (para testes - sem rate limits)
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@exemplo.com.br
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# =============================================================================
+# Ingress Alternativo - Traefik
+# =============================================================================
+# Descomente se usar Traefik como Ingress Controller
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: fabrica-agentes-traefik
+#   namespace: fabrica-agentes
+#   annotations:
+#     kubernetes.io/ingress.class: "traefik"
+#     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+#     traefik.ingress.kubernetes.io/router.tls: "true"
+#     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+#     traefik.ingress.kubernetes.io/router.middlewares: fabrica-agentes-security@kubernetescrd
+# spec:
+#   rules:
+#     - host: fabrica.exemplo.com.br
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: fabrica-api-service
+#                 port:
+#                   number: 9001
+
+---
+# =============================================================================
+# Ingress para AWS ALB (Application Load Balancer)
+# =============================================================================
+# Descomente se usar AWS Load Balancer Controller
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: fabrica-agentes-alb
+#   namespace: fabrica-agentes
+#   annotations:
+#     kubernetes.io/ingress.class: "alb"
+#     alb.ingress.kubernetes.io/scheme: internet-facing
+#     alb.ingress.kubernetes.io/target-type: ip
+#     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+#     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+#     alb.ingress.kubernetes.io/ssl-redirect: "443"
+#     alb.ingress.kubernetes.io/healthcheck-path: /health
+#     alb.ingress.kubernetes.io/group.name: fabrica-agentes
+# spec:
+#   rules:
+#     - host: fabrica.exemplo.com.br
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: fabrica-api-service
+#                 port:
+#                   number: 9001
+
+---
+# =============================================================================
+# GKE Ingress (Google Cloud)
+# =============================================================================
+# Descomente se usar GKE com Google Cloud Load Balancer
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: fabrica-agentes-gke
+#   namespace: fabrica-agentes
+#   annotations:
+#     kubernetes.io/ingress.class: "gce"
+#     kubernetes.io/ingress.global-static-ip-name: "fabrica-ip"
+#     networking.gke.io/managed-certificates: "fabrica-cert"
+#     networking.gke.io/v1beta1.FrontendConfig: "fabrica-frontend"
+# spec:
+#   rules:
+#     - host: fabrica.exemplo.com.br
+#       http:
+#         paths:
+#           - path: /*
+#             pathType: ImplementationSpecific
+#             backend:
+#               service:
+#                 name: fabrica-api-service
+#                 port:
+#                   number: 9001

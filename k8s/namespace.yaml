@@ -1,0 +1,126 @@
+# =============================================================================
+# Fabrica de Agentes - Namespace Kubernetes
+# =============================================================================
+# Define o namespace isolado para todos os recursos da aplicacao
+#
+# Aplicar com: kubectl apply -f namespace.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/version: "6.0"
+    app.kubernetes.io/managed-by: kubectl
+    environment: production
+  annotations:
+    description: "Namespace da Fabrica de Agentes - Plataforma de desenvolvimento autonomo"
+
+---
+# =============================================================================
+# Resource Quotas - Limites de recursos do namespace
+# =============================================================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: fabrica-agentes-quota
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+spec:
+  hard:
+    # Limites de compute
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    # Limites de objetos
+    pods: "50"
+    services: "20"
+    secrets: "30"
+    configmaps: "30"
+    persistentvolumeclaims: "10"
+
+---
+# =============================================================================
+# Limit Range - Limites padrao para pods
+# =============================================================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: fabrica-agentes-limits
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+spec:
+  limits:
+    # Limites padrao para containers
+    - type: Container
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "50m"
+        memory: "64Mi"
+    # Limites para pods
+    - type: Pod
+      max:
+        cpu: "8"
+        memory: "16Gi"
+
+---
+# =============================================================================
+# Network Policy - Politica de rede para isolamento
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fabrica-agentes-network-policy
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Permitir trafego interno do namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: fabrica-agentes
+    # Permitir trafego do ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+  egress:
+    # Permitir DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Permitir HTTPS para APIs externas (Anthropic, etc)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+    # Permitir comunicacao interna do namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: fabrica-agentes

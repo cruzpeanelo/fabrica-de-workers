@@ -1,0 +1,172 @@
+# =============================================================================
+# Fabrica de Agentes - PersistentVolumeClaims
+# =============================================================================
+# Volumes persistentes para dados da aplicacao
+#
+# Aplicar com: kubectl apply -f storage/pvc.yaml
+# =============================================================================
+
+---
+# =============================================================================
+# PVC para Projetos Gerados
+# =============================================================================
+# Armazena codigo gerado pelos workers autonomos
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fabrica-projects-pvc
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: storage
+    storage-type: projects
+spec:
+  accessModes:
+    # ReadWriteMany permite multiplos pods acessarem simultaneamente
+    - ReadWriteMany
+  # StorageClass depende do provedor cloud
+  # AWS: gp3, Azure: managed-premium, GCP: standard
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 20Gi
+  # Selector para PV especifico (opcional)
+  # selector:
+  #   matchLabels:
+  #     type: projects
+
+---
+# =============================================================================
+# PVC para Uploads de Arquivos
+# =============================================================================
+# Armazena arquivos anexados via dashboard
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fabrica-uploads-pvc
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: storage
+    storage-type: uploads
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# =============================================================================
+# PVC para Banco de Dados SQLite (desenvolvimento)
+# =============================================================================
+# NOTA: Em producao, usar PostgreSQL gerenciado (RDS, Cloud SQL, etc)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fabrica-database-pvc
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: storage
+    storage-type: database
+spec:
+  accessModes:
+    # ReadWriteOnce para SQLite (apenas 1 pod por vez)
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# =============================================================================
+# PVC para Logs (opcional)
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fabrica-logs-pvc
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: storage
+    storage-type: logs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# =============================================================================
+# StorageClass Customizada (opcional - exemplo para AWS EFS)
+# =============================================================================
+# Descomente se precisar de storage compartilhado entre pods
+
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: efs-sc
+#   labels:
+#     app.kubernetes.io/name: fabrica-agentes
+# provisioner: efs.csi.aws.com
+# parameters:
+#   provisioningMode: efs-ap
+#   fileSystemId: fs-xxxxxxxx  # ID do EFS
+#   directoryPerms: "700"
+#   gidRangeStart: "1000"
+#   gidRangeEnd: "2000"
+#   basePath: "/fabrica-agentes"
+# reclaimPolicy: Retain
+# volumeBindingMode: Immediate
+
+---
+# =============================================================================
+# StorageClass para NFS (on-premises)
+# =============================================================================
+# apiVersion: storage.k8s.io/v1
+# kind: StorageClass
+# metadata:
+#   name: nfs-storage
+#   labels:
+#     app.kubernetes.io/name: fabrica-agentes
+# provisioner: nfs-subdir-external-provisioner
+# parameters:
+#   server: nfs-server.local
+#   path: /exports/fabrica-agentes
+#   archiveOnDelete: "true"
+# reclaimPolicy: Retain
+# volumeBindingMode: Immediate
+
+---
+# =============================================================================
+# PersistentVolume Exemplo (para provisioning manual)
+# =============================================================================
+# Descomente se nao usar dynamic provisioning
+
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: fabrica-projects-pv
+#   labels:
+#     app.kubernetes.io/name: fabrica-agentes
+#     type: projects
+# spec:
+#   capacity:
+#     storage: 20Gi
+#   accessModes:
+#     - ReadWriteMany
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: standard
+#   # NFS example
+#   nfs:
+#     server: nfs-server.local
+#     path: /exports/fabrica/projects
+#   # HostPath example (desenvolvimento local)
+#   # hostPath:
+#   #   path: /data/fabrica/projects
+#   #   type: DirectoryOrCreate

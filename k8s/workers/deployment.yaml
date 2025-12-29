@@ -1,0 +1,240 @@
+# =============================================================================
+# Fabrica de Agentes - Workers Deployment
+# =============================================================================
+# Deployment dos Workers autonomos (processamento de tarefas)
+#
+# Aplicar com: kubectl apply -f workers/deployment.yaml
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fabrica-worker
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/version: "6.0"
+spec:
+  # Workers podem ter scaling manual ou via HPA
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fabrica-agentes
+      app.kubernetes.io/component: worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fabrica-agentes
+        app.kubernetes.io/component: worker
+        app.kubernetes.io/version: "6.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: fabrica-worker-sa
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      # Workers devem ser distribuidos em diferentes nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/component
+                      operator: In
+                      values:
+                        - worker
+                topologyKey: kubernetes.io/hostname
+
+      imagePullSecrets:
+        - name: fabrica-registry-credentials
+
+      # Init Containers
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
+                echo "Aguardando PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL disponivel!"
+          envFrom:
+            - configMapRef:
+                name: fabrica-agentes-urls
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: DATABASE_USER
+
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping; do
+                echo "Aguardando Redis..."
+                sleep 2
+              done
+              echo "Redis disponivel!"
+          envFrom:
+            - configMapRef:
+                name: fabrica-agentes-urls
+
+      containers:
+        - name: worker
+          image: fabrica-agentes-worker:6.0
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: fabrica-agentes-config
+            - configMapRef:
+                name: fabrica-agentes-urls
+
+          env:
+            # Tipo de aplicacao
+            - name: APP_TYPE
+              value: "worker"
+            # Secrets
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: DATABASE_URL
+
+          # Workers precisam de mais recursos para processamento IA
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          volumeMounts:
+            - name: projects-data
+              mountPath: /app/projects
+            - name: uploads-data
+              mountPath: /app/uploads
+            - name: tmp
+              mountPath: /tmp
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: projects-data
+          persistentVolumeClaim:
+            claimName: fabrica-projects-pvc
+        - name: uploads-data
+          persistentVolumeClaim:
+            claimName: fabrica-uploads-pvc
+        - name: tmp
+          emptyDir: {}
+
+      tolerations:
+        - key: "workload"
+          operator: "Equal"
+          value: "fabrica-worker"
+          effect: "NoSchedule"
+
+      # Workers podem demorar mais para terminar processamento
+      terminationGracePeriodSeconds: 120
+
+---
+# =============================================================================
+# Service Account para Worker
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fabrica-worker-sa
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: worker
+
+---
+# =============================================================================
+# Worker Service
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrica-worker-service
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: worker
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: worker
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http
+      protocol: TCP

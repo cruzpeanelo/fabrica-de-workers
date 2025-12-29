@@ -1,0 +1,127 @@
+# =============================================================================
+# Fabrica de Agentes - API HorizontalPodAutoscaler
+# =============================================================================
+# Auto-scaling horizontal para a API baseado em metricas de CPU e memoria
+#
+# Aplicar com: kubectl apply -f api/hpa.yaml
+# =============================================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fabrica-api-hpa
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fabrica-api
+
+  # Limites de replicas
+  minReplicas: 2
+  maxReplicas: 10
+
+  # Metricas para scaling
+  metrics:
+    # CPU - escala quando uso medio > 70%
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Memoria - escala quando uso medio > 80%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  # Comportamento de scaling
+  behavior:
+    # Scale Up - aumentar capacidade rapidamente
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Aguardar 1 minuto antes de escalar novamente
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60  # Adicionar ate 2 pods por minuto
+        - type: Percent
+          value: 100
+          periodSeconds: 60  # Ou dobrar replicas por minuto
+      selectPolicy: Max
+
+    # Scale Down - reduzir capacidade gradualmente
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Aguardar 5 minutos antes de reduzir
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120  # Remover 1 pod a cada 2 minutos
+        - type: Percent
+          value: 25
+          periodSeconds: 120  # Ou reduzir 25% a cada 2 minutos
+      selectPolicy: Min
+
+---
+# =============================================================================
+# PodDisruptionBudget - Garantir disponibilidade durante updates
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fabrica-api-pdb
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+spec:
+  # Manter sempre pelo menos 1 pod disponivel
+  minAvailable: 1
+  # Ou usar maxUnavailable: 1 para permitir apenas 1 pod indisponivel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fabrica-agentes
+      app.kubernetes.io/component: api
+
+---
+# =============================================================================
+# VerticalPodAutoscaler (VPA) - Recomendacoes de recursos
+# =============================================================================
+# NOTA: Requer VPA instalado no cluster
+# Instalacao: kubectl apply -f https://github.com/kubernetes/autoscaler/releases/latest/download/vertical-pod-autoscaler.yaml
+
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: fabrica-api-vpa
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fabrica-api
+  updatePolicy:
+    # Modo "Off" apenas gera recomendacoes sem aplicar automaticamente
+    # Mudar para "Auto" para aplicar automaticamente
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: api
+        minAllowed:
+          cpu: "100m"
+          memory: "128Mi"
+        maxAllowed:
+          cpu: "2000m"
+          memory: "2Gi"
+        controlledResources:
+          - cpu
+          - memory

@@ -1,0 +1,227 @@
+# =============================================================================
+# Fabrica de Agentes - API Deployment
+# =============================================================================
+# Deployment do Dashboard Agile v6 (API principal)
+#
+# Aplicar com: kubectl apply -f api/deployment.yaml
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fabrica-api
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+    app.kubernetes.io/version: "6.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fabrica-agentes
+      app.kubernetes.io/component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fabrica-agentes
+        app.kubernetes.io/component: api
+        app.kubernetes.io/version: "6.0"
+      annotations:
+        # Prometheus metrics
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9001"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Service Account
+      serviceAccountName: fabrica-api-sa
+
+      # Security Context do Pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      # Affinity e Anti-Affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/component
+                      operator: In
+                      values:
+                        - api
+                topologyKey: kubernetes.io/hostname
+
+      # Pull de imagens privadas (se necessario)
+      imagePullSecrets:
+        - name: fabrica-registry-credentials
+
+      # Init Containers - Aguardar dependencias
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
+                echo "Aguardando PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL disponivel!"
+          envFrom:
+            - configMapRef:
+                name: fabrica-agentes-urls
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: DATABASE_USER
+
+      containers:
+        - name: api
+          image: fabrica-agentes-api:6.0
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 9001
+              protocol: TCP
+
+          # Variaveis de ambiente
+          envFrom:
+            - configMapRef:
+                name: fabrica-agentes-config
+            - configMapRef:
+                name: fabrica-agentes-urls
+
+          env:
+            # Secrets
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: JWT_SECRET
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fabrica-agentes-secrets
+                  key: SESSION_SECRET
+
+          # Recursos
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+          # Health Checks - Liveness Probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          # Health Checks - Readiness Probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          # Health Checks - Startup Probe (para containers lentos)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30  # 5s * 30 = 150s maximo para startup
+
+          # Volume Mounts
+          volumeMounts:
+            - name: projects-data
+              mountPath: /app/projects
+            - name: uploads-data
+              mountPath: /app/uploads
+            - name: database-data
+              mountPath: /app/factory/database
+            - name: tmp
+              mountPath: /tmp
+
+          # Security Context do Container
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # Precisa escrever em /app
+            capabilities:
+              drop:
+                - ALL
+
+      # Volumes
+      volumes:
+        - name: projects-data
+          persistentVolumeClaim:
+            claimName: fabrica-projects-pvc
+        - name: uploads-data
+          persistentVolumeClaim:
+            claimName: fabrica-uploads-pvc
+        - name: database-data
+          persistentVolumeClaim:
+            claimName: fabrica-database-pvc
+        - name: tmp
+          emptyDir: {}
+
+      # Tolerations (se usar nodes dedicados)
+      tolerations:
+        - key: "workload"
+          operator: "Equal"
+          value: "fabrica"
+          effect: "NoSchedule"
+
+      # Termination Grace Period
+      terminationGracePeriodSeconds: 30
+
+---
+# =============================================================================
+# Service Account para API
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fabrica-api-sa
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api

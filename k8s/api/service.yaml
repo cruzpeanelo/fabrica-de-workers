@@ -1,0 +1,84 @@
+# =============================================================================
+# Fabrica de Agentes - API Service
+# =============================================================================
+# Service para expor o Dashboard Agile v6 internamente no cluster
+#
+# Aplicar com: kubectl apply -f api/service.yaml
+# =============================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrica-api-service
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+  annotations:
+    # Prometheus Service Discovery
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9001"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 9001
+      targetPort: http
+      protocol: TCP
+  # Session Affinity para manter sessoes do usuario
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 horas
+
+---
+# =============================================================================
+# Service NodePort (para acesso externo direto - desenvolvimento)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrica-api-nodeport
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+    app.kubernetes.io/tier: external
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 9001
+      targetPort: http
+      nodePort: 30901  # Porta fixa para acesso externo
+      protocol: TCP
+
+---
+# =============================================================================
+# Headless Service (para StatefulSets e DNS discovery)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: fabrica-api-headless
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: 9001
+      targetPort: http
+      protocol: TCP
