@@ -18,8 +18,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-# Adicionar path do projeto
-sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
+# Path configurado via imports relativos
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel

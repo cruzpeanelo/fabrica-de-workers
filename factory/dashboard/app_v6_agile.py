@@ -48,8 +48,7 @@ from factory.database.models import (
     StoryDesign, DesignType,
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
-    TaskPriority,
-    StoryEstimate
+    TaskPriority
 )
 from factory.database.repositories import (
     ProjectRepository, ActivityLogRepository,
@@ -88,6 +87,13 @@ app.add_middleware(
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Mount static files for PWA support
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    print(f"[Dashboard] Static files mounted from {STATIC_DIR}")
+
 # Project Preview API Router (Issue #73)
 try:
     from factory.api.project_preview import router as preview_router
@@ -96,6 +102,17 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Project Preview router not available: {e}")
 
+# Code Review API Router (Issue #52)
+try:
+    from factory.api.code_review_routes import router as code_review_router
+    app.include_router(code_review_router)
+    print("[Dashboard] Code Review router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Code Review router not available: {e}")
+
+# Analytics de Produtividade endpoints (Issue #65)
+from factory.dashboard.analytics_endpoints import register_analytics_endpoints
+register_analytics_endpoints(app, SessionLocal, Story, Sprint, HAS_CLAUDE, get_claude_client if HAS_CLAUDE else None)
 
 
 # =============================================================================
@@ -336,98 +353,6 @@ def delete_story(story_id: str):
     try:
         repo = StoryRepository(db)
         if repo.delete(story_id):
-            // Load preview data
-            const loadPreviewData = async () => {
-                if (!selectedProjectId.value) return;
-                previewLoading.value = true;
-                try {
-                    const res = await fetch(`/api/projects/${selectedProjectId.value}/preview`);
-                    if (res.ok) {
-                        previewData.value = await res.json();
-                    }
-                } catch (e) {
-                    console.error('Error loading preview:', e);
-                } finally {
-                    previewLoading.value = false;
-                }
-            };
-
-            // Open preview modal
-            const openProjectPreview = async () => {
-                showProjectPreview.value = true;
-                await loadPreviewData();
-            };
-
-            // Refresh preview data
-            const refreshPreviewData = async () => {
-                await loadPreviewData();
-                addToast('success', 'Atualizado', 'Dados do preview atualizados');
-            };
-
-            // Start app preview
-            const startAppPreview = async () => {
-                try {
-                    const res = await fetch(`/api/projects/${selectedProjectId.value}/start-app`, {
-                        method: 'POST'
-                    });
-                    const result = await res.json();
-                    if (result.success || result.status === 'already_running') {
-                        addToast('success', 'Servidor iniciado', 'A aplicacao esta rodando');
-                        await loadPreviewData();
-                    } else {
-                        addToast('error', 'Erro', result.message || 'Falha ao iniciar servidor');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha ao iniciar servidor');
-                }
-            };
-
-            // Run tests
-            const runProjectTests = async () => {
-                try {
-                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({command: 'npm test'})
-                    });
-                    addToast('info', 'Testes iniciados', 'Executando testes do projeto...');
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha ao executar testes');
-                }
-            };
-
-            // Build project
-            const buildProject = async () => {
-                try {
-                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({command: 'npm run build'})
-                    });
-                    addToast('info', 'Build iniciado', 'Construindo o projeto...');
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha ao construir projeto');
-                }
-            };
-
-            // Open app preview
-            const openAppPreview = () => {
-                if (previewData.value?.app_status?.app_url) {
-                    window.open(previewData.value.app_status.app_url, '_blank');
-                }
-            };
-
-            // Open file viewer
-            const openFileViewer = (file) => {
-                console.log('Open file:', file);
-            };
-
-            // Open doc viewer
-            const openDocViewer = (doc) => {
-                console.log('Open doc:', doc);
-            };
-            // ==================== END PROJECT PREVIEW DASHBOARD ====================
-
             return {"message": "Story deleted"}
         raise HTTPException(404, "Story not found")
     finally:
@@ -459,140 +384,6 @@ def get_story_board(project_id: str):
         return repo.get_story_board(project_id)
     finally:
         db.close()
-
-
-
-
-# =============================================================================
-# API ENDPOINTS - ESTIMATIVA INTELIGENTE DE ESFORCO
-# =============================================================================
-
-@app.post("/api/stories/{story_id}/estimate")
-def estimate_story_effort(story_id: str):
-    """Estima story points usando Claude AI."""
-    db = SessionLocal()
-    try:
-        story_repo = StoryRepository(db)
-        story = story_repo.get_by_id(story_id)
-        if not story:
-            raise HTTPException(404, "Story not found")
-
-        completed_stories = db.query(Story).filter(
-            Story.project_id == story.project_id,
-            Story.status == 'done',
-            Story.story_points > 0
-        ).limit(20).all()
-
-        estimate_result = generate_story_estimate(story, completed_stories, db)
-
-        estimate = StoryEstimate(
-            estimate_id=f"EST-{uuid.uuid4().hex[:8].upper()}",
-            story_id=story_id,
-            estimated_points=estimate_result["estimated_points"],
-            confidence=estimate_result.get("confidence", 0.8),
-            complexity_detected=estimate_result.get("complexity"),
-            justification=estimate_result.get("justification", ""),
-            factors=estimate_result.get("factors", []),
-            similar_stories=estimate_result.get("similar_stories", []),
-            estimate_type="ai",
-            estimated_by="claude-ai"
-        )
-        db.add(estimate)
-        db.commit()
-        db.refresh(estimate)
-
-        notify("story_estimated", {"story_id": story_id, "estimated_points": estimate_result["estimated_points"]})
-        return estimate.to_dict()
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(500, f"Erro ao estimar story: {str(e)}")
-    finally:
-        db.close()
-
-
-@app.get("/api/stories/{story_id}/estimates")
-def get_story_estimates(story_id: str):
-    """Retorna historico de estimativas"""
-    db = SessionLocal()
-    try:
-        estimates = db.query(StoryEstimate).filter(StoryEstimate.story_id == story_id).order_by(StoryEstimate.created_at.desc()).all()
-        return [e.to_dict() for e in estimates]
-    finally:
-        db.close()
-
-
-@app.post("/api/stories/{story_id}/estimates/{estimate_id}/accept")
-def accept_story_estimate(story_id: str, estimate_id: str, adjusted_points: Optional[int] = None):
-    """Aceita ou ajusta estimativa"""
-    db = SessionLocal()
-    try:
-        estimate = db.query(StoryEstimate).filter(StoryEstimate.estimate_id == estimate_id, StoryEstimate.story_id == story_id).first()
-        if not estimate:
-            raise HTTPException(404, "Estimate not found")
-        estimate.accepted = True
-        estimate.accepted_at = datetime.utcnow()
-        final_points = adjusted_points if adjusted_points else estimate.estimated_points
-        if adjusted_points and adjusted_points != estimate.estimated_points:
-            estimate.adjusted_to = adjusted_points
-        story = StoryRepository(db).get_by_id(story_id)
-        if story:
-            story.story_points = final_points
-            story.complexity = "low" if final_points <= 2 else "medium" if final_points <= 5 else "high" if final_points <= 8 else "very_high"
-        db.commit()
-        notify("estimate_accepted", {"story_id": story_id, "final_points": final_points})
-        return estimate.to_dict()
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(500, f"Erro: {str(e)}")
-    finally:
-        db.close()
-
-
-def generate_story_estimate(story, completed_stories, db):
-    if HAS_CLAUDE:
-        try:
-            claude = get_claude_client()
-            if claude.is_available():
-                return estimate_with_claude(story, completed_stories, claude)
-        except: pass
-    return estimate_with_heuristics(story, completed_stories)
-
-
-def estimate_with_claude(story, completed_stories, claude):
-    ctx = f"STORY: {story.story_id} - {story.title}\nNarrativa: {story.persona}/{story.action}/{story.benefit}\nCriterios: {len(story.acceptance_criteria or [])}\nCategoria: {story.category}"
-    prompt = "Estime story points (1,2,3,5,8,13,21). Retorne JSON: {estimated_points, confidence, complexity, justification, factors, similar_stories, recommendations}"
-    try:
-        resp = claude.chat(ctx + "\n" + prompt, "Voce e um Scrum Master.", max_tokens=1024)
-        if resp.success:
-            import json
-            c = resp.content.strip()
-            if c.startswith("```"): c = "\n".join(c.split("\n")[1:-1])
-            r = json.loads(c)
-            if r.get("estimated_points") not in [1,2,3,5,8,13,21]:
-                r["estimated_points"] = min([1,2,3,5,8,13,21], key=lambda x: abs(x - r.get("estimated_points", 5)))
-            return r
-    except: pass
-    return estimate_with_heuristics(story, completed_stories)
-
-
-def estimate_with_heuristics(story, completed_stories):
-    score = 0
-    cc = len(story.acceptance_criteria or [])
-    score += 2 if cc == 0 else 1 if cc <= 2 else 2 if cc <= 5 else 3
-    words = len((story.title or "").split()) + len((story.description or "").split())
-    score += 1 if words < 10 else 2 if words < 30 else 3
-    score += {"bug":1,"improvement":2,"feature":3,"tech_debt":2,"spike":2}.get(story.category, 2)
-    if story.technical_notes:
-        n = story.technical_notes.lower()
-        if any(k in n for k in ['integracao','api','database']): score += 2
-        if any(k in n for k in ['complexo','dificil']): score += 2
-    pts = 1 if score<=3 else 2 if score<=5 else 3 if score<=7 else 5 if score<=9 else 8 if score<=11 else 13 if score<=13 else 21
-    cpx = "low" if pts<=2 else "medium" if pts<=5 else "high" if pts<=13 else "very_high"
-    return {"estimated_points":pts,"confidence":0.6,"complexity":cpx,"justification":f"Heuristica: {cc} criterios, score {score}","factors":[{"name":"Criterios","impact":"medium","description":f"{cc}"}],"similar_stories":[],"recommendations":[]}
 
 
 # =============================================================================
@@ -754,7 +545,7 @@ class Test{safe_title}:
 
 
 # =============================================================================
-# API ENDPOINTS - SECURITY SCAN (SAST)
+# API ENDPOINTS - SECURITY SCAN (SAST) - Issue #57
 # =============================================================================
 
 @app.post("/api/story-tasks/{task_id}/security-scan")
@@ -802,9 +593,9 @@ Analise linha por linha buscando:
 6. **Insecure Dependencies**: pickle.load, yaml.load sem safe_load
 
 Para cada vulnerabilidade encontrada, retorne em JSON:
-{{{{
+{{
     "vulnerabilities": [
-        {{{{
+        {{
             "type": "SQL Injection|XSS|Command Injection|Path Traversal|Hardcoded Secrets|Insecure Dependencies",
             "severity": "Critical|High|Medium|Low",
             "line": numero_da_linha,
@@ -812,56 +603,54 @@ Para cada vulnerabilidade encontrada, retorne em JSON:
             "description": "Descricao do problema",
             "recommendation": "Como corrigir",
             "cwe": "CWE-XXX"
-        }}}}
+        }}
     ],
-    "summary": {{{{
+    "summary": {{
         "total": numero_total,
         "critical": quantidade,
         "high": quantidade,
         "medium": quantidade,
         "low": quantidade
-    }}}},
+    }},
     "recommendations": ["Recomendacao geral 1", "Recomendacao geral 2"]
-}}}}
+}}
 
 Se nao encontrar vulnerabilidades, retorne:
-{{{{
+{{
     "vulnerabilities": [],
-    "summary": {{{{"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}}}},
+    "summary": {{"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}},
     "recommendations": ["Codigo aparenta estar seguro"]
-}}}}
+}}
 
 IMPORTANTE: Retorne APENAS o JSON, sem explicacoes adicionais."""
 
                     response = claude.generate(prompt)
                     if response:
-                        import json
+                        import json as json_module
                         try:
-                            # Extract JSON from response
                             json_str = response
                             if "```json" in response:
                                 json_str = response.split("```json")[1].split("```")[0]
                             elif "```" in response:
                                 json_str = response.split("```")[1].split("```")[0]
 
-                            result = json.loads(json_str.strip())
+                            result = json_module.loads(json_str.strip())
                             result["scan_type"] = "ai"
                             result["language"] = language
                             result["scanned_at"] = datetime.utcnow().isoformat()
                             result["task_id"] = task_id
                             return result
-                        except json.JSONDecodeError:
-                            pass  # Fall back to basic scan
+                        except json_module.JSONDecodeError:
+                            pass
             except Exception:
-                pass  # Fall back to basic scan
+                pass
 
         # Basic pattern-based scan (fallback)
         import re
-
         patterns = {
             "SQL Injection": [
                 (r"execute.*%s", "String formatting em query SQL"),
-                (r"execute.*f['\"\"]", "f-string em query SQL"),
+                (r"execute.*f[\"']", "f-string em query SQL"),
                 (r"cursor\.execute.*\+", "Concatenacao em cursor.execute"),
             ],
             "XSS": [
@@ -877,12 +666,12 @@ IMPORTANTE: Retorne APENAS o JSON, sem explicacoes adicionais."""
             ],
             "Path Traversal": [
                 (r"open\s*\(.*\+", "open() com concatenacao"),
-                (r"\.\./" , "Path traversal pattern"),
+                (r"\.\./", "Path traversal pattern"),
             ],
             "Hardcoded Secrets": [
-                (r"password\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "Senha hardcoded"),
-                (r"api_key\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "API key hardcoded"),
-                (r"secret\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "Secret hardcoded"),
+                (r"password\s*=\s*[\"'][^\"']+[\"']", "Senha hardcoded"),
+                (r"api_key\s*=\s*[\"'][^\"']+[\"']", "API key hardcoded"),
+                (r"secret\s*=\s*[\"'][^\"']+[\"']", "Secret hardcoded"),
             ],
             "Insecure Dependencies": [
                 (r"pickle\.load", "Deserializacao insegura com pickle"),
@@ -1302,12 +1091,6 @@ Gere a documentacao agora em JSON."""
         except json.JSONDecodeError:
             # Se falhar o parse, usar como texto direto
             return {
-
-                // Project Preview Dashboard (Issue #73)
-                showProjectPreview, previewData, previewActiveTab, previewViewportMode,
-                previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
-                startAppPreview, runProjectTests, buildProject, openAppPreview,
-                openFileViewer, openDocViewer,
                 "title": f"Documentacao {doc_type.upper()} - {story.get('title')}",
                 "content": response.content,
                 "test_instructions": "Veja secao de testes na documentacao",
@@ -2264,66 +2047,6 @@ def stop_terminal_process(project_id: str):
 
 
 # =============================================================================
-# APP GENERATOR - TESTE DE APLICACOES
-# =============================================================================
-
-from factory.core.app_generator import AppGenerator, analyze_project, generate_app, start_app as start_project_app
-
-@app.get("/api/projects/{project_id}/app-status")
-def get_project_app_status(project_id: str):
-    """Analisa o projeto e retorna status da aplicacao para teste."""
-    try:
-        result = analyze_project(project_id)
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao analisar projeto: {str(e)}")
-
-
-@app.post("/api/projects/{project_id}/generate-app")
-def generate_project_app(project_id: str):
-    """Gera uma aplicacao testavel para o projeto."""
-    try:
-        result = generate_app(project_id)
-        if result.get("success"):
-            notify("app_generated", {
-                "project_id": project_id,
-                "message": result.get("message"),
-                "app_url": result.get("app_url")
-            })
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao gerar aplicacao: {str(e)}")
-
-
-@app.post("/api/projects/{project_id}/start-app")
-def start_project_test_app(project_id: str):
-    """Inicia a aplicacao do projeto para teste."""
-    try:
-        # Primeiro verifica/gera a app
-        generator = AppGenerator(project_id)
-        analysis = generator.analyze_project()
-
-        if not analysis.get("ready_to_test"):
-            gen_result = generator.generate_testable_app()
-            if not gen_result.get("success"):
-                return gen_result
-
-        # Iniciar a aplicacao
-        result = generator.start_app()
-
-        if result.get("success"):
-            notify("app_started", {
-                "project_id": project_id,
-                "app_url": result.get("app_url"),
-                "message": "Aplicacao iniciada!"
-            })
-
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao iniciar aplicacao: {str(e)}")
-
-
-# =============================================================================
 # WEBSOCKET ENDPOINT
 # =============================================================================
 
@@ -3248,8 +2971,50 @@ HTML_TEMPLATE = """
                             + Novo Sprint
                         </button>
                     </div>
+
+                    <!-- Analytics (Issue #65) -->
+                    <div class="mt-6 pt-4 border-t border-gray-200" v-if="selectedProjectId">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Analytics</h3>
+                        <button @click="showAnalyticsModal = true; loadAnalytics()"
+                                class="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Produtividade do Time
+                        </button>
+                    </div>
                 </div>
             </aside>
+
+        <!-- MODAL: Analytics Dashboard (Issue #65) -->
+        <div v-if="showAnalyticsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showAnalyticsModal = false">
+            <div class="bg-white rounded-lg w-[95vw] max-w-[1200px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
+                    <div><h2 class="text-lg font-semibold">Analytics de Produtividade</h2><p class="text-sm text-blue-200">Metricas do time e insights</p></div>
+                    <div class="flex items-center gap-4">
+                        <select v-model="analyticsDays" @change="loadAnalytics" class="bg-white/10 text-white border border-white/20 rounded px-3 py-1 text-sm"><option value="7" class="text-gray-800">7 dias</option><option value="30" class="text-gray-800">30 dias</option><option value="90" class="text-gray-800">90 dias</option></select>
+                        <button @click="showAnalyticsModal = false" class="text-white/70 hover:text-white text-xl">X</button>
+                    </div>
+                </div>
+                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);">
+                    <div v-if="analyticsLoading" class="flex items-center justify-center py-12"><div class="spinner"></div><span class="ml-3">Carregando...</span></div>
+                    <div v-else-if="analyticsData">
+                        <div v-if="analyticsData.alerts?.length" class="mb-6"><div v-for="(alert, i) in analyticsData.alerts" :key="i" :class="['p-4 rounded-lg mb-2', alert.type === 'danger' ? 'bg-red-50' : alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50']"><h4 class="font-semibold">{{ alert.title }}</h4><p class="text-sm">{{ alert.message }}</p></div></div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                            <div class="bg-blue-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.total_stories || 0 }}</div><div class="text-xs opacity-80">Total Stories</div></div>
+                            <div class="bg-green-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.stories_completed || 0 }}</div><div class="text-xs opacity-80">Concluidas</div></div>
+                            <div class="bg-purple-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.points_delivered || 0 }}</div><div class="text-xs opacity-80">Pontos</div></div>
+                            <div class="bg-orange-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_velocity || 0).toFixed(1) }}</div><div class="text-xs opacity-80">Velocity</div></div>
+                            <div class="bg-cyan-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_cycle_time_days || 0).toFixed(1) }}d</div><div class="text-xs opacity-80">Cycle Time</div></div>
+                            <div class="bg-pink-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.predictability_score || 0).toFixed(0) }}%</div><div class="text-xs opacity-80">Predictability</div></div>
+                        </div>
+                        <div class="mb-6" v-if="analyticsData.top_contributors?.length"><h3 class="font-semibold mb-4">Top Contribuidores</h3><div class="space-y-2"><div v-for="(dev, i) in analyticsData.top_contributors" :key="dev.assignee" class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">{{ i + 1 }}</div><div class="flex-1"><div class="font-medium">{{ dev.assignee }}</div><div class="text-sm text-gray-500">{{ dev.stories_completed }}/{{ dev.stories_total }} stories</div></div><div class="text-green-600 font-bold">{{ dev.completion_rate }}%</div></div></div></div>
+                        <div v-if="analyticsInsights" class="bg-purple-50 rounded-lg p-6 border border-purple-200"><h3 class="font-semibold mb-2">AI Insights</h3><p class="text-gray-700 mb-4">{{ analyticsInsights.summary }}</p><div v-if="analyticsInsights.insights?.length" class="space-y-2"><div v-for="insight in analyticsInsights.insights" :key="insight.title" class="p-3 bg-white rounded-lg"><div class="font-medium">{{ insight.title }}</div><div class="text-sm text-gray-600">{{ insight.description }}</div></div></div></div>
+                    </div>
+                    <div v-else class="text-center py-12 text-gray-500">Selecione um projeto para ver as metricas.</div>
+                </div>
+            </div>
+        </div>
 
             <!-- MAIN CONTENT - KANBAN -->
             <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
@@ -3681,20 +3446,7 @@ HTML_TEMPLATE = """
                         <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                             <div>
                                 <span class="text-xs text-gray-500">Story Points</span>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-medium">{{ selectedStory.story_points }}</span>
-                                    <button @click="estimateStoryPoints" :disabled="estimatingStory"
-                                            class="text-xs bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
-                                        <svg v-if="!estimatingStory" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                                        </svg>
-                                        <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                        </svg>
-                                        {{ estimatingStory ? 'Analisando...' : 'IA' }}
-                                    </button>
-                                </div>
+                                <div class="font-medium">{{ selectedStory.story_points }}</div>
                             </div>
                             <div>
                                 <span class="text-xs text-gray-500">Complexidade</span>
@@ -3769,9 +3521,9 @@ HTML_TEMPLATE = """
                                     </div>
                                 </div>
 
-                                <!-- Generate Tests & Code Review Buttons -->
+                                <!-- Generate Tests Button -->
                                 <div v-if="task.code_output" class="mt-2 pt-2 border-t border-gray-100">
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="flex gap-2 flex-wrap">
                                         <button @click.stop="generateTestsForTask(task)"
                                                 :disabled="generatingTests === task.task_id"
                                                 class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
@@ -3789,13 +3541,26 @@ HTML_TEMPLATE = """
                                                 :disabled="reviewingCode === task.task_id"
                                                 class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1">
                                             <svg v-if="reviewingCode !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                                             </svg>
                                             <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                             </svg>
                                             {{ reviewingCode === task.task_id ? 'Analisando...' : 'Review com IA' }}
+                                        </button>
+                                        <!-- Security Scan Button (Issue #57) -->
+                                        <button @click.stop="runSecurityScan(task)"
+                                                :disabled="scanningTask === task.task_id"
+                                                class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-1">
+                                            <svg v-if="scanningTask !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                            </svg>
+                                            <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            {{ scanningTask === task.task_id ? 'Scanning...' : 'Scan de Seguranca' }}
                                         </button>
                                     </div>
                                     <div v-if="task.generated_tests?.test_code" class="mt-1">
@@ -3804,14 +3569,12 @@ HTML_TEMPLATE = """
                                             Ver testes gerados ({{ task.generated_tests.test_count || 0 }} testes)
                                         </button>
                                     </div>
-                                    <!-- Code Review Result (Issue #52) -->
+                                    <!-- Code Review Result Link (Issue #52) -->
                                     <div v-if="task.review_result?.score" class="mt-1">
                                         <button @click.stop="showCodeReviewResult(task)"
-                                                class="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
-                                            <span :class="task.review_result.score >= 80 ? 'text-green-600' : task.review_result.score >= 60 ? 'text-yellow-600' : 'text-red-600'">
-                                                Score: {{ task.review_result.score }}
-                                            </span>
-                                            - Ver analise
+                                                class="text-xs hover:underline"
+                                                :class="task.review_result.score >= 80 ? 'text-green-600' : task.review_result.score >= 60 ? 'text-yellow-600' : 'text-red-600'">
+                                            Ver Code Review (Score: {{ task.review_result.score }}/100)
                                         </button>
                                     </div>
                                 </div>
@@ -3943,238 +3706,92 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Terminal and Preview Section -->
-        <!-- AMBIENTE DE TESTE - Interface Amigavel -->
-        <div v-if="selectedProjectId" class="bg-white rounded-lg shadow p-6 mt-4">
-            <!-- Header com Status do Projeto -->
-            <div class="flex items-center justify-between mb-6">
-                <div>
-                    <h3 class="text-xl font-semibold text-[#003B4A]">Status do Projeto</h3>
-                    <p class="text-sm text-gray-500 mt-1">Acompanhe o progresso e saiba quando podera testar</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span :class="projectReadinessClass" class="px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-                        <span v-html="projectReadinessIcon"></span>
-                        {{ projectReadinessText }}
-                    </span>
+        <div v-if="selectedProjectId" class="bg-white rounded-lg shadow p-4 mt-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-700">Ambiente de Teste</h3>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Projeto: {{ selectedProjectId }}</span>
                 </div>
             </div>
-
-            <!-- Progresso Visual -->
-            <div class="mb-6">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-700">Progresso Geral</span>
-                    <span class="text-sm font-bold text-[#003B4A]">{{ projectProgress }}%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2"
-                         :style="{ width: projectProgress + '%', backgroundColor: projectProgress < 30 ? '#EF4444' : projectProgress < 70 ? '#F59E0B' : '#10B981' }">
-                        <span v-if="projectProgress > 15" class="text-xs text-white font-medium">{{ projectProgress }}%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Timeline de Etapas -->
-            <div class="mb-6">
-                <h4 class="text-sm font-semibold text-gray-700 mb-4">Etapas do Desenvolvimento</h4>
-                <div class="flex items-center justify-between relative">
-                    <div class="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0"></div>
-                    <div class="absolute top-5 left-0 h-1 bg-[#10B981] z-0 transition-all duration-500" :style="{ width: timelineProgress + '%' }"></div>
-
-                    <div v-for="(step, idx) in projectSteps" :key="idx" class="flex flex-col items-center z-10 relative" style="width: 20%;">
-                        <div :class="step.completed ? 'bg-[#10B981] text-white' : step.current ? 'bg-[#FF6C00] text-white animate-pulse' : 'bg-gray-300 text-gray-600'"
-                             class="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow-md transition-all">
-                            <span v-if="step.completed">&#10003;</span>
-                            <span v-else>{{ idx + 1 }}</span>
-                        </div>
-                        <span class="text-xs mt-2 text-center font-medium" :class="step.completed ? 'text-[#10B981]' : step.current ? 'text-[#FF6C00]' : 'text-gray-500'">{{ step.name }}</span>
-                        <span class="text-xs text-gray-400 text-center">{{ step.description }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resumo das Stories -->
-            <div class="grid grid-cols-4 gap-4 mb-6">
-                <div class="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                    <div class="text-3xl font-bold text-gray-400">{{ storyCounts.backlog }}</div>
-                    <div class="text-xs text-gray-500 mt-1">Backlog</div>
-                </div>
-                <div class="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
-                    <div class="text-3xl font-bold text-blue-600">{{ storyCounts.inProgress }}</div>
-                    <div class="text-xs text-blue-600 mt-1">Em Desenvolvimento</div>
-                </div>
-                <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
-                    <div class="text-3xl font-bold text-purple-600">{{ storyCounts.testing }}</div>
-                    <div class="text-xs text-purple-600 mt-1">Em Teste</div>
-                </div>
-                <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200">
-                    <div class="text-3xl font-bold text-green-600">{{ storyCounts.done }}</div>
-                    <div class="text-xs text-green-600 mt-1">Concluidas</div>
-                </div>
-            </div>
-
-            <!-- Status da Aplicacao para Teste -->
-            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-gray-700">Aplicacao para Teste</h4>
-                    <button @click="checkAppStatus" class="text-xs text-blue-600 hover:text-blue-800">
-                        &#8635; Atualizar Status
-                    </button>
-                </div>
-
-                <!-- Loading -->
-                <div v-if="appStatusLoading" class="flex items-center gap-2 text-gray-500">
-                    <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
-                    <span>Verificando status...</span>
-                </div>
-
-                <!-- App Status Info -->
-                <div v-else-if="appStatus">
-                    <!-- Projeto nao encontrado -->
-                    <div v-if="appStatus.status === 'not_found'" class="text-amber-600">
-                        <p>&#128193; Pasta do projeto ainda nao foi criada pelos workers.</p>
-                    </div>
-
-                    <!-- Projeto analisado -->
-                    <div v-else class="space-y-2">
-                        <div class="flex items-center gap-4 text-sm">
-                            <span class="text-gray-600">Tipo: <strong>{{ appStatus.project_type || 'Detectando...' }}</strong></span>
-                            <span class="text-gray-600">Arquivos: <strong>{{ Object.values(appStatus.files_count || {}).reduce((a,b) => a+b, 0) }}</strong></span>
-                            <span class="text-gray-600">Modelos: <strong>{{ (appStatus.models || []).length }}</strong></span>
-                        </div>
-
-                        <!-- Lista de modelos encontrados -->
-                        <div v-if="appStatus.models && appStatus.models.length > 0" class="mt-2">
-                            <p class="text-xs text-gray-500 mb-1">Modelos detectados:</p>
-                            <div class="flex flex-wrap gap-1">
-                                <span v-for="model in appStatus.models.slice(0, 8)" :key="model.name"
-                                      class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                                    {{ model.name }}
-                                </span>
-                                <span v-if="appStatus.models.length > 8" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                    +{{ appStatus.models.length - 8 }} mais
-                                </span>
-                            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Terminal -->
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-medium text-gray-600">Terminal</h4>
+                        <div class="flex gap-2">
+                            <button @click="startApp"
+                                    :disabled="terminalRunning"
+                                    class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#9654; Iniciar App
+                            </button>
+                            <button @click="runTests"
+                                    :disabled="terminalRunning"
+                                    class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#129514; Testes
+                            </button>
+                            <button @click="stopProcess"
+                                    :disabled="!terminalRunning"
+                                    class="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                                &#9632; Parar
+                            </button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Mensagem de Status e Acao -->
-            <div v-if="!appStatus?.ready_to_test && !appStatus?.can_generate_app" class="bg-amber-50 border border-amber-200 rounded-lg p-5">
-                <div class="flex items-start gap-4">
-                    <div class="text-4xl">&#128679;</div>
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-amber-800 text-lg">Projeto em Desenvolvimento</h4>
-                        <p class="text-amber-700 mt-1">{{ appStatus?.message || projectStatusMessage }}</p>
-                        <div class="mt-3 text-sm text-amber-600">
-                            <strong>Proximos passos:</strong>
-                            <ul class="list-disc ml-5 mt-1 space-y-1">
-                                <li v-for="step in nextSteps" :key="step">{{ step }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pode Gerar App -->
-            <div v-else-if="appStatus?.can_generate_app && !appStatus?.ready_to_test" class="bg-blue-50 border border-blue-200 rounded-lg p-5">
-                <div class="flex items-start gap-4">
-                    <div class="text-4xl">&#128736;</div>
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-blue-800 text-lg">Codigo Pronto - Preparar para Teste</h4>
-                        <p class="text-blue-700 mt-1">{{ appStatus.message }}</p>
-                        <p class="text-blue-600 text-sm mt-2">Clique no botao abaixo para gerar uma aplicacao testavel automaticamente.</p>
-                        <div class="mt-4">
-                            <button @click="generateAndStartApp"
-                                    :disabled="generatingApp"
-                                    class="px-6 py-3 bg-[#FF6C00] text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50">
-                                <span v-if="!generatingApp" class="text-xl">&#9881;</span>
-                                <div v-else class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                                {{ generatingApp ? 'Preparando...' : 'Preparar Aplicacao para Teste' }}
+                    <div id="terminal-container" class="bg-black rounded border border-gray-300" style="height: 400px;"></div>
+                    <div class="mt-2">
+                        <div class="flex gap-2">
+                            <input v-model="terminalCommand"
+                                   @keyup.enter="executeTerminalCommand"
+                                   type="text"
+                                   placeholder="Digite um comando..."
+                                   class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                            <button @click="executeTerminalCommand"
+                                    class="px-3 py-1 bg-[#FF6C00] text-white rounded text-xs hover:bg-orange-600">
+                                Executar
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Pronto para Testar -->
-            <div v-else-if="appStatus?.ready_to_test" class="bg-green-50 border border-green-200 rounded-lg p-5">
-                <div class="flex items-start gap-4">
-                    <div class="text-4xl">&#9989;</div>
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-green-800 text-lg">Pronto para Testar!</h4>
-                        <p class="text-green-700 mt-1">A aplicacao esta disponivel para testes.</p>
-                        <p v-if="appStatus.app_url" class="text-green-600 text-sm mt-1">
-                            Endereco: <strong>{{ appStatus.app_url }}</strong>
-                        </p>
-                        <div class="mt-4 flex flex-wrap gap-3">
-                            <button @click="startAndOpenApp"
-                                    :disabled="startingApp"
-                                    class="px-6 py-3 bg-[#10B981] text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50">
-                                <span v-if="!startingApp" class="text-xl">&#9654;</span>
-                                <div v-else class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                                {{ startingApp ? 'Iniciando...' : 'Testar Aplicacao' }}
-                            </button>
-                            <button v-if="appStatus.docs_url" @click="openDocs"
-                                    class="px-6 py-3 bg-white text-[#003B4A] border border-[#003B4A] rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
-                                <span class="text-xl">&#128214;</span>
-                                Ver Documentacao API
+                <!-- Preview -->
+                <div class="flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-medium text-gray-600">Preview</h4>
+                        <div class="flex items-center gap-2">
+                            <select v-model="previewViewport" class="text-xs border border-gray-300 rounded px-2 py-1">
+                                <option value="desktop">Desktop</option>
+                                <option value="tablet">Tablet (768px)</option>
+                                <option value="mobile">Mobile (375px)</option>
+                            </select>
+                            <button @click="refreshPreview"
+                                    class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                &#8635; Refresh
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Terminal Avancado (colapsavel para usuarios tecnicos) -->
-            <details class="mt-6 bg-gray-50 rounded-lg border border-gray-200">
-                <summary class="p-4 cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-2">
-                    <span>&#128736;</span> Ferramentas Avancadas (para desenvolvedores)
-                </summary>
-                <div class="p-4 border-t border-gray-200">
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Terminal -->
-                        <div class="flex flex-col">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="text-sm font-medium text-gray-600">Terminal</h4>
-                                <div class="flex gap-2">
-                                    <button @click="startApp" :disabled="terminalRunning"
-                                            class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 disabled:opacity-50">
-                                        &#9654; Iniciar
-                                    </button>
-                                    <button @click="runTests" :disabled="terminalRunning"
-                                            class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 disabled:opacity-50">
-                                        Testes
-                                    </button>
-                                    <button @click="stopProcess" :disabled="!terminalRunning"
-                                            class="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 disabled:opacity-50">
-                                        Parar
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="terminal-container" class="bg-black rounded border border-gray-300" style="height: 300px;"></div>
-                            <div class="mt-2 flex gap-2">
-                                <input v-model="terminalCommand" @keyup.enter="executeTerminalCommand" type="text"
-                                       placeholder="Digite um comando..." class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
-                                <button @click="executeTerminalCommand" class="px-3 py-1 bg-[#FF6C00] text-white rounded text-xs">Executar</button>
-                            </div>
-                        </div>
-                        <!-- Preview -->
-                        <div class="flex flex-col">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="text-sm font-medium text-gray-600">Preview</h4>
-                                <button @click="refreshPreview" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Refresh</button>
-                            </div>
-                            <div class="bg-gray-100 rounded border border-gray-300 flex items-center justify-center" style="height: 300px;">
-                                <iframe ref="previewFrame" :src="previewUrl" style="width: 100%; height: 100%; border: none; border-radius: 4px;"></iframe>
-                            </div>
-                            <div class="mt-2 flex gap-2">
-                                <input v-model="previewUrl" type="text" placeholder="http://localhost:3000" class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
-                                <button @click="refreshPreview" class="px-3 py-1 bg-[#003B4A] text-white rounded text-xs">Carregar</button>
-                            </div>
-                        </div>
+                    <div class="bg-gray-100 rounded border border-gray-300 flex items-center justify-center" style="height: 400px;">
+                        <iframe ref="previewFrame"
+                                :src="previewUrl"
+                                :style="{
+                                    width: previewViewport === 'mobile' ? '375px' : previewViewport === 'tablet' ? '768px' : '100%',
+                                    height: '100%',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'white'
+                                }"
+                                class="transition-all duration-300">
+                        </iframe>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <input v-model="previewUrl"
+                               type="text"
+                               placeholder="http://localhost:3000"
+                               class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                        <button @click="refreshPreview"
+                                class="px-3 py-1 bg-[#003B4A] text-white rounded text-xs hover:bg-blue-900">
+                                Carregar
+                        </button>
                     </div>
                 </div>
-            </details>
+            </div>
         </div>
 
 
@@ -4354,35 +3971,6 @@ HTML_TEMPLATE = """
                             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                     <button @click="createTask"
                             class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">Criar Task</button>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- MODAL: Estimativa -->
-        <div v-if="showEstimateModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg w-[450px] max-h-[80vh] overflow-y-auto">
-                <div class="p-4 border-b flex justify-between items-center">
-                    <h2 class="text-lg font-semibold">Estimativa IA</h2>
-                    <button @click="showEstimateModal = false" class="text-gray-400 hover:text-gray-600">&times;</button>
-                </div>
-                <div class="p-6" v-if="currentEstimate">
-                    <div class="text-center mb-4">
-                        <div class="text-5xl font-bold text-purple-600">{{ currentEstimate.estimated_points }}</div>
-                        <div class="text-gray-500">Story Points</div>
-                        <div class="text-sm text-gray-600 mt-1">Confianca: {{ Math.round(currentEstimate.confidence * 100) }}%</div>
-                    </div>
-                    <div class="mb-4 p-3 bg-blue-50 rounded text-sm">{{ currentEstimate.justification }}</div>
-                    <div class="mb-4 flex gap-2 flex-wrap justify-center">
-                        <button v-for="p in [1,2,3,5,8,13,21]" :key="p" @click="adjustedPoints = p"
-                                :class="['w-10 h-10 rounded font-bold', adjustedPoints === p ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-purple-100']">{{ p }}</button>
-                    </div>
-                </div>
-                <div class="p-4 border-t flex justify-end gap-2">
-                    <button @click="showEstimateModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Fechar</button>
-                    <button @click="acceptEstimate" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-                        Aceitar {{ adjustedPoints || currentEstimate?.estimated_points }} pts
-                    </button>
                 </div>
             </div>
         </div>
@@ -4750,6 +4338,205 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Security Scan Results (Issue #57) -->
+        <div v-if="showSecurityScanModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showSecurityScanModal = false">
+            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
+                    <div>
+                        <h2 class="text-lg font-semibold">Analise de Seguranca (SAST)</h2>
+                        <p class="text-sm text-red-200" v-if="currentSecurityScan">
+                            {{ currentSecurityScan.language }} | {{ currentSecurityScan.scan_type === 'ai' ? 'AI-Powered' : 'Pattern-Based' }} |
+                            {{ currentSecurityScan.summary?.total || 0 }} vulnerabilidades encontradas
+                        </p>
+                    </div>
+                    <button @click="showSecurityScanModal = false" class="text-white/70 hover:text-white text-xl">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                    <div v-if="currentSecurityScan?.summary" class="grid grid-cols-5 gap-3 mb-4">
+                        <div class="bg-gray-100 p-3 rounded text-center">
+                            <div class="text-2xl font-bold">{{ currentSecurityScan.summary.total }}</div>
+                            <div class="text-xs text-gray-600">Total</div>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded text-center">
+                            <div class="text-2xl font-bold text-red-700">{{ currentSecurityScan.summary.critical }}</div>
+                            <div class="text-xs text-red-600">Critical</div>
+                        </div>
+                        <div class="bg-orange-100 p-3 rounded text-center">
+                            <div class="text-2xl font-bold text-orange-700">{{ currentSecurityScan.summary.high }}</div>
+                            <div class="text-xs text-orange-600">High</div>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded text-center">
+                            <div class="text-2xl font-bold text-yellow-700">{{ currentSecurityScan.summary.medium }}</div>
+                            <div class="text-xs text-yellow-600">Medium</div>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded text-center">
+                            <div class="text-2xl font-bold text-blue-700">{{ currentSecurityScan.summary.low }}</div>
+                            <div class="text-xs text-blue-600">Low</div>
+                        </div>
+                    </div>
+                    <div v-if="currentSecurityScan?.recommendations?.length" class="mb-4 p-3 bg-blue-50 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">Recomendacoes</h4>
+                        <ul class="list-disc list-inside text-sm text-blue-700">
+                            <li v-for="rec in currentSecurityScan.recommendations" :key="rec">{{ rec }}</li>
+                        </ul>
+                    </div>
+                    <div v-if="currentSecurityScan?.vulnerabilities?.length" class="space-y-3">
+                        <h4 class="font-semibold text-gray-800">Vulnerabilidades Encontradas</h4>
+                        <div v-for="(vuln, idx) in currentSecurityScan.vulnerabilities" :key="idx"
+                             class="border rounded-lg p-3"
+                             :class="{'border-red-300 bg-red-50': vuln.severity === 'Critical', 'border-orange-300 bg-orange-50': vuln.severity === 'High', 'border-yellow-300 bg-yellow-50': vuln.severity === 'Medium', 'border-blue-300 bg-blue-50': vuln.severity === 'Low'}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold">{{ vuln.type }}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded"
+                                          :class="{'bg-red-600 text-white': vuln.severity === 'Critical', 'bg-orange-500 text-white': vuln.severity === 'High', 'bg-yellow-500 text-white': vuln.severity === 'Medium', 'bg-blue-500 text-white': vuln.severity === 'Low'}">
+                                        {{ vuln.severity }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">{{ vuln.cwe }}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">Linha {{ vuln.line }}</span>
+                            </div>
+                            <div class="text-sm text-gray-700 mb-2">{{ vuln.description }}</div>
+                            <div v-if="vuln.code_snippet" class="bg-gray-900 text-gray-100 p-2 rounded text-xs font-mono mb-2 overflow-x-auto">{{ vuln.code_snippet }}</div>
+                            <div v-if="vuln.recommendation" class="text-sm text-green-700 bg-green-50 p-2 rounded">
+                                <strong>Correcao:</strong> {{ vuln.recommendation }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else-if="currentSecurityScan && !currentSecurityScan.vulnerabilities?.length" class="text-center py-8">
+                        <svg class="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-green-700">Nenhuma Vulnerabilidade Detectada</h3>
+                        <p class="text-sm text-gray-600">O codigo passou na analise de seguranca.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+                <!-- MODAL: Code Review (Issue #52) -->
+        <div v-if="showCodeReviewModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showCodeReviewModal = false">
+            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
+                <div class="p-4 border-b flex justify-between items-center bg-blue-600 text-white rounded-t-lg">
+                    <div>
+                        <h2 class="text-lg font-semibold">Code Review com IA</h2>
+                        <p class="text-sm text-blue-200" v-if="currentCodeReview">{{ currentCodeReview.task_title || 'Analise de Codigo' }}</p>
+                    </div>
+                    <button @click="showCodeReviewModal = false" class="text-white/70 hover:text-white text-xl font-bold">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 80px);" v-if="currentCodeReview">
+                    <!-- Score Principal -->
+                    <div class="text-center mb-6">
+                        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full border-4"
+                             :class="currentCodeReview.score >= 80 ? 'border-green-500 text-green-600' : currentCodeReview.score >= 60 ? 'border-yellow-500 text-yellow-600' : 'border-red-500 text-red-600'">
+                            <span class="text-3xl font-bold">{{ currentCodeReview.score }}</span>
+                        </div>
+                        <p class="mt-2 text-gray-600 dark:text-gray-300">{{ currentCodeReview.summary }}</p>
+                        <p class="text-xs text-gray-400 mt-1">Analisado por: {{ currentCodeReview.reviewed_by || 'auto-analyzer' }}</p>
+                    </div>
+                    <!-- Scores por Categoria -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold" :class="(currentCodeReview.quality?.score || 70) >= 80 ? 'text-green-600' : (currentCodeReview.quality?.score || 70) >= 60 ? 'text-yellow-600' : 'text-red-600'">{{ currentCodeReview.quality?.score || 70 }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Qualidade</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold" :class="(currentCodeReview.security?.score || 70) >= 80 ? 'text-green-600' : (currentCodeReview.security?.score || 70) >= 60 ? 'text-yellow-600' : 'text-red-600'">{{ currentCodeReview.security?.score || 70 }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Seguranca</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold" :class="(currentCodeReview.performance?.score || 70) >= 80 ? 'text-green-600' : (currentCodeReview.performance?.score || 70) >= 60 ? 'text-yellow-600' : 'text-red-600'">{{ currentCodeReview.performance?.score || 70 }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Performance</div>
+                        </div>
+                    </div>
+                    <!-- Qualidade -->
+                    <div v-if="currentCodeReview.quality" class="mb-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2">Qualidade do Codigo</h3>
+                        <div v-if="currentCodeReview.quality.issues?.length" class="mb-2">
+                            <p class="text-sm text-red-600 font-medium mb-1">Problemas:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(issue, idx) in currentCodeReview.quality.issues" :key="'qi'+idx">* {{ issue }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="currentCodeReview.quality.positives?.length">
+                            <p class="text-sm text-green-600 font-medium mb-1">Pontos Positivos:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(pos, idx) in currentCodeReview.quality.positives" :key="'qp'+idx">+ {{ pos }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Seguranca -->
+                    <div v-if="currentCodeReview.security" class="mb-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2">Seguranca</h3>
+                        <div v-if="currentCodeReview.security.vulnerabilities?.length" class="mb-2">
+                            <p class="text-sm text-red-600 font-medium mb-1">Vulnerabilidades:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(vuln, idx) in currentCodeReview.security.vulnerabilities" :key="'sv'+idx">! {{ vuln }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="currentCodeReview.security.recommendations?.length">
+                            <p class="text-sm text-blue-600 font-medium mb-1">Recomendacoes:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(rec, idx) in currentCodeReview.security.recommendations" :key="'sr'+idx">- {{ rec }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Performance -->
+                    <div v-if="currentCodeReview.performance" class="mb-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2">Performance</h3>
+                        <div v-if="currentCodeReview.performance.issues?.length" class="mb-2">
+                            <p class="text-sm text-yellow-600 font-medium mb-1">Problemas:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(issue, idx) in currentCodeReview.performance.issues" :key="'pi'+idx">* {{ issue }}</li>
+                            </ul>
+                        </div>
+                        <div v-if="currentCodeReview.performance.suggestions?.length">
+                            <p class="text-sm text-blue-600 font-medium mb-1">Sugestoes:</p>
+                            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                <li v-for="(sug, idx) in currentCodeReview.performance.suggestions" :key="'ps'+idx">- {{ sug }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Sugestoes Gerais -->
+                    <div v-if="currentCodeReview.suggestions?.length" class="mb-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2">Sugestoes de Melhoria</h3>
+                        <div class="space-y-2">
+                            <div v-for="(sug, idx) in currentCodeReview.suggestions" :key="'sg'+idx" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs px-2 py-0.5 rounded" :class="sug.priority === 'critical' ? 'bg-red-100 text-red-700' : sug.priority === 'high' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'">{{ sug.priority || 'medium' }}</span>
+                                    <span class="font-medium text-sm">{{ sug.title }}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300">{{ sug.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Boas Praticas -->
+                    <div v-if="currentCodeReview.best_practices" class="mb-4">
+                        <h3 class="font-semibold text-gray-800 dark:text-white mb-2">Boas Praticas</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div v-if="currentCodeReview.best_practices.followed?.length">
+                                <p class="text-sm text-green-600 font-medium mb-1">Seguidas:</p>
+                                <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                    <li v-for="(bp, idx) in currentCodeReview.best_practices.followed" :key="'bpf'+idx">+ {{ bp }}</li>
+                                </ul>
+                            </div>
+                            <div v-if="currentCodeReview.best_practices.missing?.length">
+                                <p class="text-sm text-orange-600 font-medium mb-1">Faltando:</p>
+                                <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                                    <li v-for="(bp, idx) in currentCodeReview.best_practices.missing" :key="'bpm'+idx">- {{ bp }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Metadados -->
+                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600 text-xs text-gray-400 flex justify-between">
+                        <span>Linhas: {{ currentCodeReview.line_count || 'N/A' }}</span>
+                        <span>{{ currentCodeReview.reviewed_at ? new Date(currentCodeReview.reviewed_at).toLocaleString() : '' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -5050,60 +4837,6 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- FLOATING TEST BUTTON -->
-        <div v-if="selectedProjectId" class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
-            <!-- Status Badge -->
-            <div v-if="appStatus && !appStatusLoading"
-                 class="bg-white rounded-full shadow-lg px-4 py-2 flex items-center gap-2 border-2 transition-all duration-300"
-                 :class="{
-                     'border-amber-400': !appStatus.can_generate_app && !appStatus.ready_to_test,
-                     'border-blue-400': appStatus.can_generate_app && !appStatus.ready_to_test,
-                     'border-green-400': appStatus.ready_to_test
-                 }">
-                <span class="text-sm font-medium"
-                      :class="{
-                          'text-amber-600': !appStatus.can_generate_app && !appStatus.ready_to_test,
-                          'text-blue-600': appStatus.can_generate_app && !appStatus.ready_to_test,
-                          'text-green-600': appStatus.ready_to_test
-                      }">
-                    {{ appStatus.ready_to_test ? 'Pronto!' : appStatus.can_generate_app ? 'Pode testar' : 'Desenvolvendo...' }}
-                </span>
-            </div>
-
-            <!-- Main FAB Button -->
-            <button v-if="appStatus?.ready_to_test || appStatus?.can_generate_app"
-                    @click="appStatus.ready_to_test ? startAndOpenApp() : generateAndStartApp()"
-                    :disabled="generatingApp || startingApp"
-                    class="w-16 h-16 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50"
-                    :class="{
-                        'bg-blue-500 hover:bg-blue-600': appStatus.can_generate_app && !appStatus.ready_to_test,
-                        'bg-green-500 hover:bg-green-600': appStatus.ready_to_test
-                    }"
-                    :title="appStatus.ready_to_test ? 'Abrir aplicacao para teste' : 'Gerar e testar aplicacao'">
-                <!-- Loading spinner -->
-                <div v-if="generatingApp || startingApp"
-                     class="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                <!-- Play icon when ready -->
-                <svg v-else-if="appStatus.ready_to_test" class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                </svg>
-                <!-- Gear/Build icon when can generate -->
-                <svg v-else class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-            </button>
-
-            <!-- Development status FAB (grey, not clickable) -->
-            <div v-else-if="appStatus && !appStatus.can_generate_app && !appStatus.ready_to_test"
-                 class="w-16 h-16 rounded-full shadow-xl flex items-center justify-center bg-gray-400 cursor-not-allowed"
-                 title="Projeto ainda em desenvolvimento">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-        </div>
-
         <!-- MOBILE BOTTOM NAVIGATION -->
         <nav class="mobile-bottom-nav">
             <div class="mobile-bottom-nav-items">
@@ -5140,6 +4873,13 @@ HTML_TEMPLATE = """
             const terminalOutputInterval = ref(null);
             const previewUrl = ref('http://localhost:3000');
             const previewViewport = ref('desktop');
+
+            // Analytics (Issue #65)
+            const showAnalyticsModal = ref(false);
+            const analyticsData = ref(null);
+            const analyticsInsights = ref(null);
+            const analyticsLoading = ref(false);
+            const analyticsDays = ref(30);
 
             const selectedProjectId = ref('');
             const selectedSprintId = ref('');
@@ -5206,19 +4946,17 @@ HTML_TEMPLATE = """
             const showNewSprintModal = ref(false);
             const showNewDocModal = ref(false);
             const showGenerateDocsDropdown = ref(false);
-
-            // Estimation refs
-            const showEstimateModal = ref(false);
-            const estimatingStory = ref(false);
-            const currentEstimate = ref(null);
-            const adjustedPoints = ref(null);
-            const storyEstimates = ref([]);
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
 
             // Test Generation
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
+            // Security Scan (Issue #57)
+            const scanningTask = ref(null);
+            const showSecurityScanModal = ref(false);
+            const currentSecurityScan = ref(null);
+
             const currentGeneratedTests = ref(null);
             const showDesignEditor = ref(false);
 
@@ -5226,6 +4964,7 @@ HTML_TEMPLATE = """
             const reviewingCode = ref(null);
             const showCodeReviewModal = ref(false);
             const currentCodeReview = ref(null);
+
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
             // Project Preview Dashboard (Issue #73)
@@ -5478,227 +5217,6 @@ HTML_TEMPLATE = """
                 return count;
             });
 
-            // ==================== PROJECT STATUS FOR NON-TECH USERS ====================
-
-            // Story counts by status
-            const storyCounts = computed(() => {
-                const board = storyBoard.value;
-                return {
-                    backlog: (board.backlog?.length || 0) + (board.ready?.length || 0),
-                    inProgress: (board.in_progress?.length || 0) + (board.review?.length || 0),
-                    testing: board.testing?.length || 0,
-                    done: board.done?.length || 0
-                };
-            });
-
-            // Project progress percentage
-            const projectProgress = computed(() => {
-                const counts = storyCounts.value;
-                const total = counts.backlog + counts.inProgress + counts.testing + counts.done;
-                if (total === 0) return 0;
-                const completed = counts.done;
-                const inProgress = counts.inProgress * 0.5 + counts.testing * 0.8;
-                return Math.round(((completed + inProgress) / total) * 100);
-            });
-
-            // Is project ready for testing?
-            const isProjectReady = computed(() => {
-                const counts = storyCounts.value;
-                return counts.testing > 0 || (counts.done > 0 && projectProgress.value >= 80);
-            });
-
-            // Project readiness text
-            const projectReadinessText = computed(() => {
-                const progress = projectProgress.value;
-                if (progress === 0) return 'Aguardando Inicio';
-                if (progress < 30) return 'Fase Inicial';
-                if (progress < 60) return 'Em Desenvolvimento';
-                if (progress < 80) return 'Quase Pronto';
-                if (progress < 100) return 'Pronto para Testes';
-                return 'Concluido';
-            });
-
-            // Project readiness class
-            const projectReadinessClass = computed(() => {
-                const progress = projectProgress.value;
-                if (progress === 0) return 'bg-gray-200 text-gray-600';
-                if (progress < 30) return 'bg-red-100 text-red-700';
-                if (progress < 60) return 'bg-amber-100 text-amber-700';
-                if (progress < 80) return 'bg-blue-100 text-blue-700';
-                return 'bg-green-100 text-green-700';
-            });
-
-            // Project readiness icon
-            const projectReadinessIcon = computed(() => {
-                const progress = projectProgress.value;
-                if (progress === 0) return '&#9711;';
-                if (progress < 30) return '&#128679;';
-                if (progress < 60) return '&#128736;';
-                if (progress < 80) return '&#9881;';
-                return '&#10003;';
-            });
-
-            // Project status message
-            const projectStatusMessage = computed(() => {
-                const counts = storyCounts.value;
-                const progress = projectProgress.value;
-                if (progress === 0) return 'O projeto ainda nao foi iniciado. Aguarde a equipe comecar o desenvolvimento.';
-                if (progress < 30) return `Estamos na fase inicial do desenvolvimento. ${counts.inProgress} funcionalidade(s) em andamento.`;
-                if (progress < 60) return `O desenvolvimento esta em andamento. ${counts.done} funcionalidade(s) ja foram concluidas.`;
-                if (progress < 80) return `Estamos quase la! ${counts.done} funcionalidades prontas, ${counts.inProgress + counts.testing} em finalizacao.`;
-                return `O projeto esta pronto para testes! ${counts.done} funcionalidades disponiveis.`;
-            });
-
-            // Next steps for the user
-            const nextSteps = computed(() => {
-                const counts = storyCounts.value;
-                const progress = projectProgress.value;
-                const steps = [];
-                if (progress < 30) {
-                    steps.push('Aguardar conclusao das primeiras funcionalidades');
-                    steps.push('Acompanhar o progresso no quadro Kanban acima');
-                } else if (progress < 60) {
-                    steps.push('Revisar os requisitos das funcionalidades em desenvolvimento');
-                    steps.push('Preparar cenarios de teste para quando estiver pronto');
-                } else if (progress < 80) {
-                    steps.push('Validar as funcionalidades ja concluidas');
-                    steps.push('Reportar ajustes necessarios via chat');
-                } else {
-                    steps.push('Testar as funcionalidades disponiveis');
-                    steps.push('Documentar problemas encontrados');
-                }
-                if (counts.testing > 0) {
-                    steps.unshift(`${counts.testing} funcionalidade(s) em fase de testes`);
-                }
-                return steps;
-            });
-
-            // Project development steps for timeline
-            const projectSteps = computed(() => {
-                const progress = projectProgress.value;
-                return [
-                    { name: 'Planejamento', description: 'Requisitos', completed: progress > 0, current: progress === 0 },
-                    { name: 'Desenvolvimento', description: 'Codificacao', completed: progress >= 30, current: progress > 0 && progress < 30 },
-                    { name: 'Revisao', description: 'Code Review', completed: progress >= 60, current: progress >= 30 && progress < 60 },
-                    { name: 'Testes', description: 'Validacao', completed: progress >= 80, current: progress >= 60 && progress < 80 },
-                    { name: 'Entrega', description: 'Producao', completed: progress >= 100, current: progress >= 80 && progress < 100 }
-                ];
-            });
-
-            // Timeline progress
-            const timelineProgress = computed(() => {
-                const progress = projectProgress.value;
-                if (progress === 0) return 0;
-                if (progress < 30) return 20;
-                if (progress < 60) return 40;
-                if (progress < 80) return 60;
-                if (progress < 100) return 80;
-                return 100;
-            });
-
-            // Show test instructions modal
-            const showTestInstructions = ref(false);
-
-            // Open test environment
-            const openTestEnvironment = () => {
-                window.open(previewUrl.value, '_blank');
-            };
-
-            // ==================== END PROJECT STATUS ====================
-
-            // ==================== APP TESTING FUNCTIONS ====================
-
-            // App Status State
-            const appStatus = ref(null);
-            const appStatusLoading = ref(false);
-            const generatingApp = ref(false);
-            const startingApp = ref(false);
-
-            // Check app status for current project
-            const checkAppStatus = async () => {
-                if (!selectedProjectId.value) return;
-                appStatusLoading.value = true;
-                try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/app-status`);
-                    if (response.ok) {
-                        appStatus.value = await response.json();
-                    } else {
-                        appStatus.value = { status: 'not_found', message: 'Projeto nao encontrado' };
-                    }
-                } catch (e) {
-                    appStatus.value = { status: 'error', message: 'Erro ao verificar status' };
-                } finally {
-                    appStatusLoading.value = false;
-                }
-            };
-
-            // Generate and start the test app
-            const generateAndStartApp = async () => {
-                if (!selectedProjectId.value) return;
-                generatingApp.value = true;
-                try {
-                    addToast('info', 'Gerando aplicacao', 'Preparando aplicacao para testes...');
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/generate-app`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    if (response.ok && result.status === 'success') {
-                        addToast('success', 'Aplicacao gerada', 'Iniciando servidor de teste...');
-                        await startAndOpenApp();
-                        await checkAppStatus();
-                    } else {
-                        addToast('error', 'Erro', result.message || 'Nao foi possivel gerar a aplicacao');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha ao gerar aplicacao: ' + e.message);
-                } finally {
-                    generatingApp.value = false;
-                }
-            };
-
-            // Start the test app and open browser
-            const startAndOpenApp = async () => {
-                if (!selectedProjectId.value) return;
-                startingApp.value = true;
-                try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/start-app`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    const result = await response.json();
-                    if (response.ok && result.status === 'success') {
-                        addToast('success', 'Servidor iniciado', 'Abrindo aplicacao no navegador...');
-                        // Wait a moment for the server to start
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        if (result.app_url) {
-                            window.open(result.app_url, '_blank');
-                        }
-                        await checkAppStatus();
-                    } else if (result.status === 'already_running') {
-                        addToast('info', 'Servidor ativo', 'A aplicacao ja esta rodando');
-                        if (result.app_url) {
-                            window.open(result.app_url, '_blank');
-                        }
-                    } else {
-                        addToast('error', 'Erro', result.message || 'Nao foi possivel iniciar o servidor');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha ao iniciar servidor: ' + e.message);
-                } finally {
-                    startingApp.value = false;
-                }
-            };
-
-            // Open API docs
-            const openDocs = () => {
-                if (appStatus.value?.docs_url) {
-                    window.open(appStatus.value.docs_url, '_blank');
-                }
-            };
-
-            // ==================== END APP TESTING FUNCTIONS ====================
-
             // Grouped Stories for Swimlanes
             const groupedStories = computed(() => {
                 if (!groupBy.value) return null;
@@ -5827,9 +5345,6 @@ HTML_TEMPLATE = """
                 // Load sprints
                 const sprintsRes = await fetch(`/api/projects/${selectedProjectId.value}/sprints`);
                 sprints.value = await sprintsRes.json();
-
-                // Check app status for testing
-                checkAppStatus();
 
                 // Setup drag and drop
                 nextTick(() => {
@@ -6221,38 +5736,6 @@ HTML_TEMPLATE = """
                 }
             };
 
-
-            // Estimation functions
-            const estimateStoryPoints = async () => {
-                if (!selectedStory.value || estimatingStory.value) return;
-                estimatingStory.value = true;
-                adjustedPoints.value = null;
-                try {
-                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/estimate`, { method: 'POST' });
-                    if (res.ok) {
-                        currentEstimate.value = await res.json();
-                        adjustedPoints.value = currentEstimate.value.estimated_points;
-                        showEstimateModal.value = true;
-                        addToast('success', 'Estimativa gerada', `${currentEstimate.value.estimated_points} pts sugeridos`);
-                    } else { throw new Error('Erro'); }
-                } catch (e) { addToast('error', 'Erro', e.message); }
-                finally { estimatingStory.value = false; }
-            };
-
-            const acceptEstimate = async () => {
-                if (!currentEstimate.value) return;
-                try {
-                    const pts = adjustedPoints.value || currentEstimate.value.estimated_points;
-                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/estimates/${currentEstimate.value.estimate_id}/accept?adjusted_points=${pts}`, { method: 'POST' });
-                    if (res.ok) {
-                        selectedStory.value.story_points = pts;
-                        showEstimateModal.value = false;
-                        addToast('success', 'Aceito', `${pts} pts`);
-                        await loadStories();
-                    }
-                } catch (e) { addToast('error', 'Erro', e.message); }
-            };
-
             const generateDocs = async (docType) => {
                 showGenerateDocsDropdown.value = false;
                 generatingDocs.value = true;
@@ -6305,12 +5788,73 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Security Scan function (Issue #57)
+            const runSecurityScan = async (task) => {
+                if (!task.code_output) {
+                    showToast('Task nao possui codigo para analisar', 'error');
+                    return;
+                }
+                scanningTask.value = task.task_id;
+                try {
+                    const res = await fetch(`/api/story-tasks/${task.task_id}/security-scan`, {
+                        method: 'POST'
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        currentSecurityScan.value = result;
+                        showSecurityScanModal.value = true;
+                        if (result.summary?.total === 0) {
+                            showToast('Nenhuma vulnerabilidade encontrada!', 'success');
+                        } else if (result.summary?.critical > 0) {
+                            showToast(`${result.summary.critical} vulnerabilidades criticas encontradas!`, 'error');
+                        } else {
+                            showToast(`${result.summary.total} vulnerabilidades encontradas`, 'warning');
+                        }
+                    } else {
+                        const err = await res.json();
+                        showToast(err.detail || 'Erro no scan de seguranca', 'error');
+                    }
+                } catch (e) {
+                    console.error('Security scan error:', e);
+                    showToast('Erro ao executar scan de seguranca', 'error');
+                } finally {
+                    scanningTask.value = null;
+                }
+            };
+
             const showGeneratedTests = (task) => {
                 currentGeneratedTests.value = task.generated_tests;
                 showGeneratedTestsModal.value = true;
             };
 
-            // Code Review (Issue #52)
+            const copyTestCode = async () => {
+                if (!currentGeneratedTests.value?.test_code) return;
+                try {
+                    await navigator.clipboard.writeText(currentGeneratedTests.value.test_code);
+                    addToast('success', 'Copiado!', 'Codigo de testes copiado');
+                } catch (e) {
+                    addToast('error', 'Erro ao copiar', 'Use Ctrl+C');
+                }
+            };
+
+            const downloadTestCode = () => {
+                if (!currentGeneratedTests.value?.test_code) return;
+                const tests = currentGeneratedTests.value;
+                const ext = tests.language === 'python' ? 'py' : (tests.language === 'javascript' ? 'js' : tests.language);
+                const filename = `test_generated.${ext}`;
+                const blob = new Blob([tests.test_code], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addToast('success', 'Download iniciado', filename);
+            };
+
+            // Code Review Functions (Issue #52)
             const codeReviewTask = async (task) => {
                 if (reviewingCode.value === task.task_id) return;
                 reviewingCode.value = task.task_id;
@@ -6346,33 +5890,6 @@ HTML_TEMPLATE = """
             const showCodeReviewResult = (task) => {
                 currentCodeReview.value = task.review_result;
                 showCodeReviewModal.value = true;
-            };
-
-            const copyTestCode = async () => {
-                if (!currentGeneratedTests.value?.test_code) return;
-                try {
-                    await navigator.clipboard.writeText(currentGeneratedTests.value.test_code);
-                    addToast('success', 'Copiado!', 'Codigo de testes copiado');
-                } catch (e) {
-                    addToast('error', 'Erro ao copiar', 'Use Ctrl+C');
-                }
-            };
-
-            const downloadTestCode = () => {
-                if (!currentGeneratedTests.value?.test_code) return;
-                const tests = currentGeneratedTests.value;
-                const ext = tests.language === 'python' ? 'py' : (tests.language === 'javascript' ? 'js' : tests.language);
-                const filename = `test_generated.${ext}`;
-                const blob = new Blob([tests.test_code], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                addToast('success', 'Download iniciado', filename);
             };
 
             const copyDocContent = async (content) => {
@@ -6644,15 +6161,6 @@ HTML_TEMPLATE = """
                         }
                     }
                 );
-            };
-
-            // Accessibility: Announce messages to screen readers
-            const announceToScreenReader = (message) => {
-                const announcer = document.getElementById('a11y-announcer');
-                if (announcer) {
-                    announcer.textContent = '';
-                    setTimeout(() => { announcer.textContent = message; }, 100);
-                }
             };
 
             // Keyboard Shortcuts
@@ -6968,14 +6476,126 @@ Process ${data.status}`);
                     created_at: new Date().toISOString()
                 });
             });
+            // Load preview data
+            const loadPreviewData = async () => {
+                if (!selectedProjectId.value) return;
+                previewLoading.value = true;
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/preview`);
+                    if (res.ok) {
+                        previewData.value = await res.json();
+                    }
+                } catch (e) {
+                    console.error('Error loading preview:', e);
+                } finally {
+                    previewLoading.value = false;
+                }
+            };
+
+            // Open preview modal
+            const openProjectPreview = async () => {
+                showProjectPreview.value = true;
+                await loadPreviewData();
+            };
+
+            // Refresh preview data
+            const refreshPreviewData = async () => {
+                await loadPreviewData();
+                addToast('success', 'Atualizado', 'Dados do preview atualizados');
+            };
+
+            // Start app preview
+            const startAppPreview = async () => {
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/start-app`, {
+                        method: 'POST'
+                    });
+                    const result = await res.json();
+                    if (result.success || result.status === 'already_running') {
+                        addToast('success', 'Servidor iniciado', 'A aplicacao esta rodando');
+                        await loadPreviewData();
+                    } else {
+                        addToast('error', 'Erro', result.message || 'Falha ao iniciar servidor');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao iniciar servidor');
+                }
+            };
+
+            // Run tests
+            const runProjectTests = async () => {
+                try {
+                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({command: 'npm test'})
+                    });
+                    addToast('info', 'Testes iniciados', 'Executando testes do projeto...');
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao executar testes');
+                }
+            };
+
+            // Build project
+            const buildProject = async () => {
+                try {
+                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({command: 'npm run build'})
+                    });
+                    addToast('info', 'Build iniciado', 'Construindo o projeto...');
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao construir projeto');
+                }
+            };
+
+            // Open app preview
+            const openAppPreview = () => {
+                if (previewData.value?.app_status?.app_url) {
+                    window.open(previewData.value.app_status.app_url, '_blank');
+                }
+            };
+
+            // Open file viewer
+            const openFileViewer = (file) => {
+                console.log('Open file:', file);
+            };
+
+            // Open doc viewer
+            const openDocViewer = (doc) => {
+                console.log('Open doc:', doc);
+            };
+            // ==================== END PROJECT PREVIEW DASHBOARD ====================
+
+            // Load Analytics (Issue #65)
+            const loadAnalytics = async () => {
+                if (!selectedProjectId.value) return;
+                analyticsLoading.value = true;
+                analyticsInsights.value = null;
+                try {
+                    const [prodRes, insightsRes] = await Promise.all([
+                        fetch(`/api/analytics/productivity?project_id=${selectedProjectId.value}&days=${analyticsDays.value}`),
+                        fetch(`/api/analytics/insights?project_id=${selectedProjectId.value}`)
+                    ]);
+                    if (prodRes.ok) analyticsData.value = await prodRes.json();
+                    if (insightsRes.ok) analyticsInsights.value = await insightsRes.json();
+                } catch (e) { console.error('Analytics error:', e); }
+                finally { analyticsLoading.value = false; }
+            };
 
             return {
+                // Analytics (Issue #65)
+                showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics,
+                // Project Preview Dashboard (Issue #73)
+                showProjectPreview, previewData, previewActiveTab, previewViewportMode,
+                previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
+                startAppPreview, runProjectTests, buildProject, openAppPreview,
+                openFileViewer, openDocViewer,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
-                showEstimateModal, estimatingStory, currentEstimate, adjustedPoints, storyEstimates,
-                estimateStoryPoints, acceptEstimate,
                 showShortcutsModal, showConfirmModal, confirmModal,
                 contextMenu, isLoading,
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
@@ -6998,14 +6618,12 @@ Process ${data.status}`);
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
+                // Security Scan (Issue #57)
+                scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
-                // Project Status (user-friendly)
-                storyCounts, projectProgress, isProjectReady, projectReadinessText,
-                projectReadinessClass, projectReadinessIcon, projectStatusMessage,
-                nextSteps, projectSteps, timelineProgress, showTestInstructions, openTestEnvironment,
-                // App Testing
-                appStatus, appStatusLoading, generatingApp, startingApp,
-                checkAppStatus, generateAndStartApp, startAndOpenApp, openDocs,
+                // Code Review (Issue #52)
+                reviewingCode, showCodeReviewModal, currentCodeReview,
+                codeReviewTask, showCodeReviewResult,
                 // Mobile State
                 mobileMenuOpen, mobileChatOpen, isPullingToRefresh
             };
@@ -7022,50 +6640,6 @@ def index():
     """Pagina principal - Dashboard Agile"""
     return HTML_TEMPLATE
 
-
-
-# =============================================================================
-# EXECUTIVE DASHBOARD - BUSINESS INTELLIGENCE
-# =============================================================================
-
-from factory.dashboard.executive_dashboard import (
-    get_executive_metrics_data,
-    export_stories_csv,
-    get_executive_template
-)
-
-@app.get("/api/executive/metrics")
-def get_executive_metrics(
-    project_id: Optional[str] = None,
-    period: Optional[str] = "month",
-    epic_id: Optional[str] = None
-):
-    """Retorna metricas executivas agregadas"""
-    db = SessionLocal()
-    try:
-        return get_executive_metrics_data(db, Story, Sprint, project_id, period, epic_id)
-    finally:
-        db.close()
-
-@app.get("/api/executive/export/csv")
-def export_executive_csv(project_id: Optional[str] = None):
-    """Exporta dados executivos em CSV"""
-    db = SessionLocal()
-    try:
-        csv_content = export_stories_csv(db, Story, project_id)
-        from fastapi.responses import Response
-        return Response(
-            content=csv_content,
-            media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename=executive_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
-        )
-    finally:
-        db.close()
-
-@app.get("/executive", response_class=HTMLResponse)
-def executive_dashboard():
-    """Executive Dashboard - Business Intelligence"""
-    return get_executive_template()
 
 # =============================================================================
 # MAIN
