@@ -1362,6 +1362,110 @@ class CodeBranch(Base):
 
 
 # =============================================================================
+# PRODUCTIVITY METRICS - Analytics de Produtividade (Issue #65)
+# =============================================================================
+
+class MetricType(str, Enum):
+    """Tipo de metrica de produtividade"""
+    VELOCITY = "velocity"
+    THROUGHPUT = "throughput"
+    CYCLE_TIME = "cycle_time"
+    LEAD_TIME = "lead_time"
+    WIP = "wip"
+    QUALITY = "quality"
+    COLLABORATION = "collaboration"
+
+
+class ProductivityMetric(Base):
+    """Modelo para Metricas de Produtividade - snapshots de metricas para analise historica."""
+    __tablename__ = "productivity_metrics"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    metric_id = Column(String(50), unique=True, nullable=False, index=True)
+    project_id = Column(String(50), nullable=True, index=True)
+    sprint_id = Column(String(50), nullable=True, index=True)
+    assignee = Column(String(100), nullable=True, index=True)
+    metric_type = Column(String(30), default=MetricType.VELOCITY.value, index=True)
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    period_type = Column(String(20), default="week")
+    value = Column(Float, default=0.0)
+    previous_value = Column(Float, nullable=True)
+    target_value = Column(Float, nullable=True)
+    unit = Column(String(50), nullable=True)
+    trend_direction = Column(String(20), nullable=True)
+    change_percentage = Column(Float, default=0.0)
+    details = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ProductivitySnapshot(Base):
+    """Modelo para Snapshots de Produtividade - estado completo das metricas."""
+    __tablename__ = "productivity_snapshots"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(String(50), unique=True, nullable=False, index=True)
+    project_id = Column(String(50), nullable=True, index=True)
+    sprint_id = Column(String(50), nullable=True, index=True)
+    period_type = Column(String(20), default="sprint")
+    period_label = Column(String(100), nullable=True)
+    total_stories = Column(Integer, default=0)
+    stories_completed = Column(Integer, default=0)
+    total_points = Column(Integer, default=0)
+    points_delivered = Column(Integer, default=0)
+    velocity = Column(Float, default=0.0)
+    throughput = Column(Float, default=0.0)
+    avg_cycle_time_days = Column(Float, default=0.0)
+    avg_lead_time_days = Column(Float, default=0.0)
+    wip_count = Column(Integer, default=0)
+    predictability_score = Column(Float, default=0.0)
+    collaboration_rate = Column(Float, default=0.0)
+    status_distribution = Column(JSON, default=dict)
+    category_distribution = Column(JSON, default=dict)
+    assignee_distribution = Column(JSON, default=dict)
+    developer_metrics = Column(JSON, default=list)
+    alerts = Column(JSON, default=list)
+    insights = Column(JSON, default=list)
+    captured_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AgentPerformance(Base):
+    """Modelo para Performance de Agentes IA vs desenvolvedores humanos."""
+    __tablename__ = "agent_performance"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    performance_id = Column(String(50), unique=True, nullable=False, index=True)
+    agent_id = Column(String(50), nullable=False, index=True)
+    agent_type = Column(String(20), default="ai")
+    agent_name = Column(String(100), nullable=True)
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    period_type = Column(String(20), default="week")
+    stories_completed = Column(Integer, default=0)
+    points_delivered = Column(Integer, default=0)
+    tasks_completed = Column(Integer, default=0)
+    lines_of_code = Column(Integer, default=0)
+    files_created = Column(Integer, default=0)
+    files_modified = Column(Integer, default=0)
+    success_rate = Column(Float, default=0.0)
+    rework_rate = Column(Float, default=0.0)
+    bugs_introduced = Column(Integer, default=0)
+    bugs_fixed = Column(Integer, default=0)
+    test_coverage = Column(Float, default=0.0)
+    code_review_score = Column(Float, default=0.0)
+    avg_task_time_hours = Column(Float, default=0.0)
+    avg_story_time_hours = Column(Float, default=0.0)
+    total_time_spent_hours = Column(Float, default=0.0)
+    tokens_used = Column(Integer, default=0)
+    cost = Column(Float, default=0.0)
+    specializations = Column(JSON, default=list)
+    tech_stacks = Column(JSON, default=list)
+    vs_team_avg_velocity = Column(Float, default=0.0)
+    rank_in_team = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# =============================================================================
 # API MODELS (importados de api_models.py)
 # =============================================================================
 
