@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Projeto Concluido - {{ project_name }}{% endblock %}
+
+{% block content %}
+<h2>Projeto Concluido com Sucesso!</h2>
+
+<p>O projeto <strong>{{ project_name }}</strong> foi finalizado pelo sistema de desenvolvimento autonomo da Fabrica de Agentes.</p>
+
+<div class="highlight-box" style="border-left-color: #28a745;">
+    <h3 style="color: #28a745;">{{ project_name }}</h3>
+    <p style="margin: 0;">
+        <span class="status-badge status-success">Concluido</span>
+        <span style="margin-left: 10px; color: #6c757d;">ID: {{ project_id }}</span>
+    </p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-item">
+        <div class="stat-value">{{ files_count | default(0) }}</div>
+        <div class="stat-label">Arquivos Gerados</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value">{{ stories_completed | default(0) }}</div>
+        <div class="stat-label">Stories Concluidas</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value">{{ execution_time | default('N/A') }}</div>
+        <div class="stat-label">Tempo Total</div>
+    </div>
+</div>
+
+<div class="divider"></div>
+
+<h3 style="color: #003B4A; font-size: 16px;">Resumo da Execucao</h3>
+
+<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d; width: 40%;">Iniciado em:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ started_at }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Finalizado em:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ completed_at }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Agentes utilizados:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ agents_count | default(1) }} agente(s)</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Linhas de codigo:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ lines_of_code | default('N/A') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Testes executados:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">
+            {% if tests_passed is defined %}
+            <span style="color: #28a745;">{{ tests_passed }} passou</span>
+            {% if tests_failed > 0 %}
+            / <span style="color: #dc3545;">{{ tests_failed }} falhou</span>
+            {% endif %}
+            {% else %}
+            N/A
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+{% if files_generated %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Arquivos Principais Gerados</h3>
+<ul class="list-items">
+    {% for file in files_generated[:10] %}
+    <li>{{ file }}</li>
+    {% endfor %}
+    {% if files_generated|length > 10 %}
+    <li style="color: #6c757d;">... e mais {{ files_generated|length - 10 }} arquivos</li>
+    {% endif %}
+</ul>
+{% endif %}
+
+{% if documentation_url %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Documentacao</h3>
+<p>A documentacao tecnica do projeto foi gerada automaticamente e esta disponivel para consulta.</p>
+<p><a href="{{ documentation_url }}" class="button button-secondary">Ver Documentacao</a></p>
+{% endif %}
+
+<div class="divider"></div>
+
+<h3 style="color: #003B4A; font-size: 16px;">Proximos Passos</h3>
+<ul class="list-items">
+    <li style="color: #333;">Revisar os arquivos gerados no repositorio</li>
+    <li style="color: #333;">Executar testes de integracao</li>
+    <li style="color: #333;">Fazer deploy em ambiente de staging</li>
+    <li style="color: #333;">Solicitar code review da equipe</li>
+</ul>
+
+<p style="text-align: center; margin-top: 30px;">
+    <a href="{{ project_url | default('#') }}" class="button">Ver Projeto Completo</a>
+</p>
+{% endblock %}

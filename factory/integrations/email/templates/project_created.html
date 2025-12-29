@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Projeto Criado - {{ project_name }}{% endblock %}
+
+{% block content %}
+<h2>Novo Projeto Criado!</h2>
+
+<p>Um novo projeto foi criado na <strong>Fabrica de Agentes</strong> e esta pronto para desenvolvimento autonomo.</p>
+
+<div class="highlight-box">
+    <h3>{{ project_name }}</h3>
+    <p style="margin: 0;">
+        <span class="status-badge status-info">{{ project_type | default('web-app') }}</span>
+        <span style="margin-left: 10px; color: #6c757d;">ID: {{ project_id }}</span>
+    </p>
+</div>
+
+{% if description %}
+<p><strong>Descricao:</strong></p>
+<p>{{ description }}</p>
+{% endif %}
+
+<div class="divider"></div>
+
+<h3 style="color: #003B4A; font-size: 16px;">Detalhes do Projeto</h3>
+
+<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d; width: 40%;">Criado em:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ created_at | default('Agora') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Criado por:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ created_by | default('Sistema') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Status:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <span class="status-badge status-success">Ativo</span>
+        </td>
+    </tr>
+    {% if stories_count %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">User Stories:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ stories_count }} stories</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if features %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Funcionalidades Planejadas</h3>
+<ul class="list-items">
+    {% for feature in features %}
+    <li>{{ feature }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div class="divider"></div>
+
+<p style="text-align: center;">
+    <a href="{{ project_url | default('#') }}" class="button">Ver Projeto no Dashboard</a>
+</p>
+
+<p style="text-align: center; color: #6c757d; font-size: 12px; margin-top: 20px;">
+    O desenvolvimento autonomo sera iniciado assim que as stories forem movidas para "Ready".
+</p>
+{% endblock %}

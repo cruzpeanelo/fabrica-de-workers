@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Story Atualizada - {{ story_id }}{% endblock %}
+
+{% block content %}
+<h2>Status da Story Atualizado</h2>
+
+<p>A story <strong>{{ story_id }}</strong> teve seu status atualizado no projeto <strong>{{ project_name }}</strong>.</p>
+
+<div class="highlight-box">
+    <h3>{{ story_title }}</h3>
+    <p style="margin: 10px 0 0 0;">
+        {% if old_status %}
+        <span class="status-badge status-warning">{{ old_status }}</span>
+        <span style="margin: 0 10px;">→</span>
+        {% endif %}
+        {% if new_status == 'done' %}
+        <span class="status-badge status-success">{{ new_status }}</span>
+        {% elif new_status == 'in_progress' %}
+        <span class="status-badge status-info">{{ new_status }}</span>
+        {% elif new_status == 'blocked' or new_status == 'error' %}
+        <span class="status-badge status-error">{{ new_status }}</span>
+        {% else %}
+        <span class="status-badge status-warning">{{ new_status }}</span>
+        {% endif %}
+    </p>
+</div>
+
+{% if story_narrative %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">User Story</h3>
+<p style="font-style: italic; color: #333;">
+    Como um <strong>{{ story_persona | default('usuario') }}</strong>,<br>
+    eu quero <strong>{{ story_action | default('realizar uma acao') }}</strong>,<br>
+    para que <strong>{{ story_benefit | default('obter um beneficio') }}</strong>.
+</p>
+{% endif %}
+
+<div class="divider"></div>
+
+<h3 style="color: #003B4A; font-size: 16px;">Detalhes</h3>
+
+<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d; width: 40%;">Projeto:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ project_name }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Story Points:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ story_points | default('N/A') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Prioridade:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ priority | default('Normal') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Atualizado em:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ updated_at }}</td>
+    </tr>
+    {% if assignee %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Responsavel:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ assignee }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if tasks %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Progresso das Tasks</h3>
+
+<div style="background-color: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden; margin: 15px 0;">
+    <div style="background-color: #28a745; width: {{ task_progress | default(0) }}%; height: 100%; transition: width 0.3s;"></div>
+</div>
+<p style="text-align: center; color: #6c757d; font-size: 14px;">{{ tasks_completed | default(0) }} de {{ tasks_total | default(0) }} tasks concluidas ({{ task_progress | default(0) }}%)</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    {% for task in tasks %}
+    <tr>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; width: 30px;">
+            {% if task.status == 'completed' %}
+            <span style="color: #28a745;">&#10003;</span>
+            {% elif task.status == 'in_progress' %}
+            <span style="color: #ffc107;">&#9679;</span>
+            {% else %}
+            <span style="color: #6c757d;">&#9675;</span>
+            {% endif %}
+        </td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ task.title }}</td>
+        <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; text-align: right;">
+            {% if task.status == 'completed' %}
+            <span class="status-badge status-success" style="font-size: 10px;">Concluida</span>
+            {% elif task.status == 'in_progress' %}
+            <span class="status-badge status-info" style="font-size: 10px;">Em andamento</span>
+            {% else %}
+            <span class="status-badge" style="font-size: 10px; background-color: #e9ecef; color: #6c757d;">Pendente</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+{% if files_generated %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Arquivos Gerados</h3>
+<ul class="list-items">
+    {% for file in files_generated[:5] %}
+    <li>{{ file }}</li>
+    {% endfor %}
+    {% if files_generated|length > 5 %}
+    <li style="color: #6c757d;">... e mais {{ files_generated|length - 5 }} arquivos</li>
+    {% endif %}
+</ul>
+{% endif %}
+
+{% if next_steps %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Proximos Passos</h3>
+<ul class="list-items">
+    {% for step in next_steps %}
+    <li style="color: #333;">{{ step }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div class="divider"></div>
+
+<p style="text-align: center;">
+    <a href="{{ story_url | default('#') }}" class="button">Ver Story Completa</a>
+</p>
+{% endblock %}

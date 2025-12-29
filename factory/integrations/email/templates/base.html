@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fabrica de Agentes{% endblock %}</title>
+    <style>
+        /* Reset */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; }
+
+        /* Reset */
+        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        table { border-collapse: collapse !important; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+
+        /* Estilos principais */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #003B4A 0%, #005670 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .subtitle {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 20px;
+            background-color: #ffffff;
+        }
+
+        .content h2 {
+            color: #003B4A;
+            font-size: 20px;
+            margin: 0 0 20px 0;
+        }
+
+        .content p {
+            color: #333333;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 15px 0;
+        }
+
+        .highlight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #FF6C00;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+
+        .highlight-box h3 {
+            color: #003B4A;
+            font-size: 16px;
+            margin: 0 0 10px 0;
+        }
+
+        .stats-grid {
+            display: table;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            display: table-cell;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .stat-item:last-child {
+            border-right: none;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #003B4A;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #FF6C00 0%, #FF8533 100%);
+            color: white !important;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .button:hover {
+            background: linear-gradient(135deg, #e66000 0%, #ff7519 100%);
+        }
+
+        .button-secondary {
+            background: linear-gradient(135deg, #003B4A 0%, #005670 100%);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-info {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .list-items {
+            margin: 15px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .list-items li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            color: #333333;
+            font-size: 14px;
+        }
+
+        .list-items li:last-child {
+            border-bottom: none;
+        }
+
+        .list-items li::before {
+            content: "✓";
+            color: #28a745;
+            margin-right: 10px;
+        }
+
+        .code-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            color: #6c757d;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+
+        .footer a {
+            color: #003B4A;
+            text-decoration: none;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 25px 0;
+        }
+
+        /* Responsivo */
+        @media screen and (max-width: 600px) {
+            .container {
+                width: 100% !important;
+            }
+            .content {
+                padding: 20px 15px;
+            }
+            .stat-item {
+                display: block;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
+        <tr>
+            <td style="padding: 20px;">
+                <div class="container">
+                    <!-- Header -->
+                    <div class="header">
+                        <h1>🏭 Fabrica de Agentes</h1>
+                        <p class="subtitle">Sistema de Desenvolvimento Autonomo</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="content">
+                        {% block content %}{% endblock %}
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="footer">
+                        <p><strong>Fabrica de Agentes</strong> - Desenvolvimento Autonomo com IA</p>
+                        <p>Este email foi gerado automaticamente. Por favor, nao responda.</p>
+                        <p style="margin-top: 15px;">
+                            <a href="{{ dashboard_url | default('#') }}">Dashboard</a> |
+                            <a href="{{ docs_url | default('#') }}">Documentacao</a>
+                        </p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

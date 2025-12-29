@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Alerta de Erro - {{ project_name | default('Sistema') }}{% endblock %}
+
+{% block content %}
+<h2 style="color: #dc3545;">Alerta: Erro Detectado</h2>
+
+<p>Um erro foi detectado durante a execucao {% if project_name %}do projeto <strong>{{ project_name }}</strong>{% else %}do sistema{% endif %}.</p>
+
+<div class="highlight-box" style="border-left-color: #dc3545; background-color: #fff5f5;">
+    <h3 style="color: #dc3545; margin: 0;">{{ error_type | default('Erro') }}</h3>
+    <p style="margin: 10px 0 0 0; color: #721c24;">{{ error_message }}</p>
+</div>
+
+<div class="divider"></div>
+
+<h3 style="color: #003B4A; font-size: 16px;">Detalhes do Erro</h3>
+
+<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d; width: 30%;">Data/Hora:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ timestamp | default('Agora') }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Severidade:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            {% if severity == 'critical' %}
+            <span class="status-badge status-error">Critico</span>
+            {% elif severity == 'warning' %}
+            <span class="status-badge status-warning">Atencao</span>
+            {% else %}
+            <span class="status-badge status-info">Informativo</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% if project_id %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Projeto:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ project_name }} ({{ project_id }})</td>
+    </tr>
+    {% endif %}
+    {% if story_id %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Story:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ story_id }}</td>
+    </tr>
+    {% endif %}
+    {% if worker_id %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Worker:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ worker_id }}</td>
+    </tr>
+    {% endif %}
+    {% if component %}
+    <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #6c757d;">Componente:</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e9ecef; color: #333;">{{ component }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+{% if stack_trace %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Stack Trace</h3>
+<div class="code-block">
+<pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">{{ stack_trace }}</pre>
+</div>
+{% endif %}
+
+{% if context %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Contexto Adicional</h3>
+<div class="code-block">
+<pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">{{ context | tojson(indent=2) }}</pre>
+</div>
+{% endif %}
+
+{% if suggested_actions %}
+<div class="divider"></div>
+<h3 style="color: #003B4A; font-size: 16px;">Acoes Sugeridas</h3>
+<ul class="list-items">
+    {% for action in suggested_actions %}
+    <li style="color: #333;">{{ action }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if retry_available %}
+<div class="divider"></div>
+<p style="text-align: center;">
+    <a href="{{ retry_url | default('#') }}" class="button">Tentar Novamente</a>
+    <a href="{{ logs_url | default('#') }}" class="button button-secondary" style="margin-left: 10px;">Ver Logs Completos</a>
+</p>
+{% else %}
+<div class="divider"></div>
+<p style="text-align: center;">
+    <a href="{{ dashboard_url | default('#') }}" class="button">Ir para Dashboard</a>
+</p>
+{% endif %}
+
+<p style="text-align: center; color: #6c757d; font-size: 12px; margin-top: 20px;">
+    {% if auto_retry %}
+    O sistema tentara executar novamente automaticamente em {{ retry_delay | default(30) }} segundos.
+    {% else %}
+    Intervencao manual pode ser necessaria para resolver este problema.
+    {% endif %}
+</p>
+{% endblock %}
