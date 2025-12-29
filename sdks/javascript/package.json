@@ -1,0 +1,41 @@
+{
+  "name": "@fabrica-agentes/sdk",
+  "version": "1.0.0",
+  "description": "Cliente JavaScript oficial para a API da Fabrica de Agentes",
+  "main": "fabrica-client.js",
+  "types": "fabrica-client.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cruzpeanelo/fabrica-de-agentes"
+  },
+  "keywords": [
+    "fabrica-agentes",
+    "api",
+    "sdk",
+    "client",
+    "agents",
+    "ai",
+    "development"
+  ],
+  "author": "Fabrica de Agentes Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cruzpeanelo/fabrica-de-agentes/issues"
+  },
+  "homepage": "https://github.com/cruzpeanelo/fabrica-de-agentes#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "fabrica-client.js",
+    "fabrica-client.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./fabrica-client.js",
+      "require": "./fabrica-client.js",
+      "types": "./fabrica-client.d.ts"
+    }
+  }
+}

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Integration Gateway Module
-==========================
-Gateway centralizado para integracoes com isolamento de tenant.
+Integration Gateway Module - Enhanced
+=====================================
+Gateway centralizado para integracoes com isolamento completo de tenant.
 
 Funcionalidades:
 - Factory de conectores com isolamento por tenant
@@ -10,19 +10,32 @@ Funcionalidades:
 - Rate limiting por tenant e integracao
 - Logging e auditoria de operacoes
 - Cache de credenciais por tenant
+- Tenant isolation em todas as integracoes
+- Metricas e monitoramento
+- Circuit breaker para resiliencia
 
 Configuracao via variaveis de ambiente ou banco de dados.
+
+Issue #116 - Gateway de Integracoes com Isolamento de Tenant
 """
 
 import os
 import json
 import logging
 import asyncio
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 from enum import Enum
-import aiohttp
+from functools import wraps
+
+try:
+    import aiohttp
+    AIOHTTP_AVAILABLE = True
+except ImportError:
+    AIOHTTP_AVAILABLE = False
+    aiohttp = None
 
 logger = logging.getLogger(__name__)
 
@@ -684,3 +697,411 @@ async def get_tenant_integrations(tenant_id: str) -> Dict[IntegrationType, Tenan
         if config:
             configs[int_type] = config
     return configs
+
+
+# ====================
+# Enhanced Tenant Isolation
+# ====================
+
+@dataclass
+class TenantContext:
+    """Contexto de tenant para isolamento"""
+    tenant_id: str
+    user_id: Optional[str] = None
+    roles: List[str] = field(default_factory=list)
+    permissions: Dict[str, List[str]] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+
+    def has_permission(self, integration: IntegrationType, action: str) -> bool:
+        """Verifica se tenant tem permissao para acao"""
+        int_perms = self.permissions.get(integration.value, [])
+        return action in int_perms or "*" in int_perms
+
+    def to_dict(self) -> Dict:
+        return {
+            "tenant_id": self.tenant_id,
+            "user_id": self.user_id,
+            "roles": self.roles,
+            "permissions": self.permissions,
+            "metadata": self.metadata,
+            "created_at": self.created_at.isoformat()
+        }
+
+
+@dataclass
+class IntegrationCallLog:
+    """Log de chamada de integracao"""
+    id: str
+    tenant_id: str
+    integration: str
+    endpoint: str
+    method: str
+    status_code: int
+    duration_ms: int
+    timestamp: datetime
+    user_id: Optional[str] = None
+    request_size: int = 0
+    response_size: int = 0
+    error: Optional[str] = None
+    metadata: Dict = field(default_factory=dict)
+
+    def to_dict(self) -> Dict:
+        return {
+            "id": self.id,
+            "tenant_id": self.tenant_id,
+            "integration": self.integration,
+            "endpoint": self.endpoint,
+            "method": self.method,
+            "status_code": self.status_code,
+            "duration_ms": self.duration_ms,
+            "timestamp": self.timestamp.isoformat(),
+            "user_id": self.user_id,
+            "request_size": self.request_size,
+            "response_size": self.response_size,
+            "error": self.error,
+            "metadata": self.metadata
+        }
+
+
+class CircuitBreakerState(str, Enum):
+    """Estados do circuit breaker"""
+    CLOSED = "closed"  # Normal
+    OPEN = "open"  # Bloqueado
+    HALF_OPEN = "half_open"  # Testando
+
+
+@dataclass
+class CircuitBreaker:
+    """Circuit breaker para integracao"""
+    failure_threshold: int = 5
+    recovery_timeout: int = 30
+    half_open_max_calls: int = 3
+
+    state: CircuitBreakerState = CircuitBreakerState.CLOSED
+    failure_count: int = 0
+    success_count: int = 0
+    last_failure_time: Optional[datetime] = None
+    half_open_calls: int = 0
+
+    def record_success(self):
+        """Registra sucesso"""
+        if self.state == CircuitBreakerState.HALF_OPEN:
+            self.success_count += 1
+            if self.success_count >= self.half_open_max_calls:
+                self.state = CircuitBreakerState.CLOSED
+                self.failure_count = 0
+                self.success_count = 0
+                self.half_open_calls = 0
+        else:
+            self.failure_count = 0
+
+    def record_failure(self):
+        """Registra falha"""
+        self.failure_count += 1
+        self.last_failure_time = datetime.utcnow()
+
+        if self.failure_count >= self.failure_threshold:
+            self.state = CircuitBreakerState.OPEN
+            logger.warning(f"Circuit breaker aberto apos {self.failure_count} falhas")
+
+    def can_execute(self) -> bool:
+        """Verifica se pode executar"""
+        if self.state == CircuitBreakerState.CLOSED:
+            return True
+
+        if self.state == CircuitBreakerState.OPEN:
+            if self.last_failure_time:
+                elapsed = (datetime.utcnow() - self.last_failure_time).total_seconds()
+                if elapsed >= self.recovery_timeout:
+                    self.state = CircuitBreakerState.HALF_OPEN
+                    self.half_open_calls = 0
+                    return True
+            return False
+
+        if self.state == CircuitBreakerState.HALF_OPEN:
+            if self.half_open_calls < self.half_open_max_calls:
+                self.half_open_calls += 1
+                return True
+            return False
+
+        return False
+
+
+class IntegrationAuditLogger:
+    """Logger de auditoria para integracoes"""
+
+    def __init__(self, tenant_id: str):
+        self.tenant_id = tenant_id
+        self._logs: List[IntegrationCallLog] = []
+        self._max_logs = 10000
+
+    def log_call(
+        self,
+        integration: IntegrationType,
+        endpoint: str,
+        method: str,
+        status_code: int,
+        duration_ms: int,
+        user_id: Optional[str] = None,
+        request_size: int = 0,
+        response_size: int = 0,
+        error: Optional[str] = None,
+        metadata: Optional[Dict] = None
+    ) -> IntegrationCallLog:
+        """Registra chamada de integracao"""
+        import uuid
+
+        log = IntegrationCallLog(
+            id=str(uuid.uuid4()),
+            tenant_id=self.tenant_id,
+            integration=integration.value,
+            endpoint=endpoint,
+            method=method,
+            status_code=status_code,
+            duration_ms=duration_ms,
+            timestamp=datetime.utcnow(),
+            user_id=user_id,
+            request_size=request_size,
+            response_size=response_size,
+            error=error,
+            metadata=metadata or {}
+        )
+
+        self._logs.append(log)
+
+        # Manter limite
+        if len(self._logs) > self._max_logs:
+            self._logs = self._logs[-self._max_logs:]
+
+        # Log estruturado
+        logger.info(
+            f"[Audit] {self.tenant_id} | {integration.value} | "
+            f"{method} {endpoint} | {status_code} | {duration_ms}ms"
+        )
+
+        return log
+
+    def get_logs(
+        self,
+        integration: Optional[IntegrationType] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        limit: int = 100
+    ) -> List[IntegrationCallLog]:
+        """Retorna logs filtrados"""
+        logs = self._logs
+
+        if integration:
+            logs = [l for l in logs if l.integration == integration.value]
+
+        if from_date:
+            logs = [l for l in logs if l.timestamp >= from_date]
+
+        if to_date:
+            logs = [l for l in logs if l.timestamp <= to_date]
+
+        return logs[-limit:]
+
+    def get_metrics(
+        self,
+        integration: Optional[IntegrationType] = None,
+        period_minutes: int = 60
+    ) -> Dict:
+        """Retorna metricas agregadas"""
+        cutoff = datetime.utcnow() - timedelta(minutes=period_minutes)
+
+        logs = [l for l in self._logs if l.timestamp >= cutoff]
+
+        if integration:
+            logs = [l for l in logs if l.integration == integration.value]
+
+        if not logs:
+            return {
+                "total_calls": 0,
+                "success_rate": 0,
+                "avg_duration_ms": 0,
+                "error_count": 0
+            }
+
+        total = len(logs)
+        errors = sum(1 for l in logs if l.error or l.status_code >= 400)
+        total_duration = sum(l.duration_ms for l in logs)
+
+        return {
+            "total_calls": total,
+            "success_rate": (total - errors) / total * 100,
+            "avg_duration_ms": total_duration / total,
+            "error_count": errors,
+            "calls_per_minute": total / period_minutes
+        }
+
+
+class TenantIsolatedGateway(IntegrationGateway):
+    """
+    Gateway com isolamento completo de tenant.
+
+    Adiciona sobre IntegrationGateway:
+    - Contexto de tenant
+    - Circuit breaker por integracao
+    - Auditoria completa
+    - Metricas por tenant
+    - Validacao de permissoes
+    """
+
+    def __init__(self, tenant_id: str, context: Optional[TenantContext] = None):
+        super().__init__(tenant_id)
+        self.context = context or TenantContext(tenant_id=tenant_id)
+        self._circuit_breakers: Dict[IntegrationType, CircuitBreaker] = {}
+        self._audit_logger = IntegrationAuditLogger(tenant_id)
+
+    def _get_circuit_breaker(self, integration: IntegrationType) -> CircuitBreaker:
+        """Retorna circuit breaker para integracao"""
+        if integration not in self._circuit_breakers:
+            self._circuit_breakers[integration] = CircuitBreaker()
+        return self._circuit_breakers[integration]
+
+    def check_permission(self, integration: IntegrationType, action: str) -> bool:
+        """Verifica permissao do tenant"""
+        return self.context.has_permission(integration, action)
+
+    async def proxy_request(self, request: ProxyRequest) -> ProxyResponse:
+        """Proxy com isolamento de tenant, circuit breaker e auditoria"""
+        start_time = datetime.utcnow()
+
+        # Verificar circuit breaker
+        cb = self._get_circuit_breaker(request.integration)
+        if not cb.can_execute():
+            logger.warning(f"[Gateway] Circuit breaker aberto para {request.integration.value}")
+            return ProxyResponse(
+                success=False,
+                status_code=503,
+                error="Service temporarily unavailable (circuit breaker open)",
+                duration_ms=0
+            )
+
+        # Verificar permissao
+        if not self.check_permission(request.integration, request.method.lower()):
+            logger.warning(f"[Gateway] Permissao negada para {self.tenant_id}: {request.integration.value}")
+            return ProxyResponse(
+                success=False,
+                status_code=403,
+                error="Permission denied",
+                duration_ms=0
+            )
+
+        # Executar request base
+        response = await super().proxy_request(request)
+
+        # Calcular duracao
+        duration = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+
+        # Atualizar circuit breaker
+        if response.success:
+            cb.record_success()
+        else:
+            cb.record_failure()
+
+        # Registrar auditoria
+        self._audit_logger.log_call(
+            integration=request.integration,
+            endpoint=request.endpoint,
+            method=request.method,
+            status_code=response.status_code,
+            duration_ms=duration,
+            user_id=self.context.user_id,
+            error=response.error,
+            metadata={
+                "tenant_id": self.tenant_id,
+                "cached": response.cached
+            }
+        )
+
+        return response
+
+    def get_audit_logs(
+        self,
+        integration: Optional[IntegrationType] = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """Retorna logs de auditoria"""
+        logs = self._audit_logger.get_logs(integration=integration, limit=limit)
+        return [log.to_dict() for log in logs]
+
+    def get_metrics(
+        self,
+        integration: Optional[IntegrationType] = None,
+        period_minutes: int = 60
+    ) -> Dict:
+        """Retorna metricas do tenant"""
+        return self._audit_logger.get_metrics(
+            integration=integration,
+            period_minutes=period_minutes
+        )
+
+    def get_circuit_breaker_status(self) -> Dict[str, Dict]:
+        """Retorna status dos circuit breakers"""
+        status = {}
+        for int_type, cb in self._circuit_breakers.items():
+            status[int_type.value] = {
+                "state": cb.state.value,
+                "failure_count": cb.failure_count,
+                "last_failure": cb.last_failure_time.isoformat() if cb.last_failure_time else None
+            }
+        return status
+
+    async def health_check(self, integration: Optional[IntegrationType] = None) -> Dict[str, Any]:
+        """Health check com status de circuit breaker"""
+        base_health = await super().health_check(integration)
+
+        # Adicionar status de circuit breaker
+        base_health["circuit_breakers"] = self.get_circuit_breaker_status()
+
+        # Adicionar metricas
+        base_health["metrics"] = self.get_metrics(integration)
+
+        return base_health
+
+
+# Cache de gateways isolados por tenant
+_isolated_gateways: Dict[str, TenantIsolatedGateway] = {}
+
+
+def get_isolated_gateway(
+    tenant_id: str,
+    context: Optional[TenantContext] = None
+) -> TenantIsolatedGateway:
+    """
+    Retorna gateway isolado para o tenant.
+
+    Args:
+        tenant_id: ID do tenant
+        context: Contexto opcional do tenant
+
+    Returns:
+        TenantIsolatedGateway isolado
+    """
+    if tenant_id not in _isolated_gateways:
+        _isolated_gateways[tenant_id] = TenantIsolatedGateway(tenant_id, context)
+    elif context:
+        # Atualizar contexto se fornecido
+        _isolated_gateways[tenant_id].context = context
+
+    return _isolated_gateways[tenant_id]
+
+
+def clear_tenant_gateway(tenant_id: str):
+    """Remove gateway do tenant do cache"""
+    if tenant_id in _isolated_gateways:
+        del _isolated_gateways[tenant_id]
+
+    if tenant_id in _gateways:
+        del _gateways[tenant_id]
+
+
+async def get_all_tenant_metrics(period_minutes: int = 60) -> Dict[str, Dict]:
+    """Retorna metricas de todos os tenants"""
+    metrics = {}
+    for tenant_id, gateway in _isolated_gateways.items():
+        metrics[tenant_id] = gateway.get_metrics(period_minutes=period_minutes)
+    return metrics
