@@ -115,6 +115,46 @@ app.include_router(preview_router)
 from factory.api.code_review_routes import router as code_review_router
 app.include_router(code_review_router)
 
+# Analytics de Produtividade endpoints (Issue #65)
+from factory.dashboard.analytics_endpoints import register_analytics_endpoints
+register_analytics_endpoints(app, SessionLocal, Story, Sprint, HAS_CLAUDE, get_claude_client if HAS_CLAUDE else None)
+# Marketplace endpoints (Issue #56)
+try:
+    from factory.api.marketplace_routes import router as marketplace_router
+    app.include_router(marketplace_router, prefix="/api/marketplace")
+except ImportError:
+    print("[Dashboard] Marketplace routes not available")
+
+
+
+# =============================================================================
+# NOTIFICATION TYPES
+# =============================================================================
+
+class NotificationType:
+    """Notification types for real-time updates"""
+    STORY_CREATED = "story_created"
+    STORY_MOVED = "story_moved"
+    STORY_UPDATED = "story_updated"
+    STORY_DELETED = "story_deleted"
+    TASK_CREATED = "task_created"
+    TASK_COMPLETED = "task_completed"
+    TASK_UPDATED = "task_updated"
+    DOC_CREATED = "doc_created"
+    CHAT_MESSAGE = "chat_message"
+    APP_READY = "app_ready"
+    BUILD_STARTED = "build_started"
+    BUILD_COMPLETED = "build_completed"
+    BUILD_FAILED = "build_failed"
+    CONNECTION = "connection"
+    PONG = "pong"
+
+
+# Slack/Teams Integration Config
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL", "")
+NOTIFICATIONS_ENABLED = os.getenv("NOTIFICATIONS_ENABLED", "true").lower() == "true"
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
@@ -123,6 +163,9 @@ app.include_router(code_review_router)
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self.notification_history: List[dict] = []
+        self.max_history = 100
+        self.unread_count = 0
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -131,6 +174,36 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+
+    def add_notification(self, notification: dict):
+        """Add notification to history"""
+        notification["id"] = str(uuid.uuid4())[:8]
+        notification["read"] = False
+        self.notification_history.insert(0, notification)
+        self.unread_count += 1
+        if len(self.notification_history) > self.max_history:
+            self.notification_history = self.notification_history[:self.max_history]
+
+    def mark_as_read(self, notification_id: str = None):
+        """Mark notification(s) as read"""
+        if notification_id:
+            for n in self.notification_history:
+                if n.get("id") == notification_id and not n.get("read"):
+                    n["read"] = True
+                    self.unread_count = max(0, self.unread_count - 1)
+                    break
+        else:
+            for n in self.notification_history:
+                n["read"] = True
+            self.unread_count = 0
+
+    def get_history(self, limit: int = 50) -> List[dict]:
+        """Get notification history"""
+        return self.notification_history[:limit]
+
+    def get_unread_count(self) -> int:
+        """Get unread notification count"""
+        return self.unread_count
 
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
@@ -141,10 +214,87 @@ class ConnectionManager:
 
 ws_manager = ConnectionManager()
 
+
+async def send_slack_notification(notification_type: str, data: dict):
+    """Send notification to Slack webhook"""
+    if not SLACK_WEBHOOK_URL:
+        return
+    try:
+        import httpx
+        title_map = {
+            NotificationType.STORY_CREATED: ":sparkles: Nova Story Criada",
+            NotificationType.STORY_MOVED: ":arrow_right: Story Movida",
+            NotificationType.TASK_COMPLETED: ":white_check_mark: Task Completada",
+            NotificationType.APP_READY: ":rocket: App Pronto",
+            NotificationType.BUILD_COMPLETED: ":package: Build Completado",
+            NotificationType.BUILD_FAILED: ":x: Build Falhou",
+        }
+        title = title_map.get(notification_type, f":bell: {notification_type}")
+        text = ""
+        if "title" in data:
+            text = f"*{data.get('story_id', data.get('task_id', ''))}*: {data['title']}"
+        elif "message" in data:
+            text = data["message"]
+        else:
+            text = str(data)
+        payload = {"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": f"{title}\n{text}"}}]}
+        async with httpx.AsyncClient() as client:
+            await client.post(SLACK_WEBHOOK_URL, json=payload, timeout=5.0)
+    except Exception as e:
+        print(f"[Slack] Error sending notification: {e}")
+
+
+async def send_teams_notification(notification_type: str, data: dict):
+    """Send notification to Microsoft Teams webhook"""
+    if not TEAMS_WEBHOOK_URL:
+        return
+    try:
+        import httpx
+        title_map = {
+            NotificationType.STORY_CREATED: "Nova Story Criada",
+            NotificationType.STORY_MOVED: "Story Movida",
+            NotificationType.TASK_COMPLETED: "Task Completada",
+            NotificationType.APP_READY: "App Pronto",
+            NotificationType.BUILD_COMPLETED: "Build Completado",
+            NotificationType.BUILD_FAILED: "Build Falhou",
+        }
+        title = title_map.get(notification_type, notification_type)
+        text = ""
+        if "title" in data:
+            text = f"**{data.get('story_id', data.get('task_id', ''))}**: {data['title']}"
+        elif "message" in data:
+            text = data["message"]
+        else:
+            text = str(data)
+        payload = {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": "003B4A",
+            "summary": title,
+            "sections": [{"activityTitle": title, "activitySubtitle": "Fabrica de Agentes", "text": text, "markdown": True}]
+        }
+        async with httpx.AsyncClient() as client:
+            await client.post(TEAMS_WEBHOOK_URL, json=payload, timeout=5.0)
+    except Exception as e:
+        print(f"[Teams] Error sending notification: {e}")
+
+
 def notify(notification_type: str, data: dict):
+    """Send notification via WebSocket and optionally to Slack/Teams"""
     message = {"type": notification_type, "data": data, "timestamp": datetime.utcnow().isoformat() + "Z"}
+    if notification_type not in [NotificationType.PONG, NotificationType.CONNECTION]:
+        ws_manager.add_notification(message.copy())
     try:
         asyncio.create_task(ws_manager.broadcast(message))
+        if NOTIFICATIONS_ENABLED and notification_type in [
+            NotificationType.STORY_CREATED, NotificationType.STORY_MOVED,
+            NotificationType.TASK_COMPLETED, NotificationType.APP_READY,
+            NotificationType.BUILD_COMPLETED, NotificationType.BUILD_FAILED
+        ]:
+            if SLACK_WEBHOOK_URL:
+                asyncio.create_task(send_slack_notification(notification_type, data))
+            if TEAMS_WEBHOOK_URL:
+                asyncio.create_task(send_teams_notification(notification_type, data))
     except:
         pass
 
@@ -2223,6 +2373,188 @@ def clear_chat_history(project_id: Optional[str] = None, story_id: Optional[str]
 
 
 # =============================================================================
+# API ENDPOINTS - PAIR PROGRAMMING
+# =============================================================================
+
+class PairProgrammingRequest(BaseModel):
+    code: str
+    language: Optional[str] = "python"
+    context: Optional[str] = None
+    task_id: Optional[str] = None
+    story_id: Optional[str] = None
+
+
+class PairProgrammingExplainRequest(BaseModel):
+    code: str
+    language: Optional[str] = "python"
+    context: Optional[str] = None
+
+
+class PairProgrammingRefactorRequest(BaseModel):
+    code: str
+    language: Optional[str] = "python"
+    refactor_type: Optional[str] = "general"
+    context: Optional[str] = None
+
+
+@app.post("/api/pair-programming/suggest")
+def pair_programming_suggest(request: PairProgrammingRequest):
+    """Gera sugestoes de codigo em tempo real usando Claude AI"""
+    if not HAS_CLAUDE:
+        return {"success": False, "error": "Claude AI not available", "suggestion": ""}
+
+    try:
+        claude = get_claude_client()
+        if not claude.is_available():
+            return {"success": False, "error": "Claude AI not configured", "suggestion": ""}
+
+        context_info = ""
+        if request.context:
+            context_info = f"\nContexto adicional: {request.context}"
+        if request.task_id:
+            context_info += f"\nTask ID: {request.task_id}"
+        if request.story_id:
+            context_info += f"\nStory ID: {request.story_id}"
+
+        system_prompt = f"""Voce e um assistente de Pair Programming especializado.
+Sua tarefa e completar o codigo parcial fornecido pelo usuario.
+
+INSTRUCOES:
+1. Analise o codigo parcial
+2. Sugira a CONTINUACAO mais provavel e util
+3. Retorne APENAS o codigo que deve ser adicionado (nao repita o codigo existente)
+4. Mantenha o estilo e padrao do codigo existente
+5. Se o codigo estiver incompleto (ex: funcao sem corpo), complete-o
+6. Se houver um padrao obvio, continue-o
+7. Seja conciso - sugira apenas o proximo trecho logico (1-5 linhas geralmente)
+8. NAO inclua explicacoes, apenas o codigo
+
+Linguagem: {request.language}
+{context_info}"""
+
+        response = claude.chat(
+            message=f"Complete este codigo:\n\n```{request.language}\n{request.code}\n```",
+            system_prompt=system_prompt,
+            max_tokens=500
+        )
+
+        if response.success:
+            suggestion = response.content.strip()
+            if suggestion.startswith("```"):
+                lines = suggestion.split("\n")
+                suggestion = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
+            return {"success": True, "suggestion": suggestion, "language": request.language}
+        else:
+            return {"success": False, "error": response.error, "suggestion": ""}
+    except Exception as e:
+        return {"success": False, "error": str(e), "suggestion": ""}
+
+
+@app.post("/api/pair-programming/explain")
+def pair_programming_explain(request: PairProgrammingExplainRequest):
+    """Explica o que um trecho de codigo faz"""
+    if not HAS_CLAUDE:
+        return {"success": False, "error": "Claude AI not available", "explanation": ""}
+
+    try:
+        claude = get_claude_client()
+        if not claude.is_available():
+            return {"success": False, "error": "Claude AI not configured", "explanation": ""}
+
+        context_info = ""
+        if request.context:
+            context_info = f"\nContexto adicional: {request.context}"
+
+        system_prompt = f"""Voce e um assistente de Pair Programming especializado em explicar codigo.
+
+INSTRUCOES:
+1. Explique o codigo de forma clara e didatica
+2. Descreva o que cada parte faz
+3. Mencione padroes de design utilizados, se houver
+4. Aponte possiveis problemas ou melhorias
+5. Use linguagem acessivel para desenvolvedores de todos os niveis
+6. Formate a resposta em Markdown para melhor leitura
+
+Linguagem: {request.language}
+{context_info}"""
+
+        response = claude.chat(
+            message=f"Explique este codigo:\n\n```{request.language}\n{request.code}\n```",
+            system_prompt=system_prompt,
+            max_tokens=1500
+        )
+
+        if response.success:
+            return {"success": True, "explanation": response.content, "language": request.language}
+        else:
+            return {"success": False, "error": response.error, "explanation": ""}
+    except Exception as e:
+        return {"success": False, "error": str(e), "explanation": ""}
+
+
+@app.post("/api/pair-programming/refactor")
+def pair_programming_refactor(request: PairProgrammingRefactorRequest):
+    """Sugere refatoracao para um trecho de codigo"""
+    if not HAS_CLAUDE:
+        return {"success": False, "error": "Claude AI not available", "refactored_code": "", "explanation": ""}
+
+    try:
+        claude = get_claude_client()
+        if not claude.is_available():
+            return {"success": False, "error": "Claude AI not configured", "refactored_code": "", "explanation": ""}
+
+        refactor_instructions = {
+            "general": "Melhore o codigo aplicando boas praticas gerais de programacao.",
+            "performance": "Otimize o codigo para melhor performance, reduzindo complexidade e uso de recursos.",
+            "readability": "Melhore a legibilidade do codigo com nomes melhores, comentarios e estrutura clara.",
+            "security": "Identifique e corrija vulnerabilidades de seguranca no codigo."
+        }
+
+        instruction = refactor_instructions.get(request.refactor_type, refactor_instructions["general"])
+
+        context_info = ""
+        if request.context:
+            context_info = f"\nContexto adicional: {request.context}"
+
+        system_prompt = f"""Voce e um assistente de Pair Programming especializado em refatoracao de codigo.
+
+INSTRUCOES:
+1. {instruction}
+2. Retorne o codigo refatorado completo
+3. Mantenha a funcionalidade original
+4. Apos o codigo, explique as mudancas feitas
+
+Linguagem: {request.language}
+Tipo de refatoracao: {request.refactor_type}
+{context_info}"""
+
+        response = claude.chat(
+            message=f"Refatore este codigo:\n\n```{request.language}\n{request.code}\n```",
+            system_prompt=system_prompt,
+            max_tokens=2000
+        )
+
+        if response.success:
+            content = response.content
+            import re
+            code_match = re.search(r'```[\w]*\n(.*?)```', content, re.DOTALL)
+            refactored_code = code_match.group(1).strip() if code_match else ""
+            return {
+                "success": True,
+                "refactored_code": refactored_code,
+                "full_response": content,
+                "language": request.language,
+                "refactor_type": request.refactor_type
+            }
+        else:
+            return {"success": False, "error": response.error, "refactored_code": "", "explanation": ""}
+    except Exception as e:
+        return {"success": False, "error": str(e), "refactored_code": "", "explanation": ""}
+
+
+
+
+# =============================================================================
 # API ENDPOINTS - ATTACHMENTS
 # =============================================================================
 
@@ -2896,6 +3228,90 @@ def generate_project_debt_stories(project_id: str):
 
 
 # =============================================================================
+# API ENDPOINTS - NOTIFICATIONS
+# =============================================================================
+
+@app.get("/api/notifications")
+def get_notifications(limit: int = 50):
+    """Get notification history"""
+    return {
+        "notifications": ws_manager.get_history(limit),
+        "unread_count": ws_manager.get_unread_count()
+    }
+
+
+@app.post("/api/notifications/mark-read")
+def mark_notifications_read(notification_id: Optional[str] = None):
+    """Mark notification(s) as read"""
+    ws_manager.mark_as_read(notification_id)
+    return {"success": True, "unread_count": ws_manager.get_unread_count()}
+
+
+@app.post("/api/notifications/mark-all-read")
+def mark_all_notifications_read():
+    """Mark all notifications as read"""
+    ws_manager.mark_as_read()
+    return {"success": True, "unread_count": 0}
+
+
+# =============================================================================
+# API ENDPOINTS - INTEGRATIONS (SLACK/TEAMS)
+# =============================================================================
+
+class WebhookConfig(BaseModel):
+    webhook_url: str
+    enabled: bool = True
+
+
+class TestNotification(BaseModel):
+    message: str = "Test notification from Fabrica de Agentes"
+
+
+@app.get("/api/integrations/config")
+def get_integrations_config():
+    """Get current integration configuration status"""
+    return {
+        "slack": {"configured": bool(SLACK_WEBHOOK_URL), "enabled": NOTIFICATIONS_ENABLED},
+        "teams": {"configured": bool(TEAMS_WEBHOOK_URL), "enabled": NOTIFICATIONS_ENABLED},
+        "notifications_enabled": NOTIFICATIONS_ENABLED
+    }
+
+
+@app.post("/api/integrations/slack/webhook")
+async def configure_slack_webhook(config: WebhookConfig):
+    """Configure Slack webhook URL"""
+    global SLACK_WEBHOOK_URL
+    SLACK_WEBHOOK_URL = config.webhook_url if config.enabled else ""
+    return {"success": True, "message": "Slack webhook configured", "configured": bool(SLACK_WEBHOOK_URL)}
+
+
+@app.post("/api/integrations/slack/test")
+async def test_slack_notification(test: TestNotification = TestNotification()):
+    """Send a test notification to Slack"""
+    if not SLACK_WEBHOOK_URL:
+        raise HTTPException(400, "Slack webhook URL not configured")
+    await send_slack_notification("test", {"message": test.message})
+    return {"success": True, "message": "Test notification sent to Slack"}
+
+
+@app.post("/api/integrations/teams/webhook")
+async def configure_teams_webhook(config: WebhookConfig):
+    """Configure Teams webhook URL"""
+    global TEAMS_WEBHOOK_URL
+    TEAMS_WEBHOOK_URL = config.webhook_url if config.enabled else ""
+    return {"success": True, "message": "Teams webhook configured", "configured": bool(TEAMS_WEBHOOK_URL)}
+
+
+@app.post("/api/integrations/teams/test")
+async def test_teams_notification(test: TestNotification = TestNotification()):
+    """Send a test notification to Microsoft Teams"""
+    if not TEAMS_WEBHOOK_URL:
+        raise HTTPException(400, "Teams webhook URL not configured")
+    await send_teams_notification("test", {"message": test.message})
+    return {"success": True, "message": "Test notification sent to Teams"}
+
+
+# =============================================================================
 # WEBSOCKET ENDPOINT
 # =============================================================================
 
@@ -2906,7 +3322,11 @@ async def websocket_notifications(websocket: WebSocket):
     try:
         await websocket.send_json({
             "type": "connection",
-            "data": {"status": "connected", "message": "Conectado ao servidor de notificacoes"},
+            "data": {
+                "status": "connected",
+                "message": "Conectado ao servidor de notificacoes",
+                "unread_count": ws_manager.get_unread_count()
+            },
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
         while True:
@@ -2914,6 +3334,12 @@ async def websocket_notifications(websocket: WebSocket):
                 data = await websocket.receive_text()
                 if data == "ping":
                     await websocket.send_json({"type": "pong", "timestamp": datetime.utcnow().isoformat() + "Z"})
+                elif data == "get_unread_count":
+                    await websocket.send_json({
+                        "type": "unread_count",
+                        "data": {"count": ws_manager.get_unread_count()},
+                        "timestamp": datetime.utcnow().isoformat() + "Z"
+                    })
             except WebSocketDisconnect:
                 break
             except:
@@ -3812,6 +4238,41 @@ HTML_TEMPLATE = """
                         <div :class="['flex items-center gap-1 px-2 py-1 rounded-full text-xs', wsStatus === 'connected' ? 'bg-green-500/20 text-green-300' : wsStatus === 'connecting' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300']" :title="wsStatusTitle">
                             <span :class="['w-2 h-2 rounded-full', wsStatus === 'connected' ? 'bg-green-400 animate-pulse' : wsStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400']"></span>
                             <span class="hidden sm:inline">{{ wsStatusText }}</span>
+                        </div>
+
+                        <!-- Notifications Panel -->
+                        <div class="relative">
+                            <button @click="toggleNotificationsPanel" class="relative text-white/70 hover:text-white p-2" title="Notificacoes">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                                </svg>
+                                <span v-if="unreadNotificationCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                                    {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
+                                </span>
+                            </button>
+                            <div v-if="showNotificationsPanel" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-hidden" @click.stop>
+                                <div class="p-3 border-b flex justify-between items-center bg-gray-50">
+                                    <span class="font-semibold text-gray-800">Notificacoes</span>
+                                    <button v-if="unreadNotificationCount > 0" @click="markAllNotificationsRead" class="text-xs text-blue-600 hover:text-blue-800">Marcar todas como lidas</button>
+                                </div>
+                                <div class="overflow-y-auto max-h-72">
+                                    <div v-if="notifications.length === 0" class="p-4 text-center text-gray-500">Nenhuma notificacao</div>
+                                    <div v-for="n in notifications" :key="n.id" :class="['p-3 border-b hover:bg-gray-50 cursor-pointer transition', !n.read ? 'bg-blue-50' : '']" @click="markNotificationRead(n.id)">
+                                        <div class="flex items-start gap-2">
+                                            <span class="text-lg">{{ getNotificationIcon(n.type) }}</span>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate">{{ getNotificationTitle(n.type) }}</p>
+                                                <p class="text-xs text-gray-600 truncate">{{ getNotificationText(n) }}</p>
+                                                <p class="text-xs text-gray-400 mt-1">{{ formatNotificationTime(n.timestamp) }}</p>
+                                            </div>
+                                            <span v-if="!n.read" class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-2 border-t bg-gray-50">
+                                    <button @click="showNotificationPreferences = true; showNotificationsPanel = false" class="w-full text-xs text-gray-600 hover:text-gray-800 py-1">Configurar notificacoes</button>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Notification Sound Toggle -->
@@ -6428,6 +6889,21 @@ HTML_TEMPLATE = """
             let wsReconnectTimer = null;
             const notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
 
+            // Notification Center State
+            const showNotificationsPanel = ref(false);
+            const showNotificationPreferences = ref(false);
+            const notifications = ref([]);
+            const unreadNotificationCount = ref(0);
+            const notificationPreferences = ref({
+                story_created: true,
+                story_moved: true,
+                task_completed: true,
+                app_ready: true,
+                build_completed: true,
+                build_failed: true,
+                chat_message: true
+            });
+
             // Confirm Modal
             const showConfirmModal = ref(false);
             const confirmModal = ref({
@@ -6463,6 +6939,11 @@ HTML_TEMPLATE = """
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
             const currentGeneratedTests = ref(null);
+
+            // Code Review (Issue #52)
+            const reviewingCode = ref(false);
+            const showReviewResultModal = ref(false);
+            const codeReviewResult = ref(null);
 
             // Security Scan
             const scanningTask = ref(null);
@@ -8219,10 +8700,132 @@ HTML_TEMPLATE = """
                 } catch(e) { wsStatus.value = 'disconnected'; }
             };
             const handleWebSocketNotification = (n) => {
-                if (n.type === 'pong' || n.type === 'connection') return;
-                const cfg = { story_created: ['Nova Story', n.data.story_id+': '+n.data.title], story_moved: ['Story Movida', n.data.story_id], story_updated: ['Story Atualizada', n.data.story_id], task_completed: ['Task Completa', n.data.task_id], chat_message: ['Nova Mensagem', n.data.preview||''] }[n.type];
-                if (cfg) { addToast(n.type, cfg[0], cfg[1]); if(notificationSoundEnabled.value) try{notificationSound.play();}catch(e){}; if(selectedProjectId.value) loadProjectData(); }
+                if (n.type === 'pong') return;
+                if (n.type === 'connection') {
+                    if (n.data && n.data.unread_count !== undefined) {
+                        unreadNotificationCount.value = n.data.unread_count;
+                    }
+                    return;
+                }
+                if (n.type === 'unread_count') {
+                    unreadNotificationCount.value = n.data.count;
+                    return;
+                }
+                if (notificationPreferences.value[n.type] === false) return;
+                notifications.value.unshift({
+                    id: n.id || Date.now().toString(),
+                    type: n.type,
+                    data: n.data,
+                    timestamp: n.timestamp,
+                    read: false
+                });
+                if (notifications.value.length > 50) {
+                    notifications.value = notifications.value.slice(0, 50);
+                }
+                unreadNotificationCount.value++;
+                const cfg = {
+                    story_created: ['Nova Story', n.data.story_id+': '+n.data.title],
+                    story_moved: ['Story Movida', n.data.story_id + ' para ' + n.data.to],
+                    story_updated: ['Story Atualizada', n.data.story_id],
+                    task_completed: ['Task Completa', n.data.task_id],
+                    chat_message: ['Nova Mensagem', n.data.preview||''],
+                    app_ready: ['App Pronto', n.data.message || 'Aplicacao pronta para teste'],
+                    build_completed: ['Build Completo', n.data.message || 'Build finalizado'],
+                    build_failed: ['Build Falhou', n.data.message || 'Erro no build']
+                }[n.type];
+                if (cfg) {
+                    addToast(n.type, cfg[0], cfg[1]);
+                    if(notificationSoundEnabled.value) try{notificationSound.play();}catch(e){};
+                    if(selectedProjectId.value) loadProjectData();
+                }
             };
+
+            const toggleNotificationsPanel = () => {
+                showNotificationsPanel.value = !showNotificationsPanel.value;
+                if (showNotificationsPanel.value) loadNotifications();
+            };
+
+            const loadNotifications = async () => {
+                try {
+                    const res = await fetch('/api/notifications?limit=50');
+                    const data = await res.json();
+                    notifications.value = data.notifications || [];
+                    unreadNotificationCount.value = data.unread_count || 0;
+                } catch (e) { console.error('Error loading notifications:', e); }
+            };
+
+            const markNotificationRead = async (notificationId) => {
+                try {
+                    await fetch('/api/notifications/mark-read?notification_id=' + notificationId, { method: 'POST' });
+                    const n = notifications.value.find(x => x.id === notificationId);
+                    if (n && !n.read) {
+                        n.read = true;
+                        unreadNotificationCount.value = Math.max(0, unreadNotificationCount.value - 1);
+                    }
+                } catch (e) { console.error('Error marking notification read:', e); }
+            };
+
+            const markAllNotificationsRead = async () => {
+                try {
+                    await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+                    notifications.value.forEach(n => n.read = true);
+                    unreadNotificationCount.value = 0;
+                } catch (e) { console.error('Error marking all notifications read:', e); }
+            };
+
+            const getNotificationIcon = (type) => {
+                const icons = {
+                    story_created: '📝', story_moved: '➡️', story_updated: '✏️', story_deleted: '🗑️',
+                    task_created: '📋', task_completed: '✅', task_updated: '🔄', doc_created: '📄',
+                    chat_message: '💬', app_ready: '🚀', build_started: '🔨', build_completed: '📦', build_failed: '❌'
+                };
+                return icons[type] || '🔔';
+            };
+
+            const getNotificationTitle = (type) => {
+                const titles = {
+                    story_created: 'Nova Story', story_moved: 'Story Movida', story_updated: 'Story Atualizada',
+                    story_deleted: 'Story Excluida', task_created: 'Nova Task', task_completed: 'Task Completa',
+                    task_updated: 'Task Atualizada', doc_created: 'Nova Documentacao', chat_message: 'Nova Mensagem',
+                    app_ready: 'App Pronto', build_started: 'Build Iniciado', build_completed: 'Build Completo', build_failed: 'Build Falhou'
+                };
+                return titles[type] || type;
+            };
+
+            const getNotificationText = (n) => {
+                if (n.data) {
+                    if (n.data.title) return n.data.title;
+                    if (n.data.message) return n.data.message;
+                    if (n.data.story_id) return n.data.story_id;
+                    if (n.data.task_id) return n.data.task_id;
+                }
+                return '';
+            };
+
+            const formatNotificationTime = (timestamp) => {
+                if (!timestamp) return '';
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diff = now - date;
+                if (diff < 60000) return 'Agora';
+                if (diff < 3600000) return Math.floor(diff / 60000) + ' min atras';
+                if (diff < 86400000) return Math.floor(diff / 3600000) + 'h atras';
+                return date.toLocaleDateString('pt-BR');
+            };
+
+            const saveNotificationPreferences = () => {
+                localStorage.setItem('notificationPreferences', JSON.stringify(notificationPreferences.value));
+                showNotificationPreferences.value = false;
+                addToast('success', 'Preferencias salvas', 'Suas preferencias de notificacao foram salvas');
+            };
+
+            const loadNotificationPreferences = () => {
+                const saved = localStorage.getItem('notificationPreferences');
+                if (saved) {
+                    try { notificationPreferences.value = { ...notificationPreferences.value, ...JSON.parse(saved) }; } catch (e) {}
+                }
+            };
+
             const toggleNotificationSound = () => { notificationSoundEnabled.value = !notificationSoundEnabled.value; localStorage.setItem('notificationSoundEnabled', notificationSoundEnabled.value); addToast('info', notificationSoundEnabled.value ? 'Som ativado' : 'Som desativado'); };
             const loadNotificationSoundPreference = () => { const s = localStorage.getItem('notificationSoundEnabled'); if(s!==null) notificationSoundEnabled.value = s==='true'; };
 
@@ -8291,6 +8894,102 @@ HTML_TEMPLATE = """
                         }
                     }
                 );
+            };
+
+
+            // ===== PROJECT IMPORT FUNCTIONS (Issue #69) =====
+
+            const handleImportFile = (event) => {
+                const file = event.target.files[0];
+                if (file && file.name.endsWith('.zip')) {
+                    importFile.value = file;
+                } else {
+                    addToast('error', 'Erro', 'Por favor selecione um arquivo ZIP');
+                }
+            };
+
+            const handleImportDrop = (event) => {
+                importDragOver.value = false;
+                const file = event.dataTransfer.files[0];
+                if (file && file.name.endsWith('.zip')) {
+                    importFile.value = file;
+                } else {
+                    addToast('error', 'Erro', 'Por favor arraste um arquivo ZIP');
+                }
+            };
+
+            const resetImport = () => {
+                importFile.value = null;
+                importGithubUrl.value = '';
+                importProjectName.value = '';
+                importGenerateStories.value = true;
+                importInProgress.value = false;
+                importProgressPercent.value = 0;
+                importProgressMessage.value = '';
+                importResult.value = null;
+                importTab.value = 'zip';
+            };
+
+            const executeImport = async () => {
+                importInProgress.value = true;
+                importProgressPercent.value = 0;
+                importProgressMessage.value = 'Preparando importacao...';
+                importResult.value = null;
+
+                try {
+                    const formData = new FormData();
+
+                    if (importTab.value === 'zip' && importFile.value) {
+                        formData.append('file', importFile.value);
+                    } else if (importTab.value === 'github' && importGithubUrl.value) {
+                        formData.append('github_url', importGithubUrl.value);
+                    }
+
+                    if (importProjectName.value) {
+                        formData.append('project_name', importProjectName.value);
+                    }
+                    formData.append('generate_stories', importGenerateStories.value);
+
+                    const progressInterval = setInterval(() => {
+                        if (importProgressPercent.value < 90) {
+                            importProgressPercent.value += 10;
+                            const messages = ['Extraindo arquivos...', 'Analisando estrutura...', 'Detectando linguagem...', 'Identificando dependencias...', 'Criando projeto...', 'Gerando User Stories...', 'Finalizando...'];
+                            importProgressMessage.value = messages[Math.min(Math.floor(importProgressPercent.value / 15), messages.length - 1)];
+                        }
+                    }, 500);
+
+                    const response = await fetch('/api/projects/import', { method: 'POST', body: formData });
+                    clearInterval(progressInterval);
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Erro ao importar projeto');
+                    }
+
+                    const result = await response.json();
+                    importProgressPercent.value = 100;
+                    importProgressMessage.value = 'Importacao concluida!';
+                    importResult.value = result;
+                    await loadProjects();
+                    addToast('success', 'Sucesso', 'Projeto "' + result.project.name + '" importado com ' + result.stories_created + ' stories!');
+
+                } catch (error) {
+                    console.error('Import error:', error);
+                    addToast('error', 'Erro na importacao', error.message);
+                    importProgressPercent.value = 0;
+                    importProgressMessage.value = '';
+                } finally {
+                    importInProgress.value = false;
+                }
+            };
+
+            const selectImportedProject = () => {
+                if (importResult.value && importResult.value.project) {
+                    selectedProjectId.value = importResult.value.project.project_id;
+                    loadProjectData();
+                    showImportProjectModal.value = false;
+                    resetImport();
+                }
             };
 
             // Keyboard Shortcuts
@@ -8653,10 +9352,16 @@ Process ${data.status}`);
 
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
+                // Notification Center
+                showNotificationsPanel, showNotificationPreferences, notifications, unreadNotificationCount,
+                notificationPreferences, toggleNotificationsPanel, loadNotifications, markNotificationRead,
+                markAllNotificationsRead, getNotificationIcon, getNotificationTitle, getNotificationText,
+                formatNotificationTime, saveNotificationPreferences, loadNotificationPreferences,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
                 scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
-                scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
+                // Code Review (Issue #52)
+                reviewingCode, showReviewResultModal, codeReviewResult, reviewCodeWithAI,
                 // Project Status (user-friendly)
                 storyCounts, projectProgress, isProjectReady, projectReadinessText,
                 projectReadinessClass, projectReadinessIcon, projectStatusMessage,
@@ -8681,6 +9386,50 @@ Process ${data.status}`);
 def index():
     """Pagina principal - Dashboard Agile"""
     return HTML_TEMPLATE
+
+
+# =============================================================================
+# EXECUTIVE DASHBOARD - BUSINESS INTELLIGENCE
+# =============================================================================
+
+from factory.dashboard.executive_dashboard import (
+    get_executive_metrics_data,
+    export_stories_csv,
+    get_executive_template
+)
+
+@app.get("/api/executive/metrics")
+def get_executive_metrics(
+    project_id: Optional[str] = None,
+    period: Optional[str] = "month",
+    epic_id: Optional[str] = None
+):
+    """Retorna metricas executivas agregadas"""
+    db = SessionLocal()
+    try:
+        return get_executive_metrics_data(db, Story, Sprint, project_id, period, epic_id)
+    finally:
+        db.close()
+
+@app.get("/api/executive/export/csv")
+def export_executive_csv(project_id: Optional[str] = None):
+    """Exporta dados executivos em CSV"""
+    db = SessionLocal()
+    try:
+        csv_content = export_stories_csv(db, Story, project_id)
+        from fastapi.responses import Response
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=executive_report_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+        )
+    finally:
+        db.close()
+
+@app.get("/executive", response_class=HTMLResponse)
+def executive_dashboard():
+    """Executive Dashboard - Business Intelligence"""
+    return get_executive_template()
 
 
 # =============================================================================
