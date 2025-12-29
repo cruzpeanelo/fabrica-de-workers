@@ -111,6 +111,9 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 from factory.api.preview_routes import router as preview_router
 app.include_router(preview_router)
 
+# Code Review endpoints (Issue #52)
+from factory.api.code_review_routes import router as code_review_router
+app.include_router(code_review_router)
 
 
 # =============================================================================
@@ -1086,6 +1089,162 @@ def get_general_recommendations(vulnerabilities: list) -> list:
 
     return recommendations
 
+
+
+
+# =============================================================================
+# API ENDPOINTS - SECURITY SCAN (SAST)
+# =============================================================================
+
+@app.post("/api/story-tasks/{task_id}/security-scan")
+def security_scan_for_task(task_id: str):
+    """
+    Analise de Seguranca Automatizada (SAST) para o codigo de uma task.
+    Usa Claude AI para identificar vulnerabilidades de seguranca.
+    """
+    db = SessionLocal()
+    try:
+        repo = StoryTaskRepository(db)
+        task = repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(404, "Task not found")
+
+        if not task.code_output:
+            raise HTTPException(400, "Task has no code output to analyze")
+
+        code = task.code_output
+
+        # Detectar linguagem
+        language = "python"
+        if "function " in code or "const " in code or "let " in code or "=>" in code:
+            language = "javascript"
+        elif "func " in code and "package " in code:
+            language = "go"
+        elif "public class " in code or "private void " in code:
+            language = "java"
+        elif "<?php" in code:
+            language = "php"
+
+        # Se Claude disponivel, usar IA para analise profunda
+        if HAS_CLAUDE:
+            try:
+                claude = get_claude_client()
+                if claude.is_available():
+                    return perform_ai_security_scan(code, language, task, claude)
+            except Exception as e:
+                print(f"[SecurityScan] Erro ao usar Claude: {e}")
+
+        # Fallback: analise basica com regex
+        return perform_basic_security_scan(code, language, task)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error performing security scan: {str(e)}")
+    finally:
+        db.close()
+
+
+def perform_ai_security_scan(code: str, language: str, task, claude) -> dict:
+    """Realiza analise de seguranca usando Claude AI"""
+
+    system_prompt = """Voce e um especialista em seguranca de aplicacoes (AppSec).
+Analise o codigo e identifique vulnerabilidades de seguranca.
+
+Tipos a detectar: SQL Injection, XSS, Command Injection, Path Traversal, Hardcoded Secrets, Insecure Dependencies.
+
+Responda em JSON:
+{
+    "vulnerabilities": [{"type": "...", "severity": "Critical|High|Medium|Low", "line": N, "line_content": "...", "description": "...", "fix_suggestion": "...", "cwe": "CWE-XX"}],
+    "summary": {"total": N, "critical": N, "high": N, "medium": N, "low": N},
+    "recommendations": ["..."],
+    "secure_patterns_found": ["..."]
+}"""
+
+    lines = code.split('\n')
+    numbered = '\n'.join(f"{i+1}: {l}" for i, l in enumerate(lines))
+    message = f"Analise SAST do codigo {language}:\n```{language}\n{numbered}\n```\nTask: {task.title}"
+
+    response = claude.chat(message, system_prompt, max_tokens=4096)
+
+    if response.success:
+        try:
+            c = response.content.strip()
+            if c.startswith("```"):
+                c = "\n".join(c.split("\n")[1:-1])
+            result = json.loads(c)
+            result["scan_type"] = "ai"
+            result["language"] = language
+            result["scanned_at"] = datetime.utcnow().isoformat()
+            result["task_id"] = task.task_id
+            return result
+        except:
+            pass
+
+    return perform_basic_security_scan(code, language, task)
+
+
+def perform_basic_security_scan(code: str, language: str, task) -> dict:
+    """Analise basica de seguranca com regex"""
+    import re as regex_module
+
+    vulnerabilities = []
+    lines = code.split('\n')
+
+    patterns = {
+        "SQL Injection": [
+            (r"execute.*%s", "String formatting em query SQL"),
+            (r"execute.*f['"]", "f-string em query SQL"),
+        ],
+        "XSS": [
+            (r"innerHTML\s*=", "innerHTML sem sanitizacao"),
+            (r"document\.write", "document.write inseguro"),
+        ],
+        "Command Injection": [
+            (r"os\.system", "os.system inseguro"),
+            (r"subprocess.*shell\s*=\s*True", "subprocess com shell=True"),
+        ],
+        "Hardcoded Secrets": [
+            (r"password\s*=\s*['"][^'"]+['"]", "Senha hardcoded"),
+            (r"api_key\s*=\s*['"][^'"]+['"]", "API key hardcoded"),
+        ],
+        "Insecure Dependencies": [
+            (r"pickle\.load", "pickle.load inseguro"),
+        ],
+    }
+
+    for line_num, line in enumerate(lines, 1):
+        for vuln_type, pats in patterns.items():
+            for pat, desc in pats:
+                if regex_module.search(pat, line, regex_module.IGNORECASE):
+                    sev = "Critical" if vuln_type in ["SQL Injection", "Command Injection"] else "High"
+                    vulnerabilities.append({
+                        "type": vuln_type,
+                        "severity": sev,
+                        "line": line_num,
+                        "line_content": line.strip()[:100],
+                        "description": desc,
+                        "fix_suggestion": "Corrija usando praticas seguras",
+                        "cwe": ""
+                    })
+                    break
+
+    total = len(vulnerabilities)
+    summary = {"total": total, "critical": 0, "high": 0, "medium": 0, "low": 0}
+    for v in vulnerabilities:
+        s = v["severity"].lower()
+        if s in summary:
+            summary[s] += 1
+
+    return {
+        "vulnerabilities": vulnerabilities,
+        "summary": summary,
+        "scan_type": "basic",
+        "language": language,
+        "scanned_at": datetime.utcnow().isoformat(),
+        "task_id": task.task_id,
+        "recommendations": ["Use ferramentas SAST dedicadas para analise completa"]
+    }
 
 # =============================================================================
 # API ENDPOINTS - DOCUMENTATION
@@ -2785,6 +2944,17 @@ HTML_TEMPLATE = """
     <!-- xterm.js for terminal -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <!-- highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/java.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/go.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/rust.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/sql.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/bash.min.js"></script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -2931,6 +3101,162 @@ HTML_TEMPLATE = """
         .hljs-number { color: #f78c6c; }
         .hljs-function { color: #82aaff; }
         .hljs-comment { color: #676e95; font-style: italic; }
+
+
+        /* Pair Programming Styles */
+        .pair-programming-container {
+            display: flex;
+            height: 100%;
+            gap: 16px;
+        }
+        .pp-editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .pp-chat-panel {
+            width: 350px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #e5e7eb;
+            padding-left: 16px;
+        }
+        .pp-code-editor {
+            flex: 1;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            resize: none;
+            tab-size: 4;
+        }
+        .pp-code-editor:focus {
+            outline: none;
+            border-color: var(--belgo-orange);
+        }
+        .pp-suggestion {
+            color: #6b7280;
+            font-style: italic;
+            opacity: 0.7;
+        }
+        .pp-toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .pp-toolbar select {
+            padding: 6px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .pp-toolbar button {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pp-btn-primary {
+            background: var(--belgo-orange);
+            color: white;
+            border: none;
+        }
+        .pp-btn-primary:hover {
+            background: #e65c00;
+        }
+        .pp-btn-secondary {
+            background: var(--belgo-blue);
+            color: white;
+            border: none;
+        }
+        .pp-btn-secondary:hover {
+            opacity: 0.9;
+        }
+        .pp-btn-outline {
+            background: white;
+            color: var(--belgo-blue);
+            border: 1px solid var(--belgo-blue);
+        }
+        .pp-btn-outline:hover {
+            background: var(--belgo-blue);
+            color: white;
+        }
+        .pp-history {
+            flex: 1;
+            overflow-y: auto;
+            space-y: 12px;
+        }
+        .pp-history-item {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .pp-history-item.suggestion {
+            border-left: 3px solid var(--belgo-orange);
+        }
+        .pp-history-item.explanation {
+            border-left: 3px solid #3b82f6;
+        }
+        .pp-history-item.refactor {
+            border-left: 3px solid #10b981;
+        }
+        .pp-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .pp-loading-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top-color: var(--belgo-orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .pp-result-panel {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .pp-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .pp-result-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--belgo-blue);
+        }
+        .pp-code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre;
+        }
 
         /* Toast Notifications */
         .toast-container {
@@ -4073,7 +4399,7 @@ HTML_TEMPLATE = """
                 <!-- Tabs -->
                 <div class="border-b border-gray-200">
                     <div class="flex">
-                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos']" :key="tab"
+                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos', 'PairProg']" :key="tab"
                                 @click="activeTab = tab"
                                 :class="['px-4 py-3 text-sm font-medium',
                                          activeTab === tab ? 'tab-active' : 'text-gray-500 hover:text-gray-700']">
@@ -5514,6 +5840,86 @@ HTML_TEMPLATE = """
             <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
                 <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
                     <div>
+                        <h2 class="text-lg font-semibold">Analise de Seguranca (SAST)</h2>
+                        <p class="text-sm text-red-200" v-if="currentSecurityScan">{{ currentSecurityScan.language }} | {{ currentSecurityScan.scan_type === 'ai' ? 'IA' : 'Basica' }} | {{ currentSecurityScan.summary?.total || 0 }} vulnerabilidades</p>
+                    </div>
+                    <button @click="showSecurityScanModal = false" class="text-white/70 hover:text-white">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                    <!-- Summary -->
+                    <div v-if="currentSecurityScan?.summary" class="grid grid-cols-5 gap-3 mb-6">
+                        <div class="bg-gray-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-gray-700">{{ currentSecurityScan.summary.total }}</div>
+                            <div class="text-xs text-gray-500">Total</div>
+                        </div>
+                        <div class="bg-red-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-red-700">{{ currentSecurityScan.summary.critical }}</div>
+                            <div class="text-xs text-red-600">Critical</div>
+                        </div>
+                        <div class="bg-orange-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-orange-700">{{ currentSecurityScan.summary.high }}</div>
+                            <div class="text-xs text-orange-600">High</div>
+                        </div>
+                        <div class="bg-yellow-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-yellow-700">{{ currentSecurityScan.summary.medium }}</div>
+                            <div class="text-xs text-yellow-600">Medium</div>
+                        </div>
+                        <div class="bg-blue-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-blue-700">{{ currentSecurityScan.summary.low }}</div>
+                            <div class="text-xs text-blue-600">Low</div>
+                        </div>
+                    </div>
+                    <!-- Vulnerabilities -->
+                    <div v-if="currentSecurityScan?.vulnerabilities?.length" class="space-y-3">
+                        <h3 class="font-semibold text-gray-800 mb-2">Vulnerabilidades</h3>
+                        <div v-for="(vuln, idx) in currentSecurityScan.vulnerabilities" :key="idx"
+                             class="border rounded-lg p-4"
+                             :class="{'border-red-300 bg-red-50': vuln.severity === 'Critical', 'border-orange-300 bg-orange-50': vuln.severity === 'High', 'border-yellow-300 bg-yellow-50': vuln.severity === 'Medium', 'border-blue-300 bg-blue-50': vuln.severity === 'Low'}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-xs font-medium"
+                                          :class="{'bg-red-600 text-white': vuln.severity === 'Critical', 'bg-orange-500 text-white': vuln.severity === 'High', 'bg-yellow-500 text-white': vuln.severity === 'Medium', 'bg-blue-500 text-white': vuln.severity === 'Low'}">
+                                        {{ vuln.severity }}
+                                    </span>
+                                    <span class="font-semibold text-gray-800">{{ vuln.type }}</span>
+                                    <span v-if="vuln.cwe" class="text-xs text-gray-500">({{ vuln.cwe }})</span>
+                                </div>
+                                <span class="text-xs text-gray-500">Linha {{ vuln.line }}</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-2">{{ vuln.description }}</p>
+                            <div v-if="vuln.line_content" class="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono mb-2">{{ vuln.line_content }}</div>
+                            <div class="bg-green-50 border border-green-200 rounded p-2">
+                                <span class="text-xs font-medium text-green-800">Correcao:</span>
+                                <p class="text-xs text-green-700 mt-1">{{ vuln.fix_suggestion }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- No Vulnerabilities -->
+                    <div v-else-if="currentSecurityScan" class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800">Nenhuma Vulnerabilidade</h3>
+                        <p class="text-gray-600 text-sm">Codigo passou na analise de seguranca.</p>
+                    </div>
+                    <!-- Recommendations -->
+                    <div v-if="currentSecurityScan?.recommendations?.length" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-800 mb-2">Recomendacoes</h4>
+                        <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                            <li v-for="rec in currentSecurityScan.recommendations">{{ rec }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Security Scan Results -->
+        <div v-if="showSecurityScanModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showSecurityScanModal = false">
+            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
+                    <div>
                         <h2 class="text-lg font-semibold flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -5908,6 +6314,15 @@ HTML_TEMPLATE = """
             const epics = ref([]);
             const sprints = ref([]);
             const selectedStory = ref(null);
+            // Pair Programming State
+            const ppCode = ref('');
+            const ppLanguage = ref('python');
+            const ppSuggestion = ref('');
+            const ppSelectedCode = ref('');
+            const ppLoading = ref(false);
+            const ppHistory = ref([]);
+            const ppRefactorType = ref('general');
+
             const activeTab = ref('Detalhes');
             const chatHistory = ref([]);
             const chatInput = ref('');
@@ -6053,6 +6468,11 @@ HTML_TEMPLATE = """
             const scanningTask = ref(null);
             const showSecurityScanModal = ref(false);
             const currentSecurityScan = ref(null);
+
+            // Security Scan
+            const scanningTask = ref(null);
+            const showSecurityScanModal = ref(false);
+            const currentSecurityScan = ref(null);
             const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
@@ -6095,6 +6515,125 @@ HTML_TEMPLATE = """
             // Bulk Actions
             const bulkSelectMode = ref(false);
             const selectedStories = ref([]);
+
+            
+            // Pair Programming Methods
+            const updateSelection = (e) => {
+                const textarea = e.target;
+                ppSelectedCode.value = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+            };
+
+            const insertTab = (e) => {
+                const textarea = e.target;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                ppCode.value = ppCode.value.substring(0, start) + '    ' + ppCode.value.substring(end);
+                nextTick(() => {
+                    textarea.selectionStart = textarea.selectionEnd = start + 4;
+                });
+            };
+
+            const requestSuggestion = async () => {
+                if (!ppCode.value.trim()) return;
+                ppLoading.value = true;
+                try {
+                    const response = await fetch('/api/pair-programming/suggest', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: ppCode.value,
+                            language: ppLanguage.value,
+                            story_id: selectedStory.value?.story_id
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        ppSuggestion.value = data.suggestion;
+                        ppHistory.value.unshift({
+                            type: 'suggestion',
+                            content: data.suggestion,
+                            time: new Date().toLocaleTimeString()
+                        });
+                    } else {
+                        addToast('error', 'Erro', data.error || 'Falha ao obter sugestao');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
+                } finally {
+                    ppLoading.value = false;
+                }
+            };
+
+            const acceptSuggestion = () => {
+                ppCode.value += '\n' + ppSuggestion.value;
+                ppSuggestion.value = '';
+            };
+
+            const requestExplanation = async () => {
+                const codeToExplain = ppSelectedCode.value || ppCode.value;
+                if (!codeToExplain.trim()) return;
+                ppLoading.value = true;
+                try {
+                    const response = await fetch('/api/pair-programming/explain', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: codeToExplain,
+                            language: ppLanguage.value
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        ppHistory.value.unshift({
+                            type: 'explanation',
+                            content: data.explanation,
+                            time: new Date().toLocaleTimeString()
+                        });
+                    } else {
+                        addToast('error', 'Erro', data.error || 'Falha ao obter explicacao');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
+                } finally {
+                    ppLoading.value = false;
+                }
+            };
+
+            const requestRefactor = async () => {
+                if (!ppCode.value.trim()) return;
+                ppLoading.value = true;
+                try {
+                    const response = await fetch('/api/pair-programming/refactor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code: ppCode.value,
+                            language: ppLanguage.value,
+                            refactor_type: ppRefactorType.value
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        ppHistory.value.unshift({
+                            type: 'refactor',
+                            code: data.refactored_code,
+                            explanation: data.full_response,
+                            time: new Date().toLocaleTimeString()
+                        });
+                    } else {
+                        addToast('error', 'Erro', data.error || 'Falha ao refatorar');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
+                } finally {
+                    ppLoading.value = false;
+                }
+            };
+
+            const applyRefactor = (code) => {
+                ppCode.value = code;
+                addToast('success', 'Aplicado', 'Codigo refatorado aplicado no editor');
+            };
 
             const toggleBulkSelectMode = () => {
                 bulkSelectMode.value = !bulkSelectMode.value;
@@ -7267,6 +7806,31 @@ HTML_TEMPLATE = """
                 showGeneratedTestsModal.value = true;
             };
 
+            // Security Scan
+            const runSecurityScan = async (task) => {
+                if (scanningTask.value === task.task_id) return;
+                scanningTask.value = task.task_id;
+                try {
+                    const res = await fetch(`/api/story-tasks/${task.task_id}/security-scan`, { method: 'POST' });
+                    if (res.ok) {
+                        currentSecurityScan.value = await res.json();
+                        showSecurityScanModal.value = true;
+                        const total = currentSecurityScan.value.summary?.total || 0;
+                        if (total > 0) {
+                            addToast('warning', 'Vulnerabilidades', `${total} encontradas`);
+                        } else {
+                            addToast('success', 'Codigo Seguro', 'Nenhuma vulnerabilidade');
+                        }
+                    } else {
+                        throw new Error((await res.json()).detail || 'Erro');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', e.message);
+                } finally {
+                    scanningTask.value = null;
+                }
+            };
+
             // Security Scan for Task
             const runSecurityScan = async (task) => {
                 if (scanningTask.value === task.task_id) return;
@@ -8051,7 +8615,7 @@ Process ${data.status}`);
 
             return {
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
-                storyBoard, epics, sprints, selectedStory, activeTab,
+                storyBoard, epics, sprints, selectedStory, activeTab, ppCode, ppLanguage, ppSuggestion, ppSelectedCode, ppLoading, ppHistory, ppRefactorType, updateSelection, insertTab, requestSuggestion, acceptSuggestion, requestExplanation, requestRefactor, applyRefactor,
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 showShortcutsModal, showConfirmModal, confirmModal,
@@ -8091,6 +8655,7 @@ Process ${data.status}`);
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
+                scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
                 scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
                 // Project Status (user-friendly)
                 storyCounts, projectProgress, isProjectReady, projectReadinessText,
