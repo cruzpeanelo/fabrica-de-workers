@@ -107,6 +107,10 @@ app.add_middleware(
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
+# Preview/Staging endpoints (Issue #66)
+from factory.api.preview_routes import router as preview_router
+app.include_router(preview_router)
+
 
 
 # =============================================================================
@@ -5946,6 +5950,19 @@ HTML_TEMPLATE = """
             const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
+            // Project Import (Issue #69)
+            const showImportProjectModal = ref(false);
+            const importTab = ref('zip');
+            const importFile = ref(null);
+            const importGithubUrl = ref('');
+            const importProjectName = ref('');
+            const importGenerateStories = ref(true);
+            const importInProgress = ref(false);
+            const importProgressPercent = ref(0);
+            const importProgressMessage = ref('');
+            const importResult = ref(null);
+            const importDragOver = ref(false);
+
 
             // A/B Testing (Issue #71)
             const showABTestModal = ref(false);
@@ -7950,6 +7967,8 @@ Process ${data.status}`);
                 confirmClearChat, clearChat,
                 addToast, removeToast, getToastIcon, handleUndo,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
+                showEstimateModal, estimatingStory, currentEstimate, estimateLoading,
+                estimateStoryEffort, applyEstimate, closeEstimateModal, getConfidenceColor, getComplexityColor,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, isDarkMode, toggleDarkMode,
                 showBurndownModal, burndownData, updateBurndownChart,
