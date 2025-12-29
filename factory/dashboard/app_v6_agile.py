@@ -29,12 +29,14 @@ sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+import json
+import asyncio
 
 # Database
 from factory.database.connection import SessionLocal, engine, Base
@@ -85,6 +87,39 @@ app.add_middleware(
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+
+# =============================================================================
+# WEBSOCKET CONNECTION MANAGER
+# =============================================================================
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except:
+                pass
+
+ws_manager = ConnectionManager()
+
+def notify(notification_type: str, data: dict):
+    message = {"type": notification_type, "data": data, "timestamp": datetime.utcnow().isoformat() + "Z"}
+    try:
+        asyncio.create_task(ws_manager.broadcast(message))
+    except:
+        pass
 
 
 # =============================================================================
@@ -248,7 +283,9 @@ def create_story(story: StoryCreate):
     try:
         repo = StoryRepository(db)
         new_story = repo.create(story.dict(exclude_none=True))
-        return new_story.to_dict()
+        result = new_story.to_dict()
+        notify("story_created", {"story_id": result.get("story_id"), "title": result.get("title"), "project_id": result.get("project_id")})
+        return result
     finally:
         db.close()
 
@@ -276,7 +313,9 @@ def update_story(story_id: str, data: StoryUpdate):
         story = repo.update(story_id, data.dict(exclude_none=True))
         if not story:
             raise HTTPException(404, "Story not found")
-        return story.to_dict()
+        result = story.to_dict()
+        notify("story_updated", {"story_id": result.get("story_id"), "title": result.get("title")})
+        return result
     finally:
         db.close()
 
@@ -303,7 +342,9 @@ def move_story(story_id: str, move: StoryMove):
         story = repo.move_story(story_id, move.status, move.order)
         if not story:
             raise HTTPException(404, "Story not found")
-        return story.to_dict()
+        result = story.to_dict()
+        notify("story_moved", {"story_id": result.get("story_id"), "title": result.get("title"), "to": move.status})
+        return result
     finally:
         db.close()
 
@@ -372,7 +413,9 @@ def complete_story_task(task_id: str, output: Optional[dict] = None):
         task = repo.complete(task_id, output)
         if not task:
             raise HTTPException(404, "Task not found")
-        return task.to_dict()
+        result = task.to_dict()
+        notify("task_completed", {"task_id": result.get("task_id"), "title": result.get("title"), "story_id": result.get("story_id")})
+        return result
     finally:
         db.close()
 
@@ -386,6 +429,91 @@ def delete_story_task(task_id: str):
         if repo.delete(task_id):
             return {"message": "Task deleted"}
         raise HTTPException(404, "Task not found")
+    finally:
+        db.close()
+
+
+@app.post("/api/story-tasks/{task_id}/generate-tests")
+def generate_tests_for_task(task_id: str):
+    """Gera testes automaticos para o codigo de uma task"""
+    db = SessionLocal()
+    try:
+        repo = StoryTaskRepository(db)
+        task = repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(404, "Task not found")
+
+        if not task.code_output:
+            raise HTTPException(400, "Task has no code output to generate tests for")
+
+        code = task.code_output
+        language = "python"
+        framework = "pytest"
+
+        if "function " in code or "const " in code or "let " in code:
+            language = "javascript"
+            framework = "jest"
+        elif "func " in code and "package " in code:
+            language = "go"
+            framework = "testing"
+        elif "public class " in code or "private void " in code:
+            language = "java"
+            framework = "junit"
+
+        safe_title = task.title.replace(" ", "_").replace("-", "_").replace(".", "_")
+        test_templates = {
+            "python": f'''import pytest
+
+# Auto-generated tests for: {task.title}
+
+class Test{safe_title}:
+    def test_basic_functionality(self):
+        assert True
+
+    def test_edge_cases(self):
+        assert True
+
+    def test_error_handling(self):
+        assert True
+''',
+            "javascript": f'''describe('{task.title}', () => {{
+    test('basic functionality', () => {{
+        expect(true).toBe(true);
+    }});
+
+    test('edge cases', () => {{
+        expect(true).toBe(true);
+    }});
+
+    test('error handling', () => {{
+        expect(true).toBe(true);
+    }});
+}});
+'''
+        }
+
+        test_code = test_templates.get(language, test_templates["python"])
+
+        result = {
+            "language": language,
+            "framework": framework,
+            "test_code": test_code,
+            "test_count": 3,
+            "coverage_estimate": "low",
+            "generated_at": datetime.utcnow().isoformat(),
+            "is_template": True
+        }
+
+        # Salvar na task
+        task.generated_tests = result
+        task.updated_at = datetime.utcnow()
+        db.commit()
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error generating tests: {str(e)}")
     finally:
         db.close()
 
@@ -860,10 +988,12 @@ def send_chat_message(msg: ChatMessageCreate):
             "actions": assistant_response.get("actions", [])
         })
 
-        return {
+        result = {
             "user_message": user_msg.to_dict(),
             "assistant_message": assistant_msg.to_dict()
         }
+        notify("chat_message", {"project_id": msg.project_id, "preview": msg.content[:50] if msg.content else ""})
+        return result
     finally:
         db.close()
 
@@ -1687,6 +1817,35 @@ def stop_terminal_process(project_id: str):
 
 
 # =============================================================================
+# WEBSOCKET ENDPOINT
+# =============================================================================
+
+@app.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket):
+    """WebSocket endpoint para notificacoes em tempo real"""
+    await ws_manager.connect(websocket)
+    try:
+        await websocket.send_json({
+            "type": "connection",
+            "data": {"status": "connected", "message": "Conectado ao servidor de notificacoes"},
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        while True:
+            try:
+                data = await websocket.receive_text()
+                if data == "ping":
+                    await websocket.send_json({"type": "pong", "timestamp": datetime.utcnow().isoformat() + "Z"})
+            except WebSocketDisconnect:
+                break
+            except:
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        ws_manager.disconnect(websocket)
+
+
+# =============================================================================
 # FRONTEND - HTML/Vue.js
 # =============================================================================
 
@@ -2167,23 +2326,84 @@ HTML_TEMPLATE = """
         .story-card.ring-2 {
             background-color: #EFF6FF !important;
         }
+
+        /* ===================== MOBILE RESPONSIVENESS - Issue #36 ===================== */
+        .mobile-menu-btn { display: none; width: 44px; height: 44px; padding: 10px; background: transparent; border: none; cursor: pointer; z-index: 100; }
+        .mobile-menu-btn span { display: block; width: 24px; height: 2px; background: white; margin: 5px 0; transition: all 0.3s ease; }
+        .mobile-menu-btn.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .mobile-menu-btn.active span:nth-child(2) { opacity: 0; }
+        .mobile-menu-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+        .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; transition: opacity 0.3s ease; }
+        .mobile-overlay.visible { opacity: 1; }
+        .mobile-bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #E5E7EB; padding: 8px 0; z-index: 50; box-shadow: 0 -4px 12px rgba(0,0,0,0.1); }
+        .mobile-bottom-nav-items { display: flex; justify-content: space-around; align-items: center; }
+        .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 16px; color: #6B7280; font-size: 10px; cursor: pointer; min-width: 64px; }
+        .mobile-nav-item.active, .mobile-nav-item:hover { color: #003B4A; }
+        .mobile-nav-item svg { width: 24px; height: 24px; }
+        .pull-refresh-indicator { display: none; position: fixed; top: 64px; left: 50%; transform: translateX(-50%); background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; font-size: 12px; color: #003B4A; }
+        .pull-refresh-indicator.visible { display: flex; align-items: center; gap: 8px; }
+
+        @media screen and (max-width: 1200px) { .sidebar-desktop { width: 200px !important; } .chat-panel-desktop { width: 280px !important; } .kanban-column-container { width: 260px !important; } .swimlane-column { width: 240px !important; } }
+
+        @media screen and (max-width: 768px) {
+            .mobile-menu-btn { display: block !important; }
+            .hide-on-mobile { display: none !important; }
+            .mobile-overlay.visible { display: block !important; }
+            .mobile-bottom-nav { display: block !important; }
+            .header-version { display: none !important; }
+            .sidebar-desktop { position: fixed !important; left: 0; top: 64px; bottom: 0; width: 280px !important; z-index: 45; transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar-desktop.open { transform: translateX(0); }
+            .chat-panel-desktop { position: fixed !important; right: 0; top: 64px; bottom: 60px; width: 100% !important; z-index: 45; transform: translateX(100%); transition: transform 0.3s ease; }
+            .chat-panel-desktop.open { transform: translateX(0); }
+            .kanban-container { display: flex !important; overflow-x: auto !important; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; gap: 12px !important; }
+            .kanban-column-container { flex: 0 0 85vw !important; width: 85vw !important; max-width: 320px !important; scroll-snap-align: center; }
+            .story-card { padding: 14px !important; }
+            .quick-actions { opacity: 1 !important; }
+            .quick-btn { width: 32px !important; height: 32px !important; }
+            .filter-bar { flex-wrap: nowrap !important; overflow-x: auto !important; }
+            .filter-bar > * { flex-shrink: 0 !important; }
+            .bulk-toolbar { left: 16px !important; right: 16px !important; transform: none !important; bottom: 70px !important; }
+            .toast-container { left: 16px !important; right: 16px !important; bottom: 80px !important; }
+            .toast { width: 100% !important; }
+            .context-menu { position: fixed !important; left: 16px !important; right: 16px !important; bottom: 80px !important; top: auto !important; }
+            .slide-panel { width: 100% !important; max-width: 100% !important; }
+            .modal-dialog input, .modal-dialog select, .modal-dialog textarea { font-size: 16px !important; min-height: 44px !important; }
+        }
+
+        @media screen and (max-width: 480px) { .kanban-column-container { flex: 0 0 92vw !important; width: 92vw !important; } .story-card h4 { font-size: 13px !important; } .mobile-nav-item { padding: 6px 12px !important; } .mobile-nav-item svg { width: 20px !important; height: 20px !important; } }
+
+        @media (hover: none) and (pointer: coarse) { .quick-actions { opacity: 1 !important; } button, a { min-height: 44px; } .story-card:hover { transform: none !important; } .story-card:active { transform: scale(0.98); } }
+
+        @media screen and (max-width: 896px) and (orientation: landscape) { .header-container { height: 48px !important; } .sidebar-desktop, .chat-panel-desktop { top: 48px !important; } .mobile-nav-item span { display: none !important; } }
+
+        @supports (padding: env(safe-area-inset-top)) { .header-container { padding-top: env(safe-area-inset-top); } .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); } }
+
+        @media print { .mobile-menu-btn, .mobile-bottom-nav, .mobile-overlay { display: none !important; } }
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="app" :class="{ 'dark': isDarkMode }">
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false"></div>
+        <!-- Pull to Refresh -->
+        <div class="pull-refresh-indicator" :class="{ 'visible': isPullingToRefresh }"><div class="spinner spinner-sm"></div><span>Atualizando...</span></div>
         <!-- HEADER -->
         <header class="belgo-blue text-white shadow-lg">
-            <div class="container mx-auto px-4">
+            <div class="container mx-auto px-4 header-container">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-4">
+                        <!-- Hamburger Menu (Mobile) -->
+                        <button class="mobile-menu-btn" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen">
+                            <span></span><span></span><span></span>
+                        </button>
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 bg-white rounded flex items-center justify-center">
                                 <span class="text-belgo-blue font-bold">FA</span>
                             </div>
-                            <span class="font-semibold text-lg">Fabrica de Agentes</span>
+                            <span class="font-semibold text-lg header-title">Fabrica de Agentes</span>
                         </div>
-                        <span class="text-gray-300">|</span>
-                        <span class="text-sm opacity-80">Dashboard Agile v6.0</span>
+                        <span class="text-gray-300 hide-on-mobile">|</span>
+                        <span class="text-sm opacity-80 header-version hide-on-mobile">Dashboard Agile v6.0</span>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -2227,6 +2447,18 @@ HTML_TEMPLATE = """
                             </svg>
                         </button>
 
+                        <!-- WebSocket Status -->
+                        <div :class="['flex items-center gap-1 px-2 py-1 rounded-full text-xs', wsStatus === 'connected' ? 'bg-green-500/20 text-green-300' : wsStatus === 'connecting' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300']" :title="wsStatusTitle">
+                            <span :class="['w-2 h-2 rounded-full', wsStatus === 'connected' ? 'bg-green-400 animate-pulse' : wsStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400']"></span>
+                            <span class="hidden sm:inline">{{ wsStatusText }}</span>
+                        </div>
+
+                        <!-- Notification Sound Toggle -->
+                        <button @click="toggleNotificationSound" class="text-white/70 hover:text-white p-1" :title="notificationSoundEnabled ? 'Desativar som' : 'Ativar som'">
+                            <span v-if="notificationSoundEnabled">🔔</span>
+                            <span v-else>🔕</span>
+                        </button>
+
                         <!-- Dark Mode Toggle -->
                         <button @click="toggleDarkMode"
                                 class="dark-mode-toggle text-white/70 hover:text-white"
@@ -2245,9 +2477,9 @@ HTML_TEMPLATE = """
             </div>
         </header>
 
-        <div class="flex" style="height: calc(100vh - 64px);">
+        <div class="flex main-content-mobile" style="height: calc(100vh - 64px);">
             <!-- SIDEBAR -->
-            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }">
                 <div class="p-4">
                     <!-- Projetos -->
                     <div class="mb-6">
@@ -2327,7 +2559,7 @@ HTML_TEMPLATE = """
             </aside>
 
             <!-- MAIN CONTENT - KANBAN -->
-            <main class="flex-1 overflow-x-auto bg-gray-50 p-4">
+            <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
                 <div v-if="!selectedProjectId" class="flex items-center justify-center h-full text-gray-500">
                     <div class="text-center max-w-md">
                         <div class="text-6xl mb-4">🚀</div>
@@ -2357,7 +2589,7 @@ HTML_TEMPLATE = """
 
                 <div v-else class="flex flex-col h-full">
                     <!-- Barra de Filtros -->
-                    <div class="flex items-center gap-3 mb-4 flex-wrap">
+                    <div class="flex items-center gap-3 mb-4 flex-wrap filter-bar">
                         <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
                             <span class="text-xs text-gray-500">Prioridade:</span>
                             <select v-model="filterPriority" class="text-sm border-0 bg-transparent focus:ring-0 cursor-pointer">
@@ -2431,10 +2663,10 @@ HTML_TEMPLATE = """
                     </div>
 
                     <!-- Kanban View Toggle: Normal vs Swimlanes -->
-                    <div v-if="!groupBy" class="flex gap-4 overflow-x-auto">
+                    <div v-if="!groupBy" class="flex gap-4 overflow-x-auto kanban-container">
                         <!-- Colunas do Kanban (Vista Normal) -->
                         <div v-for="(column, status) in filteredStoryBoard" :key="status"
-                             class="flex-shrink-0 w-80 bg-gray-100 rounded-lg">
+                             class="flex-shrink-0 w-80 bg-gray-100 rounded-lg kanban-column-container">
                         <!-- Header da Coluna -->
                         <div class="p-3 border-b border-gray-200 bg-white rounded-t-lg">
                             <div class="flex items-center justify-between">
@@ -2625,7 +2857,7 @@ HTML_TEMPLATE = """
             </main>
 
             <!-- CHAT PANEL -->
-            <aside class="w-80 bg-white border-l border-gray-200 flex flex-col">
+            <aside class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" :class="{ 'open': mobileChatOpen }">
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">🤖</span>
@@ -2828,6 +3060,28 @@ HTML_TEMPLATE = """
                                      class="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
                                     <div v-if="task.files_created?.length">
                                         <span class="font-medium">Arquivos:</span> {{ task.files_created.join(', ') }}
+                                    </div>
+                                </div>
+
+                                <!-- Generate Tests Button -->
+                                <div v-if="task.code_output" class="mt-2 pt-2 border-t border-gray-100">
+                                    <button @click.stop="generateTestsForTask(task)"
+                                            :disabled="generatingTests === task.task_id"
+                                            class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                                        <svg v-if="generatingTests !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        {{ generatingTests === task.task_id ? 'Gerando...' : 'Generate Tests' }}
+                                    </button>
+                                    <div v-if="task.generated_tests?.test_code" class="mt-1">
+                                        <button @click.stop="showGeneratedTests(task)"
+                                                class="text-xs text-purple-600 hover:text-purple-800 underline">
+                                            Ver testes gerados ({{ task.generated_tests.test_count || 0 }} testes)
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -3569,6 +3823,27 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Generated Tests -->
+        <div v-if="showGeneratedTestsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showGeneratedTestsModal = false">
+            <div class="bg-white rounded-lg w-[800px] max-h-[90vh] shadow-xl overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-purple-600 text-white rounded-t-lg">
+                    <div>
+                        <h2 class="text-lg font-semibold">Testes Gerados</h2>
+                        <p class="text-sm text-purple-200" v-if="currentGeneratedTests">{{ currentGeneratedTests.language }} / {{ currentGeneratedTests.framework }} | {{ currentGeneratedTests.test_count }} testes | Coverage: {{ currentGeneratedTests.coverage_estimate }}</p>
+                    </div>
+                    <button @click="showGeneratedTestsModal = false" class="text-white/70 hover:text-white">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                    <div class="flex gap-2 mb-4">
+                        <button @click="copyTestCode" class="px-4 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm">Copiar</button>
+                        <button @click="downloadTestCode" class="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm">Download</button>
+                        <span v-if="currentGeneratedTests?.is_template" class="ml-auto text-sm text-yellow-600 bg-yellow-100 px-2 py-1 rounded">Template</span>
+                    </div>
+                    <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono whitespace-pre-wrap"><code>{{ currentGeneratedTests?.test_code }}</code></pre>
+                </div>
+            </div>
+        </div>
+
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -3618,6 +3893,28 @@ HTML_TEMPLATE = """
                 <button @click="removeToast(toast.id)" class="toast-close">&times;</button>
             </div>
         </div>
+
+        <!-- MOBILE BOTTOM NAVIGATION -->
+        <nav class="mobile-bottom-nav">
+            <div class="mobile-bottom-nav-items">
+                <div class="mobile-nav-item" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen; mobileChatOpen = false">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <span>Menu</span>
+                </div>
+                <div class="mobile-nav-item" @click="showNewStoryModal = true">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Nova Story</span>
+                </div>
+                <div class="mobile-nav-item" @click="loadProjectData()">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>Atualizar</span>
+                </div>
+                <div class="mobile-nav-item" :class="{ 'active': mobileChatOpen }" @click="mobileChatOpen = !mobileChatOpen; mobileMenuOpen = false">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    <span>Chat</span>
+                </div>
+            </div>
+        </nav>
     </div>
 
     <script>
@@ -3653,9 +3950,23 @@ HTML_TEMPLATE = """
             const filterAssignee = ref('');
             const groupBy = ref('');
 
+            // Mobile State
+            const mobileMenuOpen = ref(false);
+            const mobileChatOpen = ref(false);
+            const isPullingToRefresh = ref(false);
+
             // Toast Notifications
             const toasts = ref([]);
             let toastId = 0;
+
+            // WebSocket Connection
+            const wsStatus = ref('disconnected');
+            const wsStatusText = ref('Offline');
+            const wsStatusTitle = ref('Desconectado do servidor');
+            const notificationSoundEnabled = ref(true);
+            let ws = null;
+            let wsReconnectTimer = null;
+            const notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
 
             // Confirm Modal
             const showConfirmModal = ref(false);
@@ -3687,6 +3998,11 @@ HTML_TEMPLATE = """
             const showGenerateDocsDropdown = ref(false);
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
+
+            // Test Generation
+            const generatingTests = ref(null);
+            const showGeneratedTestsModal = ref(false);
+            const currentGeneratedTests = ref(null);
             const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
@@ -4477,6 +4793,64 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Generate Tests for Task
+            const generateTestsForTask = async (task) => {
+                if (generatingTests.value === task.task_id) return;
+                generatingTests.value = task.task_id;
+                try {
+                    const res = await fetch(`/api/story-tasks/${task.task_id}/generate-tests`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        task.generated_tests = result;
+                        addToast('success', 'Testes gerados!', `${result.test_count} testes ${result.framework}`);
+                        currentGeneratedTests.value = result;
+                        showGeneratedTestsModal.value = true;
+                    } else {
+                        const err = await res.json();
+                        throw new Error(err.detail || 'Erro ao gerar testes');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao gerar testes', e.message);
+                } finally {
+                    generatingTests.value = null;
+                }
+            };
+
+            const showGeneratedTests = (task) => {
+                currentGeneratedTests.value = task.generated_tests;
+                showGeneratedTestsModal.value = true;
+            };
+
+            const copyTestCode = async () => {
+                if (!currentGeneratedTests.value?.test_code) return;
+                try {
+                    await navigator.clipboard.writeText(currentGeneratedTests.value.test_code);
+                    addToast('success', 'Copiado!', 'Codigo de testes copiado');
+                } catch (e) {
+                    addToast('error', 'Erro ao copiar', 'Use Ctrl+C');
+                }
+            };
+
+            const downloadTestCode = () => {
+                if (!currentGeneratedTests.value?.test_code) return;
+                const tests = currentGeneratedTests.value;
+                const ext = tests.language === 'python' ? 'py' : (tests.language === 'javascript' ? 'js' : tests.language);
+                const filename = `test_generated.${ext}`;
+                const blob = new Blob([tests.test_code], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                addToast('success', 'Download iniciado', filename);
+            };
+
             const copyDocContent = async (content) => {
                 try {
                     await navigator.clipboard.writeText(content);
@@ -4658,6 +5032,28 @@ HTML_TEMPLATE = """
                     addToast('info', 'Acao desfeita');
                 }
             };
+
+            // WebSocket Functions
+            const connectWebSocket = () => {
+                if (ws && ws.readyState === WebSocket.OPEN) return;
+                wsStatus.value = 'connecting';
+                wsStatusText.value = 'Conectando...';
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                try {
+                    ws = new WebSocket(`${protocol}//${window.location.host}/ws/notifications`);
+                    ws.onopen = () => { wsStatus.value = 'connected'; wsStatusText.value = 'Online'; wsStatusTitle.value = 'Conectado'; };
+                    ws.onmessage = (event) => { try { handleWebSocketNotification(JSON.parse(event.data)); } catch(e){} };
+                    ws.onclose = () => { wsStatus.value = 'disconnected'; wsStatusText.value = 'Offline'; if(wsReconnectTimer) clearTimeout(wsReconnectTimer); wsReconnectTimer = setTimeout(connectWebSocket, 5000); };
+                    ws.onerror = () => { wsStatus.value = 'disconnected'; };
+                } catch(e) { wsStatus.value = 'disconnected'; }
+            };
+            const handleWebSocketNotification = (n) => {
+                if (n.type === 'pong' || n.type === 'connection') return;
+                const cfg = { story_created: ['Nova Story', n.data.story_id+': '+n.data.title], story_moved: ['Story Movida', n.data.story_id], story_updated: ['Story Atualizada', n.data.story_id], task_completed: ['Task Completa', n.data.task_id], chat_message: ['Nova Mensagem', n.data.preview||''] }[n.type];
+                if (cfg) { addToast(n.type, cfg[0], cfg[1]); if(notificationSoundEnabled.value) try{notificationSound.play();}catch(e){}; if(selectedProjectId.value) loadProjectData(); }
+            };
+            const toggleNotificationSound = () => { notificationSoundEnabled.value = !notificationSoundEnabled.value; localStorage.setItem('notificationSoundEnabled', notificationSoundEnabled.value); addToast('info', notificationSoundEnabled.value ? 'Som ativado' : 'Som desativado'); };
+            const loadNotificationSoundPreference = () => { const s = localStorage.getItem('notificationSoundEnabled'); if(s!==null) notificationSoundEnabled.value = s==='true'; };
 
             // Confirm Modal Functions
             const showConfirm = (title, message, itemName, confirmText, onConfirm) => {
@@ -5018,6 +5414,10 @@ Process ${data.status}`);
                 initTerminal();
                 loadProjects();
                 loadDarkMode();
+                loadNotificationSoundPreference();
+
+                // Connect WebSocket for real-time notifications
+                connectWebSocket();
 
                 // Setup keyboard shortcuts
                 document.addEventListener('keydown', handleKeyboard);
@@ -5060,7 +5460,12 @@ Process ${data.status}`);
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
                 terminalCommand, terminalRunning, previewUrl, previewViewport,
-                executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview
+                executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
+                wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
+                generatingTests, showGeneratedTestsModal, currentGeneratedTests,
+                generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
+                // Mobile State
+                mobileMenuOpen, mobileChatOpen, isPullingToRefresh
             };
         }
     }).mount('#app');

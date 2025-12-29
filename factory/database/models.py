@@ -756,6 +756,9 @@ class StoryTask(Base):
     acceptance_criteria = Column(JSON, default=list)
     checklist = Column(JSON, default=list)  # Checklist de subtarefas
 
+    # Code Review IA
+    review_result = Column(JSON, default=dict)  # {score, summary, issues, suggestions, positives, reviewed_at}
+
     # Ordem
     task_order = Column(Integer, default=0)
 
@@ -786,6 +789,7 @@ class StoryTask(Base):
             "files_modified": self.files_modified or [],
             "code_output": self.code_output,
             "test_results": self.test_results or {},
+            "review_result": self.review_result or {},
             "acceptance_criteria": self.acceptance_criteria or [],
             "checklist": self.checklist or [],
             "task_order": self.task_order,
