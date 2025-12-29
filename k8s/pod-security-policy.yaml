@@ -1,0 +1,200 @@
+# Pod Security Standards (PSS) - Issue #93
+# Implements restricted security policy for factory pods
+# Note: PodSecurityPolicy is deprecated in K8s 1.21+ and removed in 1.25+
+# Use Pod Security Admission (PSA) labels on namespaces instead
+
+---
+# Legacy PodSecurityPolicy for older clusters (< 1.25)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: factory-restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfiles: 'runtime/default,docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfiles: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  # Core restrictions
+  privileged: false
+  allowPrivilegeEscalation: false
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+
+  # Required drop all capabilities
+  requiredDropCapabilities:
+    - ALL
+
+  # Allowed volume types (minimal)
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+
+  # User/Group restrictions
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+
+  # SELinux
+  seLinux:
+    rule: 'RunAsAny'
+
+  # Read-only filesystem
+  readOnlyRootFilesystem: true
+
+  # No host paths
+  allowedHostPaths: []
+
+  # Allowed capabilities (minimal - NET_BIND_SERVICE for ports < 1024 if needed)
+  allowedCapabilities: []
+  # allowedCapabilities:
+  #   - NET_BIND_SERVICE  # Uncomment if binding to ports < 1024
+
+---
+# ClusterRole for using the restricted PSP
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: factory-psp-restricted
+rules:
+  - apiGroups: ['policy']
+    resources: ['podsecuritypolicies']
+    verbs: ['use']
+    resourceNames:
+      - factory-restricted
+
+---
+# ClusterRoleBinding for factory namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: factory-psp-restricted-binding
+roleRef:
+  kind: ClusterRole
+  name: factory-psp-restricted
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: Group
+    name: system:serviceaccounts:factory
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# Pod Security Admission Labels for Namespace (K8s 1.23+)
+# Apply these labels to the factory namespace for PSA enforcement
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: factory
+  labels:
+    # Enforce restricted security standard
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    # Warn on violations (for staging)
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    # Audit violations
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+
+---
+# SecurityContext defaults for pods (applied via admission controller or mutating webhook)
+# This is a reference configuration for pod templates
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-context-defaults
+  namespace: factory
+data:
+  pod-security-context.yaml: |
+    # Default SecurityContext for all factory pods
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Container-level security context
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000
+      capabilities:
+        drop:
+          - ALL
+      seccompProfile:
+        type: RuntimeDefault
+
+---
+# LimitRange to enforce resource limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: factory-limits
+  namespace: factory
+spec:
+  limits:
+    - type: Container
+      default:
+        memory: "512Mi"
+        cpu: "500m"
+      defaultRequest:
+        memory: "128Mi"
+        cpu: "100m"
+      max:
+        memory: "4Gi"
+        cpu: "2"
+      min:
+        memory: "64Mi"
+        cpu: "50m"
+    - type: Pod
+      max:
+        memory: "8Gi"
+        cpu: "4"
+    - type: PersistentVolumeClaim
+      max:
+        storage: "50Gi"
+      min:
+        storage: "1Gi"
+
+---
+# ResourceQuota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: factory-quota
+  namespace: factory
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    pods: "50"
+    services: "20"
+    secrets: "50"
+    configmaps: "50"
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "2"
+    services.nodeports: "5"

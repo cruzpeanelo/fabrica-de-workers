@@ -93,6 +93,26 @@ class PaymentMethodType(str, Enum):
     BANK_TRANSFER = "bank_transfer"
 
 
+class UsageEventType(str, Enum):
+    """Tipos de Evento de Uso (Issue #118)"""
+    API_CALL = "api_call"
+    LLM_TOKENS = "llm_tokens"
+    STORAGE = "storage"
+    COMPUTE = "compute"
+    LOGIN = "login"
+    SESSION = "session"
+    WEBHOOK = "webhook"
+    FILE_UPLOAD = "file_upload"
+    FILE_DOWNLOAD = "file_download"
+
+
+class BillingPeriod(str, Enum):
+    """Periodos de Cobranca"""
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+    CUSTOM = "custom"
+
+
 # =============================================================================
 # TENANT - Organizacao/Empresa Cliente
 # =============================================================================
@@ -754,3 +774,399 @@ class PaymentMethod(Base):
         if self.method_type == PaymentMethodType.CARD.value:
             return f"<PaymentMethod {self.payment_method_id}: {self.card_brand} ****{self.card_last_four}>"
         return f"<PaymentMethod {self.payment_method_id}: {self.method_type}>"
+
+
+# =============================================================================
+# USAGE_EVENT - Eventos de Uso Detalhados (Issue #118)
+# =============================================================================
+
+class UsageEvent(Base):
+    """
+    Modelo para Eventos de Uso Granulares
+    Rastreia cada evento individual de uso (API calls, tokens, storage, compute)
+
+    Implementa Issue #118 - Sistema de Metering e Usage Tracking Completo
+    """
+    __tablename__ = "usage_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-tenant
+    tenant_id = Column(String(50), nullable=False, index=True)
+    user_id = Column(String(50), nullable=True, index=True)
+    project_id = Column(String(50), nullable=True, index=True)
+
+    # Tipo e recurso
+    event_type = Column(String(30), nullable=False, index=True)  # api_call, llm_tokens, storage, compute
+    resource = Column(String(200), nullable=True)  # /api/stories, claude-sonnet, uploads
+    action = Column(String(30), nullable=True)  # create, read, update, delete
+
+    # Quantidades
+    quantity = Column(Integer, nullable=False, default=1)
+    unit = Column(String(30), nullable=True)  # calls, tokens, bytes, seconds
+
+    # Custo calculado (em centavos)
+    cost_cents = Column(Integer, default=0)
+
+    # Metadados detalhados
+    metadata = Column(JSON, default=dict)
+    """
+    Exemplos de metadata por tipo:
+
+    api_call: {
+        "method": "POST",
+        "path": "/api/stories",
+        "status_code": 201,
+        "duration_ms": 150,
+        "user_agent": "..."
+    }
+
+    llm_tokens: {
+        "model": "claude-sonnet-4-20250514",
+        "input_tokens": 1500,
+        "output_tokens": 800,
+        "job_id": "JOB-123"
+    }
+
+    storage: {
+        "file_name": "documento.pdf",
+        "file_size": 1024000,
+        "operation": "upload"
+    }
+
+    compute: {
+        "worker_id": "WRK-01",
+        "job_id": "JOB-123",
+        "duration_seconds": 45
+    }
+    """
+
+    # IP e contexto de request
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    correlation_id = Column(String(50), nullable=True, index=True)
+
+    # Timestamp
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Indices compostos
+    __table_args__ = (
+        Index('ix_usage_event_tenant_type_time', 'tenant_id', 'event_type', 'timestamp'),
+        Index('ix_usage_event_tenant_user_time', 'tenant_id', 'user_id', 'timestamp'),
+        Index('ix_usage_event_project_time', 'project_id', 'timestamp'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "event_id": self.event_id,
+            "tenant_id": self.tenant_id,
+            "user_id": self.user_id,
+            "project_id": self.project_id,
+            "event_type": self.event_type,
+            "resource": self.resource,
+            "action": self.action,
+            "quantity": self.quantity,
+            "unit": self.unit,
+            "cost_cents": self.cost_cents,
+            "cost_formatted": f"R$ {self.cost_cents / 100:.4f}" if self.cost_cents else None,
+            "metadata": self.metadata or {},
+            "ip_address": self.ip_address,
+            "correlation_id": self.correlation_id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+        }
+
+    def __repr__(self):
+        return f"<UsageEvent {self.event_id}: {self.event_type} {self.quantity} {self.unit}>"
+
+
+# =============================================================================
+# USAGE_AGGREGATE - Agregacao de Uso por Periodo (Issue #118)
+# =============================================================================
+
+class UsageAggregate(Base):
+    """
+    Modelo para Agregacao de Uso por Periodo
+    Consolida uso diario/mensal para billing e reports
+
+    Implementa Issue #118 - Sistema de Metering
+    """
+    __tablename__ = "usage_aggregates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    aggregate_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-tenant
+    tenant_id = Column(String(50), nullable=False, index=True)
+
+    # Periodo
+    period = Column(String(20), nullable=False, index=True)  # 2025-01, 2025-01-15
+    period_type = Column(String(10), nullable=False, default="daily")  # daily, monthly
+
+    # Metricas agregadas
+    api_calls = Column(Integer, default=0)
+    llm_tokens_input = Column(Integer, default=0)
+    llm_tokens_output = Column(Integer, default=0)
+    storage_bytes = Column(Integer, default=0)  # BigInteger para storage grande
+    compute_seconds = Column(Integer, default=0)
+
+    # Contadores de sessao/usuario
+    active_users = Column(Integer, default=0)
+    active_sessions = Column(Integer, default=0)
+    logins_count = Column(Integer, default=0)
+
+    # Contadores de arquivos
+    file_uploads = Column(Integer, default=0)
+    file_downloads = Column(Integer, default=0)
+
+    # Custo total do periodo (em centavos, precisao 4 casas decimais)
+    cost_api_cents = Column(Integer, default=0)
+    cost_llm_cents = Column(Integer, default=0)
+    cost_storage_cents = Column(Integer, default=0)
+    cost_compute_cents = Column(Integer, default=0)
+    cost_total_cents = Column(Integer, default=0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Indices compostos
+    __table_args__ = (
+        Index('ix_usage_aggregate_tenant_period', 'tenant_id', 'period', 'period_type'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "aggregate_id": self.aggregate_id,
+            "tenant_id": self.tenant_id,
+            "period": self.period,
+            "period_type": self.period_type,
+            "metrics": {
+                "api_calls": self.api_calls,
+                "llm_tokens_input": self.llm_tokens_input,
+                "llm_tokens_output": self.llm_tokens_output,
+                "llm_tokens_total": self.llm_tokens_input + self.llm_tokens_output,
+                "storage_bytes": self.storage_bytes,
+                "storage_mb": round(self.storage_bytes / (1024 * 1024), 2),
+                "compute_seconds": self.compute_seconds,
+                "compute_minutes": round(self.compute_seconds / 60, 2),
+                "active_users": self.active_users,
+                "active_sessions": self.active_sessions,
+                "logins_count": self.logins_count,
+                "file_uploads": self.file_uploads,
+                "file_downloads": self.file_downloads,
+            },
+            "costs": {
+                "api_cents": self.cost_api_cents,
+                "llm_cents": self.cost_llm_cents,
+                "storage_cents": self.cost_storage_cents,
+                "compute_cents": self.cost_compute_cents,
+                "total_cents": self.cost_total_cents,
+                "total_formatted": f"R$ {self.cost_total_cents / 100:.2f}",
+            },
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def calculate_total_cost(self):
+        """Recalcula custo total baseado nas partes"""
+        self.cost_total_cents = (
+            self.cost_api_cents +
+            self.cost_llm_cents +
+            self.cost_storage_cents +
+            self.cost_compute_cents
+        )
+
+    def __repr__(self):
+        return f"<UsageAggregate {self.tenant_id}: {self.period} R${self.cost_total_cents/100:.2f}>"
+
+
+# =============================================================================
+# PRICING_TIER - Precos por Uso (Issue #121)
+# =============================================================================
+
+class PricingTier(Base):
+    """
+    Modelo para Tiers de Precificacao por Uso
+    Define precos unitarios para recursos alem do incluido no plano
+
+    Implementa Issue #121 - Sistema de Cobranca por Uso
+    """
+    __tablename__ = "pricing_tiers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    tier_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Identificacao
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Plano base associado (opcional - para tiers especificos de plano)
+    plan_id = Column(String(50), ForeignKey("plans.plan_id"), nullable=True, index=True)
+
+    # Periodo de cobranca
+    billing_period = Column(String(20), default=BillingPeriod.MONTHLY.value)
+
+    # Preco base do tier (em centavos)
+    base_price_cents = Column(Integer, default=0)
+
+    # Inclusoes no preco base
+    included_users = Column(Integer, default=1)
+    included_projects = Column(Integer, default=1)
+    included_tokens = Column(Integer, default=10000)
+    included_storage_mb = Column(Integer, default=1024)  # 1GB
+    included_api_calls = Column(Integer, default=1000)
+    included_compute_minutes = Column(Integer, default=60)
+
+    # Precos unitarios excedentes (em centavos)
+    price_per_user_cents = Column(Integer, default=0)  # Por usuario adicional
+    price_per_million_tokens_cents = Column(Integer, default=0)  # Por milhao de tokens
+    price_per_gb_storage_cents = Column(Integer, default=0)  # Por GB adicional
+    price_per_1k_api_calls_cents = Column(Integer, default=0)  # Por 1000 chamadas
+    price_per_compute_hour_cents = Column(Integer, default=0)  # Por hora de compute
+
+    # Precos por modelo LLM especifico (JSON)
+    llm_model_pricing = Column(JSON, default=dict)
+    """
+    Exemplo:
+    {
+        "claude-sonnet-4-20250514": {"input_per_1k": 3, "output_per_1k": 15},
+        "claude-opus-4-5-20251101": {"input_per_1k": 15, "output_per_1k": 75},
+        "claude-3-haiku": {"input_per_1k": 0.25, "output_per_1k": 1.25}
+    }
+    """
+
+    # Limites maximos (0 = ilimitado)
+    max_users = Column(Integer, default=0)
+    max_tokens_monthly = Column(Integer, default=0)
+    max_storage_gb = Column(Integer, default=0)
+    max_api_calls_daily = Column(Integer, default=0)
+
+    # Status
+    is_active = Column(Boolean, default=True, index=True)
+    is_default = Column(Boolean, default=False)
+
+    # Validade (para promocoes)
+    valid_from = Column(DateTime, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
+
+    # Metadados
+    extra_data = Column(JSON, default=dict)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "tier_id": self.tier_id,
+            "name": self.name,
+            "description": self.description,
+            "plan_id": self.plan_id,
+            "billing_period": self.billing_period,
+            "base_price_cents": self.base_price_cents,
+            "base_price_formatted": f"R$ {self.base_price_cents / 100:.2f}",
+            "included": {
+                "users": self.included_users,
+                "projects": self.included_projects,
+                "tokens": self.included_tokens,
+                "storage_mb": self.included_storage_mb,
+                "api_calls": self.included_api_calls,
+                "compute_minutes": self.included_compute_minutes,
+            },
+            "overage_pricing": {
+                "per_user_cents": self.price_per_user_cents,
+                "per_million_tokens_cents": self.price_per_million_tokens_cents,
+                "per_gb_storage_cents": self.price_per_gb_storage_cents,
+                "per_1k_api_calls_cents": self.price_per_1k_api_calls_cents,
+                "per_compute_hour_cents": self.price_per_compute_hour_cents,
+            },
+            "llm_model_pricing": self.llm_model_pricing or {},
+            "limits": {
+                "max_users": self.max_users,
+                "max_tokens_monthly": self.max_tokens_monthly,
+                "max_storage_gb": self.max_storage_gb,
+                "max_api_calls_daily": self.max_api_calls_daily,
+            },
+            "is_active": self.is_active,
+            "is_default": self.is_default,
+            "valid_from": self.valid_from.isoformat() if self.valid_from else None,
+            "valid_until": self.valid_until.isoformat() if self.valid_until else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def get_llm_price(self, model: str, token_type: str = "output") -> float:
+        """
+        Retorna preco por 1K tokens para um modelo especifico
+
+        Args:
+            model: Nome do modelo (ex: claude-sonnet-4-20250514)
+            token_type: "input" ou "output"
+
+        Returns:
+            Preco em centavos por 1K tokens
+        """
+        if not self.llm_model_pricing:
+            # Preco padrao
+            return self.price_per_million_tokens_cents / 1000
+
+        model_pricing = self.llm_model_pricing.get(model, {})
+        key = f"{token_type}_per_1k"
+        return model_pricing.get(key, self.price_per_million_tokens_cents / 1000)
+
+    def calculate_overage_cost(
+        self,
+        tokens_used: int = 0,
+        storage_bytes: int = 0,
+        api_calls: int = 0,
+        compute_seconds: int = 0,
+        extra_users: int = 0
+    ) -> Dict[str, int]:
+        """
+        Calcula custo de excedente
+
+        Returns:
+            Dict com custos por categoria em centavos
+        """
+        costs = {
+            "tokens": 0,
+            "storage": 0,
+            "api_calls": 0,
+            "compute": 0,
+            "users": 0,
+            "total": 0
+        }
+
+        # Tokens excedentes
+        tokens_over = max(0, tokens_used - self.included_tokens)
+        if tokens_over > 0:
+            costs["tokens"] = int(tokens_over * self.price_per_million_tokens_cents / 1_000_000)
+
+        # Storage excedente (converter bytes para MB)
+        storage_mb = storage_bytes / (1024 * 1024)
+        storage_over = max(0, storage_mb - self.included_storage_mb)
+        if storage_over > 0:
+            storage_gb = storage_over / 1024
+            costs["storage"] = int(storage_gb * self.price_per_gb_storage_cents)
+
+        # API calls excedentes
+        api_over = max(0, api_calls - self.included_api_calls)
+        if api_over > 0:
+            costs["api_calls"] = int(api_over * self.price_per_1k_api_calls_cents / 1000)
+
+        # Compute excedente (converter segundos para minutos)
+        compute_minutes = compute_seconds / 60
+        compute_over = max(0, compute_minutes - self.included_compute_minutes)
+        if compute_over > 0:
+            compute_hours = compute_over / 60
+            costs["compute"] = int(compute_hours * self.price_per_compute_hour_cents)
+
+        # Usuarios excedentes
+        if extra_users > 0:
+            costs["users"] = extra_users * self.price_per_user_cents
+
+        costs["total"] = sum(costs.values()) - costs["total"]  # Nao somar total
+        return costs
+
+    def __repr__(self):
+        return f"<PricingTier {self.tier_id}: {self.name} R${self.base_price_cents/100:.2f}/mes>"

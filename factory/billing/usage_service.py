@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Servico de Usage Metering
-==========================
+Servico de Usage Metering - Enhanced Version
+==============================================
 
 Implementa:
-- Registro de metricas de uso
-- Agregacao por periodo
+- Registro de eventos de uso granulares (Issue #118)
+- Agregacao por periodo (diario/mensal)
+- Tracking de API calls, LLM tokens, storage, compute
+- Tracking de logins e sessoes ativas
 - Alertas de limite
 - Relatorios de consumo
+- Calculo de custos por uso
 
 Autor: Fabrica de Agentes
 """
@@ -15,15 +18,16 @@ Autor: Fabrica de Agentes
 import uuid
 import logging
 from datetime import datetime, date, timedelta
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Set
 from collections import defaultdict
 
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func, extract
+from sqlalchemy import and_, func, extract, or_
 
 from .models import (
     Tenant, Plan, Subscription, Usage,
-    UsageMetric, SubscriptionStatus
+    UsageMetric, SubscriptionStatus,
+    UsageEvent, UsageAggregate, UsageEventType, PricingTier
 )
 
 # Configurar logging
@@ -666,3 +670,852 @@ class UsageService:
         # Por enquanto, apenas mantemos os dados
 
         return len(old_usages)
+
+    # =========================================================================
+    # EVENTOS DE USO DETALHADOS (Issue #118)
+    # =========================================================================
+
+    def track_event(
+        self,
+        tenant_id: str,
+        event_type: str,
+        quantity: int = 1,
+        unit: str = "calls",
+        resource: Optional[str] = None,
+        action: Optional[str] = None,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        metadata: Optional[Dict] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        correlation_id: Optional[str] = None
+    ) -> UsageEvent:
+        """
+        Registra um evento de uso granular.
+
+        Args:
+            tenant_id: ID do tenant
+            event_type: Tipo do evento (api_call, llm_tokens, storage, compute, login)
+            quantity: Quantidade do recurso
+            unit: Unidade (calls, tokens, bytes, seconds)
+            resource: Recurso acessado (ex: /api/stories, claude-sonnet)
+            action: Acao realizada (create, read, update, delete)
+            user_id: ID do usuario que realizou a acao
+            project_id: ID do projeto relacionado
+            metadata: Dados adicionais do evento
+            ip_address: IP do cliente
+            user_agent: User-Agent do cliente
+            correlation_id: ID de correlacao da request
+
+        Returns:
+            UsageEvent criado
+        """
+        # Calcular custo do evento
+        cost_cents = self._calculate_event_cost(
+            tenant_id, event_type, quantity, unit, metadata
+        )
+
+        event = UsageEvent(
+            event_id=self._generate_id("EVT"),
+            tenant_id=tenant_id,
+            user_id=user_id,
+            project_id=project_id,
+            event_type=event_type,
+            resource=resource,
+            action=action,
+            quantity=quantity,
+            unit=unit,
+            cost_cents=cost_cents,
+            metadata=metadata or {},
+            ip_address=ip_address,
+            user_agent=user_agent[:500] if user_agent else None,
+            correlation_id=correlation_id,
+            timestamp=datetime.utcnow()
+        )
+
+        try:
+            self.db.add(event)
+            self.db.flush()
+
+            # Atualizar agregacao diaria
+            self._update_daily_aggregate(event)
+
+            # Tambem registrar no sistema legado de Usage para compatibilidade
+            self._track_legacy_usage(event)
+
+            self.db.commit()
+            logger.debug(f"Evento registrado: {event.event_id} - {event_type}")
+            return event
+
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Erro ao registrar evento: {e}")
+            raise
+
+    def track_api_call(
+        self,
+        tenant_id: str,
+        method: str,
+        path: str,
+        status_code: int,
+        duration_ms: float,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        correlation_id: Optional[str] = None
+    ) -> UsageEvent:
+        """
+        Registra uma chamada de API.
+
+        Args:
+            tenant_id: ID do tenant
+            method: Metodo HTTP (GET, POST, etc)
+            path: Path da requisicao
+            status_code: Codigo de status da resposta
+            duration_ms: Duracao em milissegundos
+            user_id: ID do usuario
+            project_id: ID do projeto
+            ip_address: IP do cliente
+            user_agent: User-Agent do cliente
+            correlation_id: ID de correlacao
+
+        Returns:
+            UsageEvent criado
+        """
+        metadata = {
+            "method": method,
+            "path": path,
+            "status_code": status_code,
+            "duration_ms": round(duration_ms, 2),
+        }
+
+        return self.track_event(
+            tenant_id=tenant_id,
+            event_type=UsageEventType.API_CALL.value,
+            quantity=1,
+            unit="calls",
+            resource=path,
+            action=method.lower(),
+            user_id=user_id,
+            project_id=project_id,
+            metadata=metadata,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            correlation_id=correlation_id
+        )
+
+    def track_llm_tokens(
+        self,
+        tenant_id: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        job_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        correlation_id: Optional[str] = None
+    ) -> Tuple[UsageEvent, bool]:
+        """
+        Registra uso de tokens LLM com calculo de custo.
+
+        Args:
+            tenant_id: ID do tenant
+            model: Nome do modelo (ex: claude-sonnet-4-20250514)
+            input_tokens: Tokens de entrada
+            output_tokens: Tokens de saida
+            job_id: ID do job (opcional)
+            project_id: ID do projeto
+            user_id: ID do usuario
+            correlation_id: ID de correlacao
+
+        Returns:
+            Tupla (UsageEvent, is_over_limit)
+        """
+        total_tokens = input_tokens + output_tokens
+
+        metadata = {
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "job_id": job_id,
+        }
+
+        event = self.track_event(
+            tenant_id=tenant_id,
+            event_type=UsageEventType.LLM_TOKENS.value,
+            quantity=total_tokens,
+            unit="tokens",
+            resource=model,
+            action="generate",
+            user_id=user_id,
+            project_id=project_id,
+            metadata=metadata,
+            correlation_id=correlation_id
+        )
+
+        # Verificar limite
+        is_over_limit = self._check_llm_limit(tenant_id)
+
+        if is_over_limit:
+            logger.warning(f"Tenant {tenant_id} excedeu limite de tokens LLM")
+
+        return event, is_over_limit
+
+    def track_storage(
+        self,
+        tenant_id: str,
+        operation: str,
+        file_name: str,
+        file_size: int,
+        file_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        correlation_id: Optional[str] = None
+    ) -> UsageEvent:
+        """
+        Registra operacao de storage (upload/download).
+
+        Args:
+            tenant_id: ID do tenant
+            operation: Tipo de operacao (upload, download, delete)
+            file_name: Nome do arquivo
+            file_size: Tamanho em bytes
+            file_type: Tipo MIME do arquivo
+            user_id: ID do usuario
+            project_id: ID do projeto
+            correlation_id: ID de correlacao
+
+        Returns:
+            UsageEvent criado
+        """
+        event_type = (
+            UsageEventType.FILE_UPLOAD.value if operation == "upload"
+            else UsageEventType.FILE_DOWNLOAD.value if operation == "download"
+            else UsageEventType.STORAGE.value
+        )
+
+        metadata = {
+            "file_name": file_name,
+            "file_size": file_size,
+            "file_type": file_type,
+            "operation": operation,
+        }
+
+        return self.track_event(
+            tenant_id=tenant_id,
+            event_type=event_type,
+            quantity=file_size,
+            unit="bytes",
+            resource="storage",
+            action=operation,
+            user_id=user_id,
+            project_id=project_id,
+            metadata=metadata,
+            correlation_id=correlation_id
+        )
+
+    def track_compute(
+        self,
+        tenant_id: str,
+        worker_id: str,
+        job_id: str,
+        duration_seconds: int,
+        project_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        correlation_id: Optional[str] = None
+    ) -> UsageEvent:
+        """
+        Registra tempo de compute (worker).
+
+        Args:
+            tenant_id: ID do tenant
+            worker_id: ID do worker
+            job_id: ID do job
+            duration_seconds: Duracao em segundos
+            project_id: ID do projeto
+            user_id: ID do usuario
+            correlation_id: ID de correlacao
+
+        Returns:
+            UsageEvent criado
+        """
+        metadata = {
+            "worker_id": worker_id,
+            "job_id": job_id,
+            "duration_seconds": duration_seconds,
+        }
+
+        return self.track_event(
+            tenant_id=tenant_id,
+            event_type=UsageEventType.COMPUTE.value,
+            quantity=duration_seconds,
+            unit="seconds",
+            resource=f"worker/{worker_id}",
+            action="execute",
+            user_id=user_id,
+            project_id=project_id,
+            metadata=metadata,
+            correlation_id=correlation_id
+        )
+
+    def track_login(
+        self,
+        tenant_id: str,
+        user_id: str,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        success: bool = True
+    ) -> UsageEvent:
+        """
+        Registra evento de login.
+
+        Args:
+            tenant_id: ID do tenant
+            user_id: ID do usuario
+            ip_address: IP do cliente
+            user_agent: User-Agent do cliente
+            success: Se login foi bem sucedido
+
+        Returns:
+            UsageEvent criado
+        """
+        metadata = {
+            "success": success,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        return self.track_event(
+            tenant_id=tenant_id,
+            event_type=UsageEventType.LOGIN.value,
+            quantity=1,
+            unit="logins",
+            resource="auth",
+            action="login_success" if success else "login_failed",
+            user_id=user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            metadata=metadata
+        )
+
+    def track_session_active(
+        self,
+        tenant_id: str,
+        user_id: str,
+        session_id: str
+    ) -> UsageEvent:
+        """
+        Registra sessao ativa.
+
+        Args:
+            tenant_id: ID do tenant
+            user_id: ID do usuario
+            session_id: ID da sessao
+
+        Returns:
+            UsageEvent criado
+        """
+        metadata = {
+            "session_id": session_id,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        return self.track_event(
+            tenant_id=tenant_id,
+            event_type=UsageEventType.SESSION.value,
+            quantity=1,
+            unit="sessions",
+            resource="session",
+            action="active",
+            user_id=user_id,
+            metadata=metadata
+        )
+
+    # =========================================================================
+    # AGREGACAO DE USO
+    # =========================================================================
+
+    def _update_daily_aggregate(self, event: UsageEvent) -> UsageAggregate:
+        """
+        Atualiza agregacao diaria baseado em evento.
+
+        Args:
+            event: Evento de uso
+
+        Returns:
+            UsageAggregate atualizado
+        """
+        today = date.today().isoformat()
+
+        # Buscar ou criar agregacao
+        aggregate = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == event.tenant_id,
+                UsageAggregate.period == today,
+                UsageAggregate.period_type == "daily"
+            )
+        ).first()
+
+        if not aggregate:
+            aggregate = UsageAggregate(
+                aggregate_id=self._generate_id("AGG"),
+                tenant_id=event.tenant_id,
+                period=today,
+                period_type="daily"
+            )
+            self.db.add(aggregate)
+
+        # Atualizar metricas baseado no tipo de evento
+        if event.event_type == UsageEventType.API_CALL.value:
+            aggregate.api_calls += 1
+            aggregate.cost_api_cents += event.cost_cents
+
+        elif event.event_type == UsageEventType.LLM_TOKENS.value:
+            metadata = event.metadata or {}
+            aggregate.llm_tokens_input += metadata.get("input_tokens", 0)
+            aggregate.llm_tokens_output += metadata.get("output_tokens", 0)
+            aggregate.cost_llm_cents += event.cost_cents
+
+        elif event.event_type in [UsageEventType.STORAGE.value, UsageEventType.FILE_UPLOAD.value]:
+            aggregate.storage_bytes += event.quantity
+            aggregate.file_uploads += 1
+            aggregate.cost_storage_cents += event.cost_cents
+
+        elif event.event_type == UsageEventType.FILE_DOWNLOAD.value:
+            aggregate.file_downloads += 1
+
+        elif event.event_type == UsageEventType.COMPUTE.value:
+            aggregate.compute_seconds += event.quantity
+            aggregate.cost_compute_cents += event.cost_cents
+
+        elif event.event_type == UsageEventType.LOGIN.value:
+            aggregate.logins_count += 1
+
+        elif event.event_type == UsageEventType.SESSION.value:
+            aggregate.active_sessions += 1
+
+        # Recalcular custo total
+        aggregate.calculate_total_cost()
+
+        return aggregate
+
+    def aggregate_monthly_usage(self, tenant_id: str, month: str) -> UsageAggregate:
+        """
+        Agrega uso mensal a partir de agregacoes diarias.
+
+        Args:
+            tenant_id: ID do tenant
+            month: Mes no formato YYYY-MM
+
+        Returns:
+            UsageAggregate mensal
+        """
+        # Buscar ou criar agregacao mensal
+        monthly = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == tenant_id,
+                UsageAggregate.period == month,
+                UsageAggregate.period_type == "monthly"
+            )
+        ).first()
+
+        if not monthly:
+            monthly = UsageAggregate(
+                aggregate_id=self._generate_id("AGG"),
+                tenant_id=tenant_id,
+                period=month,
+                period_type="monthly"
+            )
+            self.db.add(monthly)
+
+        # Somar todas as agregacoes diarias do mes
+        daily_aggregates = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == tenant_id,
+                UsageAggregate.period.like(f"{month}-%"),
+                UsageAggregate.period_type == "daily"
+            )
+        ).all()
+
+        # Resetar e somar
+        monthly.api_calls = sum(d.api_calls for d in daily_aggregates)
+        monthly.llm_tokens_input = sum(d.llm_tokens_input for d in daily_aggregates)
+        monthly.llm_tokens_output = sum(d.llm_tokens_output for d in daily_aggregates)
+        monthly.storage_bytes = max(d.storage_bytes for d in daily_aggregates) if daily_aggregates else 0  # Storage e cumulativo
+        monthly.compute_seconds = sum(d.compute_seconds for d in daily_aggregates)
+        monthly.logins_count = sum(d.logins_count for d in daily_aggregates)
+        monthly.file_uploads = sum(d.file_uploads for d in daily_aggregates)
+        monthly.file_downloads = sum(d.file_downloads for d in daily_aggregates)
+
+        # Custos
+        monthly.cost_api_cents = sum(d.cost_api_cents for d in daily_aggregates)
+        monthly.cost_llm_cents = sum(d.cost_llm_cents for d in daily_aggregates)
+        monthly.cost_storage_cents = sum(d.cost_storage_cents for d in daily_aggregates)
+        monthly.cost_compute_cents = sum(d.cost_compute_cents for d in daily_aggregates)
+        monthly.calculate_total_cost()
+
+        # Contar usuarios ativos unicos
+        unique_users = self.db.query(func.count(func.distinct(UsageEvent.user_id))).filter(
+            and_(
+                UsageEvent.tenant_id == tenant_id,
+                UsageEvent.timestamp >= datetime.strptime(f"{month}-01", "%Y-%m-%d"),
+                UsageEvent.user_id.isnot(None)
+            )
+        ).scalar() or 0
+        monthly.active_users = unique_users
+
+        self.db.commit()
+        return monthly
+
+    def get_current_usage(
+        self,
+        tenant_id: str,
+        period_type: str = "monthly"
+    ) -> Dict[str, Any]:
+        """
+        Obtem uso atual do periodo.
+
+        Args:
+            tenant_id: ID do tenant
+            period_type: daily ou monthly
+
+        Returns:
+            Dict com metricas de uso
+        """
+        if period_type == "monthly":
+            period = date.today().strftime("%Y-%m")
+        else:
+            period = date.today().isoformat()
+
+        aggregate = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == tenant_id,
+                UsageAggregate.period == period,
+                UsageAggregate.period_type == period_type
+            )
+        ).first()
+
+        if aggregate:
+            return aggregate.to_dict()
+
+        return {
+            "tenant_id": tenant_id,
+            "period": period,
+            "period_type": period_type,
+            "metrics": {
+                "api_calls": 0,
+                "llm_tokens_input": 0,
+                "llm_tokens_output": 0,
+                "llm_tokens_total": 0,
+                "storage_bytes": 0,
+                "compute_seconds": 0,
+                "active_users": 0,
+                "logins_count": 0,
+            },
+            "costs": {
+                "total_cents": 0,
+                "total_formatted": "R$ 0.00"
+            }
+        }
+
+    # =========================================================================
+    # CALCULO DE CUSTOS
+    # =========================================================================
+
+    def _calculate_event_cost(
+        self,
+        tenant_id: str,
+        event_type: str,
+        quantity: int,
+        unit: str,
+        metadata: Optional[Dict] = None
+    ) -> int:
+        """
+        Calcula custo de um evento em centavos.
+
+        Args:
+            tenant_id: ID do tenant
+            event_type: Tipo do evento
+            quantity: Quantidade
+            unit: Unidade
+            metadata: Metadados adicionais
+
+        Returns:
+            Custo em centavos
+        """
+        # Buscar pricing tier do tenant
+        pricing = self._get_tenant_pricing(tenant_id)
+
+        if not pricing:
+            return 0
+
+        cost = 0
+
+        if event_type == UsageEventType.API_CALL.value:
+            # Custo por chamada de API
+            cost = int(pricing.price_per_1k_api_calls_cents / 1000)
+
+        elif event_type == UsageEventType.LLM_TOKENS.value:
+            # Custo por token LLM
+            model = (metadata or {}).get("model", "")
+            input_tokens = (metadata or {}).get("input_tokens", 0)
+            output_tokens = (metadata or {}).get("output_tokens", 0)
+
+            # Precos diferenciados por modelo
+            input_price = pricing.get_llm_price(model, "input")
+            output_price = pricing.get_llm_price(model, "output")
+
+            cost = int(
+                (input_tokens * input_price / 1000) +
+                (output_tokens * output_price / 1000)
+            )
+
+        elif event_type in [UsageEventType.STORAGE.value, UsageEventType.FILE_UPLOAD.value]:
+            # Custo por storage (por GB)
+            gb = quantity / (1024 * 1024 * 1024)
+            cost = int(gb * pricing.price_per_gb_storage_cents)
+
+        elif event_type == UsageEventType.COMPUTE.value:
+            # Custo por compute (por hora)
+            hours = quantity / 3600
+            cost = int(hours * pricing.price_per_compute_hour_cents)
+
+        return cost
+
+    def _get_tenant_pricing(self, tenant_id: str) -> Optional[PricingTier]:
+        """
+        Obtem pricing tier do tenant.
+
+        Args:
+            tenant_id: ID do tenant
+
+        Returns:
+            PricingTier ou None
+        """
+        # Buscar subscription ativa do tenant
+        subscription = self.db.query(Subscription).filter(
+            and_(
+                Subscription.tenant_id == tenant_id,
+                Subscription.status.in_([
+                    SubscriptionStatus.ACTIVE.value,
+                    SubscriptionStatus.TRIALING.value
+                ])
+            )
+        ).first()
+
+        if not subscription:
+            # Usar pricing padrao
+            return self.db.query(PricingTier).filter(
+                PricingTier.is_default == True
+            ).first()
+
+        # Buscar pricing especifico do plano
+        pricing = self.db.query(PricingTier).filter(
+            and_(
+                PricingTier.plan_id == subscription.plan_id,
+                PricingTier.is_active == True
+            )
+        ).first()
+
+        if pricing:
+            return pricing
+
+        # Fallback para pricing padrao
+        return self.db.query(PricingTier).filter(
+            PricingTier.is_default == True
+        ).first()
+
+    def _check_llm_limit(self, tenant_id: str) -> bool:
+        """
+        Verifica se tenant excedeu limite de tokens LLM.
+
+        Args:
+            tenant_id: ID do tenant
+
+        Returns:
+            True se excedeu limite
+        """
+        month = date.today().strftime("%Y-%m")
+
+        aggregate = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == tenant_id,
+                UsageAggregate.period == month,
+                UsageAggregate.period_type == "monthly"
+            )
+        ).first()
+
+        if not aggregate:
+            return False
+
+        total_tokens = aggregate.llm_tokens_input + aggregate.llm_tokens_output
+
+        # Buscar limite do plano
+        limit = self._get_metric_limit(tenant_id, "max_tokens_monthly")
+
+        if limit is None or limit == 0:
+            return False  # Sem limite
+
+        return total_tokens >= limit
+
+    def _track_legacy_usage(self, event: UsageEvent) -> None:
+        """
+        Mantém compatibilidade com sistema legado de Usage.
+
+        Args:
+            event: Evento de uso
+        """
+        # Mapear tipo de evento para metrica legada
+        metric_map = {
+            UsageEventType.API_CALL.value: (UsageMetric.API_REQUESTS.value, "daily"),
+            UsageEventType.LLM_TOKENS.value: (UsageMetric.LLM_TOKENS.value, "monthly"),
+            UsageEventType.STORAGE.value: (UsageMetric.STORAGE_BYTES.value, "monthly"),
+            UsageEventType.FILE_UPLOAD.value: (UsageMetric.STORAGE_BYTES.value, "monthly"),
+            UsageEventType.LOGIN.value: (UsageMetric.USERS_ACTIVE.value, "daily"),
+        }
+
+        mapping = metric_map.get(event.event_type)
+        if not mapping:
+            return
+
+        metric, period_type = mapping
+
+        # Usar metodo existente
+        self.track_usage(
+            tenant_id=event.tenant_id,
+            metric=metric,
+            value=event.quantity,
+            context=event.metadata,
+            period_type=period_type
+        )
+
+    # =========================================================================
+    # QUERIES DE EVENTOS
+    # =========================================================================
+
+    def get_events(
+        self,
+        tenant_id: str,
+        event_type: Optional[str] = None,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[UsageEvent]:
+        """
+        Lista eventos de uso com filtros.
+
+        Args:
+            tenant_id: ID do tenant
+            event_type: Filtrar por tipo
+            user_id: Filtrar por usuario
+            project_id: Filtrar por projeto
+            start_date: Data inicial
+            end_date: Data final
+            limit: Limite de resultados
+            offset: Offset para paginacao
+
+        Returns:
+            Lista de UsageEvents
+        """
+        query = self.db.query(UsageEvent).filter(
+            UsageEvent.tenant_id == tenant_id
+        )
+
+        if event_type:
+            query = query.filter(UsageEvent.event_type == event_type)
+
+        if user_id:
+            query = query.filter(UsageEvent.user_id == user_id)
+
+        if project_id:
+            query = query.filter(UsageEvent.project_id == project_id)
+
+        if start_date:
+            query = query.filter(UsageEvent.timestamp >= start_date)
+
+        if end_date:
+            query = query.filter(UsageEvent.timestamp <= end_date)
+
+        return query.order_by(UsageEvent.timestamp.desc()).offset(offset).limit(limit).all()
+
+    def get_usage_breakdown(
+        self,
+        tenant_id: str,
+        month: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Obtem breakdown detalhado de uso e custos.
+
+        Args:
+            tenant_id: ID do tenant
+            month: Mes no formato YYYY-MM (atual se None)
+
+        Returns:
+            Dict com breakdown de uso
+        """
+        if not month:
+            month = date.today().strftime("%Y-%m")
+
+        # Agregar uso mensal
+        self.aggregate_monthly_usage(tenant_id, month)
+
+        # Buscar agregacao
+        aggregate = self.db.query(UsageAggregate).filter(
+            and_(
+                UsageAggregate.tenant_id == tenant_id,
+                UsageAggregate.period == month,
+                UsageAggregate.period_type == "monthly"
+            )
+        ).first()
+
+        if not aggregate:
+            return {"tenant_id": tenant_id, "month": month, "breakdown": {}}
+
+        # Buscar pricing para limites
+        pricing = self._get_tenant_pricing(tenant_id)
+
+        breakdown = {
+            "tenant_id": tenant_id,
+            "month": month,
+            "summary": aggregate.to_dict(),
+            "breakdown": {
+                "api_calls": {
+                    "used": aggregate.api_calls,
+                    "included": pricing.included_api_calls if pricing else 0,
+                    "overage": max(0, aggregate.api_calls - (pricing.included_api_calls if pricing else 0)),
+                    "cost_cents": aggregate.cost_api_cents,
+                },
+                "llm_tokens": {
+                    "input": aggregate.llm_tokens_input,
+                    "output": aggregate.llm_tokens_output,
+                    "total": aggregate.llm_tokens_input + aggregate.llm_tokens_output,
+                    "included": pricing.included_tokens if pricing else 0,
+                    "cost_cents": aggregate.cost_llm_cents,
+                },
+                "storage": {
+                    "used_bytes": aggregate.storage_bytes,
+                    "used_mb": round(aggregate.storage_bytes / (1024 * 1024), 2),
+                    "included_mb": pricing.included_storage_mb if pricing else 0,
+                    "cost_cents": aggregate.cost_storage_cents,
+                },
+                "compute": {
+                    "used_seconds": aggregate.compute_seconds,
+                    "used_minutes": round(aggregate.compute_seconds / 60, 2),
+                    "included_minutes": pricing.included_compute_minutes if pricing else 0,
+                    "cost_cents": aggregate.cost_compute_cents,
+                },
+                "activity": {
+                    "active_users": aggregate.active_users,
+                    "logins_count": aggregate.logins_count,
+                    "file_uploads": aggregate.file_uploads,
+                    "file_downloads": aggregate.file_downloads,
+                },
+            },
+            "total_cost_cents": aggregate.cost_total_cents,
+            "total_cost_formatted": f"R$ {aggregate.cost_total_cents / 100:.2f}",
+        }
+
+        return breakdown

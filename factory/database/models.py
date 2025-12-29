@@ -482,6 +482,9 @@ class Task(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(String(50), unique=True, nullable=False, index=True)
 
+    # Multi-Tenant: Associacao com Tenant (Issue #120)
+    tenant_id = Column(String(50), nullable=True, index=True)
+
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
     project = relationship("Project", back_populates="tasks")
@@ -515,6 +518,7 @@ class Task(Base):
     def to_dict(self):
         return {
             "task_id": self.task_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "title": self.title,
             "description": self.description,
@@ -576,6 +580,9 @@ class Story(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     story_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Associacao com Tenant (Issue #120)
+    tenant_id = Column(String(50), nullable=True, index=True)
 
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
@@ -647,6 +654,7 @@ class Story(Base):
     def to_dict(self):
         return {
             "story_id": self.story_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "title": self.title,
             "description": self.description,

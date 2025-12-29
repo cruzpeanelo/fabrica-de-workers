@@ -916,6 +916,367 @@ def require_role(allowed_roles: List[str]):
 
 
 # =============================================================================
+# GLOBAL TENANT MIDDLEWARE (Issue #105)
+# =============================================================================
+
+class GlobalTenantMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware Global Obrigatorio para Multi-Tenancy (Issue #105)
+
+    Este middleware:
+    1. Extrai tenant_id do token JWT
+    2. Valida que usuario pertence ao tenant
+    3. Seta tenant e user no contexto de request
+    4. Aplica-se automaticamente em TODAS as rotas (exceto publicas)
+
+    Uso:
+        from factory.core.multi_tenant import GlobalTenantMiddleware
+
+        app.add_middleware(GlobalTenantMiddleware)
+    """
+
+    # Paths que nao requerem autenticacao/tenant
+    EXEMPT_PATHS = [
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        "/api/public",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/webhooks",
+        "/static",
+        "/favicon.ico"
+    ]
+
+    def __init__(self, app, jwt_secret: str = None, jwt_algorithm: str = "HS256"):
+        super().__init__(app)
+        self.jwt_secret = jwt_secret or os.getenv("JWT_SECRET_KEY", "default-secret-key")
+        self.jwt_algorithm = jwt_algorithm
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        """Processa request extraindo tenant do JWT e validando acesso"""
+
+        # Limpar contexto anterior
+        clear_context()
+
+        # Verificar paths publicos
+        path = request.url.path
+        if self._is_exempt_path(path):
+            return await call_next(request)
+
+        # Extrair e validar token JWT
+        auth_result = await self._extract_auth_from_jwt(request)
+
+        if auth_result:
+            tenant_data, user_data = auth_result
+
+            # Validar que usuario pertence ao tenant
+            if tenant_data and user_data:
+                is_member = await self._validate_tenant_membership(
+                    tenant_data.get("tenant_id"),
+                    user_data.get("user_id")
+                )
+
+                if not is_member:
+                    return Response(
+                        content='{"detail": "Usuario nao pertence ao tenant especificado", "code": "NOT_MEMBER"}',
+                        status_code=403,
+                        media_type="application/json",
+                        headers={"X-Error-Code": "NOT_MEMBER"}
+                    )
+
+                # Verificar se tenant esta ativo
+                if tenant_data.get("status") not in ["active", "trial"]:
+                    return Response(
+                        content=f'{{"detail": "Tenant {tenant_data.get("status", "inativo")}", "code": "TENANT_INACTIVE"}}',
+                        status_code=403,
+                        media_type="application/json",
+                        headers={"X-Error-Code": "TENANT_INACTIVE"}
+                    )
+
+                # Setar contexto
+                set_tenant_context(tenant_data)
+                set_user_context(user_data)
+
+                # Carregar branding se disponivel
+                if tenant_data.get("branding"):
+                    set_branding_context(tenant_data["branding"])
+
+        # Processar request
+        try:
+            response = await call_next(request)
+
+            # Adicionar headers de debug
+            tenant_id = get_current_tenant_id()
+            if tenant_id:
+                response.headers["X-Tenant-ID"] = tenant_id
+
+            return response
+        finally:
+            # Limpar contexto apos request
+            clear_context()
+
+    def _is_exempt_path(self, path: str) -> bool:
+        """Verifica se path esta isento de validacao"""
+        for exempt in self.EXEMPT_PATHS:
+            if path == exempt or path.startswith(exempt):
+                return True
+        return False
+
+    async def _extract_auth_from_jwt(self, request: Request) -> Optional[tuple]:
+        """
+        Extrai tenant_id e user_id do token JWT
+
+        Returns:
+            Tupla (tenant_data, user_data) ou None se invalido
+        """
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            # Tentar header X-Tenant-ID como fallback
+            tenant_id = request.headers.get("X-Tenant-ID")
+            if tenant_id:
+                tenant_data = await self._resolve_tenant(tenant_id)
+                return (tenant_data, None) if tenant_data else None
+            return None
+
+        token = auth_header.replace("Bearer ", "")
+
+        try:
+            # Decodificar JWT
+            from jose import jwt, JWTError
+
+            payload = jwt.decode(
+                token,
+                self.jwt_secret,
+                algorithms=[self.jwt_algorithm]
+            )
+
+            # Extrair dados do usuario
+            username = payload.get("sub")
+            user_id = payload.get("user_id")
+            role = payload.get("role")
+            tenant_id = payload.get("tenant_id")
+
+            # Montar user_data
+            user_data = {
+                "username": username,
+                "user_id": user_id,
+                "role": role,
+                "tenant_id": tenant_id
+            }
+
+            # Resolver tenant
+            tenant_data = None
+            if tenant_id:
+                tenant_data = await self._resolve_tenant(tenant_id)
+            else:
+                # Tentar header X-Tenant-ID como fallback
+                header_tenant_id = request.headers.get("X-Tenant-ID")
+                if header_tenant_id:
+                    tenant_data = await self._resolve_tenant(header_tenant_id)
+
+            return (tenant_data, user_data)
+
+        except Exception as e:
+            print(f"[GlobalTenantMiddleware] Erro ao decodificar JWT: {e}")
+            return None
+
+    async def _resolve_tenant(self, tenant_id: str) -> Optional[Dict[str, Any]]:
+        """Resolve dados completos do tenant"""
+        try:
+            from factory.database.connection import SessionLocal
+            from factory.database.tenant_models import Tenant, TenantSettings, BrandingConfig
+
+            db = SessionLocal()
+            try:
+                tenant = db.query(Tenant).filter(
+                    (Tenant.tenant_id == tenant_id) | (Tenant.slug == tenant_id)
+                ).first()
+
+                if not tenant:
+                    return None
+
+                tenant_data = tenant.to_dict()
+
+                if tenant.settings:
+                    tenant_data["settings"] = tenant.settings.to_dict()
+
+                if tenant.branding:
+                    tenant_data["branding"] = tenant.branding.to_dict()
+
+                return tenant_data
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            print(f"[GlobalTenantMiddleware] Erro ao resolver tenant: {e}")
+            # Em desenvolvimento, retornar tenant mock
+            if os.getenv("ENV", "development") == "development":
+                return self._mock_tenant(tenant_id)
+            return None
+
+    async def _validate_tenant_membership(self, tenant_id: str, user_id: int) -> bool:
+        """Valida que usuario pertence ao tenant (Issue #105)"""
+        if not tenant_id or not user_id:
+            return False
+
+        try:
+            from factory.database.connection import SessionLocal
+            from factory.database.tenant_models import TenantMember, MemberStatus
+
+            db = SessionLocal()
+            try:
+                member = db.query(TenantMember).filter(
+                    TenantMember.tenant_id == tenant_id,
+                    TenantMember.user_id == user_id,
+                    TenantMember.status == MemberStatus.ACTIVE.value,
+                    TenantMember.active == True
+                ).first()
+
+                return member is not None
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            print(f"[GlobalTenantMiddleware] Erro ao validar membership: {e}")
+            # Em desenvolvimento, assumir que e membro
+            if os.getenv("ENV", "development") == "development":
+                return True
+            return False
+
+    def _mock_tenant(self, tenant_id: str) -> Dict[str, Any]:
+        """Tenant mock para desenvolvimento"""
+        return {
+            "tenant_id": tenant_id,
+            "name": f"Tenant {tenant_id}",
+            "slug": tenant_id.lower(),
+            "plan": "professional",
+            "status": "active",
+            "features": {
+                "stories": True,
+                "kanban": True,
+                "workers": True,
+                "chat_assistant": True,
+                "custom_branding": True,
+                "sso": False,
+                "api_access": True
+            }
+        }
+
+
+# =============================================================================
+# TENANT CONTEXT DEPENDENCY (FastAPI)
+# =============================================================================
+
+async def get_tenant_context(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    FastAPI Dependency para obter contexto do tenant
+
+    Uso:
+        @router.get("/projects")
+        async def list_projects(tenant: dict = Depends(get_tenant_context)):
+            tenant_id = tenant["tenant_id"]
+            ...
+    """
+    tenant = get_current_tenant()
+    if not tenant:
+        raise HTTPException(
+            status_code=401,
+            detail="Tenant nao identificado. Envie Authorization header com JWT valido."
+        )
+    return tenant
+
+
+async def get_user_context(request: Request) -> Optional[Dict[str, Any]]:
+    """
+    FastAPI Dependency para obter contexto do usuario
+
+    Uso:
+        @router.get("/me")
+        async def get_me(user: dict = Depends(get_user_context)):
+            ...
+    """
+    user = get_current_user()
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Usuario nao autenticado"
+        )
+    return user
+
+
+# =============================================================================
+# TENANT ISOLATION HELPER
+# =============================================================================
+
+class TenantIsolation:
+    """
+    Helper para garantir isolamento de dados entre tenants
+
+    Uso:
+        isolation = TenantIsolation(db_session)
+
+        # Criar entidade com tenant_id automatico
+        project = isolation.create_with_tenant(Project, name="Meu Projeto")
+
+        # Buscar com filtro de tenant
+        projects = isolation.query(Project).all()
+
+        # Validar acesso a recurso
+        isolation.validate_access(some_project)
+    """
+
+    def __init__(self, db_session):
+        self.db = db_session
+
+    def get_tenant_id(self) -> str:
+        """Obtem tenant_id do contexto ou levanta erro"""
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Tenant nao identificado no contexto"
+            )
+        return tenant_id
+
+    def query(self, model_class):
+        """Retorna query filtrada por tenant"""
+        tenant_id = self.get_tenant_id()
+
+        query = self.db.query(model_class)
+        if hasattr(model_class, 'tenant_id'):
+            query = query.filter(model_class.tenant_id == tenant_id)
+
+        return query
+
+    def create_with_tenant(self, model_class, **kwargs):
+        """Cria entidade com tenant_id automatico"""
+        tenant_id = self.get_tenant_id()
+
+        if hasattr(model_class, 'tenant_id') and 'tenant_id' not in kwargs:
+            kwargs['tenant_id'] = tenant_id
+
+        entity = model_class(**kwargs)
+        self.db.add(entity)
+        return entity
+
+    def validate_access(self, entity) -> bool:
+        """Valida se entidade pertence ao tenant atual"""
+        tenant_id = self.get_tenant_id()
+
+        if hasattr(entity, 'tenant_id'):
+            if entity.tenant_id != tenant_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Acesso negado a este recurso"
+                )
+        return True
+
+
+# =============================================================================
 # EXPORTS
 # =============================================================================
 
@@ -932,11 +1293,16 @@ __all__ = [
     # Classes
     "TenantInfo",
     "TenantMiddleware",
+    "GlobalTenantMiddleware",
     "TenantService",
     "BrandingService",
     "TenantQueryFilter",
+    "TenantIsolation",
     # Decorators
     "require_tenant",
     "require_feature",
-    "require_role"
+    "require_role",
+    # Dependencies
+    "get_tenant_context",
+    "get_user_context"
 ]

@@ -1,0 +1,214 @@
+# =============================================================================
+# Fabrica de Agentes - Alertmanager Configuration
+# =============================================================================
+# Issue #96: Stack de Metricas Prometheus/Grafana
+#
+# Configuracao do Alertmanager para notificacoes de alertas
+# Suporta: Email, Slack, Teams, PagerDuty, Webhook
+#
+# Deploy: Configure as variaveis de ambiente e reinicie o Alertmanager
+# =============================================================================
+
+global:
+  # Configuracao de SMTP para emails
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertmanager@fabrica-agentes.com'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+  # Timeout padrao para resolucao de alertas
+  resolve_timeout: 5m
+
+  # Configuracao de Slack
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# =============================================================================
+# Roteamento de Alertas
+# =============================================================================
+route:
+  # Agrupamento padrao por alertname e servico
+  group_by: ['alertname', 'service', 'severity']
+
+  # Tempo para aguardar antes de enviar grupo inicial
+  group_wait: 30s
+
+  # Intervalo entre notificacoes do mesmo grupo
+  group_interval: 5m
+
+  # Intervalo para reenviar alertas nao resolvidos
+  repeat_interval: 4h
+
+  # Receiver padrao
+  receiver: 'default-receiver'
+
+  # Rotas especificas por severidade/time
+  routes:
+    # Alertas criticos - notificacao imediata
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 0s
+      repeat_interval: 1h
+      continue: true
+
+    # Alertas do time de infraestrutura
+    - match:
+        team: infrastructure
+      receiver: 'infrastructure-team'
+      continue: true
+
+    # Alertas do time de plataforma
+    - match:
+        team: platform
+      receiver: 'platform-team'
+      continue: true
+
+    # Alertas de warning - notificacao normal
+    - match:
+        severity: warning
+      receiver: 'warning-receiver'
+      repeat_interval: 12h
+
+# =============================================================================
+# Inibicao de Alertas
+# =============================================================================
+inhibit_rules:
+  # Se API esta down, inibir alertas de latencia/erro
+  - source_match:
+      alertname: FactoryAPIDown
+    target_match:
+      alertname: FactoryAPIHighLatency
+    equal: ['instance']
+
+  - source_match:
+      alertname: FactoryAPIDown
+    target_match:
+      alertname: FactoryAPIHighErrorRate
+    equal: ['instance']
+
+  # Se nao ha workers, inibir alertas de job
+  - source_match:
+      alertname: NoActiveWorkers
+    target_match:
+      alertname: WorkersOverloaded
+    equal: []
+
+  # Alertas criticos inibem warnings do mesmo tipo
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'instance']
+
+# =============================================================================
+# Receivers - Canais de Notificacao
+# =============================================================================
+receivers:
+  # ---------------------------------------------------------------------------
+  # Receiver Padrao - Email
+  # ---------------------------------------------------------------------------
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'devops@fabrica-agentes.com'
+        send_resolved: true
+        headers:
+          subject: '[Fabrica Agentes] {{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}</h2>
+          {{ range .Alerts }}
+          <div style="border: 1px solid #ccc; padding: 10px; margin: 5px 0;">
+            <p><strong>Alert:</strong> {{ .Annotations.summary }}</p>
+            <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+            <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+            <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          </div>
+          {{ end }}
+
+  # ---------------------------------------------------------------------------
+  # Receiver Critico - Slack + Email + PagerDuty
+  # ---------------------------------------------------------------------------
+  - name: 'critical-receiver'
+    slack_configs:
+      - channel: '#alerts-critical'
+        send_resolved: true
+        icon_emoji: ':rotating_light:'
+        title: '{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+    email_configs:
+      - to: 'oncall@fabrica-agentes.com'
+        send_resolved: true
+    # pagerduty_configs:
+    #   - service_key: '${PAGERDUTY_SERVICE_KEY}'
+    #     severity: critical
+    #     description: '{{ .GroupLabels.alertname }}'
+
+  # ---------------------------------------------------------------------------
+  # Receiver Warning - Slack
+  # ---------------------------------------------------------------------------
+  - name: 'warning-receiver'
+    slack_configs:
+      - channel: '#alerts-warning'
+        send_resolved: true
+        icon_emoji: ':warning:'
+        title: '{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+
+  # ---------------------------------------------------------------------------
+  # Receiver Time de Infraestrutura
+  # ---------------------------------------------------------------------------
+  - name: 'infrastructure-team'
+    slack_configs:
+      - channel: '#team-infrastructure'
+        send_resolved: true
+        icon_emoji: ':gear:'
+        title: '[Infra] {{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # ---------------------------------------------------------------------------
+  # Receiver Time de Plataforma
+  # ---------------------------------------------------------------------------
+  - name: 'platform-team'
+    slack_configs:
+      - channel: '#team-platform'
+        send_resolved: true
+        icon_emoji: ':factory:'
+        title: '[Platform] {{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # ---------------------------------------------------------------------------
+  # Receiver Webhook - Integracao customizada
+  # ---------------------------------------------------------------------------
+  - name: 'webhook-receiver'
+    webhook_configs:
+      - url: 'http://api:9001/api/webhooks/alerts'
+        send_resolved: true
+        http_config:
+          bearer_token: '${WEBHOOK_BEARER_TOKEN}'
+
+# =============================================================================
+# Templates (opcional)
+# =============================================================================
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

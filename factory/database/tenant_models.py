@@ -552,6 +552,18 @@ class BrandingConfig(Base):
 
 
 # =============================================================================
+# MEMBER STATUS ENUM
+# =============================================================================
+
+class MemberStatus(str, Enum):
+    """Status do membro no tenant"""
+    ACTIVE = "active"           # Membro ativo
+    INVITED = "invited"         # Convite enviado, aguardando aceite
+    SUSPENDED = "suspended"     # Suspenso temporariamente
+    DEACTIVATED = "deactivated" # Desativado permanentemente
+
+
+# =============================================================================
 # TENANT_MEMBER - Membros do Tenant
 # =============================================================================
 
@@ -561,6 +573,8 @@ class TenantMember(Base):
 
     Define quem tem acesso ao tenant e com qual role.
     Um usuario pode ser membro de multiplos tenants.
+
+    Issue #120: Expandido com status e campos adicionais
     """
     __tablename__ = "tenant_members"
 
@@ -572,10 +586,22 @@ class TenantMember(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
-    # Role no tenant
-    role = Column(String(30), default=MemberRole.MEMBER.value, nullable=False)
+    # Role no tenant (admin, member, viewer)
+    tenant_role = Column(String(30), default=MemberRole.MEMBER.value, nullable=False)
 
-    # Status
+    # Alias para compatibilidade
+    @property
+    def role(self):
+        return self.tenant_role
+
+    @role.setter
+    def role(self, value):
+        self.tenant_role = value
+
+    # Status do membro (Issue #120)
+    status = Column(String(30), default=MemberStatus.ACTIVE.value, index=True)
+
+    # Campo legacy para compatibilidade
     active = Column(Boolean, default=True)
 
     # Permissoes customizadas (override de role)
@@ -593,6 +619,11 @@ class TenantMember(Base):
     last_active_at = Column(DateTime, nullable=True)
     invited_by = Column(String(100), nullable=True)
 
+    # Campos adicionais para gestao
+    invited_at = Column(DateTime, nullable=True)
+    suspended_at = Column(DateTime, nullable=True)
+    suspension_reason = Column(Text, nullable=True)
+
     # Constraint para evitar duplicatas
     __table_args__ = (
         UniqueConstraint('tenant_id', 'user_id', name='uix_tenant_member'),
@@ -603,14 +634,37 @@ class TenantMember(Base):
         return {
             "tenant_id": self.tenant_id,
             "user_id": self.user_id,
-            "role": self.role,
+            "tenant_role": self.tenant_role,
+            "role": self.tenant_role,  # Alias para compatibilidade
+            "status": self.status,
             "active": self.active,
             "custom_permissions": self.custom_permissions or {},
             "settings": self.settings or {},
             "joined_at": self.joined_at.isoformat() if self.joined_at else None,
             "last_active_at": self.last_active_at.isoformat() if self.last_active_at else None,
-            "invited_by": self.invited_by
+            "invited_by": self.invited_by,
+            "invited_at": self.invited_at.isoformat() if self.invited_at else None,
+            "suspended_at": self.suspended_at.isoformat() if self.suspended_at else None,
+            "suspension_reason": self.suspension_reason
         }
+
+    def is_active_member(self) -> bool:
+        """Verifica se o membro esta ativo"""
+        return self.status == MemberStatus.ACTIVE.value and self.active
+
+    def suspend(self, reason: str = None) -> None:
+        """Suspende o membro"""
+        self.status = MemberStatus.SUSPENDED.value
+        self.active = False
+        self.suspended_at = datetime.utcnow()
+        self.suspension_reason = reason
+
+    def activate(self) -> None:
+        """Ativa/reativa o membro"""
+        self.status = MemberStatus.ACTIVE.value
+        self.active = True
+        self.suspended_at = None
+        self.suspension_reason = None
 
     def has_permission(self, permission: str) -> bool:
         """Verifica se membro tem permissao especifica"""
@@ -641,7 +695,127 @@ class TenantMember(Base):
         return permission in permissions
 
     def __repr__(self):
-        return f"<TenantMember {self.tenant_id}:{self.user_id} [{self.role}]>"
+        return f"<TenantMember {self.tenant_id}:{self.user_id} [{self.tenant_role}]>"
+
+
+# =============================================================================
+# PROJECT ROLE ENUM
+# =============================================================================
+
+class ProjectRole(str, Enum):
+    """Roles de membros em um projeto (Issue #120)"""
+    OWNER = "owner"             # Dono do projeto (pode deletar)
+    ADMIN = "admin"             # Administrador (gerencia membros do projeto)
+    DEVELOPER = "developer"     # Desenvolvedor (cria stories, tasks)
+    VIEWER = "viewer"           # Apenas visualizacao
+
+
+# =============================================================================
+# PROJECT_MEMBER - Membros de um Projeto (Issue #120)
+# =============================================================================
+
+class ProjectMember(Base):
+    """
+    Modelo para Membros de um Projeto
+
+    Issue #120: Define quem tem acesso a um projeto especifico e com qual role.
+    Permite controle granular de acesso por projeto dentro de um tenant.
+
+    Hierarquia:
+    - Tenant -> TenantMember (acesso ao tenant)
+    - Project -> ProjectMember (acesso ao projeto)
+
+    Um usuario pode ter roles diferentes em projetos diferentes do mesmo tenant.
+    """
+    __tablename__ = "project_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamento com projeto
+    project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
+
+    # Relacionamento com usuario
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    # Role no projeto (owner, admin, developer, viewer)
+    project_role = Column(String(30), default=ProjectRole.DEVELOPER.value, nullable=False)
+
+    # Permissoes customizadas JSON (override de role)
+    permissions = Column(JSON, default=lambda: {
+        "can_create_stories": True,
+        "can_edit_stories": True,
+        "can_delete_stories": False,
+        "can_manage_sprints": False,
+        "can_manage_members": False,
+        "can_export_data": False,
+        "can_run_workers": True
+    })
+
+    # Status
+    status = Column(String(30), default=MemberStatus.ACTIVE.value, index=True)
+    active = Column(Boolean, default=True)
+
+    # Timestamps
+    added_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    added_by = Column(String(100), nullable=True)
+
+    # Constraint para evitar duplicatas
+    __table_args__ = (
+        UniqueConstraint('project_id', 'user_id', name='uix_project_member'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Converte para dicionario"""
+        return {
+            "project_id": self.project_id,
+            "user_id": self.user_id,
+            "project_role": self.project_role,
+            "permissions": self.permissions or {},
+            "status": self.status,
+            "active": self.active,
+            "added_at": self.added_at.isoformat() if self.added_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "added_by": self.added_by
+        }
+
+    def has_permission(self, permission: str) -> bool:
+        """Verifica se membro tem permissao especifica no projeto"""
+        # Permissoes por role do projeto
+        role_permissions = {
+            ProjectRole.OWNER.value: ["*"],  # Todas as permissoes
+            ProjectRole.ADMIN.value: [
+                "can_create_stories", "can_edit_stories", "can_delete_stories",
+                "can_manage_sprints", "can_manage_members", "can_export_data", "can_run_workers"
+            ],
+            ProjectRole.DEVELOPER.value: [
+                "can_create_stories", "can_edit_stories", "can_run_workers"
+            ],
+            ProjectRole.VIEWER.value: []  # Apenas visualizacao
+        }
+
+        # Owner tem todas as permissoes
+        if self.project_role == ProjectRole.OWNER.value:
+            return True
+
+        # Verificar permissoes customizadas primeiro
+        if self.permissions and permission in self.permissions:
+            return self.permissions[permission]
+
+        # Verificar permissoes do role
+        permissions = role_permissions.get(self.project_role, [])
+        return permission in permissions
+
+    def is_owner(self) -> bool:
+        """Verifica se e owner do projeto"""
+        return self.project_role == ProjectRole.OWNER.value
+
+    def is_admin_or_owner(self) -> bool:
+        """Verifica se e admin ou owner"""
+        return self.project_role in [ProjectRole.OWNER.value, ProjectRole.ADMIN.value]
+
+    def __repr__(self):
+        return f"<ProjectMember {self.project_id}:{self.user_id} [{self.project_role}]>"
 
 
 # =============================================================================

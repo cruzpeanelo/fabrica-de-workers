@@ -94,6 +94,12 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     print(f"[Dashboard] Static files mounted from {STATIC_DIR}")
 
+# Mount projects folder for file viewing
+PROJECTS_DIR = Path(__file__).parent.parent.parent / "projects"
+if PROJECTS_DIR.exists():
+    app.mount("/project-files", StaticFiles(directory=str(PROJECTS_DIR), html=True), name="project-files")
+    print(f"[Dashboard] Projects files mounted from {PROJECTS_DIR}")
+
 # Project Preview API Router (Issue #73)
 try:
     from factory.api.project_preview import router as preview_router
@@ -1892,6 +1898,54 @@ def get_project(project_id: str):
         db.close()
 
 
+@app.get("/api/projects/{project_id}/files")
+def list_project_files(project_id: str):
+    """Lista arquivos do projeto"""
+    import os
+    project_path = Path(__file__).parent.parent.parent / "projects" / project_id
+    if not project_path.exists():
+        raise HTTPException(404, f"Project folder not found: {project_id}")
+
+    files = []
+    for root, dirs, filenames in os.walk(project_path):
+        # Skip hidden directories
+        dirs[:] = [d for d in dirs if not d.startswith('.')]
+        for filename in filenames:
+            if filename.startswith('.'):
+                continue
+            filepath = Path(root) / filename
+            rel_path = filepath.relative_to(project_path)
+            ext = filepath.suffix.lower()
+            file_type = "unknown"
+            if ext in ['.html', '.htm']:
+                file_type = "html"
+            elif ext == '.pdf':
+                file_type = "pdf"
+            elif ext in ['.py', '.js', '.ts', '.json']:
+                file_type = "code"
+            elif ext in ['.md', '.txt']:
+                file_type = "text"
+            elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg']:
+                file_type = "image"
+            elif ext in ['.mp4', '.webm', '.avi']:
+                file_type = "video"
+            elif ext in ['.xlsx', '.xls', '.csv']:
+                file_type = "spreadsheet"
+
+            files.append({
+                "name": filename,
+                "path": str(rel_path),
+                "url": f"/project-files/{project_id}/{rel_path}",
+                "type": file_type,
+                "size": filepath.stat().st_size,
+                "extension": ext
+            })
+
+    # Sort by type and name
+    files.sort(key=lambda x: (x['type'], x['name']))
+    return {"project_id": project_id, "files": files, "total": len(files)}
+
+
 @app.get("/api/status")
 def get_status():
     """Status da API"""
@@ -2783,6 +2837,545 @@ HTML_TEMPLATE = """
         @supports (padding: env(safe-area-inset-top)) { .header-container { padding-top: env(safe-area-inset-top); } .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); } }
 
         @media print { .mobile-menu-btn, .mobile-bottom-nav, .mobile-overlay { display: none !important; } }
+
+        /* ===================== ISSUE #135 - EXECUTIVE DASHBOARD ===================== */
+        .executive-dashboard {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 24px;
+            min-height: 100%;
+        }
+        .exec-header {
+            background: linear-gradient(135deg, #003B4A 0%, #005566 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .exec-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .exec-header .subtitle {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+        .exec-status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .exec-status-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .exec-status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .exec-status-card.status-green { border-left: 5px solid #10B981; }
+        .exec-status-card.status-yellow { border-left: 5px solid #F59E0B; }
+        .exec-status-card.status-red { border-left: 5px solid #EF4444; }
+        .exec-status-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .exec-status-indicator.green { background: #10B981; }
+        .exec-status-indicator.yellow { background: #F59E0B; animation: pulse 2s infinite; }
+        .exec-status-indicator.red { background: #EF4444; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .exec-card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #003B4A;
+            line-height: 1;
+        }
+        .exec-card-label {
+            font-size: 0.875rem;
+            color: #6B7280;
+            margin-top: 8px;
+        }
+        .exec-card-meta {
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            margin-top: 4px;
+        }
+        .exec-progress-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .exec-progress-bar {
+            height: 20px;
+            background: #E5E7EB;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        .exec-progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #10B981, #059669);
+        }
+        .exec-timeline {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding: 0 16px;
+            position: relative;
+        }
+        .exec-timeline::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 40px;
+            right: 40px;
+            height: 4px;
+            background: #E5E7EB;
+            z-index: 0;
+        }
+        .exec-timeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .exec-timeline-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        .exec-timeline-dot.completed { background: #10B981; color: white; }
+        .exec-timeline-dot.current { background: #3B82F6; color: white; box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
+        .exec-timeline-dot.pending { background: #E5E7EB; color: #9CA3AF; }
+        .exec-timeline-label {
+            font-size: 0.75rem;
+            color: #6B7280;
+            text-align: center;
+            max-width: 80px;
+        }
+        .exec-main-btn {
+            background: linear-gradient(135deg, #FF6C00, #E56000);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(255, 108, 0, 0.4);
+        }
+        .exec-main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 108, 0, 0.5);
+        }
+        .exec-logs-toggle {
+            background: #F3F4F6;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: #6B7280;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+        }
+        .exec-logs-panel {
+            background: #1F2937;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ===================== ISSUE #134 - WIZARD COMPONENTS ===================== */
+        .wizard-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+        .wizard-progress {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .wizard-progress::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            height: 3px;
+            background: #E5E7EB;
+        }
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .wizard-step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+        .wizard-step-number.completed {
+            background: #10B981;
+            color: white;
+        }
+        .wizard-step-number.current {
+            background: #003B4A;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(0,59,74,0.2);
+        }
+        .wizard-step-number.pending {
+            background: #E5E7EB;
+            color: #9CA3AF;
+        }
+        .wizard-step-label {
+            font-size: 0.75rem;
+            color: #6B7280;
+            text-align: center;
+            max-width: 100px;
+        }
+        .wizard-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .wizard-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #003B4A;
+            margin-bottom: 8px;
+        }
+        .wizard-description {
+            color: #6B7280;
+            margin-bottom: 24px;
+        }
+        .wizard-field {
+            margin-bottom: 20px;
+        }
+        .wizard-field label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .wizard-field input, .wizard-field textarea, .wizard-field select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        .wizard-field input:focus, .wizard-field textarea:focus, .wizard-field select:focus {
+            outline: none;
+            border-color: #003B4A;
+        }
+        .wizard-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #E5E7EB;
+        }
+        .wizard-btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .wizard-btn.secondary {
+            background: #F3F4F6;
+            border: none;
+            color: #374151;
+        }
+        .wizard-btn.secondary:hover {
+            background: #E5E7EB;
+        }
+        .wizard-btn.primary {
+            background: #003B4A;
+            border: none;
+            color: white;
+        }
+        .wizard-btn.primary:hover {
+            background: #00495d;
+        }
+        .wizard-option-card {
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .wizard-option-card:hover {
+            border-color: #003B4A;
+            background: #F8FAFC;
+        }
+        .wizard-option-card.selected {
+            border-color: #003B4A;
+            background: #E8F4F7;
+        }
+        .wizard-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .wizard-option-content {
+            flex: 1;
+        }
+        .wizard-option-title {
+            font-weight: 600;
+            color: #003B4A;
+            margin-bottom: 4px;
+        }
+        .wizard-option-desc {
+            font-size: 0.875rem;
+            color: #6B7280;
+        }
+
+        /* ===================== ISSUE #132 - ONBOARDING TOUR ===================== */
+        .onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9998;
+        }
+        .onboarding-spotlight {
+            position: fixed;
+            z-index: 9999;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .onboarding-tooltip {
+            position: fixed;
+            z-index: 10000;
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-width: 360px;
+            animation: tooltipIn 0.3s ease;
+        }
+        @keyframes tooltipIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .onboarding-tooltip::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            transform: rotate(45deg);
+        }
+        .onboarding-tooltip.arrow-top::before { top: -8px; left: 50%; margin-left: -8px; }
+        .onboarding-tooltip.arrow-bottom::before { bottom: -8px; left: 50%; margin-left: -8px; }
+        .onboarding-tooltip.arrow-left::before { left: -8px; top: 50%; margin-top: -8px; }
+        .onboarding-tooltip.arrow-right::before { right: -8px; top: 50%; margin-top: -8px; }
+        .onboarding-tooltip-step {
+            font-size: 0.75rem;
+            color: #FF6C00;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .onboarding-tooltip-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #003B4A;
+            margin-bottom: 8px;
+        }
+        .onboarding-tooltip-content {
+            font-size: 0.875rem;
+            color: #6B7280;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .onboarding-tooltip-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .onboarding-skip {
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .onboarding-skip:hover {
+            color: #6B7280;
+        }
+        .onboarding-nav {
+            display: flex;
+            gap: 8px;
+        }
+        .onboarding-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .onboarding-btn.prev {
+            background: #F3F4F6;
+            border: none;
+            color: #374151;
+        }
+        .onboarding-btn.next {
+            background: #003B4A;
+            border: none;
+            color: white;
+        }
+        .onboarding-progress {
+            display: flex;
+            gap: 6px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+        .onboarding-progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            transition: all 0.3s;
+        }
+        .onboarding-progress-dot.active {
+            background: #003B4A;
+            width: 24px;
+            border-radius: 4px;
+        }
+        .onboarding-checklist {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .onboarding-checklist-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #003B4A;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .onboarding-checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .onboarding-checklist-item:hover {
+            background: #F3F4F6;
+        }
+        .onboarding-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .onboarding-check.done {
+            background: #10B981;
+            border-color: #10B981;
+            color: white;
+        }
+        .onboarding-checklist-text {
+            flex: 1;
+        }
+        .onboarding-checklist-text.done {
+            color: #9CA3AF;
+            text-decoration: line-through;
+        }
+
+        /* View Mode Toggle */
+        .view-mode-toggle {
+            display: flex;
+            background: #F3F4F6;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .view-mode-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .view-mode-btn.active {
+            background: white;
+            color: #003B4A;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -2871,10 +3464,22 @@ HTML_TEMPLATE = """
                             <span v-else class="dark-mode-icon">☀️</span>
                         </button>
 
+                        <!-- View Mode Toggle (Issue #135) -->
+                        <div class="view-mode-toggle hide-on-mobile" v-if="selectedProjectId">
+                            <button :class="['view-mode-btn', viewMode === 'technical' ? 'active' : '']"
+                                    @click="viewMode = 'technical'" title="Visao Tecnica">
+                                Tecnico
+                            </button>
+                            <button :class="['view-mode-btn', viewMode === 'executive' ? 'active' : '']"
+                                    @click="viewMode = 'executive'" title="Visao Executiva">
+                                Executivo
+                            </button>
+                        </div>
+
                         <!-- Nova Story -->
                         <button @click="showNewStoryModal = true"
                                 class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition">
-                            + Nova Story
+                            + Nova {{ translateTerm('story') }}
                         </button>
                     </div>
                 </div>
@@ -2983,6 +3588,42 @@ HTML_TEMPLATE = """
                             Produtividade do Time
                         </button>
                     </div>
+
+                    <!-- Onboarding Checklist (Issue #132) -->
+                    <div class="mt-6 pt-4 border-t border-gray-200" v-if="showOnboardingChecklist && !onboardingComplete">
+                        <div class="onboarding-checklist">
+                            <div class="onboarding-checklist-title">
+                                <span>Primeiros Passos</span>
+                                <span class="text-xs text-gray-400 ml-auto">{{ onboardingProgress }}%</span>
+                            </div>
+                            <div v-for="(step, idx) in onboardingSteps" :key="idx"
+                                 class="onboarding-checklist-item"
+                                 @click="handleOnboardingStep(step)">
+                                <div :class="['onboarding-check', step.done ? 'done' : '']">
+                                    <span v-if="step.done">✓</span>
+                                </div>
+                                <span :class="['onboarding-checklist-text', step.done ? 'done' : '']">
+                                    {{ step.label }}
+                                </span>
+                            </div>
+                            <button @click="startOnboardingTour" class="mt-3 text-xs text-blue-600 hover:underline">
+                                Iniciar tour guiado
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Wizard Buttons (Issue #134) -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Assistentes</h3>
+                        <button @click="showProjectWizard = true"
+                                class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <span>+</span> Novo Projeto (Wizard)
+                        </button>
+                        <button @click="showIntegrationWizard = true"
+                                class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <span>+</span> Configurar Conexao
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -3016,6 +3657,155 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Project Wizard (Issue #134) -->
+        <div v-if="showProjectWizard" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showProjectWizard = false">
+            <div class="bg-gray-50 rounded-2xl w-[700px] max-w-[95vw] max-h-[90vh] shadow-xl overflow-hidden">
+                <div class="wizard-container">
+                    <!-- Progress Steps -->
+                    <div class="wizard-progress">
+                        <div v-for="(step, idx) in wizardSteps" :key="idx" class="wizard-step">
+                            <div :class="['wizard-step-number',
+                                          idx < wizardCurrentStep ? 'completed' :
+                                          idx === wizardCurrentStep ? 'current' : 'pending']">
+                                <span v-if="idx < wizardCurrentStep">✓</span>
+                                <span v-else>{{ idx + 1 }}</span>
+                            </div>
+                            <div class="wizard-step-label">{{ step.label }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="wizard-content">
+                        <!-- Step 1: Project Type -->
+                        <div v-if="wizardCurrentStep === 0">
+                            <h2 class="wizard-title">Que tipo de projeto voce quer criar?</h2>
+                            <p class="wizard-description">Escolha o tipo que melhor descreve seu projeto.</p>
+                            <div class="space-y-3">
+                                <div v-for="opt in projectTypeOptions" :key="opt.value"
+                                     :class="['wizard-option-card', wizardData.projectType === opt.value ? 'selected' : '']"
+                                     @click="wizardData.projectType = opt.value">
+                                    <div class="wizard-option-icon" :style="{background: opt.color}">{{ opt.icon }}</div>
+                                    <div class="wizard-option-content">
+                                        <div class="wizard-option-title">{{ opt.title }}</div>
+                                        <div class="wizard-option-desc">{{ opt.desc }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Project Details -->
+                        <div v-if="wizardCurrentStep === 1">
+                            <h2 class="wizard-title">Detalhes do Projeto</h2>
+                            <p class="wizard-description">Informe os dados basicos do seu projeto.</p>
+                            <div class="wizard-field">
+                                <label>Nome do Projeto</label>
+                                <input v-model="wizardData.name" type="text" placeholder="Ex: Sistema de Vendas">
+                            </div>
+                            <div class="wizard-field">
+                                <label>Descricao</label>
+                                <textarea v-model="wizardData.description" rows="3" placeholder="Descreva brevemente o projeto..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: First Feature -->
+                        <div v-if="wizardCurrentStep === 2">
+                            <h2 class="wizard-title">Primeira {{ translateTerm('story') }}</h2>
+                            <p class="wizard-description">Descreva a primeira {{ translateTerm('story') }} do projeto.</p>
+                            <div class="wizard-field">
+                                <label>O que voce quer que o sistema faca?</label>
+                                <textarea v-model="wizardData.firstFeature" rows="4" placeholder="Ex: Permitir que os usuarios facam login com email e senha"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Confirmation -->
+                        <div v-if="wizardCurrentStep === 3">
+                            <h2 class="wizard-title">Tudo pronto!</h2>
+                            <p class="wizard-description">Confira os dados e clique em Criar para iniciar seu projeto.</p>
+                            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                                <div><strong>Tipo:</strong> {{ getProjectTypeName(wizardData.projectType) }}</div>
+                                <div><strong>Nome:</strong> {{ wizardData.name }}</div>
+                                <div><strong>Descricao:</strong> {{ wizardData.description }}</div>
+                                <div><strong>Primeira {{ translateTerm('story') }}:</strong> {{ wizardData.firstFeature }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="wizard-buttons">
+                            <button v-if="wizardCurrentStep > 0" class="wizard-btn secondary" @click="wizardCurrentStep--">
+                                Voltar
+                            </button>
+                            <div v-else></div>
+                            <button v-if="wizardCurrentStep < wizardSteps.length - 1"
+                                    class="wizard-btn primary"
+                                    @click="wizardCurrentStep++"
+                                    :disabled="!canProceedWizard">
+                                Proximo
+                            </button>
+                            <button v-else class="wizard-btn primary" @click="createProjectFromWizard">
+                                Criar Projeto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Integration Wizard (Issue #134) -->
+        <div v-if="showIntegrationWizard" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showIntegrationWizard = false">
+            <div class="bg-gray-50 rounded-2xl w-[600px] max-w-[95vw] shadow-xl overflow-hidden">
+                <div class="wizard-container">
+                    <div class="wizard-content">
+                        <h2 class="wizard-title">Configurar {{ translateTerm('api') }}</h2>
+                        <p class="wizard-description">Escolha o servico que deseja conectar ao seu projeto.</p>
+                        <div class="space-y-3">
+                            <div v-for="integration in availableIntegrations" :key="integration.id"
+                                 class="wizard-option-card"
+                                 @click="selectIntegration(integration)">
+                                <div class="wizard-option-icon" :style="{background: integration.color}">{{ integration.icon }}</div>
+                                <div class="wizard-option-content">
+                                    <div class="wizard-option-title">{{ integration.name }}</div>
+                                    <div class="wizard-option-desc">{{ integration.desc }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wizard-buttons">
+                            <button class="wizard-btn secondary" @click="showIntegrationWizard = false">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONBOARDING TOUR (Issue #132) -->
+        <div v-if="showOnboardingTour" class="onboarding-overlay" @click="skipOnboardingTour">
+            <div class="onboarding-spotlight" :style="onboardingSpotlightStyle"></div>
+            <div :class="['onboarding-tooltip', 'arrow-' + currentTourStep.arrow]" :style="onboardingTooltipStyle">
+                <div class="onboarding-tooltip-step">Passo {{ currentTourStepIndex + 1 }} de {{ tourSteps.length }}</div>
+                <h3 class="onboarding-tooltip-title">{{ currentTourStep.title }}</h3>
+                <p class="onboarding-tooltip-content">{{ currentTourStep.content }}</p>
+                <div class="onboarding-tooltip-buttons">
+                    <button class="onboarding-skip" @click="skipOnboardingTour">Pular tour</button>
+                    <div class="onboarding-nav">
+                        <button v-if="currentTourStepIndex > 0" class="onboarding-btn prev" @click="prevTourStep">
+                            Anterior
+                        </button>
+                        <button v-if="currentTourStepIndex < tourSteps.length - 1" class="onboarding-btn next" @click="nextTourStep">
+                            Proximo
+                        </button>
+                        <button v-else class="onboarding-btn next" @click="finishOnboardingTour">
+                            Concluir
+                        </button>
+                    </div>
+                </div>
+                <div class="onboarding-progress">
+                    <div v-for="(step, idx) in tourSteps" :key="idx"
+                         :class="['onboarding-progress-dot', idx === currentTourStepIndex ? 'active' : '']"></div>
+                </div>
+            </div>
+        </div>
+
             <!-- MAIN CONTENT - KANBAN -->
             <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
                 <div v-if="!selectedProjectId" class="flex items-center justify-center h-full text-gray-500">
@@ -3045,6 +3835,94 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
+                <!-- EXECUTIVE DASHBOARD VIEW (Issue #135) -->
+                <div v-else-if="viewMode === 'executive'" class="executive-dashboard">
+                    <!-- Executive Header -->
+                    <div class="exec-header">
+                        <div>
+                            <h1>{{ currentProjectName }}</h1>
+                            <p class="subtitle">Visao Executiva do Projeto</p>
+                        </div>
+                        <button class="exec-main-btn" @click="openAppPreview" v-if="projectReadyToTest">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Ver meu App
+                        </button>
+                    </div>
+
+                    <!-- Status Cards -->
+                    <div class="exec-status-cards">
+                        <div :class="['exec-status-card', projectHealthStatus]">
+                            <div :class="['exec-status-indicator', projectHealthColor]"></div>
+                            <div class="exec-card-value">{{ doneStories }}</div>
+                            <div class="exec-card-label">{{ translateTerm('story', true) }} Prontas</div>
+                            <div class="exec-card-meta">de {{ totalStories }} planejadas</div>
+                        </div>
+                        <div class="exec-status-card status-green">
+                            <div class="exec-status-indicator green"></div>
+                            <div class="exec-card-value">{{ projectProgressPercent }}%</div>
+                            <div class="exec-card-label">Progresso Geral</div>
+                            <div class="exec-card-meta">{{ estimatedDaysRemaining }} dias restantes</div>
+                        </div>
+                        <div class="exec-status-card status-yellow">
+                            <div class="exec-status-indicator yellow"></div>
+                            <div class="exec-card-value">{{ inProgressStories }}</div>
+                            <div class="exec-card-label">Em Desenvolvimento</div>
+                            <div class="exec-card-meta">{{ translateTerm('sprint') }} atual</div>
+                        </div>
+                        <div class="exec-status-card status-green">
+                            <div class="exec-status-indicator green"></div>
+                            <div class="exec-card-value">{{ totalPoints }}</div>
+                            <div class="exec-card-label">Pontos de Esforco</div>
+                            <div class="exec-card-meta">{{ donePoints }} entregues</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="exec-progress-section">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-semibold text-gray-800">Progresso do Projeto</h3>
+                            <span class="text-2xl font-bold text-green-600">{{ projectProgressPercent }}%</span>
+                        </div>
+                        <div class="exec-progress-bar">
+                            <div class="exec-progress-fill" :style="{ width: projectProgressPercent + '%' }"></div>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="exec-timeline">
+                            <div class="exec-timeline-step" v-for="(phase, idx) in projectPhases" :key="idx">
+                                <div :class="['exec-timeline-dot', phase.status]">
+                                    <span v-if="phase.status === 'completed'">✓</span>
+                                    <span v-else-if="phase.status === 'current'">●</span>
+                                    <span v-else>○</span>
+                                </div>
+                                <div class="exec-timeline-label">{{ phase.label }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Logs Toggle (hidden by default) -->
+                    <div class="bg-white rounded-lg p-4 shadow-sm">
+                        <button class="exec-logs-toggle" @click="showTechnicalLogs = !showTechnicalLogs">
+                            <svg class="w-4 h-4" :class="{ 'transform rotate-180': showTechnicalLogs }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                            {{ showTechnicalLogs ? 'Ocultar detalhes tecnicos' : 'Ver detalhes tecnicos' }}
+                        </button>
+                        <div v-if="showTechnicalLogs" class="exec-logs-panel">
+                            <div v-for="log in recentActivityLogs" :key="log.id" class="mb-1">
+                                <span class="text-green-400">[{{ log.time }}]</span> {{ log.message }}
+                            </div>
+                            <div v-if="!recentActivityLogs.length" class="text-gray-500">
+                                Nenhuma atividade recente
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TECHNICAL VIEW (Kanban) -->
                 <div v-else class="flex flex-col h-full">
                     <!-- Barra de Filtros -->
                     <div class="flex items-center gap-3 mb-4 flex-wrap filter-bar">
