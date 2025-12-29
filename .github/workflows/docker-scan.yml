@@ -1,0 +1,480 @@
+# Docker Security Scan Workflow - Issue #92
+# Comprehensive Docker image vulnerability scanning with Trivy
+# Blocks deployment if HIGH or CRITICAL vulnerabilities found
+
+name: Docker Security Scan
+
+on:
+  push:
+    branches: [main, develop, release/*]
+    paths:
+      - 'Dockerfile*'
+      - 'docker-compose*.yml'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'Dockerfile*'
+      - 'docker-compose*.yml'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+  schedule:
+    # Daily scan at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to scan (optional)'
+        required: false
+        type: string
+      fail_on_vuln:
+        description: 'Fail workflow on vulnerabilities'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  packages: read
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  TRIVY_VERSION: '0.48.0'
+
+jobs:
+  # Build and scan all Docker images
+  scan-images:
+    name: Scan Docker Images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: factory-api
+            dockerfile: Dockerfile
+            context: .
+          - name: factory-worker
+            dockerfile: Dockerfile.worker
+            context: .
+          - name: factory-dashboard
+            dockerfile: Dockerfile.dashboard
+            context: .
+
+    outputs:
+      critical_count: ${{ steps.count.outputs.critical }}
+      high_count: ${{ steps.count.outputs.high }}
+      scan_passed: ${{ steps.evaluate.outputs.passed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Check if Dockerfile exists
+        id: check_dockerfile
+        run: |
+          if [ -f "${{ matrix.image.dockerfile }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::Dockerfile ${{ matrix.image.dockerfile }} not found, using default Dockerfile"
+          fi
+
+      - name: Build Docker image for scanning
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ steps.check_dockerfile.outputs.exists == 'true' && matrix.image.dockerfile || 'Dockerfile' }}
+          push: false
+          load: true
+          tags: ${{ matrix.image.name }}:scan-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
+
+      - name: Install Trivy
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Run Trivy vulnerability scanner (SARIF output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ matrix.image.name }}:scan-${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-${{ matrix.image.name }}-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+          ignore-unfixed: false
+          timeout: '10m'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-${{ matrix.image.name }}-results.sarif'
+          category: 'trivy-${{ matrix.image.name }}'
+
+      - name: Run Trivy vulnerability scanner (JSON output for analysis)
+        id: trivy_json
+        run: |
+          trivy image \
+            --format json \
+            --output trivy-${{ matrix.image.name }}-results.json \
+            --severity CRITICAL,HIGH,MEDIUM,LOW \
+            --vuln-type os,library \
+            --timeout 10m \
+            ${{ matrix.image.name }}:scan-${{ github.sha }}
+        continue-on-error: true
+
+      - name: Count vulnerabilities
+        id: count
+        run: |
+          if [ -f "trivy-${{ matrix.image.name }}-results.json" ]; then
+            CRITICAL=$(cat trivy-${{ matrix.image.name }}-results.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length')
+            HIGH=$(cat trivy-${{ matrix.image.name }}-results.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH")] | length')
+            MEDIUM=$(cat trivy-${{ matrix.image.name }}-results.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="MEDIUM")] | length')
+            LOW=$(cat trivy-${{ matrix.image.name }}-results.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="LOW")] | length')
+
+            echo "critical=${CRITICAL:-0}" >> $GITHUB_OUTPUT
+            echo "high=${HIGH:-0}" >> $GITHUB_OUTPUT
+            echo "medium=${MEDIUM:-0}" >> $GITHUB_OUTPUT
+            echo "low=${LOW:-0}" >> $GITHUB_OUTPUT
+
+            echo "### Vulnerability Summary for ${{ matrix.image.name }}" >> $GITHUB_STEP_SUMMARY
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| CRITICAL | ${CRITICAL:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| HIGH | ${HIGH:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| MEDIUM | ${MEDIUM:-0} |" >> $GITHUB_STEP_SUMMARY
+            echo "| LOW | ${LOW:-0} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "critical=0" >> $GITHUB_OUTPUT
+            echo "high=0" >> $GITHUB_OUTPUT
+            echo "medium=0" >> $GITHUB_OUTPUT
+            echo "low=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Evaluate scan results
+        id: evaluate
+        run: |
+          CRITICAL=${{ steps.count.outputs.critical }}
+          HIGH=${{ steps.count.outputs.high }}
+
+          if [ "${CRITICAL}" -gt 0 ] || [ "${HIGH}" -gt 0 ]; then
+            echo "::error::Found ${CRITICAL} CRITICAL and ${HIGH} HIGH vulnerabilities in ${{ matrix.image.name }}"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          else
+            echo "::notice::No CRITICAL or HIGH vulnerabilities found in ${{ matrix.image.name }}"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Trivy table output for PR comment
+        if: github.event_name == 'pull_request'
+        run: |
+          trivy image \
+            --format table \
+            --severity CRITICAL,HIGH \
+            --vuln-type os,library \
+            ${{ matrix.image.name }}:scan-${{ github.sha }} > trivy-table-output.txt 2>&1 || true
+
+          echo "### Trivy Scan Results for ${{ matrix.image.name }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat trivy-table-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate vulnerability report
+        id: report
+        if: always()
+        run: |
+          mkdir -p reports
+
+          # Generate detailed HTML report
+          trivy image \
+            --format template \
+            --template "@/usr/local/share/trivy/templates/html.tpl" \
+            --output reports/trivy-${{ matrix.image.name }}-report.html \
+            --severity CRITICAL,HIGH,MEDIUM \
+            ${{ matrix.image.name }}:scan-${{ github.sha }} || true
+
+          # Generate markdown summary
+          cat << 'EOF' > reports/trivy-${{ matrix.image.name }}-summary.md
+          # Docker Image Security Scan Report
+
+          **Image:** ${{ matrix.image.name }}:scan-${{ github.sha }}
+          **Scan Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+
+          ## Vulnerability Summary
+
+          | Severity | Count | Status |
+          |----------|-------|--------|
+          | CRITICAL | ${{ steps.count.outputs.critical }} | ${{ steps.count.outputs.critical > 0 && 'FAILED' || 'PASSED' }} |
+          | HIGH | ${{ steps.count.outputs.high }} | ${{ steps.count.outputs.high > 0 && 'FAILED' || 'PASSED' }} |
+          | MEDIUM | ${{ steps.count.outputs.medium }} | INFO |
+          | LOW | ${{ steps.count.outputs.low }} | INFO |
+
+          ## Scan Configuration
+
+          - **Scanner:** Trivy v${{ env.TRIVY_VERSION }}
+          - **Vuln Types:** OS packages, Library dependencies
+          - **Ignore Unfixed:** No
+          EOF
+
+      - name: Upload vulnerability reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vulnerability-report-${{ matrix.image.name }}
+          path: |
+            reports/
+            trivy-${{ matrix.image.name }}-results.json
+            trivy-${{ matrix.image.name }}-results.sarif
+          retention-days: 30
+
+      - name: Fail if vulnerabilities found
+        if: ${{ (inputs.fail_on_vuln != false) && (steps.count.outputs.critical > 0 || steps.count.outputs.high > 0) }}
+        run: |
+          echo "::error::Blocking deployment due to CRITICAL or HIGH vulnerabilities"
+          exit 1
+
+  # SBOM Generation
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    needs: scan-images
+    if: always()
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image for SBOM
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: factory:sbom-${{ github.sha }}
+
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: factory:sbom-${{ github.sha }}
+          format: spdx-json
+          output-file: factory-sbom.spdx.json
+          artifact-name: factory-sbom
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          # Install syft
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+          # Generate CycloneDX format
+          syft factory:sbom-${{ github.sha }} -o cyclonedx-json > factory-sbom.cyclonedx.json
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-artifacts
+          path: |
+            factory-sbom.spdx.json
+            factory-sbom.cyclonedx.json
+          retention-days: 90
+
+  # Base image scan
+  scan-base-images:
+    name: Scan Base Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract base image from Dockerfile
+        id: base
+        run: |
+          # Extract base image from Dockerfile
+          BASE_IMAGE=$(grep -m1 '^FROM' Dockerfile | awk '{print $2}' | sed 's/:.*//g')
+          BASE_TAG=$(grep -m1 '^FROM' Dockerfile | awk '{print $2}' | sed 's/.*://g')
+
+          if [ -z "$BASE_TAG" ] || [ "$BASE_TAG" = "$BASE_IMAGE" ]; then
+            BASE_TAG="latest"
+          fi
+
+          echo "image=${BASE_IMAGE}:${BASE_TAG}" >> $GITHUB_OUTPUT
+          echo "Base image: ${BASE_IMAGE}:${BASE_TAG}"
+
+      - name: Scan base image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.base.outputs.image }}
+          format: 'sarif'
+          output: 'base-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+          exit-code: '0'
+
+      - name: Upload base image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'base-image-results.sarif'
+          category: 'trivy-base-image'
+
+  # Security gate - blocks deployment
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    needs: [scan-images, generate-sbom]
+    if: always()
+
+    steps:
+      - name: Check scan results
+        run: |
+          echo "## Security Gate Results" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.scan-images.result }}" == "failure" ]; then
+            echo "::error::Security scan failed - CRITICAL or HIGH vulnerabilities found"
+            echo "- **Status:** BLOCKED" >> $GITHUB_STEP_SUMMARY
+            echo "- **Reason:** CRITICAL or HIGH vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Required Actions" >> $GITHUB_STEP_SUMMARY
+            echo "1. Review the vulnerability reports in the artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "2. Update vulnerable packages or base images" >> $GITHUB_STEP_SUMMARY
+            echo "3. Re-run the security scan" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "- **Status:** PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "- **All security checks passed**" >> $GITHUB_STEP_SUMMARY
+
+      - name: Create deployment approval
+        if: github.ref == 'refs/heads/main' && needs.scan-images.result == 'success'
+        run: |
+          echo "::notice::Security scan passed - deployment approved"
+          echo "## Deployment Approved" >> $GITHUB_STEP_SUMMARY
+          echo "All security checks passed. Image is safe for deployment." >> $GITHUB_STEP_SUMMARY
+
+  # Notify on failures
+  notify-failures:
+    name: Notify Security Issues
+    runs-on: ubuntu-latest
+    needs: [security-gate]
+    if: failure()
+
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Security Scan Failed",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:*\n${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n${{ github.sha }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:*\n${{ github.actor }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "CRITICAL or HIGH vulnerabilities were found in Docker images. Deployment has been blocked."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Scan Results"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }' \
+            $SLACK_WEBHOOK_URL || true
+
+      - name: Create GitHub Issue for vulnerabilities
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Security Alert: Docker Image Vulnerabilities Found - ${new Date().toISOString().split('T')[0]}`;
+            const body = `
+            ## Automated Security Scan Alert
+
+            The scheduled security scan has detected vulnerabilities in Docker images.
+
+            **Workflow Run:** [View Details](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})
+            **Scan Date:** ${new Date().toISOString()}
+            **Branch:** ${process.env.GITHUB_REF_NAME}
+
+            ### Required Actions
+            1. Download vulnerability reports from workflow artifacts
+            2. Review CRITICAL and HIGH severity vulnerabilities
+            3. Update vulnerable dependencies
+            4. Rebuild and re-scan Docker images
+
+            ### Labels
+            - security
+            - automated
+            - docker
+            `;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['security', 'automated', 'docker', 'vulnerability']
+            });

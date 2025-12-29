@@ -1,17 +1,68 @@
 """
 Modelos SQLAlchemy para a Fabrica de Agentes v4.0
 Arquitetura Worker-based (Single Claude + Tools per Worker)
+
+Multi-Tenancy v5.0 (Issues #81, #82):
+- Todos os modelos principais possuem tenant_id para isolamento de dados
+- Indices compostos (tenant_id + campo) para performance
+- Soft delete com deleted_at e deleted_by para auditoria
+- Relacionamentos corretos entre Tenant e demais entidades
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum
+from typing import Optional, Dict, Any
 
 # Import Base
 try:
     from .connection import Base
 except ImportError:
     from connection import Base
+
+
+# =============================================================================
+# MIXIN CLASSES PARA MULTI-TENANCY
+# =============================================================================
+
+class TenantMixin:
+    """
+    Mixin para adicionar suporte a multi-tenancy aos modelos.
+    Inclui tenant_id e metodos auxiliares para filtragem.
+    """
+    tenant_id = Column(String(50), nullable=True, index=True)
+
+    @classmethod
+    def tenant_filter(cls, query, tenant_id: str):
+        """Filtra query pelo tenant_id"""
+        return query.filter(cls.tenant_id == tenant_id)
+
+
+class SoftDeleteMixin:
+    """
+    Mixin para soft delete.
+    Registros nao sao deletados fisicamente, apenas marcados.
+    """
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca o registro como deletado"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura um registro deletado"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
+
+    @classmethod
+    def active_filter(cls, query):
+        """Filtra apenas registros ativos (nao deletados)"""
+        return query.filter(cls.is_deleted == False)
 
 
 # =============================================================================
@@ -62,14 +113,22 @@ class WorkerStatus(str, Enum):
 # =============================================================================
 
 class Project(Base):
-    """Modelo para Projetos - cada aplicacao construida pela fabrica"""
+    """
+    Modelo para Projetos - cada aplicacao construida pela fabrica.
+
+    Multi-Tenancy (Issue #81):
+    - tenant_id para isolamento de dados
+    - Indices compostos para queries eficientes
+    - Soft delete para auditoria
+    - Relacionamento com Tenant (cascade delete)
+    """
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     project_id = Column(String(50), unique=True, nullable=False, index=True)
 
-    # Multi-Tenant: Associacao com Tenant
-    tenant_id = Column(String(50), nullable=True, index=True)
+    # Multi-Tenant: Associacao com Tenant (Issue #81)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
@@ -97,13 +156,39 @@ class Project(Base):
     completed_at = Column(DateTime, nullable=True)
     created_by = Column(String(100), default="system")
 
+    # Soft Delete (Issue #81)
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices compostos para multi-tenancy (Issue #81)
+    __table_args__ = (
+        Index('ix_projects_tenant_status', 'tenant_id', 'status'),
+        Index('ix_projects_tenant_created', 'tenant_id', 'created_at'),
+        Index('ix_projects_tenant_deleted', 'tenant_id', 'is_deleted'),
+    )
+
     # Relacionamentos
+    tenant = relationship("Tenant", back_populates="projects")
     jobs = relationship("Job", back_populates="project", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca o projeto como deletado (soft delete)"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura um projeto deletado"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
 
     def to_dict(self):
         return {
             "project_id": self.project_id,
+            "tenant_id": self.tenant_id,
             "name": self.name,
             "description": self.description,
             "project_type": self.project_type,
@@ -118,6 +203,7 @@ class Project(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "is_deleted": self.is_deleted,
             "jobs_count": len(self.jobs) if self.jobs else 0,
             "tasks_count": len(self.tasks) if self.tasks else 0
         }
@@ -134,11 +220,19 @@ class Job(Base):
     """
     Modelo para Jobs - Unidade de trabalho principal
     Processado por workers usando Claude Agent SDK
+
+    Multi-Tenancy (Issue #81):
+    - tenant_id herdado do projeto ou definido diretamente
+    - Indices compostos para queries por tenant
+    - Soft delete para auditoria
     """
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     job_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Associacao com Tenant (Issue #81)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com projeto (opcional)
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=True, index=True)
@@ -185,12 +279,38 @@ class Job(Base):
     # Criado por
     created_by = Column(String(100), nullable=True)
 
+    # Soft Delete (Issue #81)
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices compostos para multi-tenancy (Issue #81)
+    __table_args__ = (
+        Index('ix_jobs_tenant_status', 'tenant_id', 'status'),
+        Index('ix_jobs_tenant_created', 'tenant_id', 'created_at'),
+        Index('ix_jobs_tenant_worker', 'tenant_id', 'worker_id'),
+    )
+
     # Relacionamentos
+    tenant = relationship("Tenant", back_populates="jobs")
     failures = relationship("FailureHistory", back_populates="job", cascade="all, delete-orphan")
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca o job como deletado (soft delete)"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura um job deletado"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
 
     def to_dict(self):
         return {
             "job_id": self.job_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "description": self.description,
             "tech_stack": self.tech_stack,
@@ -212,7 +332,8 @@ class Job(Base):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "created_by": self.created_by
+            "created_by": self.created_by,
+            "is_deleted": self.is_deleted
         }
 
     def __repr__(self):
@@ -476,14 +597,19 @@ class Task(Base):
     """
     Modelo para Tarefas Kanban
     Permite gestao de projetos estilo Monday/Jira
+
+    Multi-Tenancy (Issue #81):
+    - tenant_id para isolamento de dados
+    - Indices compostos para queries eficientes
+    - Soft delete para auditoria
     """
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(String(50), unique=True, nullable=False, index=True)
 
-    # Multi-Tenant: Associacao com Tenant (Issue #120)
-    tenant_id = Column(String(50), nullable=True, index=True)
+    # Multi-Tenant: Associacao com Tenant (Issue #81)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
@@ -515,6 +641,33 @@ class Task(Base):
     # Criado por
     created_by = Column(String(100), default="system")
 
+    # Soft Delete (Issue #81)
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices compostos para multi-tenancy (Issue #81)
+    __table_args__ = (
+        Index('ix_tasks_tenant_status', 'tenant_id', 'status'),
+        Index('ix_tasks_tenant_project', 'tenant_id', 'project_id'),
+        Index('ix_tasks_tenant_assignee', 'tenant_id', 'assignee'),
+    )
+
+    # Relacionamentos
+    tenant = relationship("Tenant", back_populates="tasks")
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca a task como deletada (soft delete)"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura uma task deletada"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
+
     def to_dict(self):
         return {
             "task_id": self.task_id,
@@ -533,7 +686,8 @@ class Task(Base):
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "created_by": self.created_by
+            "created_by": self.created_by,
+            "is_deleted": self.is_deleted
         }
 
     def __repr__(self):
@@ -575,14 +729,19 @@ class Story(Base):
     """
     Modelo para User Stories Agile
     Com narrativa completa: Como um [persona], Eu quero [action], Para que [benefit]
+
+    Multi-Tenancy (Issue #81):
+    - tenant_id para isolamento de dados
+    - Indices compostos para queries eficientes
+    - Soft delete para auditoria
     """
     __tablename__ = "stories"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     story_id = Column(String(50), unique=True, nullable=False, index=True)
 
-    # Multi-Tenant: Associacao com Tenant (Issue #120)
-    tenant_id = Column(String(50), nullable=True, index=True)
+    # Multi-Tenant: Associacao com Tenant (Issue #81)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
@@ -644,12 +803,39 @@ class Story(Base):
     # Criado por
     created_by = Column(String(100), default="system")
 
+    # Soft Delete (Issue #81)
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices compostos para multi-tenancy (Issue #81)
+    __table_args__ = (
+        Index('ix_stories_tenant_status', 'tenant_id', 'status'),
+        Index('ix_stories_tenant_project', 'tenant_id', 'project_id'),
+        Index('ix_stories_tenant_sprint', 'tenant_id', 'sprint_id'),
+        Index('ix_stories_tenant_epic', 'tenant_id', 'epic_id'),
+        Index('ix_stories_tenant_assignee', 'tenant_id', 'assignee'),
+    )
+
     # Relacionamentos
+    tenant = relationship("Tenant", back_populates="stories")
     story_tasks = relationship("StoryTask", back_populates="story", cascade="all, delete-orphan")
     documentation = relationship("StoryDocumentation", back_populates="story", cascade="all, delete-orphan")
     designs = relationship("StoryDesign", back_populates="story", cascade="all, delete-orphan")
     attachments = relationship("Attachment", back_populates="story", cascade="all, delete-orphan",
                                foreign_keys="Attachment.story_id")
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca a story como deletada (soft delete)"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura uma story deletada"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
 
     def to_dict(self):
         return {
@@ -688,7 +874,8 @@ class Story(Base):
             "due_date": self.due_date.isoformat() if self.due_date else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "created_by": self.created_by
+            "created_by": self.created_by,
+            "is_deleted": self.is_deleted
         }
 
     def update_progress(self):

@@ -10,11 +10,15 @@ Implements SOC2/GDPR compliant audit logging:
 4. Data access logging (CRUD operations)
 5. Immutable storage with checksums
 6. Retention policies and archival
+7. SIEM export (Splunk, Elasticsearch, Syslog)
+8. Configurable retention with archival
 
 Compliance Standards:
 - SOC2 Type II: Complete audit trail
 - GDPR: Data access logging for privacy
 - ISO 27001: Security event logging
+- HIPAA: Healthcare data access tracking
+- PCI-DSS: Payment data security logging
 """
 
 import hashlib
@@ -22,17 +26,26 @@ import hmac
 import json
 import os
 import uuid
+import socket
+import gzip
+import io
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional, Dict, Any, List, Callable
+from typing import Optional, Dict, Any, List, Callable, Union
 from functools import wraps
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 import threading
 from queue import Queue
+import logging
+import struct
+import time
 
 from pydantic import BaseModel, Field
 
-from factory.database.connection import SessionLocal
+try:
+    from factory.database.connection import SessionLocal
+except ImportError:
+    SessionLocal = None
 
 
 # =============================================================================
@@ -43,13 +56,44 @@ from factory.database.connection import SessionLocal
 AUDIT_LOG_ENABLED = os.getenv("AUDIT_LOG_ENABLED", "true").lower() == "true"
 AUDIT_LOG_ASYNC = os.getenv("AUDIT_LOG_ASYNC", "true").lower() == "true"
 AUDIT_RETENTION_DAYS = int(os.getenv("AUDIT_RETENTION_DAYS", "365"))
+AUDIT_ARCHIVE_DAYS = int(os.getenv("AUDIT_ARCHIVE_DAYS", "90"))  # Move to archive after
 AUDIT_HMAC_KEY = os.getenv("AUDIT_HMAC_KEY", "change-this-in-production").encode()
+
+# SIEM Configuration
+SIEM_ENABLED = os.getenv("SIEM_ENABLED", "false").lower() == "true"
+SIEM_TYPE = os.getenv("SIEM_TYPE", "syslog")  # syslog, splunk, elasticsearch, fluentd
+SIEM_HOST = os.getenv("SIEM_HOST", "localhost")
+SIEM_PORT = int(os.getenv("SIEM_PORT", "514"))
+SIEM_PROTOCOL = os.getenv("SIEM_PROTOCOL", "udp")  # udp, tcp, http
+SIEM_TOKEN = os.getenv("SIEM_TOKEN", "")  # For Splunk HEC
+SIEM_INDEX = os.getenv("SIEM_INDEX", "audit_logs")  # For Splunk/Elasticsearch
+SIEM_BATCH_SIZE = int(os.getenv("SIEM_BATCH_SIZE", "100"))
+SIEM_FLUSH_INTERVAL = int(os.getenv("SIEM_FLUSH_INTERVAL", "5"))  # seconds
+
+# Retention Configuration
+RETENTION_CONFIG = {
+    "authentication": int(os.getenv("RETENTION_AUTH_DAYS", "365")),
+    "authorization": int(os.getenv("RETENTION_AUTHZ_DAYS", "365")),
+    "data_access": int(os.getenv("RETENTION_DATA_ACCESS_DAYS", "180")),
+    "data_modification": int(os.getenv("RETENTION_DATA_MOD_DAYS", "2555")),  # 7 years for SOC2
+    "configuration": int(os.getenv("RETENTION_CONFIG_DAYS", "2555")),
+    "security": int(os.getenv("RETENTION_SECURITY_DAYS", "2555")),
+    "system": int(os.getenv("RETENTION_SYSTEM_DAYS", "90")),
+    "compliance": int(os.getenv("RETENTION_COMPLIANCE_DAYS", "2555")),
+}
 
 # PII fields to redact in logs
 PII_FIELDS = [
     "password", "password_hash", "secret", "token", "api_key",
-    "credit_card", "ssn", "social_security", "email", "phone"
+    "credit_card", "ssn", "social_security", "email", "phone",
+    "date_of_birth", "address", "national_id", "passport", "driver_license"
 ]
+
+# CEF (Common Event Format) settings for SIEM
+CEF_VERSION = "0"
+CEF_DEVICE_VENDOR = "FabricaDeAgentes"
+CEF_DEVICE_PRODUCT = "AuditLogger"
+CEF_DEVICE_VERSION = "6.5"
 
 
 # =============================================================================
@@ -137,7 +181,7 @@ class AuditAction(str, Enum):
 
 @dataclass
 class AuditEntry:
-    """Complete audit log entry"""
+    """Complete audit log entry with SOC2/GDPR compliance fields"""
     # Identity
     audit_id: str
     timestamp: datetime
@@ -173,9 +217,21 @@ class AuditEntry:
     details: Dict[str, Any]
     changes: Optional[Dict[str, Any]]  # Before/after for modifications
 
+    # SOC2/GDPR Compliance Fields
+    old_value: Optional[Any] = None  # Original value before change
+    new_value: Optional[Any] = None  # New value after change
+    data_classification: Optional[str] = None  # public, internal, confidential, restricted
+    legal_basis: Optional[str] = None  # GDPR: consent, contract, legal_obligation, etc.
+    data_subject_id: Optional[str] = None  # GDPR: ID of person whose data was accessed
+    retention_days: Optional[int] = None  # Override default retention
+    correlation_id: Optional[str] = None  # Link related events
+    source_system: Optional[str] = None  # Origin system for federated logs
+    geo_location: Optional[str] = None  # Geographic location (country/region)
+    risk_score: Optional[int] = None  # 0-100 risk assessment
+
     # Integrity
-    checksum: str  # HMAC of the entry
-    previous_checksum: Optional[str]  # Chain integrity
+    checksum: str = ""  # HMAC of the entry
+    previous_checksum: Optional[str] = None  # Chain integrity
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
@@ -201,9 +257,113 @@ class AuditEntry:
             "error_message": self.error_message,
             "details": self.details,
             "changes": self.changes,
+            "old_value": self.old_value,
+            "new_value": self.new_value,
+            "data_classification": self.data_classification,
+            "legal_basis": self.legal_basis,
+            "data_subject_id": self.data_subject_id,
+            "retention_days": self.retention_days,
+            "correlation_id": self.correlation_id,
+            "source_system": self.source_system,
+            "geo_location": self.geo_location,
+            "risk_score": self.risk_score,
             "checksum": self.checksum,
             "previous_checksum": self.previous_checksum
         }
+
+    def to_cef(self) -> str:
+        """Convert to CEF (Common Event Format) for SIEM integration"""
+        severity_map = {
+            AuditSeverity.DEBUG: 0,
+            AuditSeverity.INFO: 3,
+            AuditSeverity.WARNING: 6,
+            AuditSeverity.ERROR: 8,
+            AuditSeverity.CRITICAL: 10
+        }
+        sev_value = self.severity if isinstance(self.severity, AuditSeverity) else AuditSeverity(self.severity)
+        cef_severity = severity_map.get(sev_value, 5)
+
+        # Build extension fields
+        extensions = []
+        if self.user_id:
+            extensions.append(f"suid={self.user_id}")
+        if self.username:
+            extensions.append(f"suser={self.username}")
+        if self.ip_address:
+            extensions.append(f"src={self.ip_address}")
+        if self.resource_id:
+            extensions.append(f"cs1={self.resource_id}")
+            extensions.append("cs1Label=ResourceID")
+        if self.tenant_id:
+            extensions.append(f"cs2={self.tenant_id}")
+            extensions.append("cs2Label=TenantID")
+        if self.endpoint:
+            extensions.append(f"request={self.endpoint}")
+        if self.method:
+            extensions.append(f"requestMethod={self.method}")
+        extensions.append(f"outcome={'Success' if self.success else 'Failure'}")
+        extensions.append(f"rt={int(self.timestamp.timestamp() * 1000)}")
+
+        action_str = self.action.value if isinstance(self.action, AuditAction) else self.action
+        category_str = self.category.value if isinstance(self.category, AuditCategory) else self.category
+
+        return (
+            f"CEF:{CEF_VERSION}|{CEF_DEVICE_VENDOR}|{CEF_DEVICE_PRODUCT}|"
+            f"{CEF_DEVICE_VERSION}|{action_str}|{category_str}|{cef_severity}|"
+            f"{' '.join(extensions)}"
+        )
+
+    def to_syslog(self, facility: int = 13, hostname: str = None) -> bytes:
+        """Convert to RFC 5424 syslog format"""
+        severity_map = {
+            AuditSeverity.DEBUG: 7,
+            AuditSeverity.INFO: 6,
+            AuditSeverity.WARNING: 4,
+            AuditSeverity.ERROR: 3,
+            AuditSeverity.CRITICAL: 2
+        }
+        sev_value = self.severity if isinstance(self.severity, AuditSeverity) else AuditSeverity(self.severity)
+        priority = facility * 8 + severity_map.get(sev_value, 6)
+
+        hostname = hostname or socket.gethostname()
+        timestamp = self.timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        app_name = "FabricaDeAgentes"
+        proc_id = self.audit_id
+        msg_id = self.action.value if isinstance(self.action, AuditAction) else self.action
+
+        structured_data = (
+            f'[audit@47450 user_id="{self.user_id or "-"}" '
+            f'resource_type="{self.resource_type}" '
+            f'resource_id="{self.resource_id or "-"}" '
+            f'success="{self.success}"]'
+        )
+
+        message = json.dumps(self.to_dict(), default=str)
+
+        syslog_msg = (
+            f"<{priority}>1 {timestamp} {hostname} {app_name} "
+            f"{proc_id} {msg_id} {structured_data} {message}"
+        )
+
+        return syslog_msg.encode("utf-8")
+
+    def to_splunk_hec(self) -> Dict[str, Any]:
+        """Convert to Splunk HTTP Event Collector format"""
+        return {
+            "time": self.timestamp.timestamp(),
+            "host": socket.gethostname(),
+            "source": "fabrica_de_agentes",
+            "sourcetype": "audit_log",
+            "index": SIEM_INDEX,
+            "event": self.to_dict()
+        }
+
+    def to_elasticsearch(self) -> Dict[str, Any]:
+        """Convert to Elasticsearch document format"""
+        doc = self.to_dict()
+        doc["@timestamp"] = self.timestamp.isoformat()
+        doc["_index"] = f"{SIEM_INDEX}-{self.timestamp.strftime('%Y.%m.%d')}"
+        return doc
 
 
 class AuditQuery(BaseModel):
@@ -219,13 +379,255 @@ class AuditQuery(BaseModel):
     success: Optional[bool] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    data_subject_id: Optional[str] = None  # GDPR: find all access to specific person's data
+    correlation_id: Optional[str] = None  # Find related events
+    ip_address: Optional[str] = None  # Filter by IP
+    data_classification: Optional[str] = None  # Filter by data classification
     limit: int = Field(default=100, le=1000)
     offset: int = 0
+
+
+class RetentionPolicy(BaseModel):
+    """Configurable retention policy for audit logs"""
+    category: str
+    retention_days: int = Field(default=365, ge=30, le=2555)
+    archive_after_days: int = Field(default=90, ge=7, le=365)
+    compress_archive: bool = True
+    delete_after_archive: bool = False
+    notify_before_delete_days: int = Field(default=30, ge=7, le=90)
+
+
+class SIEMExportConfig(BaseModel):
+    """SIEM export configuration"""
+    siem_type: str = Field(default="syslog", pattern="^(syslog|splunk|elasticsearch|fluentd)$")
+    host: str
+    port: int = Field(default=514, ge=1, le=65535)
+    protocol: str = Field(default="udp", pattern="^(udp|tcp|http|https)$")
+    token: Optional[str] = None  # For Splunk HEC
+    index: str = Field(default="audit_logs")
+    batch_size: int = Field(default=100, ge=1, le=1000)
+    flush_interval_seconds: int = Field(default=5, ge=1, le=60)
+    tls_enabled: bool = False
+    tls_verify: bool = True
+    format: str = Field(default="json", pattern="^(json|cef|syslog)$")
 
 
 # =============================================================================
 # AUDIT LOGGER - Core Implementation
 # =============================================================================
+
+class SIEMExporter:
+    """
+    SIEM (Security Information and Event Management) Exporter.
+
+    Supports multiple SIEM platforms:
+    - Syslog (RFC 5424)
+    - Splunk (HTTP Event Collector)
+    - Elasticsearch
+    - Fluentd
+
+    Thread-safe with batching for performance.
+    """
+
+    def __init__(self, config: SIEMExportConfig = None):
+        self.config = config or SIEMExportConfig(
+            siem_type=SIEM_TYPE,
+            host=SIEM_HOST,
+            port=SIEM_PORT,
+            protocol=SIEM_PROTOCOL,
+            token=SIEM_TOKEN,
+            index=SIEM_INDEX,
+            batch_size=SIEM_BATCH_SIZE,
+            flush_interval_seconds=SIEM_FLUSH_INTERVAL
+        )
+        self._batch: List[AuditEntry] = []
+        self._batch_lock = threading.Lock()
+        self._socket: Optional[socket.socket] = None
+        self._flush_thread: Optional[threading.Thread] = None
+        self._running = False
+        self._logger = logging.getLogger("SIEMExporter")
+
+    def start(self):
+        """Start the SIEM exporter background thread"""
+        if not SIEM_ENABLED:
+            return
+
+        self._running = True
+        self._flush_thread = threading.Thread(target=self._flush_loop, daemon=True)
+        self._flush_thread.start()
+        self._logger.info(f"SIEM exporter started: {self.config.siem_type}://{self.config.host}:{self.config.port}")
+
+    def stop(self):
+        """Stop the SIEM exporter and flush remaining entries"""
+        self._running = False
+        if self._flush_thread:
+            self._flush_thread.join(timeout=10)
+        self._flush_batch()
+        if self._socket:
+            self._socket.close()
+
+    def export(self, entry: AuditEntry):
+        """Add entry to batch for export"""
+        if not SIEM_ENABLED:
+            return
+
+        with self._batch_lock:
+            self._batch.append(entry)
+            if len(self._batch) >= self.config.batch_size:
+                self._flush_batch()
+
+    def _flush_loop(self):
+        """Background thread to periodically flush batches"""
+        while self._running:
+            time.sleep(self.config.flush_interval_seconds)
+            self._flush_batch()
+
+    def _flush_batch(self):
+        """Flush current batch to SIEM"""
+        with self._batch_lock:
+            if not self._batch:
+                return
+
+            entries_to_send = self._batch.copy()
+            self._batch.clear()
+
+        try:
+            if self.config.siem_type == "syslog":
+                self._send_syslog(entries_to_send)
+            elif self.config.siem_type == "splunk":
+                self._send_splunk(entries_to_send)
+            elif self.config.siem_type == "elasticsearch":
+                self._send_elasticsearch(entries_to_send)
+            elif self.config.siem_type == "fluentd":
+                self._send_fluentd(entries_to_send)
+        except Exception as e:
+            self._logger.error(f"SIEM export failed: {e}")
+            # Re-add entries to batch for retry (with limit to prevent memory issues)
+            with self._batch_lock:
+                if len(self._batch) < self.config.batch_size * 10:
+                    self._batch.extend(entries_to_send)
+
+    def _get_socket(self) -> socket.socket:
+        """Get or create socket connection"""
+        if self._socket is None:
+            if self.config.protocol == "udp":
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            else:
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self._socket.connect((self.config.host, self.config.port))
+        return self._socket
+
+    def _send_syslog(self, entries: List[AuditEntry]):
+        """Send entries via syslog protocol"""
+        sock = self._get_socket()
+        for entry in entries:
+            if self.config.format == "cef":
+                message = entry.to_cef().encode("utf-8")
+            else:
+                message = entry.to_syslog()
+
+            if self.config.protocol == "udp":
+                sock.sendto(message, (self.config.host, self.config.port))
+            else:
+                sock.send(message + b"\n")
+
+    def _send_splunk(self, entries: List[AuditEntry]):
+        """Send entries to Splunk HEC"""
+        import urllib.request
+        import ssl
+
+        url = f"{'https' if self.config.tls_enabled else 'http'}://{self.config.host}:{self.config.port}/services/collector/event"
+
+        for entry in entries:
+            data = json.dumps(entry.to_splunk_hec()).encode("utf-8")
+
+            req = urllib.request.Request(url, data=data, method="POST")
+            req.add_header("Authorization", f"Splunk {self.config.token}")
+            req.add_header("Content-Type", "application/json")
+
+            context = None
+            if self.config.tls_enabled and not self.config.tls_verify:
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
+
+            urllib.request.urlopen(req, timeout=10, context=context)
+
+    def _send_elasticsearch(self, entries: List[AuditEntry]):
+        """Send entries to Elasticsearch"""
+        import urllib.request
+        import ssl
+
+        url = f"{'https' if self.config.tls_enabled else 'http'}://{self.config.host}:{self.config.port}/_bulk"
+
+        # Build bulk request body
+        bulk_body = ""
+        for entry in entries:
+            doc = entry.to_elasticsearch()
+            index_name = doc.pop("_index")
+            bulk_body += json.dumps({"index": {"_index": index_name}}) + "\n"
+            bulk_body += json.dumps(doc) + "\n"
+
+        req = urllib.request.Request(url, data=bulk_body.encode("utf-8"), method="POST")
+        req.add_header("Content-Type", "application/x-ndjson")
+
+        if self.config.token:
+            req.add_header("Authorization", f"ApiKey {self.config.token}")
+
+        context = None
+        if self.config.tls_enabled and not self.config.tls_verify:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+
+        urllib.request.urlopen(req, timeout=30, context=context)
+
+    def _send_fluentd(self, entries: List[AuditEntry]):
+        """Send entries to Fluentd via forward protocol"""
+        sock = self._get_socket()
+        tag = "fabrica.audit"
+
+        for entry in entries:
+            # Fluentd forward protocol: [tag, timestamp, record]
+            record = entry.to_dict()
+            timestamp = int(entry.timestamp.timestamp())
+            message = json.dumps([tag, timestamp, record]).encode("utf-8")
+            sock.send(struct.pack(">I", len(message)) + message)
+
+    def export_batch(self, entries: List[AuditEntry], format: str = "json") -> bytes:
+        """
+        Export entries as a batch for download/archival.
+
+        Args:
+            entries: List of audit entries
+            format: Export format (json, csv, cef)
+
+        Returns:
+            Compressed bytes of the export
+        """
+        if format == "json":
+            data = json.dumps([e.to_dict() for e in entries], indent=2, default=str)
+        elif format == "cef":
+            data = "\n".join(e.to_cef() for e in entries)
+        elif format == "csv":
+            import csv
+            import io as csv_io
+            output = csv_io.StringIO()
+            if entries:
+                writer = csv.DictWriter(output, fieldnames=entries[0].to_dict().keys())
+                writer.writeheader()
+                for e in entries:
+                    writer.writerow(e.to_dict())
+            data = output.getvalue()
+        else:
+            data = json.dumps([e.to_dict() for e in entries], default=str)
+
+        # Compress with gzip
+        buffer = io.BytesIO()
+        with gzip.GzipFile(fileobj=buffer, mode="wb") as f:
+            f.write(data.encode("utf-8"))
+        return buffer.getvalue()
+
 
 class AuditLogger:
     """
@@ -233,6 +635,7 @@ class AuditLogger:
 
     Thread-safe, supports async logging for performance.
     Maintains integrity chain with HMAC checksums.
+    Supports SIEM export and configurable retention.
 
     Usage:
         logger = AuditLogger()
@@ -245,18 +648,32 @@ class AuditLogger:
             ip_address="192.168.1.1"
         )
 
-        # Log data access
+        # Log data access with GDPR fields
         logger.log_data_access(
             action=AuditAction.DATA_READ,
             resource_type="stories",
             resource_id="STR-0001",
-            user_id=123
+            user_id=123,
+            data_subject_id="customer-456",
+            legal_basis="contract"
+        )
+
+        # Log data modification with old/new values
+        logger.log_data_modification(
+            action=AuditAction.DATA_UPDATE,
+            resource_type="users",
+            resource_id="USR-123",
+            old_value={"status": "active"},
+            new_value={"status": "inactive"}
         )
 
         # Decorator for automatic logging
         @audit_log(action=AuditAction.DATA_CREATE, resource_type="projects")
         async def create_project(...):
             ...
+
+        # Export to SIEM
+        logger.export_to_siem(start_date, end_date, format="cef")
     """
 
     _instance = None
@@ -264,6 +681,8 @@ class AuditLogger:
     _last_checksum: Optional[str] = None
     _write_queue: Queue = Queue()
     _writer_thread: Optional[threading.Thread] = None
+    _siem_exporter: Optional[SIEMExporter] = None
+    _retention_policies: Dict[str, RetentionPolicy] = {}
 
     def __new__(cls):
         """Singleton pattern for global logger"""
@@ -279,6 +698,8 @@ class AuditLogger:
             return
         self._initialized = True
         self._start_async_writer()
+        self._start_siem_exporter()
+        self._load_retention_policies()
 
     def _start_async_writer(self):
         """Start background thread for async log writing"""
@@ -298,11 +719,36 @@ class AuditLogger:
         self._writer_thread = threading.Thread(target=writer, daemon=True)
         self._writer_thread.start()
 
+    def _start_siem_exporter(self):
+        """Start SIEM exporter if enabled"""
+        if SIEM_ENABLED:
+            self._siem_exporter = SIEMExporter()
+            self._siem_exporter.start()
+
+    def _load_retention_policies(self):
+        """Load retention policies from configuration"""
+        for category, days in RETENTION_CONFIG.items():
+            self._retention_policies[category] = RetentionPolicy(
+                category=category,
+                retention_days=days,
+                archive_after_days=min(days, AUDIT_ARCHIVE_DAYS)
+            )
+
+    def set_retention_policy(self, policy: RetentionPolicy):
+        """Set or update a retention policy for a category"""
+        self._retention_policies[policy.category] = policy
+
+    def get_retention_policy(self, category: str) -> Optional[RetentionPolicy]:
+        """Get retention policy for a category"""
+        return self._retention_policies.get(category)
+
     def stop(self):
-        """Stop the async writer thread"""
+        """Stop the async writer thread and SIEM exporter"""
         if self._writer_thread:
             self._write_queue.put(None)
             self._writer_thread.join(timeout=5)
+        if self._siem_exporter:
+            self._siem_exporter.stop()
 
     # -------------------------------------------------------------------------
     # Core Logging Methods

@@ -1,0 +1,716 @@
+# Pod Security Standards (PSS) - Issue #93
+# Implements PSS Restricted Profile for Fabrica de Agentes
+# Compatible with Kubernetes 1.25+ Pod Security Admission (PSA)
+
+---
+# Namespace with PSS Restricted enforcement
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: factory
+  labels:
+    app.kubernetes.io/name: factory
+    app.kubernetes.io/part-of: fabrica-de-agentes
+    # Pod Security Admission Labels - RESTRICTED profile
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.28
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: v1.28
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: v1.28
+
+---
+# Namespace for staging with baseline (less restrictive for debugging)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: factory-staging
+  labels:
+    app.kubernetes.io/name: factory-staging
+    app.kubernetes.io/part-of: fabrica-de-agentes
+    environment: staging
+    # Pod Security Admission - BASELINE for staging
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: v1.28
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: v1.28
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: v1.28
+
+---
+# ServiceAccount with minimal permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-api
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-api
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-worker
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-worker
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-dashboard
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-dashboard
+automountServiceAccountToken: false
+
+---
+# Role with minimal RBAC permissions for API
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: factory-api-role
+  namespace: factory
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["factory-config"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["factory-secrets"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: factory-api-rolebinding
+  namespace: factory
+subjects:
+  - kind: ServiceAccount
+    name: factory-api
+    namespace: factory
+roleRef:
+  kind: Role
+  name: factory-api-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Factory API Deployment with PSS Restricted SecurityContext
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-api
+  namespace: factory
+  labels:
+    app: factory-api
+    app.kubernetes.io/name: factory-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: fabrica-de-agentes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: factory-api
+  template:
+    metadata:
+      labels:
+        app: factory-api
+        app.kubernetes.io/name: factory-api
+        vault-access: "true"
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+    spec:
+      serviceAccountName: factory-api
+      automountServiceAccountToken: false
+
+      # Pod-level Security Context (PSS Restricted)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Anti-affinity for HA
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - factory-api
+                topologyKey: kubernetes.io/hostname
+
+      containers:
+        - name: api
+          image: ghcr.io/lcruz/fabrica-de-agentes/api:latest
+          imagePullPolicy: Always
+
+          # Container-level Security Context (PSS Restricted)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: factory-config
+            - secretRef:
+                name: factory-secrets
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          # Volume mounts for read-only root filesystem
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /home/app/.cache
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 200Mi
+        - name: config
+          configMap:
+            name: factory-config
+
+      # Topology spread for availability
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: factory-api
+
+---
+# Factory Worker Deployment with PSS Restricted SecurityContext
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-worker
+  namespace: factory
+  labels:
+    app: factory-worker
+    app.kubernetes.io/name: factory-worker
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: fabrica-de-agentes
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: factory-worker
+  template:
+    metadata:
+      labels:
+        app: factory-worker
+        app.kubernetes.io/name: factory-worker
+        vault-access: "true"
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+    spec:
+      serviceAccountName: factory-worker
+      automountServiceAccountToken: false
+
+      # Pod-level Security Context (PSS Restricted)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: worker
+          image: ghcr.io/lcruz/fabrica-de-agentes/worker:latest
+          imagePullPolicy: Always
+
+          # Container-level Security Context (PSS Restricted)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: factory-config
+            - secretRef:
+                name: factory-secrets
+
+          env:
+            - name: WORKER_CONCURRENCY
+              value: "4"
+            - name: WORKER_QUEUE
+              value: "default,high,low"
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: workspace
+              mountPath: /workspace
+            - name: cache
+              mountPath: /home/app/.cache
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 500Mi
+        - name: workspace
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: cache
+          emptyDir:
+            sizeLimit: 500Mi
+
+---
+# Factory Dashboard Deployment with PSS Restricted SecurityContext
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-dashboard
+  namespace: factory
+  labels:
+    app: factory-dashboard
+    app.kubernetes.io/name: factory-dashboard
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/part-of: fabrica-de-agentes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: factory-dashboard
+  template:
+    metadata:
+      labels:
+        app: factory-dashboard
+        app.kubernetes.io/name: factory-dashboard
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+    spec:
+      serviceAccountName: factory-dashboard
+      automountServiceAccountToken: false
+
+      # Pod-level Security Context (PSS Restricted)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: dashboard
+          image: ghcr.io/lcruz/fabrica-de-agentes/dashboard:latest
+          imagePullPolicy: Always
+
+          # Container-level Security Context (PSS Restricted)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+          ports:
+            - name: http
+              containerPort: 9001
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: factory-config
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: static
+              mountPath: /app/static
+              readOnly: true
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 50Mi
+        - name: static
+          emptyDir:
+            sizeLimit: 100Mi
+
+---
+# LimitRange for enforcing resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: factory-limit-range
+  namespace: factory
+spec:
+  limits:
+    - type: Container
+      default:
+        memory: "512Mi"
+        cpu: "500m"
+      defaultRequest:
+        memory: "128Mi"
+        cpu: "100m"
+      max:
+        memory: "4Gi"
+        cpu: "4"
+      min:
+        memory: "64Mi"
+        cpu: "50m"
+    - type: Pod
+      max:
+        memory: "8Gi"
+        cpu: "8"
+    - type: PersistentVolumeClaim
+      max:
+        storage: "100Gi"
+      min:
+        storage: "1Gi"
+
+---
+# ResourceQuota for namespace limits
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: factory-resource-quota
+  namespace: factory
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: "40Gi"
+    limits.cpu: "40"
+    limits.memory: "80Gi"
+    pods: "100"
+    services: "30"
+    secrets: "100"
+    configmaps: "100"
+    persistentvolumeclaims: "30"
+    services.loadbalancers: "3"
+    services.nodeports: "10"
+    count/deployments.apps: "30"
+    count/replicasets.apps: "60"
+    count/jobs.batch: "50"
+    count/cronjobs.batch: "10"
+
+---
+# PodDisruptionBudget for API
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: factory-api-pdb
+  namespace: factory
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: factory-api
+
+---
+# PodDisruptionBudget for Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: factory-worker-pdb
+  namespace: factory
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: factory-worker
+
+---
+# PodDisruptionBudget for Dashboard
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: factory-dashboard-pdb
+  namespace: factory
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: factory-dashboard
+
+---
+# Priority Class for critical workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: factory-critical
+value: 1000000
+globalDefault: false
+description: "Priority class for critical factory components"
+
+---
+# Priority Class for standard workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: factory-standard
+value: 100000
+globalDefault: false
+description: "Priority class for standard factory workloads"
+
+---
+# Network Policy - Default Deny All
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: factory
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Network Policy - Allow API traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-ingress
+  namespace: factory
+spec:
+  podSelector:
+    matchLabels:
+      app: factory-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: factory
+          podSelector:
+            matchLabels:
+              app: factory-dashboard
+      ports:
+        - protocol: TCP
+          port: 8000
+
+---
+# Network Policy - Allow Dashboard traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dashboard-ingress
+  namespace: factory
+spec:
+  podSelector:
+    matchLabels:
+      app: factory-dashboard
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 9001
+
+---
+# Network Policy - Allow egress to databases
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-database-egress
+  namespace: factory
+spec:
+  podSelector:
+    matchLabels:
+      vault-access: "true"
+  policyTypes:
+    - Egress
+  egress:
+    # PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Vault
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault
+      ports:
+        - protocol: TCP
+          port: 8200
+    # External HTTPS (Claude API)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

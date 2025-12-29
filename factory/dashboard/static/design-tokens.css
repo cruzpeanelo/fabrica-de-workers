@@ -1,0 +1,659 @@
+/**
+ * Design Tokens CSS - Fabrica de Agentes v6.5
+ * =============================================
+ *
+ * Sistema completo de Design Tokens para consistencia visual.
+ * Inclui: cores, espacamento, tipografia, sombras, borders, e temas.
+ *
+ * Uso:
+ * 1. Incluir no HTML: <link rel="stylesheet" href="/static/design-tokens.css">
+ * 2. Usar variaveis CSS: var(--token-name)
+ * 3. Alternar tema: document.documentElement.setAttribute('data-theme', 'dark')
+ *
+ * Issue #79 - Sistema de Design Tokens Completo
+ */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES - DESIGN TOKENS
+   ============================================================================= */
+
+:root {
+  /* =========================================================================
+     CORES - COLOR TOKENS
+     ========================================================================= */
+
+  /* --- Cores Primarias (Brand) --- */
+  --dt-color-primary-50: #E6F0F2;
+  --dt-color-primary-100: #CCE0E5;
+  --dt-color-primary-200: #99C2CB;
+  --dt-color-primary-300: #66A3B1;
+  --dt-color-primary-400: #338597;
+  --dt-color-primary-500: #003B4A;  /* Azul Belgo - Principal */
+  --dt-color-primary-600: #00526A;
+  --dt-color-primary-700: #003D50;
+  --dt-color-primary-800: #002835;
+  --dt-color-primary-900: #00141B;
+
+  /* --- Cores Secundarias (Accent) --- */
+  --dt-color-secondary-50: #FFF0E6;
+  --dt-color-secondary-100: #FFE0CC;
+  --dt-color-secondary-200: #FFC299;
+  --dt-color-secondary-300: #FFA366;
+  --dt-color-secondary-400: #FF8533;
+  --dt-color-secondary-500: #FF6C00;  /* Laranja Belgo - Principal */
+  --dt-color-secondary-600: #E65C00;
+  --dt-color-secondary-700: #CC5200;
+  --dt-color-secondary-800: #B34700;
+  --dt-color-secondary-900: #993D00;
+
+  /* --- Cores Neutras (Gray Scale) --- */
+  --dt-color-neutral-0: #FFFFFF;
+  --dt-color-neutral-50: #F9FAFB;
+  --dt-color-neutral-100: #F3F4F6;
+  --dt-color-neutral-200: #E5E7EB;
+  --dt-color-neutral-300: #D1D5DB;
+  --dt-color-neutral-400: #9CA3AF;
+  --dt-color-neutral-500: #6B7280;
+  --dt-color-neutral-600: #4B5563;
+  --dt-color-neutral-700: #374151;
+  --dt-color-neutral-800: #1F2937;
+  --dt-color-neutral-900: #111827;
+  --dt-color-neutral-950: #030712;
+
+  /* --- Cores Semanticas (Status) --- */
+  --dt-color-success-50: #ECFDF5;
+  --dt-color-success-100: #D1FAE5;
+  --dt-color-success-200: #A7F3D0;
+  --dt-color-success-300: #6EE7B7;
+  --dt-color-success-400: #34D399;
+  --dt-color-success-500: #10B981;
+  --dt-color-success-600: #059669;
+  --dt-color-success-700: #047857;
+  --dt-color-success-800: #065F46;
+  --dt-color-success-900: #064E3B;
+
+  --dt-color-warning-50: #FFFBEB;
+  --dt-color-warning-100: #FEF3C7;
+  --dt-color-warning-200: #FDE68A;
+  --dt-color-warning-300: #FCD34D;
+  --dt-color-warning-400: #FBBF24;
+  --dt-color-warning-500: #F59E0B;
+  --dt-color-warning-600: #D97706;
+  --dt-color-warning-700: #B45309;
+  --dt-color-warning-800: #92400E;
+  --dt-color-warning-900: #78350F;
+
+  --dt-color-error-50: #FEF2F2;
+  --dt-color-error-100: #FEE2E2;
+  --dt-color-error-200: #FECACA;
+  --dt-color-error-300: #FCA5A5;
+  --dt-color-error-400: #F87171;
+  --dt-color-error-500: #EF4444;
+  --dt-color-error-600: #DC2626;
+  --dt-color-error-700: #B91C1C;
+  --dt-color-error-800: #991B1B;
+  --dt-color-error-900: #7F1D1D;
+
+  --dt-color-info-50: #EFF6FF;
+  --dt-color-info-100: #DBEAFE;
+  --dt-color-info-200: #BFDBFE;
+  --dt-color-info-300: #93C5FD;
+  --dt-color-info-400: #60A5FA;
+  --dt-color-info-500: #3B82F6;
+  --dt-color-info-600: #2563EB;
+  --dt-color-info-700: #1D4ED8;
+  --dt-color-info-800: #1E40AF;
+  --dt-color-info-900: #1E3A8A;
+
+  /* --- Cores de Kanban (Status) --- */
+  --dt-color-kanban-backlog: #9CA3AF;
+  --dt-color-kanban-ready: #3B82F6;
+  --dt-color-kanban-in-progress: #F59E0B;
+  --dt-color-kanban-review: #8B5CF6;
+  --dt-color-kanban-testing: #06B6D4;
+  --dt-color-kanban-done: #10B981;
+
+  /* =========================================================================
+     ESPACAMENTO - SPACING TOKENS
+     ========================================================================= */
+
+  /* --- Escala Base (4px) --- */
+  --dt-space-0: 0;
+  --dt-space-px: 1px;
+  --dt-space-0-5: 0.125rem;   /* 2px */
+  --dt-space-1: 0.25rem;      /* 4px */
+  --dt-space-1-5: 0.375rem;   /* 6px */
+  --dt-space-2: 0.5rem;       /* 8px */
+  --dt-space-2-5: 0.625rem;   /* 10px */
+  --dt-space-3: 0.75rem;      /* 12px */
+  --dt-space-3-5: 0.875rem;   /* 14px */
+  --dt-space-4: 1rem;         /* 16px */
+  --dt-space-5: 1.25rem;      /* 20px */
+  --dt-space-6: 1.5rem;       /* 24px */
+  --dt-space-7: 1.75rem;      /* 28px */
+  --dt-space-8: 2rem;         /* 32px */
+  --dt-space-9: 2.25rem;      /* 36px */
+  --dt-space-10: 2.5rem;      /* 40px */
+  --dt-space-11: 2.75rem;     /* 44px */
+  --dt-space-12: 3rem;        /* 48px */
+  --dt-space-14: 3.5rem;      /* 56px */
+  --dt-space-16: 4rem;        /* 64px */
+  --dt-space-20: 5rem;        /* 80px */
+  --dt-space-24: 6rem;        /* 96px */
+  --dt-space-28: 7rem;        /* 112px */
+  --dt-space-32: 8rem;        /* 128px */
+  --dt-space-36: 9rem;        /* 144px */
+  --dt-space-40: 10rem;       /* 160px */
+  --dt-space-44: 11rem;       /* 176px */
+  --dt-space-48: 12rem;       /* 192px */
+  --dt-space-52: 13rem;       /* 208px */
+  --dt-space-56: 14rem;       /* 224px */
+  --dt-space-60: 15rem;       /* 240px */
+  --dt-space-64: 16rem;       /* 256px */
+  --dt-space-72: 18rem;       /* 288px */
+  --dt-space-80: 20rem;       /* 320px */
+  --dt-space-96: 24rem;       /* 384px */
+
+  /* --- Espacamento Semantico --- */
+  --dt-space-content-padding: var(--dt-space-4);
+  --dt-space-section-gap: var(--dt-space-8);
+  --dt-space-card-padding: var(--dt-space-4);
+  --dt-space-button-padding-x: var(--dt-space-4);
+  --dt-space-button-padding-y: var(--dt-space-2);
+  --dt-space-input-padding-x: var(--dt-space-3);
+  --dt-space-input-padding-y: var(--dt-space-2);
+
+  /* =========================================================================
+     TIPOGRAFIA - TYPOGRAPHY TOKENS
+     ========================================================================= */
+
+  /* --- Font Families --- */
+  --dt-font-family-sans: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --dt-font-family-serif: 'Georgia', 'Cambria', 'Times New Roman', Times, serif;
+  --dt-font-family-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Liberation Mono', monospace;
+
+  /* --- Font Sizes --- */
+  --dt-font-size-2xs: 0.625rem;   /* 10px */
+  --dt-font-size-xs: 0.75rem;     /* 12px */
+  --dt-font-size-sm: 0.875rem;    /* 14px */
+  --dt-font-size-base: 1rem;      /* 16px */
+  --dt-font-size-lg: 1.125rem;    /* 18px */
+  --dt-font-size-xl: 1.25rem;     /* 20px */
+  --dt-font-size-2xl: 1.5rem;     /* 24px */
+  --dt-font-size-3xl: 1.875rem;   /* 30px */
+  --dt-font-size-4xl: 2.25rem;    /* 36px */
+  --dt-font-size-5xl: 3rem;       /* 48px */
+  --dt-font-size-6xl: 3.75rem;    /* 60px */
+  --dt-font-size-7xl: 4.5rem;     /* 72px */
+  --dt-font-size-8xl: 6rem;       /* 96px */
+  --dt-font-size-9xl: 8rem;       /* 128px */
+
+  /* --- Font Weights --- */
+  --dt-font-weight-thin: 100;
+  --dt-font-weight-extralight: 200;
+  --dt-font-weight-light: 300;
+  --dt-font-weight-normal: 400;
+  --dt-font-weight-medium: 500;
+  --dt-font-weight-semibold: 600;
+  --dt-font-weight-bold: 700;
+  --dt-font-weight-extrabold: 800;
+  --dt-font-weight-black: 900;
+
+  /* --- Line Heights --- */
+  --dt-line-height-none: 1;
+  --dt-line-height-tight: 1.25;
+  --dt-line-height-snug: 1.375;
+  --dt-line-height-normal: 1.5;
+  --dt-line-height-relaxed: 1.625;
+  --dt-line-height-loose: 2;
+
+  /* --- Letter Spacing --- */
+  --dt-letter-spacing-tighter: -0.05em;
+  --dt-letter-spacing-tight: -0.025em;
+  --dt-letter-spacing-normal: 0;
+  --dt-letter-spacing-wide: 0.025em;
+  --dt-letter-spacing-wider: 0.05em;
+  --dt-letter-spacing-widest: 0.1em;
+
+  /* --- Typography Presets --- */
+  --dt-text-display-large: var(--dt-font-weight-bold) var(--dt-font-size-5xl)/var(--dt-line-height-tight) var(--dt-font-family-sans);
+  --dt-text-display-medium: var(--dt-font-weight-bold) var(--dt-font-size-4xl)/var(--dt-line-height-tight) var(--dt-font-family-sans);
+  --dt-text-display-small: var(--dt-font-weight-bold) var(--dt-font-size-3xl)/var(--dt-line-height-tight) var(--dt-font-family-sans);
+  --dt-text-heading-large: var(--dt-font-weight-semibold) var(--dt-font-size-2xl)/var(--dt-line-height-tight) var(--dt-font-family-sans);
+  --dt-text-heading-medium: var(--dt-font-weight-semibold) var(--dt-font-size-xl)/var(--dt-line-height-snug) var(--dt-font-family-sans);
+  --dt-text-heading-small: var(--dt-font-weight-semibold) var(--dt-font-size-lg)/var(--dt-line-height-snug) var(--dt-font-family-sans);
+  --dt-text-body-large: var(--dt-font-weight-normal) var(--dt-font-size-lg)/var(--dt-line-height-relaxed) var(--dt-font-family-sans);
+  --dt-text-body-medium: var(--dt-font-weight-normal) var(--dt-font-size-base)/var(--dt-line-height-normal) var(--dt-font-family-sans);
+  --dt-text-body-small: var(--dt-font-weight-normal) var(--dt-font-size-sm)/var(--dt-line-height-normal) var(--dt-font-family-sans);
+  --dt-text-caption: var(--dt-font-weight-normal) var(--dt-font-size-xs)/var(--dt-line-height-normal) var(--dt-font-family-sans);
+  --dt-text-overline: var(--dt-font-weight-semibold) var(--dt-font-size-xs)/var(--dt-line-height-normal) var(--dt-font-family-sans);
+
+  /* =========================================================================
+     SOMBRAS - SHADOW TOKENS
+     ========================================================================= */
+
+  --dt-shadow-none: none;
+  --dt-shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --dt-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --dt-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --dt-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --dt-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --dt-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --dt-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --dt-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+
+  /* --- Sombras Coloridas --- */
+  --dt-shadow-primary: 0 4px 14px 0 rgba(0, 59, 74, 0.25);
+  --dt-shadow-secondary: 0 4px 14px 0 rgba(255, 108, 0, 0.25);
+  --dt-shadow-success: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
+  --dt-shadow-warning: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
+  --dt-shadow-error: 0 4px 14px 0 rgba(239, 68, 68, 0.25);
+
+  /* --- Sombras de Focus --- */
+  --dt-shadow-focus-primary: 0 0 0 3px rgba(0, 59, 74, 0.3);
+  --dt-shadow-focus-secondary: 0 0 0 3px rgba(255, 108, 0, 0.3);
+  --dt-shadow-focus-success: 0 0 0 3px rgba(16, 185, 129, 0.3);
+  --dt-shadow-focus-error: 0 0 0 3px rgba(239, 68, 68, 0.3);
+
+  /* =========================================================================
+     BORDAS - BORDER TOKENS
+     ========================================================================= */
+
+  /* --- Border Width --- */
+  --dt-border-width-0: 0;
+  --dt-border-width-1: 1px;
+  --dt-border-width-2: 2px;
+  --dt-border-width-4: 4px;
+  --dt-border-width-8: 8px;
+
+  /* --- Border Radius --- */
+  --dt-border-radius-none: 0;
+  --dt-border-radius-sm: 0.125rem;   /* 2px */
+  --dt-border-radius: 0.25rem;       /* 4px */
+  --dt-border-radius-md: 0.375rem;   /* 6px */
+  --dt-border-radius-lg: 0.5rem;     /* 8px */
+  --dt-border-radius-xl: 0.75rem;    /* 12px */
+  --dt-border-radius-2xl: 1rem;      /* 16px */
+  --dt-border-radius-3xl: 1.5rem;    /* 24px */
+  --dt-border-radius-full: 9999px;
+
+  /* --- Border Styles (Compound) --- */
+  --dt-border-default: var(--dt-border-width-1) solid var(--dt-color-neutral-200);
+  --dt-border-strong: var(--dt-border-width-2) solid var(--dt-color-neutral-300);
+  --dt-border-focus: var(--dt-border-width-2) solid var(--dt-color-primary-500);
+  --dt-border-error: var(--dt-border-width-1) solid var(--dt-color-error-500);
+  --dt-border-success: var(--dt-border-width-1) solid var(--dt-color-success-500);
+
+  /* =========================================================================
+     TRANSICOES - TRANSITION TOKENS
+     ========================================================================= */
+
+  /* --- Duration --- */
+  --dt-duration-0: 0ms;
+  --dt-duration-75: 75ms;
+  --dt-duration-100: 100ms;
+  --dt-duration-150: 150ms;
+  --dt-duration-200: 200ms;
+  --dt-duration-300: 300ms;
+  --dt-duration-500: 500ms;
+  --dt-duration-700: 700ms;
+  --dt-duration-1000: 1000ms;
+
+  /* --- Easing --- */
+  --dt-ease-linear: linear;
+  --dt-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --dt-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --dt-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dt-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* --- Transition Presets --- */
+  --dt-transition-none: none;
+  --dt-transition-all: all var(--dt-duration-150) var(--dt-ease-in-out);
+  --dt-transition-colors: color, background-color, border-color, text-decoration-color, fill, stroke var(--dt-duration-150) var(--dt-ease-in-out);
+  --dt-transition-opacity: opacity var(--dt-duration-150) var(--dt-ease-in-out);
+  --dt-transition-shadow: box-shadow var(--dt-duration-150) var(--dt-ease-in-out);
+  --dt-transition-transform: transform var(--dt-duration-150) var(--dt-ease-in-out);
+
+  /* =========================================================================
+     Z-INDEX - LAYER TOKENS
+     ========================================================================= */
+
+  --dt-z-auto: auto;
+  --dt-z-0: 0;
+  --dt-z-10: 10;
+  --dt-z-20: 20;
+  --dt-z-30: 30;
+  --dt-z-40: 40;
+  --dt-z-50: 50;
+  --dt-z-dropdown: 1000;
+  --dt-z-sticky: 1020;
+  --dt-z-fixed: 1030;
+  --dt-z-modal-backdrop: 1040;
+  --dt-z-modal: 1050;
+  --dt-z-popover: 1060;
+  --dt-z-tooltip: 1070;
+  --dt-z-toast: 1080;
+
+  /* =========================================================================
+     TAMANHOS - SIZE TOKENS
+     ========================================================================= */
+
+  /* --- Container Widths --- */
+  --dt-container-xs: 20rem;     /* 320px */
+  --dt-container-sm: 24rem;     /* 384px */
+  --dt-container-md: 28rem;     /* 448px */
+  --dt-container-lg: 32rem;     /* 512px */
+  --dt-container-xl: 36rem;     /* 576px */
+  --dt-container-2xl: 42rem;    /* 672px */
+  --dt-container-3xl: 48rem;    /* 768px */
+  --dt-container-4xl: 56rem;    /* 896px */
+  --dt-container-5xl: 64rem;    /* 1024px */
+  --dt-container-6xl: 72rem;    /* 1152px */
+  --dt-container-7xl: 80rem;    /* 1280px */
+  --dt-container-full: 100%;
+
+  /* --- Component Sizes --- */
+  --dt-size-header-height: 64px;
+  --dt-size-sidebar-width: 256px;
+  --dt-size-sidebar-collapsed: 64px;
+  --dt-size-footer-height: 48px;
+  --dt-size-button-sm: 32px;
+  --dt-size-button-md: 40px;
+  --dt-size-button-lg: 48px;
+  --dt-size-input-height: 40px;
+  --dt-size-icon-xs: 12px;
+  --dt-size-icon-sm: 16px;
+  --dt-size-icon-md: 20px;
+  --dt-size-icon-lg: 24px;
+  --dt-size-icon-xl: 32px;
+  --dt-size-avatar-xs: 24px;
+  --dt-size-avatar-sm: 32px;
+  --dt-size-avatar-md: 40px;
+  --dt-size-avatar-lg: 48px;
+  --dt-size-avatar-xl: 64px;
+
+  /* =========================================================================
+     BREAKPOINTS - RESPONSIVE TOKENS
+     ========================================================================= */
+
+  --dt-breakpoint-xs: 320px;
+  --dt-breakpoint-sm: 640px;
+  --dt-breakpoint-md: 768px;
+  --dt-breakpoint-lg: 1024px;
+  --dt-breakpoint-xl: 1280px;
+  --dt-breakpoint-2xl: 1536px;
+
+  /* =========================================================================
+     TEMA SEMANTICO - SEMANTIC THEME TOKENS
+     ========================================================================= */
+
+  /* --- Background --- */
+  --dt-bg-page: var(--dt-color-neutral-100);
+  --dt-bg-surface: var(--dt-color-neutral-0);
+  --dt-bg-surface-raised: var(--dt-color-neutral-0);
+  --dt-bg-surface-overlay: var(--dt-color-neutral-0);
+  --dt-bg-surface-sunken: var(--dt-color-neutral-50);
+  --dt-bg-interactive: var(--dt-color-neutral-0);
+  --dt-bg-interactive-hover: var(--dt-color-neutral-50);
+  --dt-bg-interactive-active: var(--dt-color-neutral-100);
+  --dt-bg-interactive-selected: var(--dt-color-primary-50);
+  --dt-bg-interactive-disabled: var(--dt-color-neutral-100);
+  --dt-bg-brand-primary: var(--dt-color-primary-500);
+  --dt-bg-brand-secondary: var(--dt-color-secondary-500);
+  --dt-bg-success: var(--dt-color-success-50);
+  --dt-bg-warning: var(--dt-color-warning-50);
+  --dt-bg-error: var(--dt-color-error-50);
+  --dt-bg-info: var(--dt-color-info-50);
+
+  /* --- Text --- */
+  --dt-text-primary: var(--dt-color-neutral-900);
+  --dt-text-secondary: var(--dt-color-neutral-600);
+  --dt-text-tertiary: var(--dt-color-neutral-500);
+  --dt-text-disabled: var(--dt-color-neutral-400);
+  --dt-text-placeholder: var(--dt-color-neutral-400);
+  --dt-text-on-brand: var(--dt-color-neutral-0);
+  --dt-text-on-brand-secondary: var(--dt-color-neutral-0);
+  --dt-text-link: var(--dt-color-primary-500);
+  --dt-text-link-hover: var(--dt-color-primary-600);
+  --dt-text-success: var(--dt-color-success-700);
+  --dt-text-warning: var(--dt-color-warning-700);
+  --dt-text-error: var(--dt-color-error-600);
+  --dt-text-info: var(--dt-color-info-700);
+
+  /* --- Border Semantic --- */
+  --dt-border-color-default: var(--dt-color-neutral-200);
+  --dt-border-color-strong: var(--dt-color-neutral-300);
+  --dt-border-color-subtle: var(--dt-color-neutral-100);
+  --dt-border-color-interactive: var(--dt-color-neutral-300);
+  --dt-border-color-interactive-hover: var(--dt-color-neutral-400);
+  --dt-border-color-interactive-focus: var(--dt-color-primary-500);
+  --dt-border-color-success: var(--dt-color-success-500);
+  --dt-border-color-warning: var(--dt-color-warning-500);
+  --dt-border-color-error: var(--dt-color-error-500);
+  --dt-border-color-info: var(--dt-color-info-500);
+
+  /* --- Icon --- */
+  --dt-icon-primary: var(--dt-color-neutral-900);
+  --dt-icon-secondary: var(--dt-color-neutral-500);
+  --dt-icon-tertiary: var(--dt-color-neutral-400);
+  --dt-icon-disabled: var(--dt-color-neutral-300);
+  --dt-icon-on-brand: var(--dt-color-neutral-0);
+  --dt-icon-success: var(--dt-color-success-500);
+  --dt-icon-warning: var(--dt-color-warning-500);
+  --dt-icon-error: var(--dt-color-error-500);
+  --dt-icon-info: var(--dt-color-info-500);
+}
+
+
+/* =============================================================================
+   TEMA ESCURO - DARK THEME
+   ============================================================================= */
+
+[data-theme="dark"],
+.theme-dark,
+.dark {
+  /* --- Background --- */
+  --dt-bg-page: var(--dt-color-neutral-950);
+  --dt-bg-surface: var(--dt-color-neutral-900);
+  --dt-bg-surface-raised: var(--dt-color-neutral-800);
+  --dt-bg-surface-overlay: var(--dt-color-neutral-800);
+  --dt-bg-surface-sunken: var(--dt-color-neutral-950);
+  --dt-bg-interactive: var(--dt-color-neutral-800);
+  --dt-bg-interactive-hover: var(--dt-color-neutral-700);
+  --dt-bg-interactive-active: var(--dt-color-neutral-600);
+  --dt-bg-interactive-selected: rgba(0, 59, 74, 0.3);
+  --dt-bg-interactive-disabled: var(--dt-color-neutral-800);
+  --dt-bg-success: rgba(16, 185, 129, 0.15);
+  --dt-bg-warning: rgba(245, 158, 11, 0.15);
+  --dt-bg-error: rgba(239, 68, 68, 0.15);
+  --dt-bg-info: rgba(59, 130, 246, 0.15);
+
+  /* --- Text --- */
+  --dt-text-primary: var(--dt-color-neutral-50);
+  --dt-text-secondary: var(--dt-color-neutral-300);
+  --dt-text-tertiary: var(--dt-color-neutral-400);
+  --dt-text-disabled: var(--dt-color-neutral-600);
+  --dt-text-placeholder: var(--dt-color-neutral-500);
+  --dt-text-link: var(--dt-color-primary-400);
+  --dt-text-link-hover: var(--dt-color-primary-300);
+  --dt-text-success: var(--dt-color-success-400);
+  --dt-text-warning: var(--dt-color-warning-400);
+  --dt-text-error: var(--dt-color-error-400);
+  --dt-text-info: var(--dt-color-info-400);
+
+  /* --- Border --- */
+  --dt-border-color-default: var(--dt-color-neutral-700);
+  --dt-border-color-strong: var(--dt-color-neutral-600);
+  --dt-border-color-subtle: var(--dt-color-neutral-800);
+  --dt-border-color-interactive: var(--dt-color-neutral-600);
+  --dt-border-color-interactive-hover: var(--dt-color-neutral-500);
+
+  /* --- Icon --- */
+  --dt-icon-primary: var(--dt-color-neutral-50);
+  --dt-icon-secondary: var(--dt-color-neutral-400);
+  --dt-icon-tertiary: var(--dt-color-neutral-500);
+  --dt-icon-disabled: var(--dt-color-neutral-600);
+
+  /* --- Shadow (darker for dark mode) --- */
+  --dt-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --dt-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --dt-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --dt-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --dt-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --dt-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+
+/* =============================================================================
+   TEMA ALTO CONTRASTE - HIGH CONTRAST THEME
+   ============================================================================= */
+
+[data-theme="high-contrast"],
+.theme-high-contrast {
+  /* --- Background --- */
+  --dt-bg-page: #000000;
+  --dt-bg-surface: #000000;
+  --dt-bg-surface-raised: #1a1a1a;
+  --dt-bg-interactive-hover: #333333;
+  --dt-bg-interactive-selected: #004466;
+
+  /* --- Text --- */
+  --dt-text-primary: #FFFFFF;
+  --dt-text-secondary: #E0E0E0;
+  --dt-text-tertiary: #CCCCCC;
+  --dt-text-link: #66CCFF;
+  --dt-text-link-hover: #99DDFF;
+
+  /* --- Border --- */
+  --dt-border-color-default: #FFFFFF;
+  --dt-border-color-strong: #FFFFFF;
+  --dt-border-color-interactive-focus: #FFFF00;
+
+  /* --- Semantic Colors (Higher Contrast) --- */
+  --dt-color-success-500: #00FF00;
+  --dt-color-warning-500: #FFFF00;
+  --dt-color-error-500: #FF0000;
+  --dt-color-info-500: #00FFFF;
+}
+
+
+/* =============================================================================
+   CLASSES UTILITARIAS BASEADAS EM TOKENS
+   ============================================================================= */
+
+/* --- Spacing Utilities --- */
+.dt-p-0 { padding: var(--dt-space-0) !important; }
+.dt-p-1 { padding: var(--dt-space-1) !important; }
+.dt-p-2 { padding: var(--dt-space-2) !important; }
+.dt-p-3 { padding: var(--dt-space-3) !important; }
+.dt-p-4 { padding: var(--dt-space-4) !important; }
+.dt-p-5 { padding: var(--dt-space-5) !important; }
+.dt-p-6 { padding: var(--dt-space-6) !important; }
+.dt-p-8 { padding: var(--dt-space-8) !important; }
+
+.dt-m-0 { margin: var(--dt-space-0) !important; }
+.dt-m-1 { margin: var(--dt-space-1) !important; }
+.dt-m-2 { margin: var(--dt-space-2) !important; }
+.dt-m-3 { margin: var(--dt-space-3) !important; }
+.dt-m-4 { margin: var(--dt-space-4) !important; }
+.dt-m-auto { margin: auto !important; }
+
+.dt-gap-1 { gap: var(--dt-space-1) !important; }
+.dt-gap-2 { gap: var(--dt-space-2) !important; }
+.dt-gap-3 { gap: var(--dt-space-3) !important; }
+.dt-gap-4 { gap: var(--dt-space-4) !important; }
+.dt-gap-6 { gap: var(--dt-space-6) !important; }
+
+/* --- Typography Utilities --- */
+.dt-text-2xs { font-size: var(--dt-font-size-2xs) !important; }
+.dt-text-xs { font-size: var(--dt-font-size-xs) !important; }
+.dt-text-sm { font-size: var(--dt-font-size-sm) !important; }
+.dt-text-base { font-size: var(--dt-font-size-base) !important; }
+.dt-text-lg { font-size: var(--dt-font-size-lg) !important; }
+.dt-text-xl { font-size: var(--dt-font-size-xl) !important; }
+.dt-text-2xl { font-size: var(--dt-font-size-2xl) !important; }
+.dt-text-3xl { font-size: var(--dt-font-size-3xl) !important; }
+
+.dt-font-normal { font-weight: var(--dt-font-weight-normal) !important; }
+.dt-font-medium { font-weight: var(--dt-font-weight-medium) !important; }
+.dt-font-semibold { font-weight: var(--dt-font-weight-semibold) !important; }
+.dt-font-bold { font-weight: var(--dt-font-weight-bold) !important; }
+
+/* --- Color Utilities --- */
+.dt-text-primary { color: var(--dt-text-primary) !important; }
+.dt-text-secondary { color: var(--dt-text-secondary) !important; }
+.dt-text-success { color: var(--dt-text-success) !important; }
+.dt-text-warning { color: var(--dt-text-warning) !important; }
+.dt-text-error { color: var(--dt-text-error) !important; }
+
+.dt-bg-page { background-color: var(--dt-bg-page) !important; }
+.dt-bg-surface { background-color: var(--dt-bg-surface) !important; }
+.dt-bg-success { background-color: var(--dt-bg-success) !important; }
+.dt-bg-warning { background-color: var(--dt-bg-warning) !important; }
+.dt-bg-error { background-color: var(--dt-bg-error) !important; }
+
+/* --- Border Utilities --- */
+.dt-border { border: var(--dt-border-default) !important; }
+.dt-border-strong { border: var(--dt-border-strong) !important; }
+.dt-rounded { border-radius: var(--dt-border-radius) !important; }
+.dt-rounded-md { border-radius: var(--dt-border-radius-md) !important; }
+.dt-rounded-lg { border-radius: var(--dt-border-radius-lg) !important; }
+.dt-rounded-xl { border-radius: var(--dt-border-radius-xl) !important; }
+.dt-rounded-full { border-radius: var(--dt-border-radius-full) !important; }
+
+/* --- Shadow Utilities --- */
+.dt-shadow-none { box-shadow: var(--dt-shadow-none) !important; }
+.dt-shadow-sm { box-shadow: var(--dt-shadow-sm) !important; }
+.dt-shadow-md { box-shadow: var(--dt-shadow-md) !important; }
+.dt-shadow-lg { box-shadow: var(--dt-shadow-lg) !important; }
+.dt-shadow-xl { box-shadow: var(--dt-shadow-xl) !important; }
+
+/* --- Transition Utilities --- */
+.dt-transition-all { transition: var(--dt-transition-all) !important; }
+.dt-transition-colors { transition: var(--dt-transition-colors) !important; }
+.dt-transition-opacity { transition: var(--dt-transition-opacity) !important; }
+.dt-transition-transform { transition: var(--dt-transition-transform) !important; }
+
+
+/* =============================================================================
+   DOCUMENTACAO DE USO
+   =============================================================================
+
+   COMO USAR OS DESIGN TOKENS:
+
+   1. CORES:
+      background-color: var(--dt-bg-surface);
+      color: var(--dt-text-primary);
+      border-color: var(--dt-border-color-default);
+
+   2. ESPACAMENTO:
+      padding: var(--dt-space-4);
+      margin: var(--dt-space-2) var(--dt-space-4);
+      gap: var(--dt-space-3);
+
+   3. TIPOGRAFIA:
+      font-family: var(--dt-font-family-sans);
+      font-size: var(--dt-font-size-sm);
+      font-weight: var(--dt-font-weight-medium);
+      line-height: var(--dt-line-height-normal);
+
+   4. SOMBRAS:
+      box-shadow: var(--dt-shadow-md);
+      box-shadow: var(--dt-shadow-primary);
+
+   5. BORDAS:
+      border-radius: var(--dt-border-radius-lg);
+      border: var(--dt-border-default);
+
+   6. TRANSICOES:
+      transition: var(--dt-transition-all);
+
+   7. TEMAS:
+      // JavaScript
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute('data-theme', 'high-contrast');
+
+      // HTML
+      <html data-theme="dark">
+
+   ============================================================================= */

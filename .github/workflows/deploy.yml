@@ -1,0 +1,438 @@
+# =============================================================================
+# Fabrica de Agentes - Production Deployment Pipeline
+# =============================================================================
+# Issue #100: CI/CD Deployment Automatico Real
+#
+# Este workflow executa deploy automatico para producao:
+#   1. Trigger: Push na branch main com testes passando
+#   2. Build: Constroi e publica imagem Docker
+#   3. Deploy: Atualiza deployment no Kubernetes
+#   4. Verify: Verifica health da aplicacao
+#   5. Notify: Notifica sucesso/falha
+#
+# Pre-requisitos:
+#   - GHCR ou Docker Hub configurado
+#   - Kubernetes cluster acessivel
+#   - Secrets configurados (KUBE_CONFIG, etc)
+#
+# =============================================================================
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+
+  # Permite deploy manual
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests (use with caution)'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run (no actual deploy)'
+        required: false
+        type: boolean
+        default: false
+
+# Impede deploys simultaneos
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  K8S_NAMESPACE: fabrica-agentes
+  DEPLOYMENT_NAME: fabrica-api
+
+jobs:
+  # ===========================================================================
+  # TEST: Executa testes antes do deploy
+  # ===========================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    timeout-minutes: 15
+
+    outputs:
+      test_passed: ${{ steps.test.outputs.passed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        id: test
+        run: |
+          set +e
+          pytest tests/ -v --tb=short -x --timeout=300
+          RESULT=$?
+          if [ $RESULT -eq 0 ]; then
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+        env:
+          PYTHONPATH: .
+          TESTING: "1"
+
+  # ===========================================================================
+  # BUILD: Constroi e publica imagem Docker
+  # ===========================================================================
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    timeout-minutes: 20
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+      image_digest: ${{ steps.build.outputs.digest }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login alternativo para Docker Hub
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ !inputs.dry_run }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Output image info
+        run: |
+          echo "=========================================="
+          echo "Docker Image Built"
+          echo "=========================================="
+          echo "Tags:"
+          echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'
+          echo ""
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "=========================================="
+
+  # ===========================================================================
+  # DEPLOY: Atualiza deployment no Kubernetes
+  # ===========================================================================
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: success() && !inputs.dry_run
+    timeout-minutes: 10
+
+    environment:
+      name: production
+      url: https://fabrica-agentes.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Update deployment image
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}"
+          echo "Deploying image: $IMAGE"
+
+          # Atualizar imagem do deployment
+          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
+            ${{ env.DEPLOYMENT_NAME }}=$IMAGE \
+            -n ${{ env.K8S_NAMESPACE }}
+
+          # Adicionar annotation com info do deploy
+          kubectl annotate deployment/${{ env.DEPLOYMENT_NAME }} \
+            kubernetes.io/change-cause="Deploy ${{ github.sha }} by ${{ github.actor }}" \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --overwrite
+
+      - name: Wait for rollout
+        run: |
+          echo "Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          echo "Checking deployment status..."
+          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.K8S_NAMESPACE }}
+          kubectl get pods -l app=${{ env.DEPLOYMENT_NAME }} -n ${{ env.K8S_NAMESPACE }}
+
+  # ===========================================================================
+  # VERIFY: Verifica health da aplicacao apos deploy
+  # ===========================================================================
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: success()
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for service stabilization
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          for i in {1..5}; do
+            echo "Health check attempt $i..."
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              ${{ secrets.PRODUCTION_URL }}/api/health || echo "000")
+
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed!"
+              exit 0
+            fi
+
+            echo "Status: $STATUS, retrying in 10s..."
+            sleep 10
+          done
+
+          echo "Health check failed after 5 attempts"
+          exit 1
+
+      - name: Smoke tests
+        run: |
+          echo "Running smoke tests..."
+
+          # Verificar endpoint principal
+          curl -sf ${{ secrets.PRODUCTION_URL }}/api/health | jq .
+
+          # Verificar versao
+          curl -sf ${{ secrets.PRODUCTION_URL }}/api/health/detailed | jq .
+
+          echo "Smoke tests passed!"
+        continue-on-error: true
+
+  # ===========================================================================
+  # ROLLBACK: Rollback automatico em caso de falha
+  # ===========================================================================
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy, verify]
+    if: failure()
+    timeout-minutes: 5
+
+    steps:
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Rollback deployment
+        run: |
+          echo "=========================================="
+          echo "ROLLBACK: Reverting to previous version"
+          echo "=========================================="
+
+          kubectl rollout undo deployment/${{ env.DEPLOYMENT_NAME }} \
+            -n ${{ env.K8S_NAMESPACE }}
+
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+            -n ${{ env.K8S_NAMESPACE }} \
+            --timeout=300s
+
+          echo "Rollback completed!"
+
+  # ===========================================================================
+  # NOTIFY: Notificacao de sucesso/falha
+  # ===========================================================================
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [build, deploy, verify]
+    if: always()
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.verify.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+            echo "emoji=:white_check_mark:" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+            echo "emoji=:x:" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "${{ steps.status.outputs.emoji }} Deploy ${{ steps.status.outputs.status }} - Fabrica de Agentes"
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Commit:*\n<${{ github.event.head_commit.url }}|${{ github.sha }}>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:*\n${{ github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Branch:*\n${{ github.ref_name }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Image:*\n${{ needs.build.outputs.image_tag }}"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "*Commit message:*\n${{ github.event.head_commit.message }}"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create GitHub deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ steps.status.outputs.status }}' === 'success' ? 'success' : 'failure';
+
+            // Buscar deployment mais recente
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: 'production',
+              per_page: 1
+            });
+
+            if (deployments.data.length > 0) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployments.data[0].id,
+                state: status,
+                log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                description: status === 'success' ? 'Deployment successful' : 'Deployment failed'
+              });
+            }
+
+      - name: Summary
+        run: |
+          echo "=========================================="
+          echo "DEPLOYMENT SUMMARY"
+          echo "=========================================="
+          echo "Status: ${{ steps.status.outputs.status }}"
+          echo "Image: ${{ needs.build.outputs.image_tag }}"
+          echo "Digest: ${{ needs.build.outputs.image_digest }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Author: ${{ github.actor }}"
+          echo "=========================================="

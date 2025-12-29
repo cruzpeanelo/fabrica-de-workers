@@ -120,6 +120,48 @@ except ImportError as e:
 from factory.dashboard.analytics_endpoints import register_analytics_endpoints
 register_analytics_endpoints(app, SessionLocal, Story, Sprint, HAS_CLAUDE, get_claude_client if HAS_CLAUDE else None)
 
+# Admin API Routes (Issue #87 - User Administration)
+try:
+    from factory.api.admin_routes import router as admin_router
+    app.include_router(admin_router)
+    print("[Dashboard] Admin API router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Admin API router not available: {e}")
+
+# Portal API Routes (Issue #113 - Multi-level Admin Portal)
+try:
+    from factory.api.portal_routes import platform_router, tenant_router, project_router
+    app.include_router(platform_router)
+    app.include_router(tenant_router)
+    app.include_router(project_router)
+    print("[Dashboard] Portal API routers loaded")
+except ImportError as e:
+    print(f"[Dashboard] Portal API routers not available: {e}")
+
+# Worker Monitoring Dashboard (Issue #88)
+try:
+    from factory.dashboard.worker_monitoring import register_monitoring_endpoints
+    register_monitoring_endpoints(app)
+    print("[Dashboard] Worker Monitoring endpoints loaded")
+except ImportError as e:
+    print(f"[Dashboard] Worker Monitoring not available: {e}")
+
+# Admin Users Panel (Issue #87)
+try:
+    from factory.dashboard.admin_users import register_admin_users_endpoints
+    register_admin_users_endpoints(app)
+    print("[Dashboard] Admin Users panel loaded")
+except ImportError as e:
+    print(f"[Dashboard] Admin Users panel not available: {e}")
+
+# Admin Portal (Issue #113)
+try:
+    from factory.dashboard.admin_portal import register_admin_portal_endpoints
+    register_admin_portal_endpoints(app)
+    print("[Dashboard] Admin Portal loaded")
+except ImportError as e:
+    print(f"[Dashboard] Admin Portal not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
