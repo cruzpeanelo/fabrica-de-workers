@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#003B4A"/>
+      <stop offset="100%" style="stop-color:#005A6E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#bgGrad)"/>
+
+  <!-- Factory Building -->
+  <g transform="translate(80, 120)">
+    <!-- Main building -->
+    <rect x="0" y="120" width="160" height="180" fill="#ffffff" rx="8"/>
+
+    <!-- Chimney 1 -->
+    <rect x="20" y="40" width="30" height="80" fill="#ffffff" rx="4"/>
+    <ellipse cx="35" cy="30" rx="20" ry="12" fill="#FF6C00" opacity="0.8"/>
+    <ellipse cx="35" cy="20" rx="15" ry="8" fill="#FF6C00" opacity="0.5"/>
+
+    <!-- Chimney 2 -->
+    <rect x="60" y="60" width="30" height="60" fill="#ffffff" rx="4"/>
+    <ellipse cx="75" cy="50" rx="18" ry="10" fill="#FF6C00" opacity="0.7"/>
+
+    <!-- Windows -->
+    <rect x="20" y="150" width="40" height="50" fill="#003B4A" rx="4"/>
+    <rect x="80" y="150" width="40" height="50" fill="#003B4A" rx="4"/>
+    <rect x="20" y="220" width="40" height="50" fill="#003B4A" rx="4"/>
+    <rect x="80" y="220" width="40" height="50" fill="#003B4A" rx="4"/>
+
+    <!-- Door -->
+    <rect x="140" y="210" width="30" height="90" fill="#FF6C00" rx="4"/>
+  </g>
+
+  <!-- Robot/Agent -->
+  <g transform="translate(260, 180)">
+    <!-- Body -->
+    <rect x="20" y="80" width="120" height="140" fill="#ffffff" rx="16"/>
+
+    <!-- Head -->
+    <rect x="30" y="0" width="100" height="70" fill="#ffffff" rx="12"/>
+
+    <!-- Eyes -->
+    <circle cx="60" cy="35" r="12" fill="#003B4A"/>
+    <circle cx="100" cy="35" r="12" fill="#003B4A"/>
+    <circle cx="63" cy="32" r="4" fill="#ffffff"/>
+    <circle cx="103" cy="32" r="4" fill="#ffffff"/>
+
+    <!-- Antenna -->
+    <line x1="80" y1="0" x2="80" y2="-20" stroke="#FF6C00" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="80" cy="-28" r="10" fill="#FF6C00"/>
+
+    <!-- Arms -->
+    <rect x="-10" y="100" width="25" height="60" fill="#ffffff" rx="8"/>
+    <rect x="145" y="100" width="25" height="60" fill="#ffffff" rx="8"/>
+
+    <!-- Chest display -->
+    <rect x="45" y="110" width="70" height="40" fill="#003B4A" rx="6"/>
+    <rect x="55" y="120" width="50" height="6" fill="#FF6C00" rx="2"/>
+    <rect x="55" y="132" width="35" height="6" fill="#FF6C00" rx="2"/>
+
+    <!-- Legs -->
+    <rect x="35" y="220" width="30" height="50" fill="#ffffff" rx="8"/>
+    <rect x="95" y="220" width="30" height="50" fill="#ffffff" rx="8"/>
+  </g>
+</svg>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Fabrica de Agentes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #003B4A 0%, #005A6E 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .icon {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 32px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        .icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #FF6C00;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e65c00;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .status {
+            margin-top: 48px;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #EF4444;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.online {
+            background: #10B981;
+            animation: none;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .cached-data {
+            margin-top: 32px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .cached-data.visible {
+            display: block;
+        }
+
+        .cached-data h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+            margin-bottom: 12px;
+        }
+
+        .cached-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cached-item:last-child {
+            border-bottom: none;
+        }
+
+        .cached-item span {
+            font-size: 0.9rem;
+        }
+
+        footer {
+            margin-top: 48px;
+            opacity: 0.6;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="60" cy="60" r="55" stroke="white" stroke-width="4" stroke-dasharray="8 8"/>
+                <path d="M60 30C43.4315 30 30 43.4315 30 60C30 76.5685 43.4315 90 60 90" stroke="white" stroke-width="4" stroke-linecap="round"/>
+                <path d="M60 90C76.5685 90 90 76.5685 90 60C90 43.4315 76.5685 30 60 30" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="60" cy="60" r="8" fill="#FF6C00"/>
+                <line x1="60" y1="52" x2="60" y2="35" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                <line x1="85" y1="60" x2="68" y2="60" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <h1>Voce esta offline</h1>
+        <p>
+            Nao foi possivel conectar ao servidor. Verifique sua conexao com a internet e tente novamente.
+        </p>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="location.reload()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+                Tentar novamente
+            </button>
+            <button class="btn btn-secondary" onclick="showCachedData()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 10H6v-2h8v2zm4-4H6v-2h12v2z"/>
+                </svg>
+                Ver dados em cache
+            </button>
+        </div>
+
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Verificando conexao...</span>
+        </div>
+
+        <div class="cached-data" id="cachedData">
+            <h3>Dados disponiveis offline</h3>
+            <div id="cachedItems">
+                <div class="cached-item">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                    <span>Carregando dados em cache...</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            Fabrica de Agentes v6.0 - Modo Offline
+        </footer>
+    </div>
+
+    <script>
+        // Verificar status de conexao
+        function updateConnectionStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (navigator.onLine) {
+                statusDot.classList.add('online');
+                statusText.textContent = 'Conexao restaurada! Recarregando...';
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                statusDot.classList.remove('online');
+                statusText.textContent = 'Sem conexao com a internet';
+            }
+        }
+
+        // Mostrar dados em cache
+        async function showCachedData() {
+            const container = document.getElementById('cachedData');
+            const itemsContainer = document.getElementById('cachedItems');
+            container.classList.toggle('visible');
+
+            if (container.classList.contains('visible')) {
+                try {
+                    const cacheNames = await caches.keys();
+                    let items = [];
+
+                    for (const name of cacheNames) {
+                        const cache = await caches.open(name);
+                        const keys = await cache.keys();
+                        keys.forEach(req => {
+                            const url = new URL(req.url);
+                            items.push({
+                                name: url.pathname || url.href,
+                                type: name.includes('data') ? 'Dados' : 'Recurso'
+                            });
+                        });
+                    }
+
+                    if (items.length > 0) {
+                        itemsContainer.innerHTML = items.slice(0, 10).map(item => `
+                            <div class="cached-item">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                </svg>
+                                <span>${item.name} (${item.type})</span>
+                            </div>
+                        `).join('');
+
+                        if (items.length > 10) {
+                            itemsContainer.innerHTML += `
+                                <div class="cached-item" style="opacity: 0.6;">
+                                    <span>... e mais ${items.length - 10} itens</span>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        itemsContainer.innerHTML = `
+                            <div class="cached-item">
+                                <span>Nenhum dado em cache</span>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    itemsContainer.innerHTML = `
+                        <div class="cached-item">
+                            <span>Erro ao carregar cache</span>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Event listeners
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+    </script>
+</body>
+</html>
