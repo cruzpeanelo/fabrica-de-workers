@@ -1,0 +1,122 @@
+/* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
+
+/* Skip Links for Keyboard Navigation */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #003B4A;
+    color: white;
+    padding: 8px 16px;
+    z-index: 10000;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 0 0 4px 0;
+    transition: top 0.2s ease;
+}
+.skip-link:focus {
+    top: 0;
+    outline: 3px solid #FF6C00;
+    outline-offset: 2px;
+}
+
+/* Focus Indicators - WCAG 2.1 AA Compliance */
+*:focus-visible {
+    outline: 3px solid #FF6C00 !important;
+    outline-offset: 2px !important;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible {
+    outline: 3px solid #FF6C00 !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2);
+}
+
+/* Dark Mode Focus */
+.dark button:focus-visible,
+.dark a:focus-visible,
+.dark input:focus-visible,
+.dark select:focus-visible,
+.dark textarea:focus-visible,
+.dark [tabindex]:focus-visible {
+    outline-color: #FFB366 !important;
+    box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3);
+}
+
+/* High Contrast Focus for Story Cards */
+.story-card:focus-visible {
+    outline: 3px solid #FF6C00 !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* Screen Reader Only - Visually Hidden */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Live Region for Announcements */
+.a11y-live-region {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .story-card:hover {
+        transform: none !important;
+    }
+    .animate-pulse, .animate-spin {
+        animation: none !important;
+    }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .story-card {
+        border: 2px solid #000 !important;
+    }
+    .priority-urgent { border-left: 6px solid #EF4444 !important; }
+    .priority-high { border-left: 6px solid #F59E0B !important; }
+    .priority-medium { border-left: 6px solid #3B82F6 !important; }
+    .priority-low { border-left: 6px solid #10B981 !important; }
+}
+
+/* Keyboard Navigation Indicators */
+.kanban-column:focus-within {
+    box-shadow: inset 0 0 0 2px #003B4A;
+}
+
+/* Interactive Element Minimum Size (WCAG 2.5.5 - Target Size) */
+.touch-target {
+    min-width: 44px;
+    min-height: 44px;
+}

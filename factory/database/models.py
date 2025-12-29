@@ -695,6 +695,71 @@ class Story(Base):
 
 
 # =============================================================================
+# STORY_ESTIMATE - Historico de Estimativas de Story Points
+# =============================================================================
+
+class StoryEstimate(Base):
+    """
+    Modelo para Historico de Estimativas de Story Points
+    Armazena estimativas feitas por IA e humanos para comparacao
+    """
+    __tablename__ = "story_estimates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    estimate_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Relacionamento com story
+    story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
+
+    # Estimativa
+    estimated_points = Column(Integer, nullable=False)  # Pontos estimados (1,2,3,5,8,13,21)
+    confidence = Column(Float, default=0.8)  # Nivel de confianca (0-1)
+    complexity_detected = Column(String(20), nullable=True)  # low, medium, high, very_high
+
+    # Justificativa da IA
+    justification = Column(Text, nullable=True)
+    factors = Column(JSON, default=list)  # Lista de fatores considerados
+
+    # Comparacao com stories similares
+    similar_stories = Column(JSON, default=list)  # [{story_id, title, points, similarity}]
+
+    # Tipo de estimativa
+    estimate_type = Column(String(20), default="ai")  # ai, human, adjusted
+
+    # Se foi aceita pelo usuario
+    accepted = Column(Boolean, default=False)
+    accepted_at = Column(DateTime, nullable=True)
+    adjusted_to = Column(Integer, nullable=True)  # Se o usuario ajustou para outro valor
+
+    # Quem fez a estimativa
+    estimated_by = Column(String(100), default="claude-ai")
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "estimate_id": self.estimate_id,
+            "story_id": self.story_id,
+            "estimated_points": self.estimated_points,
+            "confidence": self.confidence,
+            "complexity_detected": self.complexity_detected,
+            "justification": self.justification,
+            "factors": self.factors or [],
+            "similar_stories": self.similar_stories or [],
+            "estimate_type": self.estimate_type,
+            "accepted": self.accepted,
+            "accepted_at": self.accepted_at.isoformat() if self.accepted_at else None,
+            "adjusted_to": self.adjusted_to,
+            "estimated_by": self.estimated_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<StoryEstimate {self.estimate_id}: {self.estimated_points}pts [{self.estimate_type}]>"
+
+
+# =============================================================================
 # STORY_TASK - Subtarefas de uma Story
 # =============================================================================
 
