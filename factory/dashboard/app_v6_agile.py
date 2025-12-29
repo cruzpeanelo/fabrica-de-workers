@@ -48,7 +48,8 @@ from factory.database.models import (
     StoryDesign, DesignType,
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
-    TaskPriority
+    TaskPriority,
+    StoryEstimate
 )
 from factory.database.repositories import (
     ProjectRepository, ActivityLogRepository,
@@ -73,6 +74,15 @@ from factory.dashboard.project_import import (
     process_import as import_project_process,
     get_progress as get_import_progress_data,
     import_progress
+)
+
+# Tech Debt Analysis Module (Issue #60)
+from factory.core.tech_debt_analyzer import (
+    analyze_project_tech_debt,
+    add_to_history as add_tech_debt_history,
+    get_history as get_tech_debt_history,
+    get_trend as get_tech_debt_trend,
+    get_debt_recommendations
 )
 
 # Criar tabelas
@@ -369,6 +379,265 @@ def get_story_board(project_id: str):
     finally:
         db.close()
 
+
+
+
+# =============================================================================
+# API ENDPOINTS - ESTIMATIVA INTELIGENTE DE ESFORCO
+# =============================================================================
+
+@app.post("/api/stories/{story_id}/estimate")
+def estimate_story_effort(story_id: str):
+    """
+    Estima story points usando Claude AI.
+    Analisa titulo, descricao, criterios de aceite e compara com stories similares.
+    """
+    db = SessionLocal()
+    try:
+        story_repo = StoryRepository(db)
+        story = story_repo.get_by_id(story_id)
+        if not story:
+            raise HTTPException(404, "Story not found")
+
+        completed_stories = db.query(Story).filter(
+            Story.project_id == story.project_id,
+            Story.status == 'done',
+            Story.story_points > 0
+        ).limit(20).all()
+
+        estimate_result = generate_story_estimate(story, completed_stories, db)
+
+        estimate = StoryEstimate(
+            estimate_id=f"EST-{uuid.uuid4().hex[:8].upper()}",
+            story_id=story_id,
+            estimated_points=estimate_result["estimated_points"],
+            confidence=estimate_result.get("confidence", 0.8),
+            complexity_detected=estimate_result.get("complexity"),
+            justification=estimate_result.get("justification", ""),
+            factors=estimate_result.get("factors", []),
+            similar_stories=estimate_result.get("similar_stories", []),
+            estimate_type="ai",
+            estimated_by="claude-ai"
+        )
+        db.add(estimate)
+        db.commit()
+        db.refresh(estimate)
+
+        result = estimate.to_dict()
+        notify("story_estimated", {
+            "story_id": story_id,
+            "estimated_points": estimate_result["estimated_points"],
+            "confidence": estimate_result.get("confidence", 0.8)
+        })
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Erro ao estimar story: {str(e)}")
+    finally:
+        db.close()
+
+
+@app.get("/api/stories/{story_id}/estimates")
+def get_story_estimates(story_id: str):
+    """Retorna historico de estimativas de uma story"""
+    db = SessionLocal()
+    try:
+        estimates = db.query(StoryEstimate).filter(
+            StoryEstimate.story_id == story_id
+        ).order_by(StoryEstimate.created_at.desc()).all()
+        return [e.to_dict() for e in estimates]
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/{story_id}/estimates/{estimate_id}/accept")
+def accept_story_estimate(story_id: str, estimate_id: str, adjusted_points: Optional[int] = None):
+    """Aceita ou ajusta uma estimativa"""
+    db = SessionLocal()
+    try:
+        estimate = db.query(StoryEstimate).filter(
+            StoryEstimate.estimate_id == estimate_id,
+            StoryEstimate.story_id == story_id
+        ).first()
+        if not estimate:
+            raise HTTPException(404, "Estimate not found")
+
+        estimate.accepted = True
+        estimate.accepted_at = datetime.utcnow()
+
+        final_points = adjusted_points if adjusted_points else estimate.estimated_points
+        if adjusted_points and adjusted_points != estimate.estimated_points:
+            estimate.adjusted_to = adjusted_points
+
+        story_repo = StoryRepository(db)
+        story = story_repo.get_by_id(story_id)
+        if story:
+            story.story_points = final_points
+            if final_points <= 2:
+                story.complexity = "low"
+            elif final_points <= 5:
+                story.complexity = "medium"
+            elif final_points <= 8:
+                story.complexity = "high"
+            else:
+                story.complexity = "very_high"
+
+        db.commit()
+        db.refresh(estimate)
+
+        result = estimate.to_dict()
+        notify("estimate_accepted", {
+            "story_id": story_id,
+            "estimate_id": estimate_id,
+            "final_points": final_points
+        })
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Erro ao aceitar estimativa: {str(e)}")
+    finally:
+        db.close()
+
+
+def generate_story_estimate(story: Story, completed_stories: list, db) -> dict:
+    """Gera estimativa de story points usando Claude AI."""
+    if HAS_CLAUDE:
+        try:
+            claude = get_claude_client()
+            if claude.is_available():
+                return estimate_with_claude(story, completed_stories, claude)
+        except Exception as e:
+            print(f"[Estimate] Erro ao usar Claude: {e}")
+    return estimate_with_heuristics(story, completed_stories)
+
+
+def estimate_with_claude(story: Story, completed_stories: list, claude) -> dict:
+    """Gera estimativa usando Claude AI"""
+    story_context = f"""
+STORY A ESTIMAR:
+ID: {story.story_id}
+Titulo: {story.title}
+Narrativa: Como um {story.persona or '[nao definido]'}, eu quero {story.action or '[nao definido]'}, para que {story.benefit or '[nao definido]'}
+Descricao: {story.description or 'Sem descricao'}
+Criterios de Aceite: {len(story.acceptance_criteria or [])} criterios
+Definition of Done: {len(story.definition_of_done or [])} itens
+Notas Tecnicas: {story.technical_notes or 'Sem notas'}
+Categoria: {story.category}
+"""
+
+    similar_context = ""
+    if completed_stories:
+        similar_context = "\nSTORIES CONCLUIDAS PARA REFERENCIA:\n"
+        for s in completed_stories[:10]:
+            similar_context += f"- {s.story_id}: {s.title} ({s.story_points} pts)\n"
+
+    system_prompt = """Voce e um Scrum Master experiente especializado em estimativa de User Stories.
+Sua tarefa e estimar story points usando a sequencia Fibonacci: 1, 2, 3, 5, 8, 13, 21.
+
+Responda APENAS com JSON valido:
+{
+    "estimated_points": <numero Fibonacci>,
+    "confidence": <0.0 a 1.0>,
+    "complexity": "<low|medium|high|very_high>",
+    "justification": "<explicacao em 2-3 frases>",
+    "factors": [{"name": "<fator>", "impact": "<low|medium|high>", "description": "<descricao>"}],
+    "similar_stories": [{"story_id": "<id>", "title": "<titulo>", "points": <pontos>, "similarity": "<high|medium|low>"}],
+    "recommendations": ["<sugestao 1>", "<sugestao 2>"]
+}"""
+
+    message = f"Estime os story points para esta User Story:\n{story_context}{similar_context}\nRetorne a estimativa em JSON."
+
+    response = claude.chat(message, system_prompt, max_tokens=1024)
+
+    if response.success:
+        try:
+            content = response.content.strip()
+            if content.startswith("```"):
+                lines = content.split("\n")
+                content = "\n".join(lines[1:-1])
+            result = json.loads(content)
+            points = result.get("estimated_points", 5)
+            if points not in [1, 2, 3, 5, 8, 13, 21]:
+                closest = min([1, 2, 3, 5, 8, 13, 21], key=lambda x: abs(x - points))
+                result["estimated_points"] = closest
+            return result
+        except json.JSONDecodeError:
+            return estimate_with_heuristics(story, completed_stories)
+    return estimate_with_heuristics(story, completed_stories)
+
+
+def estimate_with_heuristics(story: Story, completed_stories: list) -> dict:
+    """Gera estimativa usando heuristicas (fallback)"""
+    complexity_score = 0
+    criteria_count = len(story.acceptance_criteria or [])
+    if criteria_count == 0:
+        complexity_score += 2
+    elif criteria_count <= 2:
+        complexity_score += 1
+    elif criteria_count <= 5:
+        complexity_score += 2
+    else:
+        complexity_score += 3
+
+    title_words = len((story.title or "").split())
+    desc_words = len((story.description or "").split())
+    if title_words + desc_words < 10:
+        complexity_score += 1
+    elif title_words + desc_words < 30:
+        complexity_score += 2
+    else:
+        complexity_score += 3
+
+    category_complexity = {"bug": 1, "improvement": 2, "feature": 3, "tech_debt": 2, "spike": 2}
+    complexity_score += category_complexity.get(story.category, 2)
+
+    if story.technical_notes:
+        notes_lower = story.technical_notes.lower()
+        if any(kw in notes_lower for kw in ['integracao', 'api', 'database', 'migration']):
+            complexity_score += 2
+        if any(kw in notes_lower for kw in ['complexo', 'dificil', 'cuidado']):
+            complexity_score += 2
+
+    if complexity_score <= 3:
+        estimated_points, complexity = 1, "low"
+    elif complexity_score <= 5:
+        estimated_points, complexity = 2, "low"
+    elif complexity_score <= 7:
+        estimated_points, complexity = 3, "medium"
+    elif complexity_score <= 9:
+        estimated_points, complexity = 5, "medium"
+    elif complexity_score <= 11:
+        estimated_points, complexity = 8, "high"
+    elif complexity_score <= 13:
+        estimated_points, complexity = 13, "high"
+    else:
+        estimated_points, complexity = 21, "very_high"
+
+    similar = []
+    for s in completed_stories[:5]:
+        similar.append({"story_id": s.story_id, "title": s.title[:50], "points": s.story_points, "similarity": "medium"})
+
+    factors = [
+        {"name": "Criterios de aceite", "impact": "medium" if criteria_count <= 3 else "high", "description": f"{criteria_count} criterios definidos"},
+        {"name": "Descricao", "impact": "low" if desc_words < 20 else "medium", "description": f"{desc_words} palavras na descricao"},
+        {"name": "Categoria", "impact": "medium", "description": f"Tipo: {story.category}"}
+    ]
+
+    return {
+        "estimated_points": estimated_points,
+        "confidence": 0.6,
+        "complexity": complexity,
+        "justification": f"Estimativa baseada em heuristicas: {criteria_count} criterios de aceite, categoria {story.category}, score de complexidade {complexity_score}.",
+        "factors": factors,
+        "similar_stories": similar,
+        "recommendations": ["Considere detalhar mais os criterios de aceite para uma estimativa mais precisa", "Compare com stories similares ja concluidas"]
+    }
 
 # =============================================================================
 # API ENDPOINTS - STORY TASKS
