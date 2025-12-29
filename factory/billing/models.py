@@ -809,10 +809,10 @@ class UsageEvent(Base):
     # Custo calculado (em centavos)
     cost_cents = Column(Integer, default=0)
 
-    # Metadados detalhados
-    metadata = Column(JSON, default=dict)
+    # Metadados detalhados (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    event_data = Column(JSON, default=dict)
     """
-    Exemplos de metadata por tipo:
+    Exemplos de event_data por tipo:
 
     api_call: {
         "method": "POST",
@@ -870,7 +870,7 @@ class UsageEvent(Base):
             "unit": self.unit,
             "cost_cents": self.cost_cents,
             "cost_formatted": f"R$ {self.cost_cents / 100:.4f}" if self.cost_cents else None,
-            "metadata": self.metadata or {},
+            "event_data": self.event_data or {},
             "ip_address": self.ip_address,
             "correlation_id": self.correlation_id,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,

@@ -1,0 +1,382 @@
+# =============================================================================
+# Fabrica de Agentes - Backup CronJob Kubernetes
+# =============================================================================
+# Issue #97: Backup Automatizado Database e PVCs
+#
+# Este CronJob executa backup automatizado do banco de dados:
+#   - Diario as 2:00 AM (full backup)
+#   - Upload para S3/Azure/GCS
+#   - Retencao de 30 dias
+#   - Notificacao de sucesso/falha
+#
+# Deploy:
+#   kubectl apply -f k8s/backup-cronjob.yaml
+#
+# Verificar execucoes:
+#   kubectl get cronjobs -n fabrica-agentes
+#   kubectl get jobs -n fabrica-agentes
+#   kubectl logs -l job-name=database-backup-XXXXX -n fabrica-agentes
+# =============================================================================
+
+---
+# =============================================================================
+# ConfigMap - Configuracoes de Backup
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: backup
+data:
+  BACKUP_RETENTION_DAYS: "30"
+  BACKUP_DIR: "/backups"
+  # Upload destino: s3, azure, gcs
+  BACKUP_UPLOAD_TARGET: "s3"
+
+---
+# =============================================================================
+# PersistentVolumeClaim - Storage para backups locais
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-storage
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: backup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+
+---
+# =============================================================================
+# CronJob - Backup Diario (2:00 AM UTC)
+# =============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup-daily
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: backup
+spec:
+  # Executar diariamente as 2:00 AM UTC
+  schedule: "0 2 * * *"
+
+  # Timezone (requer Kubernetes 1.27+)
+  # timeZone: "America/Sao_Paulo"
+
+  # Manter historico de jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  # Politica de concorrencia
+  concurrencyPolicy: Forbid
+
+  # Deadline para inicio (se nao iniciar em 1h, pular)
+  startingDeadlineSeconds: 3600
+
+  jobTemplate:
+    spec:
+      # TTL para limpeza automatica
+      ttlSecondsAfterFinished: 86400  # 24 horas
+
+      # Retry policy
+      backoffLimit: 2
+
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: fabrica-agentes
+            app.kubernetes.io/component: backup
+            job-type: backup-daily
+        spec:
+          restartPolicy: OnFailure
+
+          # Init container para aguardar database
+          initContainers:
+            - name: wait-for-db
+              image: postgres:15-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                    echo "Waiting for PostgreSQL..."
+                    sleep 5
+                  done
+                  echo "PostgreSQL is ready!"
+              envFrom:
+                - secretRef:
+                    name: db-credentials
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_HOST
+                - name: DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_PORT
+
+          containers:
+            - name: backup
+              image: ghcr.io/lcruz/fabrica-agentes:latest
+              imagePullPolicy: Always
+
+              command:
+                - python
+                - scripts/backup_database.py
+                - --upload
+                - $(BACKUP_UPLOAD_TARGET)
+                - --retention-days
+                - $(BACKUP_RETENTION_DAYS)
+
+              envFrom:
+                - configMapRef:
+                    name: backup-config
+                - secretRef:
+                    name: db-credentials
+                - secretRef:
+                    name: cloud-credentials
+                    optional: true
+
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_HOST
+                - name: DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_PORT
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_NAME
+
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage
+
+          # Tolerations para nodes de backup
+          tolerations:
+            - key: "workload-type"
+              operator: "Equal"
+              value: "backup"
+              effect: "NoSchedule"
+
+---
+# =============================================================================
+# CronJob - Backup Semanal (Domingo 3:00 AM UTC) - Full + Verificacao
+# =============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup-weekly
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: backup
+spec:
+  # Executar aos domingos as 3:00 AM UTC
+  schedule: "0 3 * * 0"
+
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 604800  # 7 dias
+      backoffLimit: 2
+
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: fabrica-agentes
+            app.kubernetes.io/component: backup
+            job-type: backup-weekly
+        spec:
+          restartPolicy: OnFailure
+
+          initContainers:
+            - name: wait-for-db
+              image: postgres:15-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do
+                    sleep 5
+                  done
+              envFrom:
+                - secretRef:
+                    name: db-credentials
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_HOST
+                - name: DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_PORT
+
+          containers:
+            - name: backup-and-verify
+              image: ghcr.io/lcruz/fabrica-agentes:latest
+              imagePullPolicy: Always
+
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "=== Weekly Full Backup with Verification ==="
+
+                  # Executar backup
+                  python scripts/backup_database.py --upload $(BACKUP_UPLOAD_TARGET) --retention-days 90
+
+                  if [ $? -ne 0 ]; then
+                    echo "Backup failed!"
+                    exit 1
+                  fi
+
+                  # Verificar integridade restaurando em banco temporario
+                  echo "=== Verifying backup integrity ==="
+                  export PGPASSWORD=$DB_PASSWORD
+
+                  # Encontrar ultimo backup
+                  LATEST_BACKUP=$(ls -t /backups/backup_*.sql.gz | head -1)
+
+                  if [ -z "$LATEST_BACKUP" ]; then
+                    echo "No backup found for verification"
+                    exit 1
+                  fi
+
+                  echo "Verifying: $LATEST_BACKUP"
+
+                  # Criar banco temporario e restaurar
+                  createdb -h $DB_HOST -p $DB_PORT -U $DB_USER fabrica_backup_verify 2>/dev/null || true
+                  gunzip -c $LATEST_BACKUP | psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d fabrica_backup_verify -q
+
+                  # Verificar se tabelas existem
+                  TABLE_COUNT=$(psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d fabrica_backup_verify -t -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'")
+
+                  if [ "$TABLE_COUNT" -gt 0 ]; then
+                    echo "Backup verification PASSED: $TABLE_COUNT tables found"
+                  else
+                    echo "Backup verification FAILED: No tables found"
+                    dropdb -h $DB_HOST -p $DB_PORT -U $DB_USER fabrica_backup_verify 2>/dev/null || true
+                    exit 1
+                  fi
+
+                  # Limpar banco de verificacao
+                  dropdb -h $DB_HOST -p $DB_PORT -U $DB_USER fabrica_backup_verify 2>/dev/null || true
+
+                  echo "=== Weekly backup completed successfully ==="
+
+              envFrom:
+                - configMapRef:
+                    name: backup-config
+                - secretRef:
+                    name: db-credentials
+                - secretRef:
+                    name: cloud-credentials
+                    optional: true
+
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_HOST
+                - name: DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_PORT
+                - name: DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: fabrica-agentes-urls
+                      key: DATABASE_NAME
+
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "200m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "1000m"
+
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-storage
+
+---
+# =============================================================================
+# Secret - Credenciais de Cloud (template)
+# =============================================================================
+# NOTA: Preencha com suas credenciais reais e aplique separadamente
+# kubectl create secret generic cloud-credentials --from-env-file=.env.cloud
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-credentials
+  namespace: fabrica-agentes
+  labels:
+    app.kubernetes.io/name: fabrica-agentes
+    app.kubernetes.io/component: backup
+type: Opaque
+stringData:
+  # AWS S3
+  AWS_ACCESS_KEY_ID: "YOUR_AWS_ACCESS_KEY"
+  AWS_SECRET_ACCESS_KEY: "YOUR_AWS_SECRET_KEY"
+  S3_BUCKET: "fabrica-agentes-backups"
+
+  # Azure Blob Storage (opcional)
+  # AZURE_STORAGE_CONNECTION_STRING: "..."
+  # AZURE_CONTAINER: "backups"
+
+  # Google Cloud Storage (opcional)
+  # GOOGLE_APPLICATION_CREDENTIALS: "/path/to/credentials.json"
+  # GCS_BUCKET: "fabrica-agentes-backups"
+
+  # Webhook para notificacoes
+  BACKUP_WEBHOOK_URL: ""

@@ -726,7 +726,7 @@ class UsageService:
             quantity=quantity,
             unit=unit,
             cost_cents=cost_cents,
-            metadata=metadata or {},
+            event_data=metadata or {},
             ip_address=ip_address,
             user_agent=user_agent[:500] if user_agent else None,
             correlation_id=correlation_id,
@@ -1071,9 +1071,9 @@ class UsageService:
             aggregate.cost_api_cents += event.cost_cents
 
         elif event.event_type == UsageEventType.LLM_TOKENS.value:
-            metadata = event.metadata or {}
-            aggregate.llm_tokens_input += metadata.get("input_tokens", 0)
-            aggregate.llm_tokens_output += metadata.get("output_tokens", 0)
+            event_data = event.event_data or {}
+            aggregate.llm_tokens_input += event_data.get("input_tokens", 0)
+            aggregate.llm_tokens_output += event_data.get("output_tokens", 0)
             aggregate.cost_llm_cents += event.cost_cents
 
         elif event.event_type in [UsageEventType.STORAGE.value, UsageEventType.FILE_UPLOAD.value]:
@@ -1385,7 +1385,7 @@ class UsageService:
             tenant_id=event.tenant_id,
             metric=metric,
             value=event.quantity,
-            context=event.metadata,
+            context=event.event_data,
             period_type=period_type
         )
 

@@ -5759,6 +5759,316 @@ HTML_TEMPLATE = """
             const analyticsLoading = ref(false);
             const analyticsDays = ref(30);
 
+            // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
+            const businessTerms = {
+                'story': 'funcionalidade',
+                'stories': 'funcionalidades',
+                'sprint': 'ciclo de desenvolvimento',
+                'deploy': 'publicacao',
+                'bug': 'problema',
+                'api': 'conexao',
+                'backlog': 'lista de pendencias',
+                'task': 'tarefa',
+                'tasks': 'tarefas',
+                'epic': 'iniciativa',
+                'review': 'revisao',
+                'testing': 'validacao'
+            };
+            const translateTerm = (term, capitalize = false) => {
+                const translated = businessTerms[term.toLowerCase()] || term;
+                return capitalize ? translated.charAt(0).toUpperCase() + translated.slice(1) : translated;
+            };
+
+            // ========== ISSUE #135 - EXECUTIVE DASHBOARD ==========
+            const viewMode = ref('technical'); // 'technical' or 'executive'
+            const showTechnicalLogs = ref(false);
+            const recentActivityLogs = ref([]);
+
+            const currentProjectName = computed(() => {
+                const project = projects.value.find(p => p.project_id === selectedProjectId.value);
+                return project?.name || 'Projeto';
+            });
+
+            const projectReadyToTest = computed(() => {
+                return doneStories.value > 0;
+            });
+
+            const projectProgressPercent = computed(() => {
+                if (totalStories.value === 0) return 0;
+                return Math.round((doneStories.value / totalStories.value) * 100);
+            });
+
+            const projectHealthStatus = computed(() => {
+                const progress = projectProgressPercent.value;
+                if (progress >= 70) return 'status-green';
+                if (progress >= 30) return 'status-yellow';
+                return 'status-red';
+            });
+
+            const projectHealthColor = computed(() => {
+                const progress = projectProgressPercent.value;
+                if (progress >= 70) return 'green';
+                if (progress >= 30) return 'yellow';
+                return 'red';
+            });
+
+            const donePoints = computed(() => {
+                let points = 0;
+                if (storyBoard.value.done) {
+                    storyBoard.value.done.forEach(s => points += s.story_points || 0);
+                }
+                return points;
+            });
+
+            const estimatedDaysRemaining = computed(() => {
+                const velocity = 5; // Average points per day
+                const remaining = totalPoints.value - donePoints.value;
+                return Math.ceil(remaining / velocity) || 0;
+            });
+
+            const projectPhases = computed(() => {
+                const progress = projectProgressPercent.value;
+                return [
+                    { label: 'Planejamento', status: progress > 0 ? 'completed' : 'current' },
+                    { label: 'Desenvolvimento', status: progress >= 25 ? 'completed' : progress > 0 ? 'current' : 'pending' },
+                    { label: 'Revisao', status: progress >= 50 ? 'completed' : progress >= 25 ? 'current' : 'pending' },
+                    { label: 'Validacao', status: progress >= 75 ? 'completed' : progress >= 50 ? 'current' : 'pending' },
+                    { label: 'Entrega', status: progress >= 100 ? 'completed' : progress >= 75 ? 'current' : 'pending' }
+                ];
+            });
+
+            // ========== ISSUE #134 - WIZARD COMPONENTS ==========
+            const showProjectWizard = ref(false);
+            const showIntegrationWizard = ref(false);
+            const wizardCurrentStep = ref(0);
+            const wizardData = ref({
+                projectType: '',
+                name: '',
+                description: '',
+                firstFeature: ''
+            });
+
+            const wizardSteps = [
+                { label: 'Tipo' },
+                { label: 'Detalhes' },
+                { label: translateTerm('story', true) },
+                { label: 'Confirmar' }
+            ];
+
+            const projectTypeOptions = [
+                { value: 'web', title: 'Aplicacao Web', desc: 'Site, portal ou sistema web', icon: '🌐', color: '#3B82F6' },
+                { value: 'mobile', title: 'App Mobile', desc: 'Aplicativo para celular', icon: '📱', color: '#10B981' },
+                { value: 'api', title: translateTerm('api', true), desc: 'Servico de integracao', icon: '🔗', color: '#8B5CF6' },
+                { value: 'automation', title: 'Automacao', desc: 'Scripts e processos automatizados', icon: '🤖', color: '#F59E0B' }
+            ];
+
+            const availableIntegrations = [
+                { id: 'github', name: 'GitHub', desc: 'Repositorio de codigo', icon: '📂', color: '#24292E' },
+                { id: 'slack', name: 'Slack', desc: 'Notificacoes em tempo real', icon: '💬', color: '#4A154B' },
+                { id: 'jira', name: 'Jira', desc: 'Sincronizar tarefas', icon: '📋', color: '#0052CC' }
+            ];
+
+            const canProceedWizard = computed(() => {
+                if (wizardCurrentStep.value === 0) return wizardData.value.projectType;
+                if (wizardCurrentStep.value === 1) return wizardData.value.name;
+                if (wizardCurrentStep.value === 2) return wizardData.value.firstFeature;
+                return true;
+            });
+
+            const getProjectTypeName = (type) => {
+                const opt = projectTypeOptions.find(o => o.value === type);
+                return opt?.title || type;
+            };
+
+            const createProjectFromWizard = async () => {
+                try {
+                    // Create project
+                    const projectRes = await fetch('/api/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: wizardData.value.name,
+                            description: wizardData.value.description,
+                            project_type: wizardData.value.projectType
+                        })
+                    });
+                    const project = await projectRes.json();
+
+                    // Create first story
+                    if (wizardData.value.firstFeature) {
+                        await fetch('/api/stories', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                project_id: project.project_id,
+                                title: wizardData.value.firstFeature,
+                                persona: 'usuario',
+                                action: wizardData.value.firstFeature,
+                                benefit: 'ter acesso a funcionalidade desejada'
+                            })
+                        });
+                    }
+
+                    // Reset wizard
+                    showProjectWizard.value = false;
+                    wizardCurrentStep.value = 0;
+                    wizardData.value = { projectType: '', name: '', description: '', firstFeature: '' };
+
+                    // Reload projects
+                    await loadProjects();
+                    selectedProjectId.value = project.project_id;
+                    await loadProjectData();
+
+                    addToast('success', 'Projeto criado!', wizardData.value.name);
+                } catch (e) {
+                    addToast('error', 'Erro ao criar projeto', e.message);
+                }
+            };
+
+            const selectIntegration = (integration) => {
+                addToast('info', 'Em breve', `Integracao com ${integration.name} em desenvolvimento`);
+                showIntegrationWizard.value = false;
+            };
+
+            // ========== ISSUE #132 - ONBOARDING TOUR ==========
+            const showOnboardingChecklist = ref(true);
+            const showOnboardingTour = ref(false);
+            const currentTourStepIndex = ref(0);
+
+            const onboardingSteps = ref([
+                { id: 'select_project', label: 'Selecionar um projeto', done: false },
+                { id: 'create_story', label: 'Criar uma ' + businessTerms.story, done: false },
+                { id: 'move_story', label: 'Mover ' + businessTerms.story + ' no Kanban', done: false },
+                { id: 'view_preview', label: 'Visualizar o projeto', done: false }
+            ]);
+
+            const onboardingComplete = computed(() => {
+                return onboardingSteps.value.every(s => s.done);
+            });
+
+            const onboardingProgress = computed(() => {
+                const done = onboardingSteps.value.filter(s => s.done).length;
+                return Math.round((done / onboardingSteps.value.length) * 100);
+            });
+
+            const tourSteps = [
+                {
+                    target: '.sidebar-desktop',
+                    title: 'Barra Lateral',
+                    content: 'Aqui voce encontra seus projetos, ' + businessTerms.epics + ' e metricas do projeto.',
+                    arrow: 'left'
+                },
+                {
+                    target: '.view-mode-toggle',
+                    title: 'Modo de Visualizacao',
+                    content: 'Alterne entre visao Tecnica (Kanban) e Executiva (resumo simples).',
+                    arrow: 'bottom'
+                },
+                {
+                    target: '.kanban-container',
+                    title: 'Kanban Board',
+                    content: 'Arraste as ' + businessTerms.stories + ' entre as colunas para atualizar o status.',
+                    arrow: 'top'
+                },
+                {
+                    target: '.chat-panel-desktop',
+                    title: 'Assistente IA',
+                    content: 'Converse com o assistente para tirar duvidas ou executar comandos rapidos.',
+                    arrow: 'right'
+                }
+            ];
+
+            const currentTourStep = computed(() => {
+                return tourSteps[currentTourStepIndex.value] || tourSteps[0];
+            });
+
+            const onboardingSpotlightStyle = computed(() => {
+                const target = document.querySelector(currentTourStep.value.target);
+                if (!target) return { display: 'none' };
+                const rect = target.getBoundingClientRect();
+                return {
+                    top: rect.top - 8 + 'px',
+                    left: rect.left - 8 + 'px',
+                    width: rect.width + 16 + 'px',
+                    height: rect.height + 16 + 'px'
+                };
+            });
+
+            const onboardingTooltipStyle = computed(() => {
+                const target = document.querySelector(currentTourStep.value.target);
+                if (!target) return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+                const rect = target.getBoundingClientRect();
+                const arrow = currentTourStep.value.arrow;
+                let style = {};
+                if (arrow === 'left') {
+                    style = { top: rect.top + 'px', left: rect.right + 20 + 'px' };
+                } else if (arrow === 'right') {
+                    style = { top: rect.top + 'px', right: window.innerWidth - rect.left + 20 + 'px' };
+                } else if (arrow === 'top') {
+                    style = { top: rect.bottom + 20 + 'px', left: rect.left + 'px' };
+                } else {
+                    style = { bottom: window.innerHeight - rect.top + 20 + 'px', left: rect.left + 'px' };
+                }
+                return style;
+            });
+
+            const handleOnboardingStep = (step) => {
+                if (step.id === 'select_project' && !selectedProjectId.value) {
+                    addToast('info', 'Selecione um projeto', 'Clique em um projeto na lista');
+                } else if (step.id === 'create_story') {
+                    showNewStoryModal.value = true;
+                } else if (step.id === 'view_preview') {
+                    openProjectPreview();
+                }
+            };
+
+            const startOnboardingTour = () => {
+                currentTourStepIndex.value = 0;
+                showOnboardingTour.value = true;
+            };
+
+            const nextTourStep = () => {
+                if (currentTourStepIndex.value < tourSteps.length - 1) {
+                    currentTourStepIndex.value++;
+                }
+            };
+
+            const prevTourStep = () => {
+                if (currentTourStepIndex.value > 0) {
+                    currentTourStepIndex.value--;
+                }
+            };
+
+            const skipOnboardingTour = () => {
+                showOnboardingTour.value = false;
+            };
+
+            const finishOnboardingTour = () => {
+                showOnboardingTour.value = false;
+                localStorage.setItem('onboardingComplete', 'true');
+                addToast('success', 'Tour concluido!', 'Agora voce conhece o basico da Fabrica de Agentes');
+            };
+
+            const markOnboardingStepDone = (stepId) => {
+                const step = onboardingSteps.value.find(s => s.id === stepId);
+                if (step) step.done = true;
+                localStorage.setItem('onboardingSteps', JSON.stringify(onboardingSteps.value));
+            };
+
+            const loadOnboardingState = () => {
+                const saved = localStorage.getItem('onboardingSteps');
+                if (saved) {
+                    const steps = JSON.parse(saved);
+                    onboardingSteps.value.forEach((s, i) => {
+                        if (steps[i]) s.done = steps[i].done;
+                    });
+                }
+                const complete = localStorage.getItem('onboardingComplete');
+                if (complete === 'true') {
+                    showOnboardingChecklist.value = false;
+                }
+            };
+
             const selectedProjectId = ref('');
             const selectedSprintId = ref('');
             const selectedEpicId = ref('');
@@ -6403,10 +6713,11 @@ HTML_TEMPLATE = """
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({ status: newStatus, order: newOrder })
                                     });
-                                    addToast('success', 'Story movida', storyId + ' -> ' + getColumnTitle(newStatus));
+                                    addToast('success', translateTerm('story', true) + ' movida', storyId + ' -> ' + getColumnTitle(newStatus));
+                                    markOnboardingStepDone('move_story'); // Issue #132
                                     loadProjectData();
                                 } catch (e) {
-                                    addToast('error', 'Erro ao mover', 'Nao foi possivel mover a story');
+                                    addToast('error', 'Erro ao mover', 'Nao foi possivel mover a ' + translateTerm('story'));
                                     loadProjectData();
                                 }
                             }
@@ -6436,10 +6747,11 @@ HTML_TEMPLATE = """
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ status: newStatus, order: newOrder })
                                             });
-                                            addToast('success', 'Story movida', storyId + ' -> ' + getColumnTitle(newStatus));
+                                            addToast('success', translateTerm('story', true) + ' movida', storyId + ' -> ' + getColumnTitle(newStatus));
+                                            markOnboardingStepDone('move_story'); // Issue #132
                                             loadProjectData();
                                         } catch (e) {
-                                            addToast('error', 'Erro ao mover', 'Nao foi possivel mover a story');
+                                            addToast('error', 'Erro ao mover', 'Nao foi possivel mover a ' + translateTerm('story'));
                                             loadProjectData();
                                         }
                                     }
@@ -6497,7 +6809,8 @@ HTML_TEMPLATE = """
 
                     if (res.ok) {
                         const created = await res.json();
-                        addToast('success', 'Story criada', created.story_id + ': ' + created.title);
+                        addToast('success', translateTerm('story', true) + ' criada', created.story_id + ': ' + created.title);
+                        markOnboardingStepDone('create_story'); // Issue #132
                     }
 
                     showNewStoryModal.value = false;
@@ -7125,13 +7438,14 @@ HTML_TEMPLATE = """
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: newStatus })
                     });
-                    addToast('success', 'Story movida', story.story_id + ' -> ' + getColumnTitle(newStatus));
+                    addToast('success', translateTerm('story', true) + ' movida', story.story_id + ' -> ' + getColumnTitle(newStatus));
+                    markOnboardingStepDone('move_story'); // Issue #132
                     loadProjectData();
                     // Update selected story
                     const res = await fetch('/api/stories/' + story.story_id);
                     selectedStory.value = await res.json();
                 } catch (e) {
-                    addToast('error', 'Erro ao mover', 'Nao foi possivel mover a story');
+                    addToast('error', 'Erro ao mover', 'Nao foi possivel mover a ' + translateTerm('story'));
                 }
             };
 
@@ -7319,6 +7633,10 @@ Process ${data.status}`);
 
             watch(selectedProjectId, () => {
                 loadChatHistory();
+                // Issue #132 - Mark onboarding step done
+                if (selectedProjectId.value) {
+                    markOnboardingStepDone('select_project');
+                }
             });
 
             // Watch groupBy change to reinitialize sortable
@@ -7334,6 +7652,7 @@ Process ${data.status}`);
                 loadProjects();
                 loadDarkMode();
                 loadNotificationSoundPreference();
+                loadOnboardingState(); // Issue #132 - Load onboarding state
 
                 // Connect WebSocket for real-time notifications
                 connectWebSocket();
@@ -7350,7 +7669,7 @@ Process ${data.status}`);
                 chatHistory.value.push({
                     message_id: 'welcome',
                     role: 'assistant',
-                    content: 'Ola! Sou o assistente da Fabrica de Agentes. Posso ajudar com:\\n\\n- **Criar stories**: Clique em "Nova Story"\\n- **Ver progresso**: Pergunte sobre o status\\n- **Documentacao**: Veja a aba Docs de cada story\\n\\nComo posso ajudar?',
+                    content: 'Ola! Sou o assistente da Fabrica de Agentes. Posso ajudar com:\\n\\n- **Criar ' + translateTerm('stories') + '**: Clique em "Nova ' + translateTerm('story', true) + '"\\n- **Ver progresso**: Pergunte sobre o status\\n- **Documentacao**: Veja a aba Docs de cada ' + translateTerm('story') + '\\n\\nComo posso ajudar?',
                     created_at: new Date().toISOString()
                 });
             });
@@ -7374,6 +7693,7 @@ Process ${data.status}`);
             const openProjectPreview = async () => {
                 showProjectPreview.value = true;
                 await loadPreviewData();
+                markOnboardingStepDone('view_preview'); // Issue #132
             };
 
             // Refresh preview data
@@ -7470,6 +7790,22 @@ Process ${data.status}`);
                 previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
                 startAppPreview, runProjectTests, buildProject, openAppPreview,
                 openFileViewer, openDocViewer,
+                // Issue #133 - Business Terms
+                businessTerms, translateTerm,
+                // Issue #135 - Executive Dashboard
+                viewMode, showTechnicalLogs, recentActivityLogs,
+                currentProjectName, projectReadyToTest, projectProgressPercent,
+                projectHealthStatus, projectHealthColor, donePoints, estimatedDaysRemaining, projectPhases,
+                // Issue #134 - Wizard Components
+                showProjectWizard, showIntegrationWizard, wizardCurrentStep, wizardData,
+                wizardSteps, projectTypeOptions, availableIntegrations,
+                canProceedWizard, getProjectTypeName, createProjectFromWizard, selectIntegration,
+                // Issue #132 - Onboarding Tour
+                showOnboardingChecklist, showOnboardingTour, currentTourStepIndex,
+                onboardingSteps, onboardingComplete, onboardingProgress,
+                tourSteps, currentTourStep, onboardingSpotlightStyle, onboardingTooltipStyle,
+                handleOnboardingStep, startOnboardingTour, nextTourStep, prevTourStep,
+                skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,

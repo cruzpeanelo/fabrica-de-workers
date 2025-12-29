@@ -184,7 +184,8 @@ class PlanEnforcer:
             Tupla (plan_type, limits_dict)
         """
         try:
-            from .models import Tenant, Plan, Subscription, SubscriptionStatus
+            # Usar modelos do billing que nao conflitam
+            from ..database.tenant_models import Tenant
 
             # Buscar tenant
             tenant = self.db.query(Tenant).filter(
@@ -195,25 +196,19 @@ class PlanEnforcer:
                 # Tenant não encontrado, usar free
                 return PlanType.FREE.value, DEFAULT_PLAN_LIMITS[PlanType.FREE.value]
 
-            # Buscar assinatura ativa
-            subscription = self.db.query(Subscription).filter(
-                and_(
-                    Subscription.tenant_id == tenant_id,
-                    Subscription.status.in_([
-                        SubscriptionStatus.ACTIVE.value,
-                        SubscriptionStatus.TRIALING.value
-                    ])
-                )
-            ).first()
+            # Buscar assinatura ativa via relacionamento
+            active_sub = None
+            for sub in (tenant.subscriptions or []):
+                if sub.status in ["active", "trialing"]:
+                    active_sub = sub
+                    break
 
-            if not subscription:
+            if not active_sub:
                 # Sem assinatura, usar free
                 return PlanType.FREE.value, DEFAULT_PLAN_LIMITS[PlanType.FREE.value]
 
-            # Buscar plano
-            plan = self.db.query(Plan).filter(
-                Plan.plan_id == subscription.plan_id
-            ).first()
+            # Buscar plano via relacionamento
+            plan = active_sub.plan if hasattr(active_sub, 'plan') else None
 
             if not plan:
                 return PlanType.FREE.value, DEFAULT_PLAN_LIMITS[PlanType.FREE.value]
@@ -402,7 +397,7 @@ class PlanEnforcer:
             amount: Quantidade a incrementar
         """
         try:
-            from .models import Usage, UsageMetric
+            from ..database.tenant_models import Usage
             import uuid
 
             # Determinar período e tipo
@@ -415,9 +410,9 @@ class PlanEnforcer:
 
             # Mapear resource_type para metric
             metric_map = {
-                ResourceType.API_CALLS_PER_DAY.value: UsageMetric.API_REQUESTS.value,
-                ResourceType.TOKENS_PER_MONTH.value: UsageMetric.LLM_TOKENS.value,
-                ResourceType.STORIES_PER_MONTH.value: UsageMetric.STORIES_CREATED.value,
+                ResourceType.API_CALLS_PER_DAY.value: "api_requests",
+                ResourceType.TOKENS_PER_MONTH.value: "llm_tokens",
+                ResourceType.STORIES_PER_MONTH.value: "stories_created",
             }
             metric = metric_map.get(resource_type, resource_type)
 
