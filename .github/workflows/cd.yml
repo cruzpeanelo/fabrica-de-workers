@@ -1,0 +1,329 @@
+# =============================================================================
+# Fabrica de Agentes - CD Pipeline (Continuous Deployment)
+# =============================================================================
+# Issue #9: Configurar CI/CD com GitHub Actions
+#
+# Este workflow executa deploy automatico para diferentes ambientes:
+#   - Staging: Deploy automatico quando push em develop
+#   - Production: Deploy manual ou quando push de tag v*.*.*
+#
+# Ambientes suportados:
+#   - Docker Hub
+#   - GitHub Container Registry (GHCR)
+#   - AWS (ECS/ECR)
+#   - Azure (Container Apps)
+#   - Kubernetes
+# =============================================================================
+
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Ambiente de deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Versao (deixe vazio para usar SHA do commit)'
+        required: false
+        type: string
+
+# Previne multiplos deploys simultaneos
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_IMAGE: fabrica-agentes
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================================================
+  # PREPARE: Prepara informacoes do deploy
+  # =============================================================================
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      environment: ${{ steps.environment.outputs.env }}
+      sha_short: ${{ steps.version.outputs.sha_short }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "sha_short=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="$SHA_SHORT"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versao determinada: $VERSION"
+
+      - name: Determine environment
+        id: environment
+        run: |
+          if [ -n "${{ inputs.environment }}" ]; then
+            ENV="${{ inputs.environment }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            ENV="production"
+          elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            ENV="staging"
+          else
+            ENV="development"
+          fi
+
+          echo "env=$ENV" >> $GITHUB_OUTPUT
+          echo "Ambiente: $ENV"
+
+  # =============================================================================
+  # BUILD: Constroi e publica imagem Docker
+  # =============================================================================
+  build:
+    name: Build & Push Docker
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Descomente para usar Docker Hub
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=${{ needs.prepare.outputs.sha_short }}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.environment == 'production' }}
+            type=raw,value=staging,enable=${{ needs.prepare.outputs.environment == 'staging' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.prepare.outputs.version }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
+
+      - name: Image digest
+        run: |
+          echo "=========================================="
+          echo "Docker Image Published"
+          echo "=========================================="
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image: ${{ env.IMAGE_NAME }}"
+          echo "Version: ${{ needs.prepare.outputs.version }}"
+          echo "Environment: ${{ needs.prepare.outputs.environment }}"
+          echo "=========================================="
+
+  # =============================================================================
+  # DEPLOY-STAGING: Deploy para ambiente de staging
+  # =============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: needs.prepare.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.fabrica-agentes.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          echo "=========================================="
+          echo "Deploy to Staging"
+          echo "=========================================="
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}"
+          echo "Environment: staging"
+          echo ""
+          echo "NOTA: Configure seu deploy aqui"
+          echo ""
+          echo "Exemplos de deploy:"
+          echo "  - kubectl set image deployment/fabrica-agentes ..."
+          echo "  - aws ecs update-service ..."
+          echo "  - az containerapp update ..."
+          echo "  - docker-compose pull && docker-compose up -d"
+          echo "=========================================="
+
+      # Exemplo: Deploy para Kubernetes
+      # - name: Set up kubectl
+      #   uses: azure/setup-kubectl@v3
+      #
+      # - name: Configure kubectl
+      #   run: |
+      #     echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > kubeconfig
+      #     export KUBECONFIG=kubeconfig
+      #
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     kubectl set image deployment/fabrica-agentes \
+      #       fabrica-agentes=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }} \
+      #       -n staging
+
+      - name: Staging deploy notification
+        run: |
+          echo "Staging deploy completed!"
+          echo "Version: ${{ needs.prepare.outputs.version }}"
+
+  # =============================================================================
+  # DEPLOY-PRODUCTION: Deploy para ambiente de producao
+  # =============================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    if: needs.prepare.outputs.environment == 'production'
+    environment:
+      name: production
+      url: https://fabrica-agentes.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "=========================================="
+          echo "Deploy to Production"
+          echo "=========================================="
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }}"
+          echo "Environment: production"
+          echo ""
+          echo "NOTA: Configure seu deploy aqui"
+          echo "=========================================="
+
+      # Exemplo: Deploy para Kubernetes
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     kubectl set image deployment/fabrica-agentes \
+      #       fabrica-agentes=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.version }} \
+      #       -n production
+
+      - name: Production deploy notification
+        run: |
+          echo "Production deploy completed!"
+          echo "Version: ${{ needs.prepare.outputs.version }}"
+
+  # =============================================================================
+  # NOTIFY: Notificacao do deploy
+  # =============================================================================
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [prepare, build, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: Deploy summary
+        run: |
+          echo "=========================================="
+          echo "Deployment Summary"
+          echo "=========================================="
+          echo "Version: ${{ needs.prepare.outputs.version }}"
+          echo "Environment: ${{ needs.prepare.outputs.environment }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "=========================================="
+
+      # Exemplo: Notificacao Slack
+      # - name: Send Slack notification
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      # Exemplo: Notificacao Discord
+      # - name: Send Discord notification
+      #   uses: sarisia/actions-status-discord@v1
+      #   with:
+      #     webhook: ${{ secrets.DISCORD_WEBHOOK }}
+      #     title: "Deploy ${{ needs.prepare.outputs.environment }}"
+      #     description: "Version ${{ needs.prepare.outputs.version }} deployed successfully!"
+
+  # =============================================================================
+  # ROLLBACK: Job para rollback manual
+  # =============================================================================
+  rollback:
+    name: Rollback (Manual)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.environment == 'rollback'
+    environment:
+      name: rollback
+
+    steps:
+      - name: Rollback instructions
+        run: |
+          echo "=========================================="
+          echo "Rollback Instructions"
+          echo "=========================================="
+          echo ""
+          echo "Para fazer rollback, execute:"
+          echo ""
+          echo "1. Identifique a versao anterior:"
+          echo "   git log --oneline -10"
+          echo ""
+          echo "2. Execute o workflow com a versao desejada:"
+          echo "   gh workflow run cd.yml -f version=<SHA> -f environment=production"
+          echo ""
+          echo "Ou use kubectl para rollback:"
+          echo "   kubectl rollout undo deployment/fabrica-agentes -n production"
+          echo ""
+          echo "=========================================="

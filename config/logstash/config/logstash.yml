@@ -1,0 +1,18 @@
+# =============================================================================
+# Configuracao do Logstash - Fabrica de Agentes
+# =============================================================================
+
+http.host: "0.0.0.0"
+path.config: /usr/share/logstash/pipeline
+
+# Monitoramento
+xpack.monitoring.enabled: false
+
+# Performance
+pipeline.workers: 2
+pipeline.batch.size: 125
+pipeline.batch.delay: 50
+
+# Logs
+log.level: info
+path.logs: /usr/share/logstash/logs

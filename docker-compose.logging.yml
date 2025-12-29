@@ -1,0 +1,206 @@
+# =============================================================================
+# Fabrica de Agentes - Stack de Logging
+# =============================================================================
+#
+# Este docker-compose configura uma stack de logging completa com duas opcoes:
+#
+# OPCAO 1: ELK Stack (Elasticsearch + Logstash + Kibana)
+#   - Mais robusto e completo
+#   - Melhor para grandes volumes de dados
+#   - Requer mais recursos (~4GB RAM)
+#
+# OPCAO 2: Loki + Grafana (Recomendado para desenvolvimento)
+#   - Leve e eficiente
+#   - Integrado com Grafana para dashboards
+#   - Requer menos recursos (~1GB RAM)
+#
+# Uso:
+#   # Iniciar stack completa (ELK + Loki)
+#   docker-compose -f docker-compose.logging.yml up -d
+#
+#   # Iniciar apenas Loki + Grafana (recomendado)
+#   docker-compose -f docker-compose.logging.yml up -d loki grafana
+#
+#   # Iniciar apenas ELK
+#   docker-compose -f docker-compose.logging.yml up -d elasticsearch logstash kibana
+#
+# Acessos:
+#   - Kibana:   http://localhost:5601
+#   - Grafana:  http://localhost:3000 (admin/admin)
+#   - Loki:     http://localhost:3100
+#   - ES:       http://localhost:9200
+#
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # OPCAO 1: ELK Stack
+  # ===========================================================================
+
+  # Elasticsearch - Armazenamento de logs
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: fabrica-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+      - cluster.name=fabrica-logs
+      - node.name=fabrica-es-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -vq '\"status\":\"red\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+    networks:
+      - fabrica-logging
+    profiles:
+      - elk
+      - full
+
+  # Logstash - Processamento de logs
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: fabrica-logstash
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./config/logstash/config:/usr/share/logstash/config:ro
+    ports:
+      - "5044:5044"    # Beats input
+      - "5000:5000"    # TCP input
+      - "9600:9600"    # API
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    networks:
+      - fabrica-logging
+    profiles:
+      - elk
+      - full
+
+  # Kibana - Visualizacao
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: fabrica-kibana
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=fabrica-kibana
+      - SERVER_HOST=0.0.0.0
+    ports:
+      - "5601:5601"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q 'available'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      - fabrica-logging
+    profiles:
+      - elk
+      - full
+
+  # ===========================================================================
+  # OPCAO 2: Loki + Grafana (Recomendado)
+  # ===========================================================================
+
+  # Loki - Armazenamento de logs
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: fabrica-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki:/etc/loki:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fabrica-logging
+    profiles:
+      - loki
+      - full
+
+  # Grafana - Visualizacao
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: fabrica-grafana
+    depends_on:
+      loki:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fabrica-logging
+    profiles:
+      - loki
+      - full
+
+  # Promtail - Agente coletor de logs (opcional)
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: fabrica-promtail
+    depends_on:
+      loki:
+        condition: service_healthy
+    volumes:
+      - ./config/promtail:/etc/promtail:ro
+      - ./logs:/var/log/fabrica:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - fabrica-logging
+    profiles:
+      - loki
+      - full
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  loki_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  fabrica-logging:
+    name: fabrica-logging
+    driver: bridge

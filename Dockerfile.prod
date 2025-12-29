@@ -1,0 +1,149 @@
+# =============================================================================
+# Fabrica de Agentes - Dockerfile de Producao para Kubernetes
+# =============================================================================
+# Multi-stage build otimizado para ambientes de producao
+# Suporta: API Dashboard (porta 9001) e Workers (porta 9000)
+#
+# Build:
+#   docker build -f Dockerfile.prod -t fabrica-agentes:latest .
+#   docker build -f Dockerfile.prod --target api -t fabrica-agentes-api:latest .
+#   docker build -f Dockerfile.prod --target worker -t fabrica-agentes-worker:latest .
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Builder - Instalacao de dependencias
+# -----------------------------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+# Instalar dependencias de build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar e instalar requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# -----------------------------------------------------------------------------
+# Stage 2: Base - Imagem base comum para API e Worker
+# -----------------------------------------------------------------------------
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+# Labels para identificacao da imagem
+LABEL maintainer="Fabrica de Agentes <fabrica@belgo.com.br>"
+LABEL version="6.0"
+LABEL description="Plataforma de desenvolvimento autonomo com agentes IA"
+
+# Criar usuario nao-root para seguranca
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid appgroup --create-home --shell /bin/bash appuser
+
+# Instalar dependencias de runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copiar pacotes instalados do builder
+COPY --from=builder /root/.local /home/appuser/.local
+
+# Copiar codigo da aplicacao
+COPY --chown=appuser:appgroup factory/ ./factory/
+COPY --chown=appuser:appgroup requirements.txt .
+
+# Criar diretorios para persistencia
+RUN mkdir -p /app/factory/database /app/projects /app/uploads /app/logs \
+    && chown -R appuser:appgroup /app
+
+# Variaveis de ambiente comuns
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    # Configuracoes padrao
+    LOG_LEVEL=INFO \
+    LOG_FORMAT=json
+
+# -----------------------------------------------------------------------------
+# Stage 3: API - Dashboard Agile (porta 9001)
+# -----------------------------------------------------------------------------
+FROM base AS api
+
+# Variaveis especificas da API
+ENV APP_TYPE=api \
+    API_HOST=0.0.0.0 \
+    API_PORT=9001 \
+    DASHBOARD_PORT=9001
+
+# Mudar para usuario nao-root
+USER appuser
+
+# Expor porta do Dashboard Agile
+EXPOSE 9001
+
+# Health check para Kubernetes probes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:9001/health || exit 1
+
+# Comando para iniciar o Dashboard Agile v6
+CMD ["python", "-m", "uvicorn", "factory.dashboard.app_v6_agile:app", \
+     "--host", "0.0.0.0", "--port", "9001", \
+     "--workers", "2", "--loop", "uvloop", "--http", "httptools"]
+
+# -----------------------------------------------------------------------------
+# Stage 4: Worker - Workers autonomos (porta 9000)
+# -----------------------------------------------------------------------------
+FROM base AS worker
+
+# Variaveis especificas do Worker
+ENV APP_TYPE=worker \
+    WORKER_HOST=0.0.0.0 \
+    WORKER_PORT=9000 \
+    # Configuracoes do worker
+    WORKER_CONCURRENCY=2 \
+    WORKER_POLL_INTERVAL=30
+
+# Mudar para usuario nao-root
+USER appuser
+
+# Expor porta do Worker Dashboard
+EXPOSE 9000
+
+# Health check para Kubernetes probes
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:9000/health || exit 1
+
+# Comando para iniciar o Worker Dashboard
+CMD ["python", "-m", "uvicorn", "factory.dashboard.app:app", \
+     "--host", "0.0.0.0", "--port", "9000", \
+     "--workers", "1", "--loop", "uvloop", "--http", "httptools"]
+
+# -----------------------------------------------------------------------------
+# Stage 5: Kanban Watcher - Monitoramento automatico
+# -----------------------------------------------------------------------------
+FROM base AS watcher
+
+# Variaveis especificas do Watcher
+ENV APP_TYPE=watcher \
+    WATCHER_INTERVAL=30
+
+# Copiar scripts de monitoramento
+COPY --chown=appuser:appgroup run_kanban_watcher.py .
+
+# Mudar para usuario nao-root
+USER appuser
+
+# Comando para iniciar o Watcher
+CMD ["python", "run_kanban_watcher.py"]
+
+# -----------------------------------------------------------------------------
+# Stage Default: API (para compatibilidade)
+# -----------------------------------------------------------------------------
+FROM api
