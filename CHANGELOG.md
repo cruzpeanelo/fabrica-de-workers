@@ -7,6 +7,59 @@ e este projeto adere ao [Versionamento Semantico](https://semver.org/lang/pt-BR/
 
 ---
 
+## [6.3.0] - 2025-12-29
+
+### Dashboard Agile - Novos Recursos
+
+Esta versao traz **4 novas funcionalidades** focadas em produtividade e personalizacao.
+
+#### Novas Funcionalidades
+
+##### Templates de Stories (#44)
+- **Dropdown de Templates** - Selecione um template ao criar nova story:
+  - **Feature**: Para novas funcionalidades
+  - **Bug Fix**: Para correcao de bugs
+  - **Tech Debt**: Para refatoracao e debito tecnico
+  - **Spike**: Para pesquisas e investigacoes
+  - **Melhoria**: Para aprimoramentos
+- Preenche automaticamente: titulo, persona, acao, beneficio, descricao e criterios de aceite
+
+##### Dark Mode (#37)
+- **Toggle no Header** - Botao para alternar entre modo claro/escuro
+- **Persistencia** - Preferencia salva no localStorage
+- **Suporte Completo** - Todas as telas e modais com tema escuro
+- Icones: 🌙 (modo escuro) / ☀️ (modo claro)
+
+##### Sprint Burndown Chart (#42)
+- **Mini Grafico na Sidebar** - Visualizacao rapida do progresso
+- **Modal Expandido** - Clique em "Expandir" para ver detalhes
+- **Metricas**:
+  - Total Points
+  - Pontos Completos
+  - Pontos Restantes
+  - Velocity
+- **Linhas do Grafico**:
+  - Azul (tracejada): Linha ideal
+  - Laranja: Progresso real
+
+##### Bulk Actions (#40)
+- **Modo Selecao** - Botao "Selecionar" na barra de filtros
+- **Selecao Multipla** - Checkbox em cada story card
+- **Barra de Acoes Flutuante**:
+  - Mover para Ready
+  - Mover para In Progress
+  - Mover para Done
+  - Excluir selecionadas
+- **Animacao Suave** - Toolbar aparece com slide-up
+
+#### Issues Fechadas
+- #44 - Templates de Stories
+- #42 - Sprint Burndown Chart
+- #37 - Suporte a Dark Mode
+- #40 - Bulk actions para multiplas stories
+
+---
+
 ## [6.2.0] - 2025-12-18
 
 ### Dashboard Agile - Melhorias de UX/UI
