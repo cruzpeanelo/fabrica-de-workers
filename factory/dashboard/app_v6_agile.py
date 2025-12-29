@@ -2684,33 +2684,52 @@ HTML_TEMPLATE = """
         .kanban-column { min-height: 400px; }
 
         /* Swimlanes */
+        .swimlanes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
         .swimlane {
-            border-bottom: 2px solid #e5e7eb;
-            padding: 16px 0;
-            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            padding: 0;
+            margin-bottom: 8px;
         }
         .swimlane:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
         .swimlane-header {
-            font-weight: 600;
-            padding: 8px 16px;
-            background: #f3f4f6;
-            border-radius: 6px;
-            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 8px 8px 0 0;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+            user-select: none;
+        }
+        .swimlane-header:hover {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
         }
         .swimlane-content {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             overflow-x: auto;
-            padding: 0 8px;
+            padding: 12px;
+            background: #fafafa;
+            border-radius: 0 0 8px 8px;
         }
         .swimlane-column {
             flex-shrink: 0;
-            width: 280px;
+            width: 260px;
+            min-width: 260px;
+        }
+        .swimlane-collapsed .swimlane-content {
+            display: none;
+        }
+        .rotate-90 {
+            transform: rotate(90deg);
         }
 
         .narrative-box {
@@ -3202,21 +3221,44 @@ HTML_TEMPLATE = """
         @supports (padding: env(safe-area-inset-top)) { .header-container { padding-top: env(safe-area-inset-top); } .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); } }
 
         @media print { .mobile-menu-btn, .mobile-bottom-nav, .mobile-overlay { display: none !important; } }
+        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
+        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
+        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
+        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
+        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
+        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
+        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
+        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
+        .touch-target { min-width: 44px; min-height: 44px; }
+
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="app" :class="{ 'dark': isDarkMode }">
+        <!-- Skip Links for Keyboard Navigation (A11y) -->
+        <a href="#main-content" class="skip-link">Pular para conteudo principal</a>
+        <a href="#kanban-board" class="skip-link" style="left: 220px;">Pular para Kanban</a>
+        <a href="#chat-panel" class="skip-link" style="left: 380px;">Pular para Chat</a>
+
+        <!-- Live Region for Screen Reader Announcements (A11y) -->
+        <div id="a11y-announcer" class="a11y-live-region" aria-live="polite" aria-atomic="true"></div>
+        <div id="a11y-status" class="a11y-live-region" role="status" aria-live="polite"></div>
+
         <!-- Mobile Overlay -->
-        <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false"></div>
+        <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false" aria-hidden="true"></div>
         <!-- Pull to Refresh -->
-        <div class="pull-refresh-indicator" :class="{ 'visible': isPullingToRefresh }"><div class="spinner spinner-sm"></div><span>Atualizando...</span></div>
+        <div class="pull-refresh-indicator" :class="{ 'visible': isPullingToRefresh }" role="status" aria-live="polite"><div class="spinner spinner-sm" aria-hidden="true"></div><span>Atualizando...</span></div>
         <!-- HEADER -->
-        <header class="belgo-blue text-white shadow-lg">
+        <header class="belgo-blue text-white shadow-lg" role="banner">
             <div class="container mx-auto px-4 header-container">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-4">
                         <!-- Hamburger Menu (Mobile) -->
-                        <button class="mobile-menu-btn" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen">
+                        <button class="mobile-menu-btn" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Menu de navegacao" :aria-expanded="mobileMenuOpen">
                             <span></span><span></span><span></span>
                         </button>
                         <div class="flex items-center gap-2">
@@ -3524,6 +3566,11 @@ HTML_TEMPLATE = """
                                 </div>
                                 <!-- Quick Actions -->
                                 <div class="quick-actions" @click.stop>
+                                    <button @click="estimateStoryEffort(story)" class="quick-btn" title="Estimar esforco (IA)" style="background: #8B5CF6;">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                        </svg>
+                                    </button>
                                     <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -3579,16 +3626,29 @@ HTML_TEMPLATE = """
                     <!-- Swimlanes View -->
                     <div v-else class="swimlanes-container">
                         <div v-for="(group, groupKey) in groupedStories" :key="groupKey" class="swimlane">
-                            <!-- Swimlane Header -->
-                            <div class="swimlane-header">
-                                <span :style="group.color ? {borderLeft: `4px solid ${group.color}`} : {}"
-                                      class="pl-2">
-                                    {{ group.name }}
-                                </span>
+                            <!-- Swimlane Header (Collapsible) -->
+                            <div class="swimlane-header cursor-pointer" @click="toggleSwimlane(groupKey)">
+                                <div class="flex items-center gap-2">
+                                    <svg :class="['w-4 h-4 transition-transform', isSwimlaneCollapsed(groupKey) ? '' : 'rotate-90']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    <span :style="group.color ? {borderLeft: `4px solid ${group.color}`, paddingLeft: '8px'} : {}"
+                                          class="font-semibold">
+                                        {{ group.name }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                                        {{ getSwimlaneStoryCount(group) }} stories
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ getSwimlanePoints(group) }} pts
+                                    </span>
+                                </div>
                             </div>
 
                             <!-- Swimlane Content (Columns) -->
-                            <div class="swimlane-content">
+                            <div v-show="!isSwimlaneCollapsed(groupKey)" class="swimlane-content">
                                 <div v-for="status in ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done']"
                                      :key="status"
                                      class="swimlane-column bg-gray-100 rounded-lg">
@@ -3977,18 +4037,33 @@ HTML_TEMPLATE = """
 
                                 <!-- Generate Tests Button -->
                                 <div v-if="task.code_output" class="mt-2 pt-2 border-t border-gray-100">
-                                    <button @click.stop="generateTestsForTask(task)"
-                                            :disabled="generatingTests === task.task_id"
-                                            class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
-                                        <svg v-if="generatingTests !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                        </svg>
-                                        <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                        </svg>
-                                        {{ generatingTests === task.task_id ? 'Gerando...' : 'Generate Tests' }}
-                                    </button>
+                                    <div class="flex gap-2 flex-wrap">
+                                        <button @click.stop="generateTestsForTask(task)"
+                                                :disabled="generatingTests === task.task_id"
+                                                class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                                            <svg v-if="generatingTests !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            {{ generatingTests === task.task_id ? 'Gerando...' : 'Generate Tests' }}
+                                        </button>
+                                        <!-- Security Scan Button -->
+                                        <button @click.stop="runSecurityScan(task)"
+                                                :disabled="scanningTask === task.task_id"
+                                                class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-1">
+                                            <svg v-if="scanningTask !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            {{ scanningTask === task.task_id ? 'Analisando...' : 'Scan de Seguranca' }}
+                                        </button>
+                                    </div>
                                     <div v-if="task.generated_tests?.test_code" class="mt-1">
                                         <button @click.stop="showGeneratedTests(task)"
                                                 class="text-xs text-purple-600 hover:text-purple-800 underline">
@@ -5153,6 +5228,127 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Security Scan Results -->
+        <div v-if="showSecurityScanModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showSecurityScanModal = false">
+            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
+                    <div>
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Analise de Seguranca (SAST)
+                        </h2>
+                        <p class="text-sm text-red-200" v-if="currentSecurityScan">
+                            {{ currentSecurityScan.language }} | {{ currentSecurityScan.scan_type === 'ai' ? 'Analise IA' : 'Analise Basica' }} | {{ currentSecurityScan.summary?.total || 0 }} vulnerabilidades
+                        </p>
+                    </div>
+                    <button @click="showSecurityScanModal = false" class="text-white/70 hover:text-white">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+                    <!-- Summary Cards -->
+                    <div v-if="currentSecurityScan?.summary" class="grid grid-cols-5 gap-3 mb-6">
+                        <div class="bg-gray-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-gray-700">{{ currentSecurityScan.summary.total }}</div>
+                            <div class="text-xs text-gray-500">Total</div>
+                        </div>
+                        <div class="bg-red-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-red-700">{{ currentSecurityScan.summary.critical }}</div>
+                            <div class="text-xs text-red-600">Critical</div>
+                        </div>
+                        <div class="bg-orange-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-orange-700">{{ currentSecurityScan.summary.high }}</div>
+                            <div class="text-xs text-orange-600">High</div>
+                        </div>
+                        <div class="bg-yellow-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-yellow-700">{{ currentSecurityScan.summary.medium }}</div>
+                            <div class="text-xs text-yellow-600">Medium</div>
+                        </div>
+                        <div class="bg-blue-100 rounded-lg p-3 text-center">
+                            <div class="text-2xl font-bold text-blue-700">{{ currentSecurityScan.summary.low }}</div>
+                            <div class="text-xs text-blue-600">Low</div>
+                        </div>
+                    </div>
+
+                    <!-- Vulnerabilities List -->
+                    <div v-if="currentSecurityScan?.vulnerabilities?.length" class="space-y-3">
+                        <h3 class="font-semibold text-gray-800 mb-2">Vulnerabilidades Encontradas</h3>
+                        <div v-for="(vuln, idx) in currentSecurityScan.vulnerabilities" :key="idx"
+                             class="border rounded-lg p-4"
+                             :class="{
+                                 'border-red-300 bg-red-50': vuln.severity === 'Critical',
+                                 'border-orange-300 bg-orange-50': vuln.severity === 'High',
+                                 'border-yellow-300 bg-yellow-50': vuln.severity === 'Medium',
+                                 'border-blue-300 bg-blue-50': vuln.severity === 'Low'
+                             }">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-xs font-medium"
+                                          :class="{
+                                              'bg-red-600 text-white': vuln.severity === 'Critical',
+                                              'bg-orange-500 text-white': vuln.severity === 'High',
+                                              'bg-yellow-500 text-white': vuln.severity === 'Medium',
+                                              'bg-blue-500 text-white': vuln.severity === 'Low'
+                                          }">
+                                        {{ vuln.severity }}
+                                    </span>
+                                    <span class="font-semibold text-gray-800">{{ vuln.type }}</span>
+                                    <span v-if="vuln.cwe" class="text-xs text-gray-500">({{ vuln.cwe }})</span>
+                                </div>
+                                <span class="text-xs text-gray-500">Linha {{ vuln.line }}</span>
+                            </div>
+                            <p class="text-sm text-gray-700 mb-2">{{ vuln.description }}</p>
+                            <div v-if="vuln.line_content" class="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono mb-2 overflow-x-auto">
+                                {{ vuln.line_content }}
+                            </div>
+                            <div class="bg-green-50 border border-green-200 rounded p-2">
+                                <span class="text-xs font-medium text-green-800">Sugestao de correcao:</span>
+                                <p class="text-xs text-green-700 mt-1">{{ vuln.fix_suggestion }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No Vulnerabilities -->
+                    <div v-else-if="currentSecurityScan && !currentSecurityScan.vulnerabilities?.length"
+                         class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Nenhuma Vulnerabilidade Detectada</h3>
+                        <p class="text-gray-600 text-sm">O codigo passou na analise de seguranca.</p>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div v-if="currentSecurityScan?.recommendations?.length" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Recomendacoes
+                        </h4>
+                        <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                            <li v-for="(rec, idx) in currentSecurityScan.recommendations" :key="idx">{{ rec }}</li>
+                        </ul>
+                    </div>
+
+                    <!-- Secure Patterns Found -->
+                    <div v-if="currentSecurityScan?.secure_patterns_found?.length" class="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 class="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Padroes Seguros Identificados
+                        </h4>
+                        <ul class="list-disc list-inside text-sm text-green-700 space-y-1">
+                            <li v-for="(pattern, idx) in currentSecurityScan.secure_patterns_found" :key="idx">{{ pattern }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL: Notification Preferences -->
         <div v-if="showNotificationPreferences" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showNotificationPreferences = false">
             <div class="bg-white rounded-lg w-[500px] shadow-xl">
@@ -5390,6 +5586,25 @@ HTML_TEMPLATE = """
             const terminalOutputInterval = ref(null);
             const previewUrl = ref('http://localhost:3000');
             const previewViewport = ref('desktop');
+            // Preview Environments (Issue #66)
+            const previewEnvironments = ref([]);
+            const previewStats = ref(null);
+            const previewsLoading = ref(false);
+            const creatingPreview = ref(false);
+            const showCreateBranchPreviewModal = ref(false);
+            const showQRCodeModal = ref(false);
+            const currentQRCode = ref({});
+            const newBranchPreview = ref({
+                branch_name: '',
+                name: '',
+                auto_destroy: true,
+                destroy_after_hours: 48
+            });
+            const hasStagingEnv = computed(() => {
+                return previewEnvironments.value.some(p => p.preview_type === 'staging' && p.status !== 'destroyed');
+            });
+
+
 
             const selectedProjectId = ref('');
             const selectedSprintId = ref('');
@@ -5413,6 +5628,43 @@ HTML_TEMPLATE = """
             const filterPriority = ref('');
             const filterAssignee = ref('');
             const groupBy = ref('');
+            const collapsedSwimlanes = ref({});
+
+            // Swimlane toggle function
+            const toggleSwimlane = (groupKey) => {
+                collapsedSwimlanes.value[groupKey] = \!collapsedSwimlanes.value[groupKey];
+            };
+
+            // Check if swimlane is collapsed
+            const isSwimlaneCollapsed = (groupKey) => {
+                return collapsedSwimlanes.value[groupKey] || false;
+            };
+
+            // Get swimlane story count
+            const getSwimlaneStoryCount = (group) => {
+                let count = 0;
+                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+                statuses.forEach(status => {
+                    if (group[status] && Array.isArray(group[status])) {
+                        count += group[status].length;
+                    }
+                });
+                return count;
+            };
+
+            // Get swimlane story points total
+            const getSwimlanePoints = (group) => {
+                let points = 0;
+                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+                statuses.forEach(status => {
+                    if (group[status] && Array.isArray(group[status])) {
+                        group[status].forEach(story => {
+                            points += story.story_points || 0;
+                        });
+                    }
+                });
+                return points;
+            };
 
             // Mobile State
             const mobileMenuOpen = ref(false);
@@ -5501,6 +5753,11 @@ HTML_TEMPLATE = """
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
             const currentGeneratedTests = ref(null);
+
+            // Security Scan
+            const scanningTask = ref(null);
+            const showSecurityScanModal = ref(false);
+            const currentSecurityScan = ref(null);
             const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
@@ -7409,6 +7666,7 @@ Process ${data.status}`);
                 loadProjects();
                 loadDarkMode();
                 loadNotificationSoundPreference();
+                checkPairStatus();
 
                 // Initialize mobile scroll tracking after DOM is ready
                 nextTick(() => {
@@ -7465,6 +7723,12 @@ Process ${data.status}`);
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
                 terminalCommand, terminalRunning, previewUrl, previewViewport,
+                previewEnvironments, previewStats, previewsLoading, creatingPreview,
+                showCreateBranchPreviewModal, showQRCodeModal, currentQRCode, newBranchPreview, hasStagingEnv,
+                loadPreviewEnvironments, createStoryPreview, createBranchPreview, createStagingEnv,
+                startPreviewEnv, stopPreviewEnv, destroyPreviewEnv, showPreviewQRCode, cleanupExpiredPreviews,
+                getPreviewTypeClass, getPreviewStatusClass, formatPreviewDate,
+
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
