@@ -65,6 +65,16 @@ except ImportError:
     HAS_CLAUDE = False
     print("[Dashboard] Claude integration not available")
 
+
+# Project Import Module (Issue #69)
+from factory.dashboard.project_import import (
+    analyze_project_structure,
+    generate_stories_from_analysis,
+    process_import as import_project_process,
+    get_progress as get_import_progress_data,
+    import_progress
+)
+
 # Criar tabelas
 Base.metadata.create_all(bind=engine)
 
@@ -1966,6 +1976,103 @@ def get_status():
         db.close()
 
 
+
+
+# =============================================================================
+# API ENDPOINTS - PROJECT IMPORT (Issue #69)
+# =============================================================================
+
+@app.post("/api/projects/import")
+async def import_project(
+    file: Optional[UploadFile] = File(None),
+    github_url: Optional[str] = Form(None),
+    project_name: Optional[str] = Form(None),
+    generate_stories: bool = Form(True)
+):
+    """
+    Imports an existing project from ZIP file or GitHub URL.
+
+    - Accepts ZIP file upload OR GitHub URL
+    - Analyzes project structure (Python, Node, etc.)
+    - Extracts README for description
+    - Identifies modules/components
+    - Optionally generates stories from TODOs and AI analysis
+    """
+    db = SessionLocal()
+    try:
+        claude_client = get_claude_client() if HAS_CLAUDE else None
+        projects_dir = r'C:\Users\lcruz\Fabrica de Agentes\projects'
+
+        result = await import_project_process(
+            file=file,
+            github_url=github_url,
+            project_name=project_name,
+            generate_stories=generate_stories,
+            db_session=db,
+            project_repo=ProjectRepository(db),
+            story_repo=StoryRepository(db),
+            claude_client=claude_client,
+            notify_func=notify,
+            projects_base_dir=projects_dir
+        )
+        return result
+    finally:
+        db.close()
+
+
+@app.get("/api/projects/import/progress/{import_id}")
+def get_import_progress(import_id: str):
+    """Returns the current progress of a project import"""
+    return get_import_progress_data(import_id)
+
+
+@app.post("/api/projects/{project_id}/analyze")
+def analyze_existing_project(project_id: str):
+    """Analyzes an existing project and returns structure information."""
+    db = SessionLocal()
+    try:
+        project_repo = ProjectRepository(db)
+        project = project_repo.get_by_id(project_id)
+
+        if not project:
+            raise HTTPException(404, "Project not found")
+
+        if not project.folder_path or not Path(project.folder_path).exists():
+            raise HTTPException(400, "Project folder not found")
+
+        analysis = analyze_project_structure(project.folder_path)
+        return {"project_id": project_id, "analysis": analysis}
+    finally:
+        db.close()
+
+
+@app.post("/api/projects/{project_id}/generate-stories-from-code")
+def generate_stories_from_code(project_id: str):
+    """Generates User Stories based on existing project code analysis."""
+    db = SessionLocal()
+    try:
+        project_repo = ProjectRepository(db)
+        story_repo = StoryRepository(db)
+        project = project_repo.get_by_id(project_id)
+
+        if not project:
+            raise HTTPException(404, "Project not found")
+
+        if not project.folder_path or not Path(project.folder_path).exists():
+            raise HTTPException(400, "Project folder not found")
+
+        analysis = analyze_project_structure(project.folder_path)
+        claude_client = get_claude_client() if HAS_CLAUDE else None
+        stories = generate_stories_from_analysis(project_id, analysis, story_repo, claude_client)
+
+        return {
+            "project_id": project_id,
+            "stories_created": len(stories),
+            "stories": stories
+        }
+    finally:
+        db.close()
+
 # =============================================================================
 # API ENDPOINTS - TERMINAL
 # =============================================================================
@@ -2348,7 +2455,52 @@ HTML_TEMPLATE = """
         .markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 0.75rem; }
         .markdown-content ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
-        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.85em; }
+        .markdown-content pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; }
+        .markdown-content pre code { background: transparent; color: inherit; padding: 0; font-size: 0.8rem; }
+
+        /* Chat UX Improvements */
+        .chat-message { animation: chatMessageSlideIn 0.3s ease-out; position: relative; }
+        .chat-message:hover .chat-message-actions { opacity: 1; }
+        .chat-message-actions { opacity: 0; transition: opacity 0.2s ease; position: absolute; top: -8px; right: 8px; display: flex; gap: 4px; background: white; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px; }
+        .chat-message-actions button { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; color: #6b7280; font-size: 0.75rem; display: flex; align-items: center; gap: 2px; transition: all 0.2s; }
+        .chat-message-actions button:hover { background: #f3f4f6; color: #1f2937; }
+        .chat-message-actions button.reaction-active { color: #FF6C00; background: #fff7ed; }
+        @keyframes chatMessageSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typing Indicator */
+        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 12px 16px; background: #f3f4f6; border-radius: 12px; border-bottom-left-radius: 4px; width: fit-content; }
+        .typing-indicator span { width: 8px; height: 8px; background: #9ca3af; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0s; }
+        @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+
+        /* Quick Action Chips */
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+        .quick-action-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 20px; font-size: 0.75rem; color: #374151; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .quick-action-chip:hover { background: #003B4A; color: white; border-color: #003B4A; }
+        .quick-action-chip svg { width: 14px; height: 14px; }
+
+        /* New Message Indicator */
+        .new-message-indicator { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #003B4A; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: bounceIn 0.3s ease; z-index: 10; }
+        .new-message-indicator:hover { background: #004d5f; }
+        @keyframes bounceIn { 0% { transform: translateX(-50%) scale(0.8); opacity: 0; } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+
+        /* Chat Error and Actions */
+        .chat-error { background: #fef2f2 !important; border: 1px solid #fecaca; color: #dc2626 !important; }
+        .chat-error-retry { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; margin-top: 8px; background: #dc2626; color: white; border: none; border-radius: 4px; font-size: 0.7rem; cursor: pointer; transition: background 0.2s; }
+        .chat-error-retry:hover { background: #b91c1c; }
+        .chat-header-actions { display: flex; gap: 8px; }
+        .chat-header-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; transition: background 0.2s; }
+        .chat-header-btn:hover { background: rgba(255,255,255,0.2); }
+
+        /* Code Syntax Highlighting */
+        .hljs-keyword { color: #c792ea; }
+        .hljs-string { color: #c3e88d; }
+        .hljs-number { color: #f78c6c; }
+        .hljs-function { color: #82aaff; }
+        .hljs-comment { color: #676e95; font-style: italic; }
 
         /* Toast Notifications */
         .toast-container {
@@ -3260,27 +3412,110 @@ HTML_TEMPLATE = """
 
             <!-- CHAT PANEL -->
             <aside class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" :class="{ 'open': mobileChatOpen }">
+                <!-- Header with Clear Button -->
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🤖</span>
-                        <span class="font-semibold">Assistente</span>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <span class="font-semibold">Assistente</span>
+                        </div>
+                        <div class="chat-header-actions">
+                            <button @click="confirmClearChat" class="chat-header-btn" title="Limpar conversa">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Mensagens -->
-                <div class="flex-1 overflow-y-auto p-4 chat-messages" ref="chatMessages">
+                <!-- Messages Container -->
+                <div class="flex-1 overflow-y-auto p-4 chat-messages relative" ref="chatMessages" @scroll="handleChatScroll">
+                    <!-- Messages -->
                     <div v-for="msg in chatHistory" :key="msg.message_id"
-                         :class="['mb-4', msg.role === 'user' ? 'text-right' : 'text-left']">
-                        <div :class="['inline-block max-w-[90%] p-3 rounded-lg text-sm',
+                         :class="['mb-4 chat-message', msg.role === 'user' ? 'text-right' : 'text-left']">
+                        <div :class="['inline-block max-w-[90%] p-3 rounded-lg text-sm relative',
                                       msg.role === 'user'
                                         ? 'bg-[#003B4A] text-white rounded-br-none'
-                                        : 'bg-gray-100 text-gray-800 rounded-bl-none']">
+                                        : msg.isError ? 'chat-error rounded-bl-none' : 'bg-gray-100 text-gray-800 rounded-bl-none']">
+                            <!-- Message Content -->
                             <div v-if="msg.role === 'assistant'" class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
                             <div v-else>{{ msg.content }}</div>
+
+                            <!-- Retry Button for Errors -->
+                            <button v-if="msg.isError" @click="retryMessage(msg)" class="chat-error-retry">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Tentar novamente
+                            </button>
+
+                            <!-- Message Actions -->
+                            <div v-if="msg.role === 'assistant' && !msg.isError" class="chat-message-actions">
+                                <button @click="copyMessage(msg.content)" title="Copiar">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                </button>
+                                <button @click="toggleReaction(msg, 'thumbsUp')" :class="{ 'reaction-active': msg.reaction === 'thumbsUp' }" title="Util">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+                                    </svg>
+                                </button>
+                                <button @click="toggleReaction(msg, 'thumbsDown')" :class="{ 'reaction-active': msg.reaction === 'thumbsDown' }" title="Nao util">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+                        <!-- Timestamp -->
                         <div class="text-xs text-gray-400 mt-1">
-                            {{ formatTime(msg.created_at) }}
+                            {{ formatChatTime(msg.created_at) }}
                         </div>
+                    </div>
+
+                    <!-- Typing Indicator -->
+                    <div v-if="isTyping" class="mb-4 text-left">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+
+                    <!-- New Message Indicator -->
+                    <div v-if="hasNewMessages && !isAtBottom"
+                         class="new-message-indicator"
+                         @click="scrollChatToBottom">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                        </svg>
+                        Nova mensagem
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="px-4 py-2 border-t border-gray-100">
+                    <div class="quick-actions">
+                        <button class="quick-action-chip" @click="quickAction('criar story')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Criar Story
+                        </button>
+                        <button class="quick-action-chip" @click="quickAction('listar stories')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                            </svg>
+                            Listar Stories
+                        </button>
+                        <button class="quick-action-chip" @click="quickAction('status do projeto')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Status
+                        </button>
                     </div>
                 </div>
 
@@ -3289,14 +3524,20 @@ HTML_TEMPLATE = """
                     <div class="flex gap-2">
                         <input v-model="chatInput"
                                @keyup.enter="sendMessage"
+                               :disabled="isTyping"
                                type="text"
                                placeholder="Digite sua mensagem..."
-                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A]">
+                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A] disabled:bg-gray-50 disabled:cursor-not-allowed">
                         <button @click="sendMessage"
-                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                :disabled="isTyping || !chatInput.trim()"
+                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg v-if="!isTyping" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         </button>
                     </div>
@@ -3796,6 +4037,89 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
+            
+            <!-- Technical Debt Score (Issue #60) -->
+            <div v-if="debtScore" class="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-4">
+                <div class="flex items-start gap-4">
+                    <div class="text-4xl">&#128200;</div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-semibold text-gray-800 text-lg">Technical Debt Score</h4>
+                            <span :class="['px-3 py-1 rounded-full text-sm font-medium',
+                                debtScore.debt_score?.overall >= 80 ? 'bg-green-100 text-green-800' :
+                                debtScore.debt_score?.overall >= 60 ? 'bg-blue-100 text-blue-800' :
+                                debtScore.debt_score?.overall >= 40 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800']">
+                                {{ debtScore.debt_score?.overall || 0 }}/100
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mt-1">{{ debtScore.summary?.status_message || 'Analisando...' }}</p>
+
+                        <!-- Score bars -->
+                        <div class="mt-3 space-y-2">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="w-28 text-gray-500">Duplicacao:</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all"
+                                         :style="{width: (debtScore.debt_score?.duplication || 0) + '%'}"></div>
+                                </div>
+                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.duplication || 0 }}%</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="w-28 text-gray-500">Complexidade:</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-purple-500 h-2 rounded-full transition-all"
+                                         :style="{width: (debtScore.debt_score?.complexity || 0) + '%'}"></div>
+                                </div>
+                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.complexity || 0 }}%</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="w-28 text-gray-500">Manutencao:</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full transition-all"
+                                         :style="{width: (debtScore.debt_score?.maintainability || 0) + '%'}"></div>
+                                </div>
+                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.maintainability || 0 }}%</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            <button @click="analyzeDebt"
+                                    :disabled="analyzingDebt"
+                                    class="px-4 py-2 bg-[#003B4A] text-white rounded-lg font-medium hover:bg-blue-900 transition-colors flex items-center gap-2 disabled:opacity-50">
+                                <span v-if="!analyzingDebt">&#128269;</span>
+                                <div v-else class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                {{ analyzingDebt ? 'Analisando...' : 'Analisar Debt' }}
+                            </button>
+                            <button @click="applyRefactoring"
+                                    :disabled="refactoring || !debtScore.debt_score"
+                                    class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 disabled:opacity-50">
+                                <span v-if="!refactoring">&#9881;</span>
+                                <div v-else class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                {{ refactoring ? 'Refatorando...' : 'Refatorar Codigo' }}
+                            </button>
+                            <button @click="generateDebtStories"
+                                    :disabled="generatingDebtStories || !debtScore.debt_score"
+                                    class="px-4 py-2 bg-white text-[#003B4A] border border-[#003B4A] rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50">
+                                <span>&#128221;</span>
+                                Gerar Stories
+                            </button>
+                        </div>
+
+                        <!-- Recommendations -->
+                        <div v-if="debtScore.summary?.recommendations?.length" class="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <h5 class="text-sm font-medium text-yellow-800 mb-2">Recomendacoes:</h5>
+                            <ul class="text-sm text-yellow-700 space-y-1">
+                                <li v-for="rec in debtScore.summary.recommendations" :key="rec" class="flex items-start gap-2">
+                                    <span>&#8226;</span>
+                                    <span>{{ rec }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Terminal Avancado (colapsavel para usuarios tecnicos) -->
             <details class="mt-6 bg-gray-50 rounded-lg border border-gray-200">
                 <summary class="p-4 cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-2">
@@ -3846,7 +4170,175 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
             </details>
+
+            <!-- Preview Environments Section (Issue #66) -->
+            <details class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm">
+                <summary class="p-4 cursor-pointer text-sm font-semibold text-[#003B4A] hover:bg-gray-50 flex items-center gap-2">
+                    <span class="text-xl">&#127760;</span> Ambientes de Preview e Staging
+                    <span v-if="previewEnvironments.length > 0" class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{{ previewEnvironments.length }} ativos</span>
+                </summary>
+                <div class="p-4 border-t border-gray-200">
+                    <!-- Header Actions -->
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-sm text-gray-600">Crie ambientes isolados para testar stories e branches</p>
+                        <div class="flex gap-2">
+                            <button @click="createStoryPreview"
+                                    :disabled="!selectedStory || creatingPreview"
+                                    class="px-3 py-1.5 bg-[#FF6C00] text-white rounded text-xs font-medium hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1">
+                                <span v-if="!creatingPreview">&#128640;</span>
+                                <div v-else class="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full"></div>
+                                Preview Story
+                            </button>
+                            <button @click="showCreateBranchPreviewModal = true"
+                                    class="px-3 py-1.5 bg-[#003B4A] text-white rounded text-xs font-medium hover:bg-opacity-90 flex items-center gap-1">
+                                <span>&#128194;</span> Preview Branch
+                            </button>
+                            <button @click="createStagingEnv"
+                                    :disabled="hasStagingEnv || creatingPreview"
+                                    class="px-3 py-1.5 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
+                                <span>&#9889;</span> Staging
+                            </button>
+                            <button @click="loadPreviewEnvironments"
+                                    class="px-2 py-1.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
+                                &#8635;
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div v-if="previewsLoading" class="flex items-center justify-center py-8">
+                        <div class="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
+                        <span class="ml-2 text-gray-500">Carregando ambientes...</span>
+                    </div>
+
+                    <!-- Preview List -->
+                    <div v-else-if="previewEnvironments.length > 0" class="space-y-3">
+                        <div v-for="preview in previewEnvironments" :key="preview.preview_id"
+                             class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span :class="getPreviewTypeClass(preview.preview_type)" class="px-2 py-0.5 rounded text-xs font-medium">
+                                            {{ preview.preview_type }}
+                                        </span>
+                                        <span :class="getPreviewStatusClass(preview.status)" class="px-2 py-0.5 rounded text-xs">
+                                            {{ preview.status }}
+                                        </span>
+                                        <span v-if="preview.health_status === 'healthy'" class="text-green-500 text-xs">&#9679; Online</span>
+                                        <span v-else-if="preview.health_status === 'unhealthy'" class="text-red-500 text-xs">&#9679; Problema</span>
+                                    </div>
+                                    <h4 class="font-medium text-gray-800">{{ preview.name }}</h4>
+                                    <p v-if="preview.url" class="text-sm text-blue-600 mt-1">
+                                        <a :href="preview.internal_url || preview.url" target="_blank" class="hover:underline flex items-center gap-1">
+                                            {{ preview.url }} <span class="text-xs">&#8599;</span>
+                                        </a>
+                                    </p>
+                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                        <span v-if="preview.story_id">Story: {{ preview.story_id }}</span>
+                                        <span v-if="preview.branch_name">Branch: {{ preview.branch_name }}</span>
+                                        <span>Porta: {{ preview.port }}</span>
+                                        <span v-if="preview.expires_at">Expira: {{ formatPreviewDate(preview.expires_at) }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button v-if="preview.qr_code" @click="showPreviewQRCode(preview)"
+                                            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded" title="QR Code">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                        </svg>
+                                    </button>
+                                    <button v-if="preview.status === 'stopped'" @click="startPreviewEnv(preview.preview_id)"
+                                            class="p-2 text-green-500 hover:text-green-600 hover:bg-green-50 rounded" title="Iniciar">&#9654;</button>
+                                    <button v-else-if="preview.status === 'running'" @click="stopPreviewEnv(preview.preview_id)"
+                                            class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded" title="Parar">&#9632;</button>
+                                    <button @click="destroyPreviewEnv(preview.preview_id)"
+                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Destruir">&#128465;</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">&#127760;</div>
+                        <p class="text-sm">Nenhum ambiente de preview ativo</p>
+                        <p class="text-xs mt-1">Crie um preview para testar stories ou branches em ambiente isolado</p>
+                    </div>
+
+                    <!-- Preview Stats -->
+                    <div v-if="previewStats" class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                        <div class="flex gap-4">
+                            <span>Total: {{ previewStats.total || 0 }}</span>
+                            <span>Running: {{ previewStats.by_status?.running || 0 }}</span>
+                            <span>Stopped: {{ previewStats.by_status?.stopped || 0 }}</span>
+                        </div>
+                        <button v-if="previewStats.expiring_soon > 0" @click="cleanupExpiredPreviews"
+                                class="text-amber-600 hover:text-amber-700">
+                            {{ previewStats.expiring_soon }} expirando em breve - Limpar
+                        </button>
+                    </div>
+                </div>
+            </details>
         </div>
+
+        <!-- MODAL: Create Branch Preview -->
+        <div v-if="showCreateBranchPreviewModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[400px]">
+                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg">
+                    <h2 class="text-lg font-semibold">Criar Preview de Branch</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Branch *</label>
+                        <input v-model="newBranchPreview.branch_name" type="text"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                               placeholder="Ex: feature/login">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Preview</label>
+                        <input v-model="newBranchPreview.name" type="text"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                               placeholder="Ex: Preview Feature Login">
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 text-sm text-gray-600">
+                            <input v-model="newBranchPreview.auto_destroy" type="checkbox" class="rounded">
+                            Auto-destruir
+                        </label>
+                        <div v-if="newBranchPreview.auto_destroy">
+                            <label class="text-sm text-gray-600">Apos</label>
+                            <input v-model.number="newBranchPreview.destroy_after_hours" type="number" min="1" max="168"
+                                   class="w-16 ml-1 border border-gray-300 rounded px-2 py-1 text-sm">
+                            <span class="text-sm text-gray-600">horas</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
+                    <button @click="showCreateBranchPreviewModal = false"
+                            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                    <button @click="createBranchPreview"
+                            :disabled="!newBranchPreview.branch_name || creatingPreview"
+                            class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+                        Criar Preview
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: QR Code -->
+        <div v-if="showQRCodeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[350px] p-6 text-center">
+                <h3 class="text-lg font-semibold mb-4">QR Code - Acesso Mobile</h3>
+                <div class="mb-4">
+                    <img :src="currentQRCode.qr_code" alt="QR Code" class="mx-auto w-48 h-48">
+                </div>
+                <p class="text-sm text-gray-600 mb-2">{{ currentQRCode.name }}</p>
+                <p class="text-xs text-blue-600 break-all">{{ currentQRCode.url }}</p>
+                <button @click="showQRCodeModal = false"
+                        class="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Fechar</button>
+            </div>
+        </div>
+
 
 
         <!-- MODAL: Nova Story -->
@@ -4392,6 +4884,103 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Notification Preferences -->
+        <div v-if="showNotificationPreferences" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showNotificationPreferences = false">
+            <div class="bg-white rounded-lg w-[500px] shadow-xl">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
+                    <h2 class="text-lg font-semibold">Preferencias de Notificacao</h2>
+                    <button @click="showNotificationPreferences = false" class="text-white/70 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <p class="text-sm text-gray-600 mb-4">Escolha quais tipos de notificacao voce deseja receber:</p>
+                    <div class="space-y-3">
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📝</span>
+                                <div>
+                                    <span class="font-medium">Nova Story</span>
+                                    <p class="text-xs text-gray-500">Quando uma story e criada</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.story_created" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">➡️</span>
+                                <div>
+                                    <span class="font-medium">Story Movida</span>
+                                    <p class="text-xs text-gray-500">Quando uma story muda de coluna</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.story_moved" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">✅</span>
+                                <div>
+                                    <span class="font-medium">Task Completa</span>
+                                    <p class="text-xs text-gray-500">Quando uma task e completada</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.task_completed" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">🚀</span>
+                                <div>
+                                    <span class="font-medium">App Pronto</span>
+                                    <p class="text-xs text-gray-500">Quando a aplicacao esta pronta para teste</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.app_ready" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">📦</span>
+                                <div>
+                                    <span class="font-medium">Build Completo</span>
+                                    <p class="text-xs text-gray-500">Quando um build e finalizado</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.build_completed" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">❌</span>
+                                <div>
+                                    <span class="font-medium">Build Falhou</span>
+                                    <p class="text-xs text-gray-500">Quando um build falha</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.build_failed" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">💬</span>
+                                <div>
+                                    <span class="font-medium">Nova Mensagem</span>
+                                    <p class="text-xs text-gray-500">Mensagens do assistente IA</p>
+                                </div>
+                            </div>
+                            <input type="checkbox" v-model="notificationPreferences.chat_message" class="w-5 h-5 text-[#FF6C00] rounded">
+                        </label>
+                    </div>
+                </div>
+                <div class="p-4 border-t flex justify-end gap-3">
+                    <button @click="showNotificationPreferences = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button @click="saveNotificationPreferences" class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">
+                        Salvar Preferencias
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -4544,6 +5133,10 @@ HTML_TEMPLATE = """
             const chatHistory = ref([]);
             const chatInput = ref('');
             const chatMessages = ref(null);
+            const isTyping = ref(false);
+            const hasNewMessages = ref(false);
+            const isAtBottom = ref(true);
+            const lastFailedMessage = ref(null);
 
             // Search & Filters
             const searchQuery = ref('');
@@ -4556,6 +5149,40 @@ HTML_TEMPLATE = """
             const mobileMenuOpen = ref(false);
             const mobileChatOpen = ref(false);
             const isPullingToRefresh = ref(false);
+            const currentKanbanColumn = ref(0);
+
+            // Kanban scroll tracking for mobile
+            const initKanbanScrollTracking = () => {
+                const kanbanContainer = document.querySelector('.kanban-container');
+                if (!kanbanContainer) return;
+
+                const updateCurrentColumn = () => {
+                    const containerWidth = kanbanContainer.clientWidth;
+                    const scrollLeft = kanbanContainer.scrollLeft;
+                    const columnWidth = containerWidth * 0.85;
+                    const newColumn = Math.round(scrollLeft / columnWidth);
+                    currentKanbanColumn.value = Math.min(5, Math.max(0, newColumn));
+                };
+
+                kanbanContainer.addEventListener('scroll', updateCurrentColumn, { passive: true });
+            };
+
+            // Scroll to specific Kanban column (for mobile navigation)
+            const scrollToKanbanColumn = (columnIndex) => {
+                const kanbanContainer = document.querySelector('.kanban-container');
+                if (!kanbanContainer) return;
+
+                const containerWidth = kanbanContainer.clientWidth;
+                const columnWidth = containerWidth * 0.85;
+                const targetScroll = columnIndex * columnWidth;
+
+                kanbanContainer.scrollTo({
+                    left: targetScroll,
+                    behavior: 'smooth'
+                });
+
+                currentKanbanColumn.value = columnIndex;
+            };
 
             // Toast Notifications
             const toasts = ref([]);
@@ -4608,6 +5235,18 @@ HTML_TEMPLATE = """
             const showDesignEditor = ref(false);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
+
+            // A/B Testing (Issue #71)
+            const showABTestModal = ref(false);
+            const abTests = ref([]);
+            const currentABTest = ref(null);
+            const abTestLoading = ref(false);
+            const newABTest = ref({
+                title: '',
+                num_variants: 3,
+                requirements: '',
+                test_code: ''
+            });
 
             // Burndown Chart
             let burndownChart = null;
@@ -4983,6 +5622,83 @@ HTML_TEMPLATE = """
             // App Status State
             const appStatus = ref(null);
             const appStatusLoading = ref(false);
+
+            // Refactoring (Issue #60)
+            const debtScore = ref(null);
+            const analyzingDebt = ref(false);
+            const refactoring = ref(false);
+            const generatingDebtStories = ref(false);
+
+            const analyzeDebt = async () => {
+                if (!selectedProjectId.value) return;
+                analyzingDebt.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/debt-score`);
+                    const result = await response.json();
+                    debtScore.value = result;
+                    addToast('info', 'Analise Completa', `Score: ${result.debt_score?.overall || 0}/100`);
+                } catch (error) {
+                    addToast('error', 'Erro', 'Falha ao analisar debt');
+                    console.error('Error analyzing debt:', error);
+                } finally {
+                    analyzingDebt.value = false;
+                }
+            };
+
+            const applyRefactoring = async () => {
+                if (!selectedProjectId.value) return;
+                refactoring.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/refactor`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ apply_all: true })
+                    });
+                    const result = await response.json();
+                    if (result.refactoring_result?.applied_count > 0) {
+                        addToast('success', 'Refatoracao Aplicada',
+                            `${result.refactoring_result.applied_count} refatoracoes aplicadas`);
+                        await analyzeDebt(); // Refresh score
+                    } else {
+                        addToast('info', 'Sem Refatoracoes', 'Nenhuma refatoracao automatica disponivel');
+                    }
+                } catch (error) {
+                    addToast('error', 'Erro', 'Falha ao refatorar');
+                    console.error('Error refactoring:', error);
+                } finally {
+                    refactoring.value = false;
+                }
+            };
+
+            const generateDebtStories = async () => {
+                if (!selectedProjectId.value) return;
+                generatingDebtStories.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/generate-debt-stories`, {
+                        method: 'POST'
+                    });
+                    const result = await response.json();
+                    if (result.suggested_stories?.length > 0) {
+                        addToast('success', 'Stories Geradas',
+                            `${result.suggested_stories.length} stories de debt sugeridas`);
+                    } else {
+                        addToast('info', 'Sem Sugestoes', 'Nenhuma story de debt sugerida');
+                    }
+                } catch (error) {
+                    addToast('error', 'Erro', 'Falha ao gerar stories');
+                    console.error('Error generating debt stories:', error);
+                } finally {
+                    generatingDebtStories.value = false;
+                }
+            };
+
+            // Auto-analyze debt when project is selected
+            watch(selectedProjectId, async (newId) => {
+                if (newId) {
+                    await analyzeDebt();
+                }
+            });
+
             const generatingApp = ref(false);
             const startingApp = ref(false);
 
@@ -5742,11 +6458,22 @@ HTML_TEMPLATE = """
                 nextTick(() => scrollChatToBottom());
             };
 
-            const sendMessage = async () => {
-                if (!chatInput.value.trim()) return;
+            const sendMessage = async (messageOverride = null) => {
+                const messageContent = messageOverride || chatInput.value;
+                if (!messageContent.trim()) return;
 
-                const messageContent = chatInput.value;
                 chatInput.value = ''; // Clear immediately for better UX
+                isTyping.value = true;
+
+                // Add user message immediately
+                const userMsg = {
+                    message_id: 'user-' + Date.now(),
+                    role: 'user',
+                    content: messageContent,
+                    created_at: new Date().toISOString()
+                };
+                chatHistory.value.push(userMsg);
+                nextTick(() => scrollChatToBottom());
 
                 try {
                     const res = await fetch('/api/chat/message', {
@@ -5763,30 +6490,135 @@ HTML_TEMPLATE = """
                     }
 
                     const data = await res.json();
+                    // Remove the temporary user message if the server returned one
                     if (data.user_message) {
+                        const idx = chatHistory.value.findIndex(m => m.message_id === userMsg.message_id);
+                        if (idx !== -1) chatHistory.value.splice(idx, 1);
                         chatHistory.value.push(data.user_message);
                     }
                     if (data.assistant_message) {
                         chatHistory.value.push(data.assistant_message);
+                        if (!isAtBottom.value) {
+                            hasNewMessages.value = true;
+                        }
                     }
+                    lastFailedMessage.value = null;
                     nextTick(() => scrollChatToBottom());
                 } catch (error) {
                     console.error('Chat error:', error);
-                    // Show error message
+                    lastFailedMessage.value = messageContent;
+                    // Show error message with retry option
                     chatHistory.value.push({
                         message_id: 'error-' + Date.now(),
                         role: 'assistant',
-                        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
-                        created_at: new Date().toISOString()
+                        content: 'Desculpe, ocorreu um erro ao processar sua mensagem.',
+                        created_at: new Date().toISOString(),
+                        isError: true,
+                        originalMessage: messageContent
                     });
                     nextTick(() => scrollChatToBottom());
+                } finally {
+                    isTyping.value = false;
                 }
             };
 
             const scrollChatToBottom = () => {
                 if (chatMessages.value) {
                     chatMessages.value.scrollTop = chatMessages.value.scrollHeight;
+                    isAtBottom.value = true;
+                    hasNewMessages.value = false;
                 }
+            };
+
+            const handleChatScroll = () => {
+                if (chatMessages.value) {
+                    const { scrollTop, scrollHeight, clientHeight } = chatMessages.value;
+                    isAtBottom.value = scrollHeight - scrollTop - clientHeight < 50;
+                    if (isAtBottom.value) {
+                        hasNewMessages.value = false;
+                    }
+                }
+            };
+
+            const copyMessage = async (content) => {
+                try {
+                    // Strip HTML tags for plain text copy
+                    const plainText = content.replace(/<[^>]*>/g, '');
+                    await navigator.clipboard.writeText(plainText);
+                    addToast('success', 'Copiado!', 'Mensagem copiada para a area de transferencia');
+                } catch (err) {
+                    addToast('error', 'Erro', 'Nao foi possivel copiar');
+                }
+            };
+
+            const toggleReaction = (msg, reaction) => {
+                if (msg.reaction === reaction) {
+                    msg.reaction = null;
+                } else {
+                    msg.reaction = reaction;
+                }
+            };
+
+            const retryMessage = (errorMsg) => {
+                // Remove error message
+                const idx = chatHistory.value.findIndex(m => m.message_id === errorMsg.message_id);
+                if (idx !== -1) {
+                    chatHistory.value.splice(idx, 1);
+                }
+                // Also remove the user message that caused the error
+                if (idx > 0 && chatHistory.value[idx - 1]?.role === 'user') {
+                    chatHistory.value.splice(idx - 1, 1);
+                }
+                // Retry sending
+                sendMessage(errorMsg.originalMessage || lastFailedMessage.value);
+            };
+
+            const quickAction = (action) => {
+                chatInput.value = action;
+                sendMessage();
+            };
+
+            const confirmClearChat = () => {
+                confirmModal.value = {
+                    title: 'Limpar Conversa',
+                    message: 'Tem certeza que deseja limpar todo o historico de conversa?',
+                    itemName: 'conversa',
+                    confirmText: 'Limpar',
+                    onConfirm: clearChat
+                };
+                showConfirmModal.value = true;
+            };
+
+            const clearChat = async () => {
+                try {
+                    await fetch('/api/chat/history?project_id=' + selectedProjectId.value, { method: 'DELETE' });
+                    chatHistory.value = [{
+                        message_id: 'welcome',
+                        role: 'assistant',
+                        content: 'Conversa limpa! Como posso ajudar?',
+                        created_at: new Date().toISOString()
+                    }];
+                    addToast('success', 'Conversa limpa', 'Historico de mensagens foi apagado');
+                } catch (err) {
+                    addToast('error', 'Erro', 'Nao foi possivel limpar a conversa');
+                }
+                showConfirmModal.value = false;
+            };
+
+            const formatChatTime = (isoString) => {
+                if (!isoString) return '';
+                const date = new Date(isoString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'agora';
+                if (diffMins < 60) return diffMins + ' min atras';
+                if (diffHours < 24) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                if (diffDays < 7) return date.toLocaleDateString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             };
 
             // Helpers
@@ -6277,7 +7109,10 @@ Process ${data.status}`);
                 openStoryDetail, createStory, createTask, toggleTaskComplete,
                 createEpic, createSprint, createDoc, editStory, uploadFile, filterByEpic,
                 sendMessage, getTaskStatusClass, getDocTypeClass,
-                formatTime, formatFileSize, renderMarkdown,
+                formatTime, formatFileSize, renderMarkdown, formatChatTime,
+                isTyping, hasNewMessages, isAtBottom, handleChatScroll,
+                copyMessage, toggleReaction, retryMessage, quickAction,
+                confirmClearChat, clearChat,
                 addToast, removeToast, getToastIcon, handleUndo,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
@@ -6296,9 +7131,11 @@ Process ${data.status}`);
                 nextSteps, projectSteps, timelineProgress, showTestInstructions, openTestEnvironment,
                 // App Testing
                 appStatus, appStatusLoading, generatingApp, startingApp,
+                debtScore, analyzingDebt, refactoring, generatingDebtStories,
+                analyzeDebt, applyRefactoring, generateDebtStories,
                 checkAppStatus, generateAndStartApp, startAndOpenApp, openDocs,
                 // Mobile State
-                mobileMenuOpen, mobileChatOpen, isPullingToRefresh
+                mobileMenuOpen, mobileChatOpen, isPullingToRefresh, currentKanbanColumn, scrollToKanbanColumn
             };
         }
     }).mount('#app');
