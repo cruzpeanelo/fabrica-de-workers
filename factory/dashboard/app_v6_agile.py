@@ -2595,6 +2595,144 @@ def get_project_security_badge(project_id: str, score: int = 100):
 
 
 # =============================================================================
+# REFACTORING ENGINE - ANALISE DE DEBT E REFATORACAO AUTOMATICA (Issue #60)
+# =============================================================================
+
+from factory.core.refactoring_engine import (
+    RefactoringEngine,
+    analyze_project_debt,
+    get_debt_score,
+    get_debt_items,
+    auto_refactor,
+    generate_debt_stories
+)
+
+
+class RefactorRequest(BaseModel):
+    """Request para refatoracao"""
+    apply_all: bool = False
+    refactoring_id: Optional[int] = None
+
+
+@app.get("/api/projects/{project_id}/debt-score")
+def get_project_debt_score(project_id: str):
+    """
+    Retorna o score de technical debt do projeto.
+
+    O score varia de 0-100, onde maior = melhor qualidade.
+    Inclui subscores para:
+    - Duplicacao
+    - Complexidade
+    - Manutenibilidade
+    - Legibilidade
+    """
+    try:
+        result = get_debt_score(project_id)
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao calcular debt score: {str(e)}")
+
+
+@app.get("/api/projects/{project_id}/debt-items")
+def get_project_debt_items(project_id: str):
+    """
+    Retorna lista de itens de technical debt (code smells).
+
+    Cada item inclui:
+    - Tipo de smell
+    - Severidade
+    - Arquivo e linha
+    - Sugestao de correcao
+    - Tempo estimado de fix
+    """
+    try:
+        result = get_debt_items(project_id)
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao listar debt items: {str(e)}")
+
+
+@app.get("/api/projects/{project_id}/debt-analysis")
+def get_project_debt_analysis(project_id: str):
+    """
+    Analise completa de technical debt do projeto.
+
+    Retorna:
+    - Score geral e por categoria
+    - Lista de code smells
+    - Sugestoes de refatoracao
+    - Resumo executivo
+    """
+    try:
+        result = analyze_project_debt(project_id)
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao analisar debt: {str(e)}")
+
+
+@app.post("/api/projects/{project_id}/refactor")
+def refactor_project(project_id: str, request: RefactorRequest = None):
+    """
+    Executa refatoracao automatica no projeto.
+
+    Pode:
+    - Aplicar todas refatoracoes seguras (apply_all=True)
+    - Aplicar refatoracao especifica (refactoring_id)
+    - Listar refatoracoes disponiveis (sem parametros)
+    """
+    try:
+        if request and request.apply_all:
+            result = auto_refactor(project_id, apply_all=True)
+            if result.get("refactoring_result", {}).get("applied_count", 0) > 0:
+                notify("refactoring_applied", {
+                    "project_id": project_id,
+                    "applied_count": result["refactoring_result"]["applied_count"],
+                    "message": f"Aplicadas {result['refactoring_result']['applied_count']} refatoracoes"
+                })
+        elif request and request.refactoring_id is not None:
+            engine = RefactoringEngine(project_id)
+            engine.analyze()
+            result = engine.apply_refactoring(request.refactoring_id)
+            if result.get("success"):
+                notify("refactoring_applied", {
+                    "project_id": project_id,
+                    "message": result.get("message", "Refatoracao aplicada")
+                })
+        else:
+            result = auto_refactor(project_id, apply_all=False)
+
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao refatorar: {str(e)}")
+
+
+@app.post("/api/projects/{project_id}/generate-debt-stories")
+def generate_project_debt_stories(project_id: str):
+    """
+    Gera stories de User Story para resolver technical debt.
+
+    Agrupa smells por tipo e cria stories com:
+    - Titulo descritivo
+    - Narrativa Agile (persona, action, benefit)
+    - Story points estimados
+    - Criterios de aceite
+    """
+    try:
+        result = generate_debt_stories(project_id)
+
+        if result.get("suggested_stories"):
+            notify("debt_stories_generated", {
+                "project_id": project_id,
+                "count": len(result["suggested_stories"]),
+                "message": f"Geradas {len(result['suggested_stories'])} stories de debt"
+            })
+
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao gerar stories: {str(e)}")
+
+
+# =============================================================================
 # WEBSOCKET ENDPOINT
 # =============================================================================
 
@@ -3235,6 +3373,20 @@ HTML_TEMPLATE = """
         .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
         .touch-target { min-width: 44px; min-height: 44px; }
 
+        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
+        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
+        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
+        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
+        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
+        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
+        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
+        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
+        .touch-target { min-width: 44px; min-height: 44px; }
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -3334,7 +3486,7 @@ HTML_TEMPLATE = """
 
                         <!-- Nova Story -->
                         <button @click="showNewStoryModal = true"
-                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition">
+                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition" aria-label="Criar nova User Story">
                             + Nova Story
                         </button>
                     </div>
@@ -3344,7 +3496,7 @@ HTML_TEMPLATE = """
 
         <div class="flex main-content-mobile" style="height: calc(100vh - 64px);">
             <!-- SIDEBAR -->
-            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }">
+            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }" role="complementary" aria-label="Menu lateral de navegacao">
                 <div class="p-4">
                     <!-- Projetos -->
                     <div class="mb-6">
@@ -3424,7 +3576,7 @@ HTML_TEMPLATE = """
             </aside>
 
             <!-- MAIN CONTENT - KANBAN -->
-            <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
+            <main id="main-content" class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content" role="main" aria-label="Quadro Kanban de Stories">
                 <div v-if="!selectedProjectId" class="flex items-center justify-center h-full text-gray-500">
                     <div class="text-center max-w-md">
                         <div class="text-6xl mb-4">🚀</div>
@@ -3547,14 +3699,14 @@ HTML_TEMPLATE = """
 
                         <!-- Lista de Stories -->
                         <div :id="'column-' + status"
-                             class="kanban-column p-2 space-y-2 overflow-y-auto"
+                             class="kanban-column p-2 space-y-2 overflow-y-auto" role="region"
                              style="max-height: calc(100vh - 200px);">
                             <!-- Story Card -->
                             <div v-for="story in column" :key="story.story_id"
                                  @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                  @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
-                                 :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                 tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                           'priority-' + story.priority,
                                           selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                 <!-- Bulk Select Checkbox -->
@@ -3571,12 +3723,12 @@ HTML_TEMPLATE = """
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                                         </svg>
                                     </button>
-                                    <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
+                                    <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna" aria-label="Mover story para proxima coluna">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                         </svg>
                                     </button>
-                                    <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
+                                    <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir" aria-label="Excluir story">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
@@ -3664,14 +3816,14 @@ HTML_TEMPLATE = """
 
                                     <!-- Stories in Column -->
                                     <div :id="'swimlane-' + groupKey + '-' + status"
-                                         class="kanban-column p-2 space-y-2 overflow-y-auto"
+                                         class="kanban-column p-2 space-y-2 overflow-y-auto" role="region"
                                          style="min-height: 200px; max-height: 300px;">
                                         <!-- Story Card (same as regular Kanban) -->
                                         <div v-for="story in group[status]" :key="story.story_id"
                                              @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                              @contextmenu.prevent="showContextMenu($event, story)"
                                              :data-id="story.story_id"
-                                             :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                             tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                                       'priority-' + story.priority,
                                                       selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                             <!-- Bulk Select Checkbox -->
@@ -3683,12 +3835,17 @@ HTML_TEMPLATE = """
                                             </div>
                                             <!-- Quick Actions -->
                                             <div class="quick-actions" @click.stop>
-                                                <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
+                                                <button @click="estimateStoryEffort(story)" class="quick-btn" title="Estimar esforco (IA)" aria-label="Estimar esforco da story com IA" style="background: #8B5CF6;">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                                    </svg>
+                                                </button>
+                                                <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna" aria-label="Mover story para proxima coluna">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                     </svg>
                                                 </button>
-                                                <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
+                                                <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir" aria-label="Excluir story">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                     </svg>
@@ -3740,7 +3897,7 @@ HTML_TEMPLATE = """
             </main>
 
             <!-- CHAT PANEL -->
-            <aside class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" :class="{ 'open': mobileChatOpen }">
+            <aside id="chat-panel" class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" role="complementary" aria-label="Painel de chat com assistente IA" :class="{ 'open': mobileChatOpen }">
                 <!-- Header with Clear Button -->
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
                     <div class="flex items-center justify-between">
@@ -3855,7 +4012,7 @@ HTML_TEMPLATE = """
                                @keyup.enter="sendMessage"
                                :disabled="isTyping"
                                type="text"
-                               placeholder="Digite sua mensagem..."
+                               placeholder="Digite sua mensagem..." aria-label="Mensagem para o assistente IA"
                                class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A] disabled:bg-gray-50 disabled:cursor-not-allowed">
                         <button @click="sendMessage"
                                 :disabled="isTyping || !chatInput.trim()"
@@ -5446,6 +5603,20 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Analytics Dashboard (Issue #65) -->
+        <div v-if="showAnalyticsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showAnalyticsModal = false">
+            <div class="bg-white rounded-lg w-[95vw] max-w-[1200px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg"><div><h2 class="text-lg font-semibold">Analytics de Produtividade</h2><p class="text-sm text-blue-200">Metricas do time e insights</p></div><div class="flex items-center gap-4"><select v-model="analyticsDays" @change="loadAnalytics" class="bg-white/10 text-white border border-white/20 rounded px-3 py-1 text-sm"><option value="7" class="text-gray-800">7 dias</option><option value="30" class="text-gray-800">30 dias</option><option value="90" class="text-gray-800">90 dias</option></select><button @click="showAnalyticsModal = false" class="text-white/70 hover:text-white text-xl">X</button></div></div>
+                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);"><div v-if="analyticsLoading" class="flex items-center justify-center py-12"><div class="spinner"></div><span class="ml-3">Carregando...</span></div>
+                <div v-else-if="analyticsData">
+                    <div v-if="analyticsData.alerts?.length" class="mb-6"><div v-for="(alert, i) in analyticsData.alerts" :key="i" :class="['p-4 rounded-lg mb-2', alert.type === 'danger' ? 'bg-red-50' : alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50']"><h4 class="font-semibold">{{ alert.title }}</h4><p class="text-sm">{{ alert.message }}</p></div></div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6"><div class="bg-blue-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.total_stories || 0 }}</div><div class="text-xs opacity-80">Total Stories</div></div><div class="bg-green-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.stories_completed || 0 }}</div><div class="text-xs opacity-80">Concluidas</div></div><div class="bg-purple-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.points_delivered || 0 }}</div><div class="text-xs opacity-80">Pontos</div></div><div class="bg-orange-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_velocity || 0).toFixed(1) }}</div><div class="text-xs opacity-80">Velocity</div></div><div class="bg-cyan-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_cycle_time_days || 0).toFixed(1) }}d</div><div class="text-xs opacity-80">Cycle Time</div></div><div class="bg-pink-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.predictability_score || 0).toFixed(0) }}%</div><div class="text-xs opacity-80">Predictability</div></div></div>
+                    <div class="mb-6" v-if="analyticsData.top_contributors?.length"><h3 class="font-semibold mb-4">Top Contribuidores</h3><div class="space-y-2"><div v-for="(dev, i) in analyticsData.top_contributors" :key="dev.assignee" class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">{{ i + 1 }}</div><div class="flex-1"><div class="font-medium">{{ dev.assignee }}</div><div class="text-sm text-gray-500">{{ dev.stories_completed }}/{{ dev.stories_total }} stories</div></div><div class="text-green-600 font-bold">{{ dev.completion_rate }}%</div></div></div></div>
+                    <div v-if="analyticsInsights" class="bg-purple-50 rounded-lg p-6 border border-purple-200"><h3 class="font-semibold mb-2">AI Insights</h3><p class="text-gray-700 mb-4">{{ analyticsInsights.summary }}</p><div v-if="analyticsInsights.insights?.length" class="space-y-2"><div v-for="insight in analyticsInsights.insights" :key="insight.title" class="p-3 bg-white rounded-lg"><div class="font-medium">{{ insight.title }}</div><div class="text-sm text-gray-600">{{ insight.description }}</div></div></div></div>
+                </div></div>
+            </div>
+        </div>
+
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -6959,6 +7130,42 @@ HTML_TEMPLATE = """
                 showGeneratedTestsModal.value = true;
             };
 
+            // Security Scan for Task
+            const runSecurityScan = async (task) => {
+                if (scanningTask.value === task.task_id) return;
+                scanningTask.value = task.task_id;
+                try {
+                    const res = await fetch(`/api/story-tasks/${task.task_id}/security-scan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) {
+                        const result = await res.json();
+                        currentSecurityScan.value = result;
+                        showSecurityScanModal.value = true;
+                        const vulnCount = result.summary?.total || 0;
+                        if (vulnCount > 0) {
+                            const critical = result.summary?.critical || 0;
+                            const high = result.summary?.high || 0;
+                            if (critical > 0 || high > 0) {
+                                addToast('warning', 'Vulnerabilidades Encontradas', `${vulnCount} vulnerabilidades (${critical} criticas, ${high} altas)`);
+                            } else {
+                                addToast('info', 'Scan Completo', `${vulnCount} vulnerabilidades de baixa/media severidade`);
+                            }
+                        } else {
+                            addToast('success', 'Codigo Seguro', 'Nenhuma vulnerabilidade detectada');
+                        }
+                    } else {
+                        const err = await res.json();
+                        throw new Error(err.detail || 'Erro ao executar scan de seguranca');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro no Scan', e.message);
+                } finally {
+                    scanningTask.value = null;
+                }
+            };
+
             const copyTestCode = async () => {
                 if (!currentGeneratedTests.value?.test_code) return;
                 try {
@@ -7733,6 +7940,7 @@ Process ${data.status}`);
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
+                scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
                 // Project Status (user-friendly)
                 storyCounts, projectProgress, isProjectReady, projectReadinessText,
                 projectReadinessClass, projectReadinessIcon, projectStatusMessage,
