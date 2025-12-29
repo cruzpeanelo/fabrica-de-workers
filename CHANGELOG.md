@@ -7,6 +7,65 @@ e este projeto adere ao [Versionamento Semantico](https://semver.org/lang/pt-BR/
 
 ---
 
+## [6.4.0] - 2025-12-29
+
+### Dashboard Agile - Features de Desenvolvimento
+
+Esta versao traz **3 novas funcionalidades** focadas em design, documentacao e desenvolvimento.
+
+#### Novas Funcionalidades
+
+##### Design Hub com Draw.io (#72)
+- **Editor Draw.io Integrado** - Crie e edite diagramas diretamente no dashboard
+- **Tipos de Design Suportados**:
+  - Wireframe - Esbocos de interface
+  - Architecture - Diagramas de arquitetura
+  - Flow - Fluxogramas e processos
+  - Database - Modelos de dados (ERD)
+  - UI Mockup - Mockups de interface
+  - Sequence - Diagramas de sequencia
+- **Galeria de Designs** - Visualize todos os designs do projeto
+- **Vinculacao com Stories** - Associe designs a User Stories especificas
+- **Export** - Exporte como PNG, SVG ou PDF
+- **Thumbnails** - Preview automatico dos diagramas
+
+##### Auto Documentation com IA (#73)
+- **Geracao Automatica** - Claude AI gera documentacao baseada na story
+- **Tipos de Documentacao**:
+  - Technical - Documentacao tecnica de implementacao
+  - User - Manual do usuario
+  - Test - Plano de testes e casos de teste
+  - API - Documentacao de endpoints
+  - Deployment - Guia de deploy
+- **Botao "Generate with AI"** - Um clique para gerar docs
+- **Edicao Markdown** - Edite a documentacao gerada
+- **Vinculo com Story** - Documentacao associada a story especifica
+
+##### Terminal Interativo (#74)
+- **Terminal Web** - Execute comandos diretamente no dashboard
+- **Por Projeto** - Terminal isolado por projeto
+- **Comandos Comuns**:
+  - npm install, npm run dev
+  - python, pip
+  - git commands
+  - Testes (pytest, npm test)
+- **Output em Tempo Real** - Veja a saida dos comandos
+- **Stop Process** - Interrompa processos em execucao
+- **Historico** - Historico de comandos executados
+
+#### Melhorias Tecnicas
+- Novo modelo `StoryDesign` para armazenar diagramas Draw.io (XML)
+- Endpoints REST para CRUD de designs
+- Integracao com Claude API para geracao de docs
+- Sistema de processos para terminal interativo
+
+#### Issues Fechadas
+- #72 - Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)
+- #73 - Project Preview Dashboard - Visao Unificada (parcial: Auto Docs)
+- #74 - Ambiente de Teste Integrado - Terminal
+
+---
+
 ## [6.3.0] - 2025-12-29
 
 ### Dashboard Agile - Novos Recursos
