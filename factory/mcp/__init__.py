@@ -17,29 +17,65 @@ Uso com Claude Desktop:
         "mcpServers": {
             "fabrica-agentes": {
                 "command": "python",
-                "args": ["-m", "factory.mcp.server"]
+                "args": ["-m", "factory.mcp"]
             }
         }
     }
+
+Uso Programatico:
+    from factory.mcp.client import MCPToolsClient, get_claude_tools
+
+    # Cliente async
+    client = MCPToolsClient()
+    result = await client.create_story(project_id="PROJ-001", title="...")
+
+    # Com Claude API
+    tools = get_claude_tools()
+    response = anthropic.messages.create(..., tools=tools)
 """
 
-from .server import MCPServer, run_server
+from .server import MCPServer, run_server, MCPClient
 from .tools import (
     StoryTools,
     TaskTools,
     WorkerTools,
     ProjectTools,
     SystemTools,
+    get_all_tools,
+    get_tool_handlers,
+)
+from .client import (
+    MCPToolsClient,
+    SyncMCPClient,
+    ClaudeToolsConversation,
+    get_claude_tools,
+    get_claude_tools_by_category,
+    execute_tool_call,
+    format_tool_result_for_claude,
 )
 
 __all__ = [
+    # Servidor
     "MCPServer",
+    "MCPClient",
     "run_server",
+    # Tools
     "StoryTools",
     "TaskTools",
     "WorkerTools",
     "ProjectTools",
     "SystemTools",
+    "get_all_tools",
+    "get_tool_handlers",
+    # Clientes
+    "MCPToolsClient",
+    "SyncMCPClient",
+    "ClaudeToolsConversation",
+    # Claude API
+    "get_claude_tools",
+    "get_claude_tools_by_category",
+    "execute_tool_call",
+    "format_tool_result_for_claude",
 ]
 
 __version__ = "1.0.0"
