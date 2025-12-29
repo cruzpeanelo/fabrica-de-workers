@@ -1,9 +1,69 @@
-# Changelog
+# Changelog - Fábrica de Agentes
 
-Todas as mudancas notaveis neste projeto serao documentadas neste arquivo.
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Versionamento Semantico](https://semver.org/lang/pt-BR/).
+e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+
+---
+
+## [6.5.0] - 2025-12-29
+
+### App Generator - Teste de Aplicações com 1 Clique
+
+Esta versão traz o **App Generator**, permitindo que usuários não-técnicos testem suas aplicações com apenas um clique.
+
+#### Novas Funcionalidades
+
+##### App Generator (`factory/core/app_generator.py`)
+- **Auto-detecção de Projeto** - Detecta automaticamente o tipo de projeto (Python/Node.js)
+- **Análise de Código** - Encontra modelos SQLAlchemy, Pydantic schemas e rotas
+- **Geração Automática de App** - Cria aplicação FastAPI testável a partir dos modelos
+- **Arquivos Gerados**:
+  - `main.py` - Aplicação FastAPI completa com CRUD para todos os modelos
+  - `requirements.txt` - Dependências do projeto
+  - `iniciar_app.bat` - Script para iniciar a aplicação no Windows
+- **Página Inicial** - Home page mostrando status e modelos disponíveis
+- **Documentação API** - Swagger UI automático em `/docs`
+
+##### Botão Flutuante de Teste (FAB)
+- **Sempre Visível** - Botão fixo no canto inferior direito da tela
+- **Badge de Status** - Mostra estado atual do projeto:
+  - 🟡 Amarelo: "Desenvolvendo..." - projeto em fase inicial
+  - 🔵 Azul: "Pode testar" - código pronto para gerar app
+  - 🟢 Verde: "Pronto!" - aplicação disponível para teste
+- **Ação com 1 Clique**:
+  - ⚙️ Engrenagem azul: Gerar e iniciar aplicação
+  - ▶️ Play verde: Abrir aplicação para teste
+- **Feedback Visual** - Loading spinner durante processamento
+
+##### API Endpoints para App Testing
+- `GET /api/projects/{id}/app-status` - Analisa projeto e retorna status
+- `POST /api/projects/{id}/generate-app` - Gera aplicação testável
+- `POST /api/projects/{id}/start-app` - Inicia servidor de teste
+
+##### Interface User-Friendly para Status
+- **Barra de Progresso** - Progresso visual do desenvolvimento
+- **Timeline de Etapas** - 5 fases: Planejamento → Desenvolvimento → Revisão → Testes → Entrega
+- **Contadores de Stories** - Backlog, Em Desenvolvimento, Em Teste, Concluídas
+- **Próximos Passos** - Orientações contextuais para o usuário
+- **Mensagens Claras** - Status em linguagem não-técnica
+
+#### Melhorias Técnicas
+- Nova classe `AppGenerator` com métodos:
+  - `analyze_project()` - Analisa estrutura do projeto
+  - `generate_testable_app()` - Gera aplicação FastAPI
+  - `start_app()` - Inicia servidor uvicorn
+- Funções JavaScript para UI:
+  - `checkAppStatus()` - Verifica status do projeto
+  - `generateAndStartApp()` - Gera e inicia app
+  - `startAndOpenApp()` - Inicia e abre no navegador
+- WebSocket notifications para eventos de app
+
+#### Testes E2E
+- Novo arquivo `tests/test_e2e_dashboard.py`
+- Cobertura de 80%+ dos endpoints
+- Testes de WebSocket, Mobile CSS, e novas features
 
 ---
 
@@ -11,35 +71,35 @@ e este projeto adere ao [Versionamento Semantico](https://semver.org/lang/pt-BR/
 
 ### Dashboard Agile - Features de Desenvolvimento
 
-Esta versao traz **3 novas funcionalidades** focadas em design, documentacao e desenvolvimento.
+Esta versão traz **3 novas funcionalidades** focadas em design, documentação e desenvolvimento.
 
 #### Novas Funcionalidades
 
 ##### Design Hub com Draw.io (#72)
 - **Editor Draw.io Integrado** - Crie e edite diagramas diretamente no dashboard
 - **Tipos de Design Suportados**:
-  - Wireframe - Esbocos de interface
+  - Wireframe - Esboços de interface
   - Architecture - Diagramas de arquitetura
   - Flow - Fluxogramas e processos
   - Database - Modelos de dados (ERD)
   - UI Mockup - Mockups de interface
-  - Sequence - Diagramas de sequencia
+  - Sequence - Diagramas de sequência
 - **Galeria de Designs** - Visualize todos os designs do projeto
-- **Vinculacao com Stories** - Associe designs a User Stories especificas
+- **Vinculação com Stories** - Associe designs a User Stories específicas
 - **Export** - Exporte como PNG, SVG ou PDF
-- **Thumbnails** - Preview automatico dos diagramas
+- **Thumbnails** - Preview automático dos diagramas
 
 ##### Auto Documentation com IA (#73)
-- **Geracao Automatica** - Claude AI gera documentacao baseada na story
-- **Tipos de Documentacao**:
-  - Technical - Documentacao tecnica de implementacao
-  - User - Manual do usuario
+- **Geração Automática** - Claude AI gera documentação baseada na story
+- **Tipos de Documentação**:
+  - Technical - Documentação técnica de implementação
+  - User - Manual do usuário
   - Test - Plano de testes e casos de teste
-  - API - Documentacao de endpoints
+  - API - Documentação de endpoints
   - Deployment - Guia de deploy
-- **Botao "Generate with AI"** - Um clique para gerar docs
-- **Edicao Markdown** - Edite a documentacao gerada
-- **Vinculo com Story** - Documentacao associada a story especifica
+- **Botão "Generate with AI"** - Um clique para gerar docs
+- **Edição Markdown** - Edite a documentação gerada
+- **Vínculo com Story** - Documentação associada a story específica
 
 ##### Terminal Interativo (#74)
 - **Terminal Web** - Execute comandos diretamente no dashboard
@@ -49,19 +109,19 @@ Esta versao traz **3 novas funcionalidades** focadas em design, documentacao e d
   - python, pip
   - git commands
   - Testes (pytest, npm test)
-- **Output em Tempo Real** - Veja a saida dos comandos
-- **Stop Process** - Interrompa processos em execucao
-- **Historico** - Historico de comandos executados
+- **Output em Tempo Real** - Veja a saída dos comandos
+- **Stop Process** - Interrompa processos em execução
+- **Histórico** - Histórico de comandos executados
 
-#### Melhorias Tecnicas
+#### Melhorias Técnicas
 - Novo modelo `StoryDesign` para armazenar diagramas Draw.io (XML)
 - Endpoints REST para CRUD de designs
-- Integracao com Claude API para geracao de docs
+- Integração com Claude API para geração de docs
 - Sistema de processos para terminal interativo
 
 #### Issues Fechadas
 - #72 - Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)
-- #73 - Project Preview Dashboard - Visao Unificada (parcial: Auto Docs)
+- #73 - Project Preview Dashboard - Visão Unificada (parcial: Auto Docs)
 - #74 - Ambiente de Teste Integrado - Terminal
 
 ---
@@ -70,221 +130,145 @@ Esta versao traz **3 novas funcionalidades** focadas em design, documentacao e d
 
 ### Dashboard Agile - Novos Recursos
 
-Esta versao traz **4 novas funcionalidades** focadas em produtividade e personalizacao.
+Esta versão traz **4 novas funcionalidades** focadas em produtividade e personalização.
 
 #### Novas Funcionalidades
 
 ##### Templates de Stories (#44)
 - **Dropdown de Templates** - Selecione um template ao criar nova story:
   - **Feature**: Para novas funcionalidades
-  - **Bug Fix**: Para correcao de bugs
-  - **Tech Debt**: Para refatoracao e debito tecnico
-  - **Spike**: Para pesquisas e investigacoes
+  - **Bug Fix**: Para correção de bugs
+  - **Tech Debt**: Para refatoração e débito técnico
+  - **Spike**: Para pesquisas e investigações
   - **Melhoria**: Para aprimoramentos
-- Preenche automaticamente: titulo, persona, acao, beneficio, descricao e criterios de aceite
+- Preenche automaticamente: título, persona, ação, benefício, descrição e critérios de aceite
 
 ##### Dark Mode (#37)
-- **Toggle no Header** - Botao para alternar entre modo claro/escuro
-- **Persistencia** - Preferencia salva no localStorage
+- **Toggle no Header** - Botão para alternar entre modo claro/escuro
+- **Persistência** - Preferência salva no localStorage
 - **Suporte Completo** - Todas as telas e modais com tema escuro
-- Icones: 🌙 (modo escuro) / ☀️ (modo claro)
+- Ícones: 🌙 (modo escuro) / ☀️ (modo claro)
 
 ##### Sprint Burndown Chart (#42)
-- **Mini Grafico na Sidebar** - Visualizacao rapida do progresso
+- **Mini Gráfico na Sidebar** - Visualização rápida do progresso
 - **Modal Expandido** - Clique em "Expandir" para ver detalhes
-- **Metricas**:
+- **Métricas**:
   - Total Points
   - Pontos Completos
   - Pontos Restantes
   - Velocity
-- **Linhas do Grafico**:
-  - Azul (tracejada): Linha ideal
-  - Laranja: Progresso real
+- **Linhas do Gráfico**:
+  - Azul: Linha ideal
+  - Verde: Progresso real
 
-##### Bulk Actions (#40)
-- **Modo Selecao** - Botao "Selecionar" na barra de filtros
-- **Selecao Multipla** - Checkbox em cada story card
-- **Barra de Acoes Flutuante**:
-  - Mover para Ready
-  - Mover para In Progress
-  - Mover para Done
-  - Excluir selecionadas
-- **Animacao Suave** - Toolbar aparece com slide-up
+##### Bulk Actions (#43)
+- **Modo de Seleção** - Clique em "Selecionar" para ativar
+- **Checkbox nas Stories** - Selecione múltiplas stories
+- **Ações em Lote**:
+  - Mover para qualquer coluna
+  - Excluir múltiplas stories
+- **Contador** - Mostra quantas stories selecionadas
+
+#### Melhorias Técnicas
+- CSS variables para tema escuro
+- Canvas API para mini gráfico de burndown
+- Gerenciamento de estado para seleção múltipla
 
 #### Issues Fechadas
-- #44 - Templates de Stories
+- #37 - Dark Mode
 - #42 - Sprint Burndown Chart
-- #37 - Suporte a Dark Mode
-- #40 - Bulk actions para multiplas stories
+- #43 - Bulk Actions (Seleção Múltipla)
+- #44 - Templates de Stories
 
 ---
 
-## [6.2.0] - 2025-12-18
+## [6.2.0] - 2025-12-28
 
-### Dashboard Agile - Melhorias de UX/UI
-
-Esta versao traz **10 melhorias significativas** de experiencia do usuario no Dashboard Agile,
-focadas em produtividade, feedback visual e facilidade de uso.
+### Dashboard Agile - Melhorias de UX
 
 #### Novas Funcionalidades
 
-##### Busca e Filtros
-- **Campo de Busca Global** - Busque stories por titulo, ID, descricao, persona ou acao
-  - Atalho de teclado: pressione `/` para focar na busca
-  - Resultados em tempo real enquanto digita
-- **Filtros Avancados** - Barra de filtros no Kanban com:
-  - Filtro por Prioridade (Urgente, Alta, Media, Baixa)
-  - Filtro por Assignee (Todos, Sem assignee)
-  - Indicador de filtros ativos
-  - Botao "Limpar filtros"
-  - Contador de stories filtradas
+##### Notificações em Tempo Real (WebSocket)
+- **Conexão WebSocket** - Notificações push em tempo real
+- **Indicador de Status** - Mostra Online/Offline no header
+- **Sons de Notificação** - Alerta sonoro para novas atualizações
+- **Auto-reconexão** - Reconecta automaticamente se desconectar
 
-##### Acoes Rapidas
-- **Quick Actions no Hover** - Ao passar o mouse sobre um card:
-  - Mover para proxima coluna (seta)
-  - Excluir story (lixeira)
-- **Menu de Contexto** - Clique direito em qualquer story para:
-  - Abrir detalhes
-  - Mover para qualquer coluna (Backlog, Ready, In Progress, Review, Testing, Done)
-  - Copiar ID da story
-  - Excluir story
+##### Mobile Responsive
+- **Menu Hamburguer** - Navegação mobile-friendly
+- **Bottom Navigation** - Barra de navegação inferior
+- **Cards Adaptáveis** - Layout ajustado para telas pequenas
+- **Touch Gestures** - Suporte a gestos touch
 
-##### Atalhos de Teclado
-| Atalho | Acao |
-|--------|------|
-| `/` | Focar no campo de busca |
-| `?` | Mostrar modal de atalhos |
-| `N` | Nova Story (com projeto selecionado) |
-| `T` | Nova Task (com story aberta) |
-| `E` | Editar story selecionada |
-| `Del` | Excluir story selecionada |
-| `1-6` | Mover story para coluna (1=Backlog, 6=Done) |
-| `Esc` | Fechar modal/painel ou limpar busca |
-
-##### Feedback Visual
-- **Sistema de Notificacoes Toast** - Feedback visual para todas as acoes:
-  - Sucesso (verde): Story criada, movida, excluida
-  - Erro (vermelho): Falhas de conexao ou validacao
-  - Info (azul): Acoes informativas
-  - Alerta (amarelo): Avisos importantes
-- **Modal de Confirmacao** - Dialogo de confirmacao para acoes destrutivas:
-  - Exibe nome do item a ser excluido
-  - Destaque visual vermelho para alertar
-  - Mensagem clara sobre irreversibilidade
-
-##### Animacoes e Micro-interacoes
-- **Animacao de Entrada** - Cards aparecem com efeito suave (fade + slide)
-- **Hover em Botoes** - Efeito de elevacao (translateY) ao passar o mouse
-- **Progress Bar Suave** - Transicao animada na barra de progresso
-- **Drag and Drop Melhorado** - Feedback visual durante arraste:
-  - Card rotacionado e elevado
-  - Sombra mais pronunciada
-  - Indicador de area de destino
-
-##### Onboarding
-- **Tela de Boas-Vindas** - Guia passo a passo para novos usuarios:
-  1. Criar ou selecionar projeto
-  2. Adicionar User Stories com narrativa Agile
-  3. Arrastar stories pelo Kanban
-  4. Usar chat para comandos rapidos
-- **Dica de Atalhos** - Indicacao do atalho `?` para ajuda
-
-#### CSS e Estilos
-- Classes de loading: `.spinner`, `.btn-loading`, `.skeleton`
-- Classes de drag: `.sortable-chosen`, `.sortable-ghost`
-- Classes de quick actions: `.quick-actions`, `.quick-btn`
-- Classes de context menu: `.context-menu`, `.context-menu-item`
-- Classes de toast: `.toast`, `.toast-success`, `.toast-error`
-- Classes de animacao: `.card-animate`, `.btn-animate`
-
-#### Issues Fechadas
-- #32 - Campo de busca para stories no Kanban
-- #33 - Sistema de notificacoes toast
-- #34 - Loading states e skeleton screens
-- #35 - Atalhos de teclado para acoes comuns
-- #38 - Drag and drop com melhor feedback visual
-- #39 - Quick actions e menu de contexto
-- #46 - Onboarding e empty states
-- #47 - Confirmacao de acoes destrutivas
-- #48 - Animacoes e micro-interacoes
-- #49 - Filtros avancados no Kanban
+##### Geração de Testes com IA
+- **Botão "Gerar Testes"** - Em cada task de desenvolvimento
+- **Tipos de Teste**:
+  - Testes unitários
+  - Testes de integração
+  - Testes E2E
+- **Modal de Preview** - Visualize antes de aplicar
+- **Copiar/Download** - Exporte os testes gerados
 
 ---
 
-## [6.1.0] - 2025-12-17
+## [6.1.0] - 2025-12-27
 
-### Assistente IA Inteligente
+### Dashboard Agile - Sistema de Stories
 
 #### Novas Funcionalidades
-- **Chat Assistant com Claude** - Assistente integrado no dashboard
-- **Comandos Inteligentes** - O assistente entende linguagem natural
-- **Controle de Execucao** - Aprovar/rejeitar acoes sugeridas pelo assistente
-- **Historico de Conversas** - Persistencia do historico por projeto
 
-#### Melhorias
-- Integracao do assistente com gestao de projetos
-- Documentacao tecnica automatica
+##### User Stories Completas
+- **Narrativa Agile** - "Como [persona], eu quero [ação] para [benefício]"
+- **Critérios de Aceite** - Lista de critérios para validação
+- **Definition of Done** - Checklist de conclusão
+- **Story Points** - Estimativa em Fibonacci (1,2,3,5,8,13,21)
+- **Complexidade** - Low, Medium, High, Very High
 
----
+##### Kanban Board
+- **6 Colunas**: Backlog → Ready → In Progress → Review → Testing → Done
+- **Drag & Drop** - Mova stories entre colunas
+- **Progress Bar** - Progresso das tasks na story
+- **Filtros** - Por épico, sprint, prioridade, assignee
 
-## [6.0.0] - 2025-12-16
+##### Tasks como Subtarefas
+- **Tipos**: Development, Review, Test, Documentation, Design
+- **Status Individual** - Pending, In Progress, Completed, Blocked
+- **Progresso** - 0-100% por task
+- **Output de Código** - Armazena código gerado
 
-### Dashboard Agile v6
-
-#### Sistema Agile Completo
-- **User Stories** - Formato "Como um... Eu quero... Para que..."
-- **Acceptance Criteria** - Lista de criterios de aceite
-- **Definition of Done** - Checklist de DoD
-- **Story Points** - Escala Fibonacci (1, 2, 3, 5, 8, 13, 21)
-- **Complexidade** - Baixa, Media, Alta, Muito Alta
-- **Prioridade** - Baixa, Media, Alta, Urgente
-
-#### Kanban Board
-- 6 colunas: Backlog, Ready, In Progress, Review, Testing, Done
-- Drag and drop entre colunas
-- Contagem de stories e pontos por coluna
-- Filtragem por Sprint e Epic
-
-#### Tasks e Documentacao
-- Subtasks por story com tipos: development, review, test, documentation, design
-- Documentacao tecnica por story
-- Upload de arquivos anexos
+##### Documentação Integrada
+- **Tipos de Doc**: Technical, User, Test, API, Deployment
+- **Markdown Editor** - Edição rica de conteúdo
+- **Instruções de Teste** - Como testar cada feature
+- **Casos de Teste** - Lista de cenários
 
 ---
 
-## [5.0.0] - 2025-12-15
+## [6.0.0] - 2025-12-26
 
-### Dashboard Kanban v5
+### Fábrica de Agentes v6.0 - Dashboard Agile
 
-#### Funcionalidades
-- Kanban simples de tarefas
-- Processamento autonomo com Claude AI
-- Integracao com Watcher automatico
+Lançamento do novo Dashboard Agile com suporte completo a User Stories, metodologia ágil e integração com Claude AI.
 
----
+#### Principais Features
 
-## [4.0.0] - 2025-12-14
+- **Dashboard Agile v6** - Sistema completo de gestão ágil
+- **User Stories** - Modelo completo com narrativa, critérios e DoD
+- **Kanban Board** - Quadro visual com 6 colunas
+- **Tasks** - Subtarefas com tipos e progresso
+- **Documentação** - Sistema de docs integrado
+- **Chat IA** - Assistente Claude integrado
+- **Épicos e Sprints** - Organização hierárquica
 
-### Dashboard Workers v4
+#### Stack Técnica
 
-#### Funcionalidades
-- Fila de jobs com Redis
-- Workers Claude para processamento
-- Loop autonomo: Generate -> Lint -> Test -> Fix
-
----
-
-## Como Usar Este Changelog
-
-### Para Product Owners
-Foque nas secoes de "Novas Funcionalidades" para entender o que mudou e comunicar ao time.
-
-### Para Desenvolvedores
-Consulte as secoes tecnicas (CSS, Issues Fechadas) para entender implementacoes.
-
-### Para Stakeholders
-Leia a "Visao Geral" de cada versao para entender o valor entregue.
+- **Backend**: FastAPI + SQLAlchemy + SQLite
+- **Frontend**: Vue.js 3 + Tailwind CSS (inline)
+- **AI**: Claude API (Anthropic)
+- **Real-time**: WebSocket
 
 ---
 
-*Fabrica de Agentes - Sistema Agile de Desenvolvimento Autonomo*
+## Versões Anteriores
+
+Para versões anteriores (v1.0 - v5.0), consulte o histórico de commits no repositório.

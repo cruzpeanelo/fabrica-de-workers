@@ -1,42 +1,44 @@
-# Fabrica de Agentes
+# Fábrica de Agentes
 
-## Sistema de Desenvolvimento Autonomo com Agentes IA
+## Sistema de Desenvolvimento Autônomo com Agentes IA
 
-A **Fabrica de Agentes** e uma plataforma de desenvolvimento autonomo que combina:
-- **Dashboard Agile v6.0**: Gestao de User Stories com Kanban, narrativa Agile, e assistente IA
-- **Workers Claude**: Processamento autonomo de tarefas com loop de auto-correcao
-- **Kanban Watcher**: Monitoramento automatico que executa tarefas quando movidas para "To Do"
+A **Fábrica de Agentes** é uma plataforma de desenvolvimento autônomo que combina:
+- **Dashboard Agile v6.5**: Gestão de User Stories com Kanban, narrativa Agile, e assistente IA
+- **Workers Claude**: Processamento autônomo de tarefas com loop de auto-correção
+- **Kanban Watcher**: Monitoramento automático que executa tarefas quando movidas para "To Do"
+- **App Generator**: Geração automática de aplicações testáveis com 1 clique
 
-### Dashboards Disponiveis
+### Dashboards Disponíveis
 
-| Dashboard | Porta | Descricao |
+| Dashboard | Porta | Descrição |
 |-----------|-------|-----------|
-| **Agile v6** | 9001 | Sistema Agile completo com Stories, Tasks, Docs e Chat |
+| **Agile v6.5** | 9001 | Sistema Agile completo com Stories, Tasks, Docs, Chat e App Testing |
 | **Kanban v5** | 9001 | Kanban simples de tarefas |
 | **Workers v4** | 9000 | Fila de jobs e workers Claude |
 
-## Arquitetura Agile v6.0
+## Arquitetura Agile v6.5
 
 ```
-User Stories -> Kanban Board -> Tasks -> Autonomous Dev -> Documentation
-      |              |            |            |              |
-  Narrativa      Drag/Drop    Subtarefas   Claude AI    Como Testar
-  Criterios      Colunas      Progresso    Codigo       Deploy
-  DoD            Sprint       Output       Testes       Versao
+User Stories → Kanban Board → Tasks → Autonomous Dev → App Generator → Testing
+      │              │            │            │              │            │
+  Narrativa      Drag/Drop    Subtarefas   Claude AI    Auto-detect   1-Click
+  Critérios      Colunas      Progresso    Código       FastAPI       Browser
+  DoD            Sprint       Output       Testes       Swagger       Validação
 ```
 
 ## Estrutura do Projeto
 
 ```
-Fabrica de Agentes/
+Fábrica de Agentes/
 ├── factory/
 │   ├── api/                    # API REST
 │   │   ├── routes.py           # Endpoints
-│   │   └── auth.py             # Autenticacao JWT
+│   │   └── auth.py             # Autenticação JWT
 │   ├── core/                   # Core do sistema
-│   │   ├── autonomous_loop.py  # Loop Generate->Lint->Test->Fix
+│   │   ├── autonomous_loop.py  # Loop Generate→Lint→Test→Fix
 │   │   ├── job_queue.py        # Redis job queue
-│   │   └── story_generator.py  # Gerador de stories
+│   │   ├── story_generator.py  # Gerador de stories
+│   │   └── app_generator.py    # 🆕 Gerador de apps testáveis
 │   ├── database/               # Banco de dados
 │   │   ├── connection.py       # SQLite + SQLAlchemy
 │   │   ├── models.py           # Modelos (Story, Task, etc)
@@ -45,46 +47,93 @@ Fabrica de Agentes/
 │   │   ├── app_v6_agile.py     # Dashboard Agile (Stories)
 │   │   ├── app_v5_kanban.py    # Dashboard Kanban (Tasks)
 │   │   └── app.py              # Dashboard Workers
-│   └── config.py               # Configuracoes
+│   └── config.py               # Configurações
 ├── projects/                   # Projetos gerados
 ├── uploads/                    # Arquivos anexados
-├── run_kanban_watcher.py       # Watcher automatico
+├── tests/                      # Testes automatizados
+│   └── test_e2e_dashboard.py   # Testes E2E do dashboard
+├── docs/                       # Documentação
+├── run_kanban_watcher.py       # Watcher automático
 ├── run_kanban_dev.py           # Desenvolvimento manual
 └── docker-compose.yml          # PostgreSQL + Redis
 ```
 
-## Iniciando a Fabrica
+## Iniciando a Fábrica
 
 ### Dashboard Agile (Recomendado)
 ```bash
-# Iniciar Dashboard Agile v6
+# Iniciar Dashboard Agile v6.5
 python factory/dashboard/app_v6_agile.py
 
-# Dashboard disponivel em: http://localhost:9001
+# Dashboard disponível em: http://localhost:9001
 ```
 
-### Desenvolvimento Autonomo
+### Desenvolvimento Autônomo
 ```bash
-# Watcher automatico (monitora Kanban a cada 30s)
+# Watcher automático (monitora Kanban a cada 30s)
 python run_kanban_watcher.py
 
 # Desenvolvimento manual
 python run_kanban_dev.py
 ```
 
-## Sistema Agile v6.0
+## 🆕 App Generator - Teste com 1 Clique
+
+O App Generator permite que usuários não-técnicos testem aplicações geradas pelos workers.
+
+### Como Funciona
+
+1. **Análise Automática** - Detecta tipo de projeto (Python/Node.js)
+2. **Encontra Modelos** - Identifica SQLAlchemy models e Pydantic schemas
+3. **Gera Aplicação** - Cria FastAPI app com CRUD para todos os modelos
+4. **Inicia Servidor** - Roda uvicorn na porta 8000
+5. **Abre Navegador** - Exibe Swagger UI para testes
+
+### Botão Flutuante (FAB)
+
+O botão flutuante no canto inferior direito mostra o status:
+
+| Cor | Ícone | Status | Ação |
+|-----|-------|--------|------|
+| 🔘 Cinza | Relógio | Desenvolvendo | Aguardar |
+| 🔵 Azul | Engrenagem | Pode testar | Gerar App |
+| 🟢 Verde | Play | Pronto | Abrir App |
+
+### API Endpoints - App Testing
+
+```bash
+# Verificar status do projeto
+GET /api/projects/{project_id}/app-status
+
+# Gerar aplicação testável
+POST /api/projects/{project_id}/generate-app
+
+# Iniciar servidor de teste
+POST /api/projects/{project_id}/start-app
+```
+
+### Arquivos Gerados
+
+```
+projects/{project_id}/
+├── main.py           # Aplicação FastAPI gerada
+├── requirements.txt  # Dependências
+└── iniciar_app.bat   # Script de inicialização (Windows)
+```
+
+## Sistema Agile v6.5
 
 ### Modelos de Dados
 
 #### Story (User Story)
-| Campo | Tipo | Descricao |
+| Campo | Tipo | Descrição |
 |-------|------|-----------|
-| story_id | string | ID unico (STR-0001) |
-| title | string | Titulo da story |
-| persona | string | "Como um [usuario]" |
+| story_id | string | ID único (STR-0001) |
+| title | string | Título da story |
+| persona | string | "Como um [usuário]" |
 | action | string | "Eu quero [funcionalidade]" |
-| benefit | string | "Para que [beneficio]" |
-| acceptance_criteria | list | Criterios de aceite |
+| benefit | string | "Para que [benefício]" |
+| acceptance_criteria | list | Critérios de aceite |
 | definition_of_done | list | Definition of Done |
 | story_points | int | Fibonacci (1,2,3,5,8,13,21) |
 | complexity | enum | low/medium/high/very_high |
@@ -94,25 +143,25 @@ python run_kanban_dev.py
 | sprint_id | string | Sprint associado |
 
 #### StoryTask (Subtarefa)
-| Campo | Tipo | Descricao |
+| Campo | Tipo | Descrição |
 |-------|------|-----------|
-| task_id | string | ID unico (STSK-0001) |
+| task_id | string | ID único (STSK-0001) |
 | story_id | string | Story pai |
-| title | string | Titulo da task |
+| title | string | Título da task |
 | task_type | enum | development/review/test/documentation/design |
 | status | enum | pending/in_progress/completed/blocked |
 | progress | int | 0-100% |
 | files_created | list | Arquivos criados |
-| code_output | text | Codigo gerado |
+| code_output | text | Código gerado |
 | test_results | json | Resultados de testes |
 
 #### StoryDocumentation
-| Campo | Tipo | Descricao |
+| Campo | Tipo | Descrição |
 |-------|------|-----------|
-| doc_id | string | ID unico (DOC-0001) |
+| doc_id | string | ID único (DOC-0001) |
 | story_id | string | Story associada |
 | doc_type | enum | technical/user/test/deployment/api |
-| content | text | Conteudo Markdown |
+| content | text | Conteúdo Markdown |
 | test_instructions | text | Como testar |
 | test_cases | list | Casos de teste |
 
@@ -132,23 +181,27 @@ GET    /api/stories/{id}/tasks          # Listar tasks
 POST   /api/stories/{id}/tasks          # Criar task
 PUT    /api/story-tasks/{id}            # Atualizar task
 PATCH  /api/story-tasks/{id}/complete   # Completar task
+POST   /api/story-tasks/{id}/generate-tests  # Gerar testes com IA
 
 # Documentation
 GET    /api/stories/{id}/docs           # Listar docs
 POST   /api/stories/{id}/docs           # Criar doc
 
-# Chat (Assistente)
-GET    /api/chat/history                # Historico
+# Chat (Assistente IA)
+GET    /api/chat/history                # Histórico
 POST   /api/chat/message                # Enviar mensagem
 
 # Upload
 POST   /api/upload                      # Upload arquivo
 
-# Epics & Sprints
-GET    /api/projects/{id}/epics         # Listar epics
-POST   /api/epics                       # Criar epic
+# Épicos & Sprints
+GET    /api/projects/{id}/epics         # Listar épicos
+POST   /api/epics                       # Criar épico
 GET    /api/projects/{id}/sprints       # Listar sprints
 POST   /api/sprints                     # Criar sprint
+
+# WebSocket
+WS     /ws/notifications                # Notificações em tempo real
 ```
 
 ### Kanban Board
@@ -166,58 +219,42 @@ POST   /api/sprints                     # Criar sprint
 ```
 
 ### Story Card
+
 ```
 ┌─────────────────────────┐
-│ EPIC-01      5 pts  [!] │  <- Epic + Points + Priority
-│ Titulo da Story         │
+│ EPIC-01      5 pts  [!] │  ← Epic + Points + Priority
+│ Título da Story         │
 │ ────────────────────    │
-│ [████████░░] 80%        │  <- Progresso das tasks
-│ 4/5 tasks | @joao       │  <- Tasks + Assignee
+│ [████████░░] 80%        │  ← Progresso das tasks
+│ 4/5 tasks | @joao       │  ← Tasks + Assignee
 └─────────────────────────┘
 ```
 
-## Exemplo: Criando Story via API
+## Interface de Status do Projeto
 
-```bash
-# Criar Story
-curl -X POST http://localhost:9001/api/stories \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_id": "BELGO-BPM-001",
-    "title": "Implementar login com email",
-    "persona": "usuario do sistema",
-    "action": "fazer login com meu email",
-    "benefit": "acesse minhas informacoes de forma segura",
-    "acceptance_criteria": [
-      "Usuario pode fazer login com email valido",
-      "Senha deve ter minimo 8 caracteres",
-      "Mensagem de erro clara para credenciais invalidas"
-    ],
-    "definition_of_done": [
-      "Codigo revisado",
-      "Testes unitarios passando",
-      "Documentacao atualizada"
-    ],
-    "story_points": 5,
-    "priority": "high"
-  }'
+A interface mostra o progresso de forma amigável para usuários não-técnicos:
 
-# Criar Task na Story
-curl -X POST http://localhost:9001/api/stories/STR-0001/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Criar endpoint de autenticacao",
-    "task_type": "development",
-    "estimated_hours": 4
-  }'
-
-# Mover Story para In Progress
-curl -X PATCH http://localhost:9001/api/stories/STR-0001/move \
-  -H "Content-Type: application/json" \
-  -d '{"status": "in_progress"}'
+### Barra de Progresso
+```
+Progresso Geral                                    75%
+[██████████████████████████████░░░░░░░░░░░░] 75%
 ```
 
-## Watcher Automatico
+### Timeline de Etapas
+```
+    ✓           ✓           ●           ○           ○
+Planejamento → Desenvolvimento → Revisão → Testes → Entrega
+```
+
+### Contadores de Stories
+```
+┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+│    5     │  │    3     │  │    2     │  │    8     │
+│ Backlog  │  │ Em Dev   │  │ Em Teste │  │ Concluídas│
+└──────────┘  └──────────┘  └──────────┘  └──────────┘
+```
+
+## Watcher Automático
 
 O `run_kanban_watcher.py` monitora o Kanban a cada 30 segundos e processa automaticamente stories/tasks movidas para "To Do":
 
@@ -227,19 +264,20 @@ python run_kanban_watcher.py
 
 **Fluxo:**
 1. Story movida para "ready" ou "in_progress"
-2. Watcher detecta a mudanca
+2. Watcher detecta a mudança
 3. Claude AI processa cada task da story
-4. Arquivos sao gerados em `projects/{project_id}/`
-5. Documentacao tecnica e criada automaticamente
-6. Story avanca pelo pipeline: in_progress -> testing -> done
+4. Arquivos são gerados em `projects/{project_id}/`
+5. Documentação técnica é criada automaticamente
+6. Story avança pelo pipeline: in_progress → testing → done
+7. 🆕 App Generator prepara aplicação para teste
 
-## Variaveis de Ambiente
+## Variáveis de Ambiente
 
 ```bash
-# Claude API (obrigatorio)
+# Claude API (obrigatório)
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Database (opcional - usa SQLite por padrao)
+# Database (opcional - usa SQLite por padrão)
 DATABASE_URL=sqlite:///factory/database/factory.db
 
 # Dashboard
@@ -250,11 +288,21 @@ DASHBOARD_PORT=9001
 
 | Cor | Hex | Uso |
 |-----|-----|-----|
-| Azul Belgo | #003B4A | Header, botoes primarios |
-| Laranja Belgo | #FF6C00 | Acoes, CTAs |
+| Azul Belgo | #003B4A | Header, botões primários |
+| Laranja Belgo | #FF6C00 | Ações, CTAs |
+| Verde Sucesso | #10B981 | Concluído, pronto para teste |
 | Cinza Claro | #F3F4F6 | Background |
-| Branco | #FFFFFF | Cards, paineis |
+| Branco | #FFFFFF | Cards, painéis |
+
+## Testes
+
+```bash
+# Rodar testes E2E do dashboard
+python tests/test_e2e_dashboard.py
+
+# Cobertura esperada: 80%+
+```
 
 ---
 
-*Fabrica de Agentes v6.0 - Sistema Agile de Desenvolvimento Autonomo*
+*Fábrica de Agentes v6.5 - Sistema Agile de Desenvolvimento Autônomo com Teste de Aplicações*

@@ -1817,6 +1817,66 @@ def stop_terminal_process(project_id: str):
 
 
 # =============================================================================
+# APP GENERATOR - TESTE DE APLICACOES
+# =============================================================================
+
+from factory.core.app_generator import AppGenerator, analyze_project, generate_app, start_app as start_project_app
+
+@app.get("/api/projects/{project_id}/app-status")
+def get_project_app_status(project_id: str):
+    """Analisa o projeto e retorna status da aplicacao para teste."""
+    try:
+        result = analyze_project(project_id)
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao analisar projeto: {str(e)}")
+
+
+@app.post("/api/projects/{project_id}/generate-app")
+def generate_project_app(project_id: str):
+    """Gera uma aplicacao testavel para o projeto."""
+    try:
+        result = generate_app(project_id)
+        if result.get("success"):
+            notify("app_generated", {
+                "project_id": project_id,
+                "message": result.get("message"),
+                "app_url": result.get("app_url")
+            })
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao gerar aplicacao: {str(e)}")
+
+
+@app.post("/api/projects/{project_id}/start-app")
+def start_project_test_app(project_id: str):
+    """Inicia a aplicacao do projeto para teste."""
+    try:
+        # Primeiro verifica/gera a app
+        generator = AppGenerator(project_id)
+        analysis = generator.analyze_project()
+
+        if not analysis.get("ready_to_test"):
+            gen_result = generator.generate_testable_app()
+            if not gen_result.get("success"):
+                return gen_result
+
+        # Iniciar a aplicacao
+        result = generator.start_app()
+
+        if result.get("success"):
+            notify("app_started", {
+                "project_id": project_id,
+                "app_url": result.get("app_url"),
+                "message": "Aplicacao iniciada!"
+            })
+
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao iniciar aplicacao: {str(e)}")
+
+
+# =============================================================================
 # WEBSOCKET ENDPOINT
 # =============================================================================
 
@@ -3281,13 +3341,60 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
+            <!-- Status da Aplicacao para Teste -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-semibold text-gray-700">Aplicacao para Teste</h4>
+                    <button @click="checkAppStatus" class="text-xs text-blue-600 hover:text-blue-800">
+                        &#8635; Atualizar Status
+                    </button>
+                </div>
+
+                <!-- Loading -->
+                <div v-if="appStatusLoading" class="flex items-center gap-2 text-gray-500">
+                    <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
+                    <span>Verificando status...</span>
+                </div>
+
+                <!-- App Status Info -->
+                <div v-else-if="appStatus">
+                    <!-- Projeto nao encontrado -->
+                    <div v-if="appStatus.status === 'not_found'" class="text-amber-600">
+                        <p>&#128193; Pasta do projeto ainda nao foi criada pelos workers.</p>
+                    </div>
+
+                    <!-- Projeto analisado -->
+                    <div v-else class="space-y-2">
+                        <div class="flex items-center gap-4 text-sm">
+                            <span class="text-gray-600">Tipo: <strong>{{ appStatus.project_type || 'Detectando...' }}</strong></span>
+                            <span class="text-gray-600">Arquivos: <strong>{{ Object.values(appStatus.files_count || {}).reduce((a,b) => a+b, 0) }}</strong></span>
+                            <span class="text-gray-600">Modelos: <strong>{{ (appStatus.models || []).length }}</strong></span>
+                        </div>
+
+                        <!-- Lista de modelos encontrados -->
+                        <div v-if="appStatus.models && appStatus.models.length > 0" class="mt-2">
+                            <p class="text-xs text-gray-500 mb-1">Modelos detectados:</p>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-for="model in appStatus.models.slice(0, 8)" :key="model.name"
+                                      class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                                    {{ model.name }}
+                                </span>
+                                <span v-if="appStatus.models.length > 8" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                    +{{ appStatus.models.length - 8 }} mais
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Mensagem de Status e Acao -->
-            <div v-if="!isProjectReady" class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+            <div v-if="!appStatus?.ready_to_test && !appStatus?.can_generate_app" class="bg-amber-50 border border-amber-200 rounded-lg p-5">
                 <div class="flex items-start gap-4">
                     <div class="text-4xl">&#128679;</div>
                     <div class="flex-1">
                         <h4 class="font-semibold text-amber-800 text-lg">Projeto em Desenvolvimento</h4>
-                        <p class="text-amber-700 mt-1">{{ projectStatusMessage }}</p>
+                        <p class="text-amber-700 mt-1">{{ appStatus?.message || projectStatusMessage }}</p>
                         <div class="mt-3 text-sm text-amber-600">
                             <strong>Proximos passos:</strong>
                             <ul class="list-disc ml-5 mt-1 space-y-1">
@@ -3298,23 +3405,49 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
-            <!-- Quando Pronto para Testar -->
-            <div v-else class="bg-green-50 border border-green-200 rounded-lg p-5">
+            <!-- Pode Gerar App -->
+            <div v-else-if="appStatus?.can_generate_app && !appStatus?.ready_to_test" class="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                <div class="flex items-start gap-4">
+                    <div class="text-4xl">&#128736;</div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-blue-800 text-lg">Codigo Pronto - Preparar para Teste</h4>
+                        <p class="text-blue-700 mt-1">{{ appStatus.message }}</p>
+                        <p class="text-blue-600 text-sm mt-2">Clique no botao abaixo para gerar uma aplicacao testavel automaticamente.</p>
+                        <div class="mt-4">
+                            <button @click="generateAndStartApp"
+                                    :disabled="generatingApp"
+                                    class="px-6 py-3 bg-[#FF6C00] text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50">
+                                <span v-if="!generatingApp" class="text-xl">&#9881;</span>
+                                <div v-else class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                                {{ generatingApp ? 'Preparando...' : 'Preparar Aplicacao para Teste' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pronto para Testar -->
+            <div v-else-if="appStatus?.ready_to_test" class="bg-green-50 border border-green-200 rounded-lg p-5">
                 <div class="flex items-start gap-4">
                     <div class="text-4xl">&#9989;</div>
                     <div class="flex-1">
                         <h4 class="font-semibold text-green-800 text-lg">Pronto para Testar!</h4>
-                        <p class="text-green-700 mt-1">A aplicacao esta disponivel para testes. Clique no botao abaixo para iniciar.</p>
-                        <div class="mt-4 flex gap-3">
-                            <button @click="openTestEnvironment"
-                                    class="px-6 py-3 bg-[#10B981] text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md">
-                                <span class="text-xl">&#9654;</span>
-                                Abrir Aplicacao
+                        <p class="text-green-700 mt-1">A aplicacao esta disponivel para testes.</p>
+                        <p v-if="appStatus.app_url" class="text-green-600 text-sm mt-1">
+                            Endereco: <strong>{{ appStatus.app_url }}</strong>
+                        </p>
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            <button @click="startAndOpenApp"
+                                    :disabled="startingApp"
+                                    class="px-6 py-3 bg-[#10B981] text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md disabled:opacity-50">
+                                <span v-if="!startingApp" class="text-xl">&#9654;</span>
+                                <div v-else class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                                {{ startingApp ? 'Iniciando...' : 'Testar Aplicacao' }}
                             </button>
-                            <button @click="showTestInstructions = true"
+                            <button v-if="appStatus.docs_url" @click="openDocs"
                                     class="px-6 py-3 bg-white text-[#003B4A] border border-[#003B4A] rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
                                 <span class="text-xl">&#128214;</span>
-                                Como Testar
+                                Ver Documentacao API
                             </button>
                         </div>
                     </div>
@@ -3967,6 +4100,60 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- FLOATING TEST BUTTON -->
+        <div v-if="selectedProjectId" class="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-3">
+            <!-- Status Badge -->
+            <div v-if="appStatus && !appStatusLoading"
+                 class="bg-white rounded-full shadow-lg px-4 py-2 flex items-center gap-2 border-2 transition-all duration-300"
+                 :class="{
+                     'border-amber-400': !appStatus.can_generate_app && !appStatus.ready_to_test,
+                     'border-blue-400': appStatus.can_generate_app && !appStatus.ready_to_test,
+                     'border-green-400': appStatus.ready_to_test
+                 }">
+                <span class="text-sm font-medium"
+                      :class="{
+                          'text-amber-600': !appStatus.can_generate_app && !appStatus.ready_to_test,
+                          'text-blue-600': appStatus.can_generate_app && !appStatus.ready_to_test,
+                          'text-green-600': appStatus.ready_to_test
+                      }">
+                    {{ appStatus.ready_to_test ? 'Pronto!' : appStatus.can_generate_app ? 'Pode testar' : 'Desenvolvendo...' }}
+                </span>
+            </div>
+
+            <!-- Main FAB Button -->
+            <button v-if="appStatus?.ready_to_test || appStatus?.can_generate_app"
+                    @click="appStatus.ready_to_test ? startAndOpenApp() : generateAndStartApp()"
+                    :disabled="generatingApp || startingApp"
+                    class="w-16 h-16 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 disabled:opacity-50"
+                    :class="{
+                        'bg-blue-500 hover:bg-blue-600': appStatus.can_generate_app && !appStatus.ready_to_test,
+                        'bg-green-500 hover:bg-green-600': appStatus.ready_to_test
+                    }"
+                    :title="appStatus.ready_to_test ? 'Abrir aplicacao para teste' : 'Gerar e testar aplicacao'">
+                <!-- Loading spinner -->
+                <div v-if="generatingApp || startingApp"
+                     class="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                <!-- Play icon when ready -->
+                <svg v-else-if="appStatus.ready_to_test" class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                <!-- Gear/Build icon when can generate -->
+                <svg v-else class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </button>
+
+            <!-- Development status FAB (grey, not clickable) -->
+            <div v-else-if="appStatus && !appStatus.can_generate_app && !appStatus.ready_to_test"
+                 class="w-16 h-16 rounded-full shadow-xl flex items-center justify-center bg-gray-400 cursor-not-allowed"
+                 title="Projeto ainda em desenvolvimento">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+        </div>
+
         <!-- MOBILE BOTTOM NAVIGATION -->
         <nav class="mobile-bottom-nav">
             <div class="mobile-bottom-nav-items">
@@ -4449,6 +4636,99 @@ HTML_TEMPLATE = """
 
             // ==================== END PROJECT STATUS ====================
 
+            // ==================== APP TESTING FUNCTIONS ====================
+
+            // App Status State
+            const appStatus = ref(null);
+            const appStatusLoading = ref(false);
+            const generatingApp = ref(false);
+            const startingApp = ref(false);
+
+            // Check app status for current project
+            const checkAppStatus = async () => {
+                if (!selectedProjectId.value) return;
+                appStatusLoading.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/app-status`);
+                    if (response.ok) {
+                        appStatus.value = await response.json();
+                    } else {
+                        appStatus.value = { status: 'not_found', message: 'Projeto nao encontrado' };
+                    }
+                } catch (e) {
+                    appStatus.value = { status: 'error', message: 'Erro ao verificar status' };
+                } finally {
+                    appStatusLoading.value = false;
+                }
+            };
+
+            // Generate and start the test app
+            const generateAndStartApp = async () => {
+                if (!selectedProjectId.value) return;
+                generatingApp.value = true;
+                try {
+                    addToast('info', 'Gerando aplicacao', 'Preparando aplicacao para testes...');
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/generate-app`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        addToast('success', 'Aplicacao gerada', 'Iniciando servidor de teste...');
+                        await startAndOpenApp();
+                        await checkAppStatus();
+                    } else {
+                        addToast('error', 'Erro', result.message || 'Nao foi possivel gerar a aplicacao');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao gerar aplicacao: ' + e.message);
+                } finally {
+                    generatingApp.value = false;
+                }
+            };
+
+            // Start the test app and open browser
+            const startAndOpenApp = async () => {
+                if (!selectedProjectId.value) return;
+                startingApp.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/start-app`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+                    if (response.ok && result.status === 'success') {
+                        addToast('success', 'Servidor iniciado', 'Abrindo aplicacao no navegador...');
+                        // Wait a moment for the server to start
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        if (result.app_url) {
+                            window.open(result.app_url, '_blank');
+                        }
+                        await checkAppStatus();
+                    } else if (result.status === 'already_running') {
+                        addToast('info', 'Servidor ativo', 'A aplicacao ja esta rodando');
+                        if (result.app_url) {
+                            window.open(result.app_url, '_blank');
+                        }
+                    } else {
+                        addToast('error', 'Erro', result.message || 'Nao foi possivel iniciar o servidor');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao iniciar servidor: ' + e.message);
+                } finally {
+                    startingApp.value = false;
+                }
+            };
+
+            // Open API docs
+            const openDocs = () => {
+                if (appStatus.value?.docs_url) {
+                    window.open(appStatus.value.docs_url, '_blank');
+                }
+            };
+
+            // ==================== END APP TESTING FUNCTIONS ====================
+
             // Grouped Stories for Swimlanes
             const groupedStories = computed(() => {
                 if (!groupBy.value) return null;
@@ -4577,6 +4857,9 @@ HTML_TEMPLATE = """
                 // Load sprints
                 const sprintsRes = await fetch(`/api/projects/${selectedProjectId.value}/sprints`);
                 sprints.value = await sprintsRes.json();
+
+                // Check app status for testing
+                checkAppStatus();
 
                 // Setup drag and drop
                 nextTick(() => {
@@ -5669,6 +5952,9 @@ Process ${data.status}`);
                 storyCounts, projectProgress, isProjectReady, projectReadinessText,
                 projectReadinessClass, projectReadinessIcon, projectStatusMessage,
                 nextSteps, projectSteps, timelineProgress, showTestInstructions, openTestEnvironment,
+                // App Testing
+                appStatus, appStatusLoading, generatingApp, startingApp,
+                checkAppStatus, generateAndStartApp, startAndOpenApp, openDocs,
                 // Mobile State
                 mobileMenuOpen, mobileChatOpen, isPullingToRefresh
             };

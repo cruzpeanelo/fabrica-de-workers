@@ -1,8 +1,8 @@
-# Arquitetura Tecnica - Fabrica de Agentes
+# Arquitetura Técnica - Fábrica de Agentes
 
-## Documentacao para Equipes de TI
+## Documentação para Equipes de TI
 
-Este documento descreve a arquitetura completa, componentes, artefatos e fluxos tecnicos da plataforma Fabrica de Agentes.
+Este documento descreve a arquitetura completa, componentes, artefatos e fluxos técnicos da plataforma Fábrica de Agentes.
 
 ---
 
@@ -783,11 +783,111 @@ python factory/log_activity.py -a 08 -t info -m "Mensagem" -p PRJ-001
 
 ---
 
-## Contato e Suporte
+## 13. App Generator (v6.5)
 
-- **GitHub**: https://github.com/cruzpeanelo/fabrica-de-workers
-- **Documentacao Usuario**: [README.md](../README.md)
+### Visão Geral
+
+O App Generator é um componente que permite gerar aplicações testáveis automaticamente a partir do código criado pelos workers.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      APP GENERATOR FLOW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
+│  │   Projeto    │───>│   Análise    │───>│   Detecção   │       │
+│  │  projects/   │    │   de Código  │    │   de Tipo    │       │
+│  └──────────────┘    └──────────────┘    └──────────────┘       │
+│                              │                    │              │
+│                              v                    v              │
+│                    ┌──────────────┐    ┌──────────────┐         │
+│                    │   Encontra   │    │   Python/    │         │
+│                    │   Modelos    │    │   Node.js    │         │
+│                    └──────────────┘    └──────────────┘         │
+│                              │                                   │
+│                              v                                   │
+│                    ┌──────────────────────────┐                 │
+│                    │    GERA APLICAÇÃO        │                 │
+│                    │  - main.py (FastAPI)     │                 │
+│                    │  - requirements.txt      │                 │
+│                    │  - iniciar_app.bat       │                 │
+│                    └──────────────────────────┘                 │
+│                              │                                   │
+│                              v                                   │
+│                    ┌──────────────────────────┐                 │
+│                    │    INICIA SERVIDOR       │                 │
+│                    │  - uvicorn :8000         │                 │
+│                    │  - Swagger UI /docs      │                 │
+│                    └──────────────────────────┘                 │
+│                              │                                   │
+│                              v                                   │
+│                    ┌──────────────────────────┐                 │
+│                    │    ABRE NAVEGADOR        │                 │
+│                    │  - http://localhost:8000 │                 │
+│                    └──────────────────────────┘                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Componente: `factory/core/app_generator.py`
+
+```python
+class AppGenerator:
+    """Gera aplicações testáveis automaticamente."""
+
+    def analyze_project(self) -> Dict:
+        """Analisa projeto e retorna status."""
+        # - Detecta tipo (Python/Node.js)
+        # - Encontra modelos SQLAlchemy
+        # - Encontra schemas Pydantic
+        # - Encontra rotas FastAPI/Flask
+
+    def generate_testable_app(self) -> Dict:
+        """Gera aplicação FastAPI com CRUD."""
+        # - Cria main.py com endpoints
+        # - Cria requirements.txt
+        # - Cria script de inicialização
+
+    def start_app(self) -> Dict:
+        """Inicia servidor uvicorn."""
+        # - Roda em subprocess
+        # - Retorna URL e PID
+```
+
+### API Endpoints
+
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/projects/{id}/app-status` | Analisa e retorna status do projeto |
+| POST | `/api/projects/{id}/generate-app` | Gera aplicação testável |
+| POST | `/api/projects/{id}/start-app` | Inicia servidor de teste |
+
+### Interface do Usuário
+
+O botão flutuante (FAB) no canto inferior direito indica o status:
+
+| Estado | Cor | Ícone | Ação |
+|--------|-----|-------|------|
+| Desenvolvendo | Cinza | Relógio | Desabilitado |
+| Pode Gerar | Azul | Engrenagem | Gerar App |
+| Pronto | Verde | Play | Abrir App |
+
+### Arquivos Gerados
+
+```
+projects/{project_id}/
+├── main.py           # FastAPI app com CRUD automático
+├── requirements.txt  # fastapi, uvicorn, sqlalchemy, pydantic
+└── iniciar_app.bat   # Script Windows para iniciar
+```
 
 ---
 
-*Documentacao Tecnica v4.0 - Ultima atualizacao: Dezembro 2024*
+## Contato e Suporte
+
+- **GitHub**: https://github.com/cruzpeanelo/fabrica-de-workers
+- **Documentação Usuário**: [README.md](../README.md)
+
+---
+
+*Documentação Técnica v6.5 - Última atualização: Dezembro 2025*
