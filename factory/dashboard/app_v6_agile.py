@@ -3212,92 +3212,165 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Terminal and Preview Section -->
-        <div v-if="selectedProjectId" class="bg-white rounded-lg shadow p-4 mt-4">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-700">Ambiente de Teste</h3>
-                <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-500">Projeto: {{ selectedProjectId }}</span>
+        <!-- AMBIENTE DE TESTE - Interface Amigavel -->
+        <div v-if="selectedProjectId" class="bg-white rounded-lg shadow p-6 mt-4">
+            <!-- Header com Status do Projeto -->
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-xl font-semibold text-[#003B4A]">Status do Projeto</h3>
+                    <p class="text-sm text-gray-500 mt-1">Acompanhe o progresso e saiba quando podera testar</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span :class="projectReadinessClass" class="px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                        <span v-html="projectReadinessIcon"></span>
+                        {{ projectReadinessText }}
+                    </span>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Terminal -->
-                <div class="flex flex-col">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-sm font-medium text-gray-600">Terminal</h4>
-                        <div class="flex gap-2">
-                            <button @click="startApp"
-                                    :disabled="terminalRunning"
-                                    class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                                &#9654; Iniciar App
-                            </button>
-                            <button @click="runTests"
-                                    :disabled="terminalRunning"
-                                    class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                                &#129514; Testes
-                            </button>
-                            <button @click="stopProcess"
-                                    :disabled="!terminalRunning"
-                                    class="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                                &#9632; Parar
-                            </button>
-                        </div>
-                    </div>
-                    <div id="terminal-container" class="bg-black rounded border border-gray-300" style="height: 400px;"></div>
-                    <div class="mt-2">
-                        <div class="flex gap-2">
-                            <input v-model="terminalCommand"
-                                   @keyup.enter="executeTerminalCommand"
-                                   type="text"
-                                   placeholder="Digite um comando..."
-                                   class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
-                            <button @click="executeTerminalCommand"
-                                    class="px-3 py-1 bg-[#FF6C00] text-white rounded text-xs hover:bg-orange-600">
-                                Executar
-                            </button>
-                        </div>
-                    </div>
+
+            <!-- Progresso Visual -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">Progresso Geral</span>
+                    <span class="text-sm font-bold text-[#003B4A]">{{ projectProgress }}%</span>
                 </div>
-                <!-- Preview -->
-                <div class="flex flex-col">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-sm font-medium text-gray-600">Preview</h4>
-                        <div class="flex items-center gap-2">
-                            <select v-model="previewViewport" class="text-xs border border-gray-300 rounded px-2 py-1">
-                                <option value="desktop">Desktop</option>
-                                <option value="tablet">Tablet (768px)</option>
-                                <option value="mobile">Mobile (375px)</option>
-                            </select>
-                            <button @click="refreshPreview"
-                                    class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
-                                &#8635; Refresh
-                            </button>
-                        </div>
-                    </div>
-                    <div class="bg-gray-100 rounded border border-gray-300 flex items-center justify-center" style="height: 400px;">
-                        <iframe ref="previewFrame"
-                                :src="previewUrl"
-                                :style="{
-                                    width: previewViewport === 'mobile' ? '375px' : previewViewport === 'tablet' ? '768px' : '100%',
-                                    height: '100%',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    backgroundColor: 'white'
-                                }"
-                                class="transition-all duration-300">
-                        </iframe>
-                    </div>
-                    <div class="mt-2 flex gap-2">
-                        <input v-model="previewUrl"
-                               type="text"
-                               placeholder="http://localhost:3000"
-                               class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
-                        <button @click="refreshPreview"
-                                class="px-3 py-1 bg-[#003B4A] text-white rounded text-xs hover:bg-blue-900">
-                                Carregar
-                        </button>
+                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                         :style="{ width: projectProgress + '%', backgroundColor: projectProgress < 30 ? '#EF4444' : projectProgress < 70 ? '#F59E0B' : '#10B981' }">
+                        <span v-if="projectProgress > 15" class="text-xs text-white font-medium">{{ projectProgress }}%</span>
                     </div>
                 </div>
             </div>
+
+            <!-- Timeline de Etapas -->
+            <div class="mb-6">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4">Etapas do Desenvolvimento</h4>
+                <div class="flex items-center justify-between relative">
+                    <div class="absolute top-5 left-0 right-0 h-1 bg-gray-200 z-0"></div>
+                    <div class="absolute top-5 left-0 h-1 bg-[#10B981] z-0 transition-all duration-500" :style="{ width: timelineProgress + '%' }"></div>
+
+                    <div v-for="(step, idx) in projectSteps" :key="idx" class="flex flex-col items-center z-10 relative" style="width: 20%;">
+                        <div :class="step.completed ? 'bg-[#10B981] text-white' : step.current ? 'bg-[#FF6C00] text-white animate-pulse' : 'bg-gray-300 text-gray-600'"
+                             class="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shadow-md transition-all">
+                            <span v-if="step.completed">&#10003;</span>
+                            <span v-else>{{ idx + 1 }}</span>
+                        </div>
+                        <span class="text-xs mt-2 text-center font-medium" :class="step.completed ? 'text-[#10B981]' : step.current ? 'text-[#FF6C00]' : 'text-gray-500'">{{ step.name }}</span>
+                        <span class="text-xs text-gray-400 text-center">{{ step.description }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumo das Stories -->
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
+                    <div class="text-3xl font-bold text-gray-400">{{ storyCounts.backlog }}</div>
+                    <div class="text-xs text-gray-500 mt-1">Backlog</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
+                    <div class="text-3xl font-bold text-blue-600">{{ storyCounts.inProgress }}</div>
+                    <div class="text-xs text-blue-600 mt-1">Em Desenvolvimento</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
+                    <div class="text-3xl font-bold text-purple-600">{{ storyCounts.testing }}</div>
+                    <div class="text-xs text-purple-600 mt-1">Em Teste</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center border border-green-200">
+                    <div class="text-3xl font-bold text-green-600">{{ storyCounts.done }}</div>
+                    <div class="text-xs text-green-600 mt-1">Concluidas</div>
+                </div>
+            </div>
+
+            <!-- Mensagem de Status e Acao -->
+            <div v-if="!isProjectReady" class="bg-amber-50 border border-amber-200 rounded-lg p-5">
+                <div class="flex items-start gap-4">
+                    <div class="text-4xl">&#128679;</div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-amber-800 text-lg">Projeto em Desenvolvimento</h4>
+                        <p class="text-amber-700 mt-1">{{ projectStatusMessage }}</p>
+                        <div class="mt-3 text-sm text-amber-600">
+                            <strong>Proximos passos:</strong>
+                            <ul class="list-disc ml-5 mt-1 space-y-1">
+                                <li v-for="step in nextSteps" :key="step">{{ step }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quando Pronto para Testar -->
+            <div v-else class="bg-green-50 border border-green-200 rounded-lg p-5">
+                <div class="flex items-start gap-4">
+                    <div class="text-4xl">&#9989;</div>
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-green-800 text-lg">Pronto para Testar!</h4>
+                        <p class="text-green-700 mt-1">A aplicacao esta disponivel para testes. Clique no botao abaixo para iniciar.</p>
+                        <div class="mt-4 flex gap-3">
+                            <button @click="openTestEnvironment"
+                                    class="px-6 py-3 bg-[#10B981] text-white rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center gap-2 shadow-md">
+                                <span class="text-xl">&#9654;</span>
+                                Abrir Aplicacao
+                            </button>
+                            <button @click="showTestInstructions = true"
+                                    class="px-6 py-3 bg-white text-[#003B4A] border border-[#003B4A] rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                                <span class="text-xl">&#128214;</span>
+                                Como Testar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Avancado (colapsavel para usuarios tecnicos) -->
+            <details class="mt-6 bg-gray-50 rounded-lg border border-gray-200">
+                <summary class="p-4 cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-2">
+                    <span>&#128736;</span> Ferramentas Avancadas (para desenvolvedores)
+                </summary>
+                <div class="p-4 border-t border-gray-200">
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Terminal -->
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-medium text-gray-600">Terminal</h4>
+                                <div class="flex gap-2">
+                                    <button @click="startApp" :disabled="terminalRunning"
+                                            class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 disabled:opacity-50">
+                                        &#9654; Iniciar
+                                    </button>
+                                    <button @click="runTests" :disabled="terminalRunning"
+                                            class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 disabled:opacity-50">
+                                        Testes
+                                    </button>
+                                    <button @click="stopProcess" :disabled="!terminalRunning"
+                                            class="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 disabled:opacity-50">
+                                        Parar
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="terminal-container" class="bg-black rounded border border-gray-300" style="height: 300px;"></div>
+                            <div class="mt-2 flex gap-2">
+                                <input v-model="terminalCommand" @keyup.enter="executeTerminalCommand" type="text"
+                                       placeholder="Digite um comando..." class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                                <button @click="executeTerminalCommand" class="px-3 py-1 bg-[#FF6C00] text-white rounded text-xs">Executar</button>
+                            </div>
+                        </div>
+                        <!-- Preview -->
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-medium text-gray-600">Preview</h4>
+                                <button @click="refreshPreview" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">Refresh</button>
+                            </div>
+                            <div class="bg-gray-100 rounded border border-gray-300 flex items-center justify-center" style="height: 300px;">
+                                <iframe ref="previewFrame" :src="previewUrl" style="width: 100%; height: 100%; border: none; border-radius: 4px;"></iframe>
+                            </div>
+                            <div class="mt-2 flex gap-2">
+                                <input v-model="previewUrl" type="text" placeholder="http://localhost:3000" class="flex-1 px-3 py-1 border border-gray-300 rounded text-sm">
+                                <button @click="refreshPreview" class="px-3 py-1 bg-[#003B4A] text-white rounded text-xs">Carregar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
         </div>
 
 
@@ -4247,6 +4320,134 @@ HTML_TEMPLATE = """
                 Object.values(filteredStoryBoard.value).forEach(col => count += col.length);
                 return count;
             });
+
+            // ==================== PROJECT STATUS FOR NON-TECH USERS ====================
+
+            // Story counts by status
+            const storyCounts = computed(() => {
+                const board = storyBoard.value;
+                return {
+                    backlog: (board.backlog?.length || 0) + (board.ready?.length || 0),
+                    inProgress: (board.in_progress?.length || 0) + (board.review?.length || 0),
+                    testing: board.testing?.length || 0,
+                    done: board.done?.length || 0
+                };
+            });
+
+            // Project progress percentage
+            const projectProgress = computed(() => {
+                const counts = storyCounts.value;
+                const total = counts.backlog + counts.inProgress + counts.testing + counts.done;
+                if (total === 0) return 0;
+                const completed = counts.done;
+                const inProgress = counts.inProgress * 0.5 + counts.testing * 0.8;
+                return Math.round(((completed + inProgress) / total) * 100);
+            });
+
+            // Is project ready for testing?
+            const isProjectReady = computed(() => {
+                const counts = storyCounts.value;
+                return counts.testing > 0 || (counts.done > 0 && projectProgress.value >= 80);
+            });
+
+            // Project readiness text
+            const projectReadinessText = computed(() => {
+                const progress = projectProgress.value;
+                if (progress === 0) return 'Aguardando Inicio';
+                if (progress < 30) return 'Fase Inicial';
+                if (progress < 60) return 'Em Desenvolvimento';
+                if (progress < 80) return 'Quase Pronto';
+                if (progress < 100) return 'Pronto para Testes';
+                return 'Concluido';
+            });
+
+            // Project readiness class
+            const projectReadinessClass = computed(() => {
+                const progress = projectProgress.value;
+                if (progress === 0) return 'bg-gray-200 text-gray-600';
+                if (progress < 30) return 'bg-red-100 text-red-700';
+                if (progress < 60) return 'bg-amber-100 text-amber-700';
+                if (progress < 80) return 'bg-blue-100 text-blue-700';
+                return 'bg-green-100 text-green-700';
+            });
+
+            // Project readiness icon
+            const projectReadinessIcon = computed(() => {
+                const progress = projectProgress.value;
+                if (progress === 0) return '&#9711;';
+                if (progress < 30) return '&#128679;';
+                if (progress < 60) return '&#128736;';
+                if (progress < 80) return '&#9881;';
+                return '&#10003;';
+            });
+
+            // Project status message
+            const projectStatusMessage = computed(() => {
+                const counts = storyCounts.value;
+                const progress = projectProgress.value;
+                if (progress === 0) return 'O projeto ainda nao foi iniciado. Aguarde a equipe comecar o desenvolvimento.';
+                if (progress < 30) return `Estamos na fase inicial do desenvolvimento. ${counts.inProgress} funcionalidade(s) em andamento.`;
+                if (progress < 60) return `O desenvolvimento esta em andamento. ${counts.done} funcionalidade(s) ja foram concluidas.`;
+                if (progress < 80) return `Estamos quase la! ${counts.done} funcionalidades prontas, ${counts.inProgress + counts.testing} em finalizacao.`;
+                return `O projeto esta pronto para testes! ${counts.done} funcionalidades disponiveis.`;
+            });
+
+            // Next steps for the user
+            const nextSteps = computed(() => {
+                const counts = storyCounts.value;
+                const progress = projectProgress.value;
+                const steps = [];
+                if (progress < 30) {
+                    steps.push('Aguardar conclusao das primeiras funcionalidades');
+                    steps.push('Acompanhar o progresso no quadro Kanban acima');
+                } else if (progress < 60) {
+                    steps.push('Revisar os requisitos das funcionalidades em desenvolvimento');
+                    steps.push('Preparar cenarios de teste para quando estiver pronto');
+                } else if (progress < 80) {
+                    steps.push('Validar as funcionalidades ja concluidas');
+                    steps.push('Reportar ajustes necessarios via chat');
+                } else {
+                    steps.push('Testar as funcionalidades disponiveis');
+                    steps.push('Documentar problemas encontrados');
+                }
+                if (counts.testing > 0) {
+                    steps.unshift(`${counts.testing} funcionalidade(s) em fase de testes`);
+                }
+                return steps;
+            });
+
+            // Project development steps for timeline
+            const projectSteps = computed(() => {
+                const progress = projectProgress.value;
+                return [
+                    { name: 'Planejamento', description: 'Requisitos', completed: progress > 0, current: progress === 0 },
+                    { name: 'Desenvolvimento', description: 'Codificacao', completed: progress >= 30, current: progress > 0 && progress < 30 },
+                    { name: 'Revisao', description: 'Code Review', completed: progress >= 60, current: progress >= 30 && progress < 60 },
+                    { name: 'Testes', description: 'Validacao', completed: progress >= 80, current: progress >= 60 && progress < 80 },
+                    { name: 'Entrega', description: 'Producao', completed: progress >= 100, current: progress >= 80 && progress < 100 }
+                ];
+            });
+
+            // Timeline progress
+            const timelineProgress = computed(() => {
+                const progress = projectProgress.value;
+                if (progress === 0) return 0;
+                if (progress < 30) return 20;
+                if (progress < 60) return 40;
+                if (progress < 80) return 60;
+                if (progress < 100) return 80;
+                return 100;
+            });
+
+            // Show test instructions modal
+            const showTestInstructions = ref(false);
+
+            // Open test environment
+            const openTestEnvironment = () => {
+                window.open(previewUrl.value, '_blank');
+            };
+
+            // ==================== END PROJECT STATUS ====================
 
             // Grouped Stories for Swimlanes
             const groupedStories = computed(() => {
@@ -5464,6 +5665,10 @@ Process ${data.status}`);
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
+                // Project Status (user-friendly)
+                storyCounts, projectProgress, isProjectReady, projectReadinessText,
+                projectReadinessClass, projectReadinessIcon, projectStatusMessage,
+                nextSteps, projectSteps, timelineProgress, showTestInstructions, openTestEnvironment,
                 // Mobile State
                 mobileMenuOpen, mobileChatOpen, isPullingToRefresh
             };
