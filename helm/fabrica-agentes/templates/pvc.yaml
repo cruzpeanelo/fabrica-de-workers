@@ -1,0 +1,61 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - PersistentVolumeClaims
+=============================================================================
+*/}}
+
+{{- if .Values.persistence.projects.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-projects
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+    storage-type: projects
+spec:
+  accessModes:
+    - {{ .Values.persistence.projects.accessMode }}
+  storageClassName: {{ .Values.persistence.projects.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.projects.size }}
+{{- end }}
+
+---
+{{- if .Values.persistence.uploads.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-uploads
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+    storage-type: uploads
+spec:
+  accessModes:
+    - {{ .Values.persistence.uploads.accessMode }}
+  storageClassName: {{ .Values.persistence.uploads.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.uploads.size }}
+{{- end }}
+
+---
+{{- if .Values.persistence.database.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-database
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+    storage-type: database
+spec:
+  accessModes:
+    - {{ .Values.persistence.database.accessMode }}
+  storageClassName: {{ .Values.persistence.database.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.database.size }}
+{{- end }}

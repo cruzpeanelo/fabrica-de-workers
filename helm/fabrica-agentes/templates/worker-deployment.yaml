@@ -1,0 +1,215 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - Worker Deployment
+=============================================================================
+*/}}
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.worker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fabrica-agentes.worker.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "fabrica-agentes.worker.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.worker.service.port | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "fabrica-agentes.serviceAccountName" . }}
+
+      {{- include "fabrica-agentes.imagePullSecrets" . | nindent 6 }}
+
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+
+      initContainers:
+        {{- if or .Values.postgresql.enabled .Values.externalDatabase.enabled }}
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
+                echo "Aguardando PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL disponivel!"
+          env:
+            - name: DATABASE_HOST
+              {{- if .Values.postgresql.enabled }}
+              value: {{ include "fabrica-agentes.fullname" . }}-postgresql
+              {{- else }}
+              value: {{ .Values.externalDatabase.host }}
+              {{- end }}
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: DATABASE_USER
+        {{- end }}
+
+        {{- if or .Values.redis.enabled .Values.externalRedis.enabled }}
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping; do
+                echo "Aguardando Redis..."
+                sleep 2
+              done
+              echo "Redis disponivel!"
+          env:
+            - name: REDIS_HOST
+              {{- if .Values.redis.enabled }}
+              value: {{ include "fabrica-agentes.fullname" . }}-redis-master
+              {{- else }}
+              value: {{ .Values.externalRedis.host }}
+              {{- end }}
+            - name: REDIS_PORT
+              value: {{ .Values.externalRedis.port | default "6379" | quote }}
+        {{- end }}
+
+      containers:
+        - name: worker
+          image: {{ include "fabrica-agentes.image" .Values.worker.image }}
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.worker.service.port }}
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: {{ include "fabrica-agentes.fullname" . }}-config
+
+          env:
+            - name: APP_TYPE
+              value: "worker"
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: DATABASE_URL
+
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.worker.healthCheck.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.worker.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.worker.healthCheck.periodSeconds }}
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.worker.healthCheck.path }}
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: {{ .Values.worker.healthCheck.path }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          volumeMounts:
+            {{- if .Values.persistence.projects.enabled }}
+            - name: projects-data
+              mountPath: /app/projects
+            {{- end }}
+            {{- if .Values.persistence.uploads.enabled }}
+            - name: uploads-data
+              mountPath: /app/uploads
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+
+      volumes:
+        {{- if .Values.persistence.projects.enabled }}
+        - name: projects-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-projects
+        {{- end }}
+        {{- if .Values.persistence.uploads.enabled }}
+        - name: uploads-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-uploads
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+{{- end }}
+
+---
+{{- if .Values.worker.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.worker.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.worker.service.type }}
+  selector:
+    {{- include "fabrica-agentes.worker.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.worker.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}

@@ -22,6 +22,20 @@ class JobCreate(BaseModel):
     tech_stack: Optional[str] = Field(None, description="Stack tecnologica (python, fastapi, react, etc)")
     features: Optional[List[str]] = Field(default=[], description="Lista de features")
     project_id: Optional[str] = Field(None, description="ID do projeto associado")
+    # Suporte a multiplos modelos (Issue #26)
+    model: Optional[str] = Field(None, description="Modelo Claude (opus, sonnet, haiku ou ID completo)")
+    complexity: Optional[str] = Field(None, description="Complexidade (simple, medium, complex, very_complex)")
+    story_points: Optional[int] = Field(None, ge=1, le=21, description="Story points para selecao de modelo")
+
+
+class ClaudeModelInfo(BaseModel):
+    """Informacoes de um modelo Claude"""
+    key: str
+    id: str
+    name: str
+    description: str
+    cost_tier: str
+    recommended_for: List[str]
 
 
 class JobResponse(BaseModel):

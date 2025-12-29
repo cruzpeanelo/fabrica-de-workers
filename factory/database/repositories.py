@@ -16,7 +16,8 @@ from .models import (
     StoryTask, StoryTaskType, StoryTaskStatus,
     StoryDocumentation, DocType,
     ChatMessage, MessageRole,
-    Attachment, Epic, Sprint
+    Attachment, Epic, Sprint,
+    ExecutionLog, ExecutionStatus
 )
 
 
@@ -1301,6 +1302,220 @@ class SprintRepository:
 
 
 # =============================================================================
+# EXECUTION LOG REPOSITORY
+# =============================================================================
+
+class ExecutionLogRepository:
+    """Repositorio para gerenciamento de Logs de Execucao (Replay e Debug)"""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, execution_data: dict) -> 'ExecutionLog':
+        """Cria novo log de execucao"""
+        if "execution_id" not in execution_data:
+            import uuid
+            execution_data["execution_id"] = f"EXEC-{uuid.uuid4().hex[:8].upper()}"
+
+        execution = ExecutionLog(**execution_data)
+        self.db.add(execution)
+        self.db.commit()
+        self.db.refresh(execution)
+        return execution
+
+    def get_by_id(self, execution_id: str) -> Optional['ExecutionLog']:
+        """Busca execucao por ID"""
+        return self.db.query(ExecutionLog).filter(ExecutionLog.execution_id == execution_id).first()
+
+    def get_all(self, project_id: str = None, task_id: str = None, story_id: str = None,
+                status: str = None, limit: int = 100) -> List['ExecutionLog']:
+        """Lista execucoes com filtros opcionais"""
+        query = self.db.query(ExecutionLog)
+        if project_id:
+            query = query.filter(ExecutionLog.project_id == project_id)
+        if task_id:
+            query = query.filter(ExecutionLog.task_id == task_id)
+        if story_id:
+            query = query.filter(ExecutionLog.story_id == story_id)
+        if status:
+            query = query.filter(ExecutionLog.status == status)
+        return query.order_by(desc(ExecutionLog.created_at)).limit(limit).all()
+
+    def get_by_task(self, task_id: str) -> List['ExecutionLog']:
+        """Lista execucoes de uma task"""
+        return self.db.query(ExecutionLog).filter(
+            ExecutionLog.task_id == task_id
+        ).order_by(desc(ExecutionLog.created_at)).all()
+
+    def get_by_story(self, story_id: str) -> List['ExecutionLog']:
+        """Lista execucoes de uma story"""
+        return self.db.query(ExecutionLog).filter(
+            ExecutionLog.story_id == story_id
+        ).order_by(desc(ExecutionLog.created_at)).all()
+
+    def get_recent(self, limit: int = 50) -> List['ExecutionLog']:
+        """Lista execucoes recentes"""
+        return self.db.query(ExecutionLog).order_by(
+            desc(ExecutionLog.created_at)
+        ).limit(limit).all()
+
+    def get_failed(self, limit: int = 50) -> List['ExecutionLog']:
+        """Lista execucoes com falha"""
+        return self.db.query(ExecutionLog).filter(
+            ExecutionLog.status == "failed"
+        ).order_by(desc(ExecutionLog.created_at)).limit(limit).all()
+
+    def update(self, execution_id: str, data: dict) -> Optional['ExecutionLog']:
+        """Atualiza log de execucao"""
+        execution = self.get_by_id(execution_id)
+        if execution:
+            for key, value in data.items():
+                if hasattr(execution, key) and value is not None:
+                    setattr(execution, key, value)
+            execution.updated_at = datetime.utcnow()
+            self.db.commit()
+            self.db.refresh(execution)
+        return execution
+
+    def add_step(self, execution_id: str, step_name: str, status: str = "running",
+                 input_data: dict = None, output_data: dict = None) -> Optional[str]:
+        """Adiciona um passo a execucao"""
+        import uuid
+        execution = self.get_by_id(execution_id)
+        if execution:
+            step = {
+                "step_id": str(uuid.uuid4())[:8],
+                "name": step_name,
+                "status": status,
+                "started_at": datetime.utcnow().isoformat(),
+                "ended_at": None,
+                "input": input_data or {},
+                "output": output_data or {},
+                "error": None
+            }
+            steps = execution.steps or []
+            steps.append(step)
+            execution.steps = steps
+            self.db.commit()
+            return step["step_id"]
+        return None
+
+    def complete_step(self, execution_id: str, step_id: str, status: str = "success",
+                      output_data: dict = None, error: str = None) -> bool:
+        """Completa um passo da execucao"""
+        execution = self.get_by_id(execution_id)
+        if execution and execution.steps:
+            for step in execution.steps:
+                if step.get("step_id") == step_id:
+                    step["status"] = status
+                    step["ended_at"] = datetime.utcnow().isoformat()
+                    if output_data:
+                        step["output"] = output_data
+                    if error:
+                        step["error"] = error
+                    break
+            self.db.commit()
+            return True
+        return False
+
+    def complete_execution(self, execution_id: str, status: str = "success",
+                           output: dict = None, error_message: str = None,
+                           error_type: str = None, stack_trace: str = None) -> Optional['ExecutionLog']:
+        """Finaliza a execucao"""
+        execution = self.get_by_id(execution_id)
+        if execution:
+            execution.status = status
+            execution.ended_at = datetime.utcnow()
+            if execution.started_at:
+                execution.duration_ms = int((execution.ended_at - execution.started_at).total_seconds() * 1000)
+            if output:
+                execution.output = output
+            if error_message:
+                execution.error_message = error_message
+            if error_type:
+                execution.error_type = error_type
+            if stack_trace:
+                execution.stack_trace = stack_trace
+            self.db.commit()
+            self.db.refresh(execution)
+        return execution
+
+    def create_replay(self, original_execution_id: str, modified_input: dict = None) -> Optional['ExecutionLog']:
+        """Cria uma nova execucao baseada em uma existente (replay)"""
+        import uuid
+        original = self.get_by_id(original_execution_id)
+        if not original:
+            return None
+
+        # Incrementa contador de replay no original
+        original.replay_count = (original.replay_count or 0) + 1
+        self.db.commit()
+
+        # Cria nova execucao
+        new_execution = ExecutionLog(
+            execution_id=f"EXEC-{uuid.uuid4().hex[:8].upper()}",
+            task_id=original.task_id,
+            story_id=original.story_id,
+            project_id=original.project_id,
+            job_id=original.job_id,
+            original_input=modified_input or original.original_input,
+            replay_of=original_execution_id,
+            worker_id=original.worker_id,
+            agent_model=original.agent_model
+        )
+        self.db.add(new_execution)
+        self.db.commit()
+        self.db.refresh(new_execution)
+        return new_execution
+
+    def get_replays(self, execution_id: str) -> List['ExecutionLog']:
+        """Lista replays de uma execucao"""
+        return self.db.query(ExecutionLog).filter(
+            ExecutionLog.replay_of == execution_id
+        ).order_by(desc(ExecutionLog.created_at)).all()
+
+    def compare_executions(self, execution_id_1: str, execution_id_2: str) -> dict:
+        """Compara duas execucoes"""
+        exec1 = self.get_by_id(execution_id_1)
+        exec2 = self.get_by_id(execution_id_2)
+
+        if not exec1 or not exec2:
+            return {"error": "Execution not found"}
+
+        return {
+            "execution_1": exec1.to_dict(),
+            "execution_2": exec2.to_dict(),
+            "comparison": {
+                "duration_diff_ms": (exec2.duration_ms or 0) - (exec1.duration_ms or 0),
+                "status_match": exec1.status == exec2.status,
+                "steps_count_1": len(exec1.steps or []),
+                "steps_count_2": len(exec2.steps or []),
+                "output_match": exec1.output == exec2.output
+            }
+        }
+
+    def delete(self, execution_id: str) -> bool:
+        """Remove log de execucao"""
+        execution = self.get_by_id(execution_id)
+        if execution:
+            self.db.delete(execution)
+            self.db.commit()
+            return True
+        return False
+
+    def count_by_status(self, project_id: str = None) -> dict:
+        """Conta execucoes por status"""
+        result = {}
+        statuses = ["running", "success", "failed", "cancelled"]
+        for status in statuses:
+            query = self.db.query(ExecutionLog).filter(ExecutionLog.status == status)
+            if project_id:
+                query = query.filter(ExecutionLog.project_id == project_id)
+            result[status] = query.count()
+        return result
+
+
+# =============================================================================
 # EXPORTS
 # =============================================================================
 
@@ -1319,4 +1534,5 @@ __all__ = [
     "AttachmentRepository",
     "EpicRepository",
     "SprintRepository",
+    "ExecutionLogRepository",
 ]

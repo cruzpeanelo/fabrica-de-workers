@@ -67,6 +67,10 @@ class Project(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     project_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Associacao com Tenant
+    tenant_id = Column(String(50), nullable=True, index=True)
+
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
 
@@ -1176,6 +1180,101 @@ class Sprint(Base):
 
     def __repr__(self):
         return f"<Sprint {self.sprint_id}: {self.name} [{self.status}]>"
+
+
+# =============================================================================
+# EXECUTION_LOG - Replay e Debug de Execucoes
+# =============================================================================
+
+class ExecutionStatus(str, Enum):
+    """Status da execucao"""
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class ExecutionLog(Base):
+    """
+    Modelo para Logs de Execucao - Permite replay e debug de tarefas executadas
+    """
+    __tablename__ = "execution_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    execution_id = Column(String(50), unique=True, nullable=False, index=True)
+    task_id = Column(String(50), ForeignKey("story_tasks.task_id"), nullable=True, index=True)
+    story_id = Column(String(50), nullable=True, index=True)
+    project_id = Column(String(50), nullable=True, index=True)
+    job_id = Column(String(50), nullable=True, index=True)
+    status = Column(String(20), default=ExecutionStatus.RUNNING.value, index=True)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    ended_at = Column(DateTime, nullable=True)
+    duration_ms = Column(Integer, default=0)
+    steps = Column(JSON, default=list)
+    original_input = Column(JSON, default=dict)
+    output = Column(JSON, default=dict)
+    files_created = Column(JSON, default=list)
+    files_modified = Column(JSON, default=list)
+    error_message = Column(Text, nullable=True)
+    error_type = Column(String(100), nullable=True)
+    stack_trace = Column(Text, nullable=True)
+    worker_id = Column(String(50), nullable=True)
+    agent_model = Column(String(50), nullable=True)
+    total_tokens = Column(Integer, default=0)
+    total_cost = Column(Float, default=0.0)
+    replay_of = Column(String(50), nullable=True)
+    replay_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    def to_dict(self):
+        return {
+            "execution_id": self.execution_id, "task_id": self.task_id,
+            "story_id": self.story_id, "project_id": self.project_id,
+            "job_id": self.job_id, "status": self.status,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "duration_ms": self.duration_ms, "steps": self.steps or [],
+            "original_input": self.original_input or {}, "output": self.output or {},
+            "files_created": self.files_created or [], "files_modified": self.files_modified or [],
+            "error_message": self.error_message, "error_type": self.error_type,
+            "stack_trace": self.stack_trace, "worker_id": self.worker_id,
+            "agent_model": self.agent_model, "total_tokens": self.total_tokens,
+            "total_cost": self.total_cost, "replay_of": self.replay_of,
+            "replay_count": self.replay_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by
+        }
+
+    def __repr__(self):
+        return f"<ExecutionLog {self.execution_id}: {self.status} [{self.duration_ms}ms]>"
+
+
+# =============================================================================
+# API MODELS (importados de api_models.py)
+# =============================================================================
+
+# Modelos para API publica e webhooks estao em api_models.py:
+# - APIKey: Chaves de API para desenvolvedores externos
+# - Webhook: Configuracao de webhooks
+# - WebhookDelivery: Historico de entregas de webhook
+# - APIRequestLog: Log de requisicoes para analytics
+
+try:
+    from factory.database.api_models import (
+        APIKey,
+        APIKeyTier,
+        APIKeyStatus,
+        Webhook,
+        WebhookDelivery,
+        WebhookEventType,
+        WebhookStatus,
+        APIRequestLog,
+    )
+except ImportError:
+    pass  # api_models pode nao estar disponivel em todas as instalacoes
 
 
 # =============================================================================

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 App Generator - Gera aplicacoes testaveis automaticamente
 =========================================================
@@ -7,8 +8,17 @@ executavel que o usuario pode testar com 1 clique.
 
 Suporta:
 - Python (FastAPI)
-- Node.js (Express) [futuro]
-- Frontend React/Vue [futuro]
+  - SQLAlchemy models
+  - Pydantic models
+- Node.js (Express) - Issue #75
+  - Sequelize models
+  - TypeORM entities
+  - Mongoose schemas
+- Frontend React/Vue - Issue #76
+  - Veja: frontend_generator.py
+
+Issue #75: Suporte a Node.js/Express
+Issue #76: Suporte a Frontend React/Vue (implementado em frontend_generator.py)
 """
 
 import os
@@ -377,24 +387,24 @@ def home():
         </style>
     </head>
     <body>
-        <h1>🏭 {self.project_id}</h1>
-        <p class="success">✅ Aplicacao rodando com sucesso!</p>
+        <h1>{self.project_id}</h1>
+        <p class="success">Aplicacao rodando com sucesso!</p>
 
         <div class="card">
-            <h2>📊 Modelos Disponiveis</h2>
+            <h2>Modelos Disponiveis</h2>
             <ul>
                 {"".join(f"<li><strong>{m}</strong></li>" for m in model_names) if model_names else "<li>Nenhum modelo encontrado</li>"}
             </ul>
         </div>
 
         <div class="card">
-            <h2>🔗 Links Uteis</h2>
-            <a href="/docs" class="btn">📖 Documentacao API</a>
-            <a href="/health" class="btn">💚 Health Check</a>
+            <h2>Links Uteis</h2>
+            <a href="/docs" class="btn">Documentacao API</a>
+            <a href="/health" class="btn">Health Check</a>
         </div>
 
         <div class="card">
-            <h2>📝 Como Testar</h2>
+            <h2>Como Testar</h2>
             <ol>
                 <li>Acesse a <a href="/docs">Documentacao da API</a></li>
                 <li>Explore os endpoints disponiveis</li>
@@ -554,3 +564,80 @@ def start_app(project_id: str) -> Dict:
     """Inicia a aplicacao do projeto para teste."""
     generator = AppGenerator(project_id)
     return generator.start_app()
+
+
+# ============================================================
+# INTEGRACAO COM FRONTEND GENERATOR (Issue #76)
+# ============================================================
+
+def generate_frontend(project_id: str, framework: str = "react") -> Dict:
+    """
+    Gera frontend React ou Vue para um projeto.
+
+    Args:
+        project_id: ID do projeto
+        framework: 'react' ou 'vue'
+
+    Returns:
+        Resultado da geracao do frontend
+
+    Exemplo:
+        >>> result = generate_frontend("BELGO-BPM-001", "react")
+        >>> print(result["app_url"])  # http://localhost:5173
+    """
+    from factory.core.frontend_generator import FrontendGenerator
+
+    generator = AppGenerator(project_id)
+    analysis = generator.analyze_project()
+
+    if analysis["status"] == "not_found":
+        return {"success": False, "message": "Projeto nao encontrado"}
+
+    models = analysis.get("models", [])
+    project_path = analysis.get("project_path")
+
+    frontend_gen = FrontendGenerator(project_path, models, project_id)
+
+    if framework.lower() == "vue":
+        return frontend_gen.generate_vue_app()
+    else:
+        return frontend_gen.generate_react_app()
+
+
+def detect_frontend(project_id: str) -> Dict:
+    """
+    Detecta frontend existente em um projeto.
+
+    Args:
+        project_id: ID do projeto
+
+    Returns:
+        Informacoes sobre o frontend detectado
+
+    Exemplo:
+        >>> info = detect_frontend("gestao-estrategica")
+        >>> print(info["frontend_type"])  # "react"
+        >>> print(info["components_count"])  # 45
+    """
+    from factory.core.frontend_generator import FrontendGenerator
+
+    generator = AppGenerator(project_id)
+    if not generator.project_path:
+        return {"frontend_type": None, "components_count": 0, "message": "Projeto nao encontrado"}
+
+    frontend_gen = FrontendGenerator(str(generator.project_path))
+    frontend_type = frontend_gen.detect_frontend_type()
+
+    if frontend_type == "react":
+        components = frontend_gen.detect_react_components()
+    elif frontend_type == "vue":
+        components = frontend_gen.detect_vue_components()
+    else:
+        components = []
+
+    return {
+        "project_id": project_id,
+        "frontend_type": frontend_type,
+        "components_count": len(components),
+        "components": components
+    }

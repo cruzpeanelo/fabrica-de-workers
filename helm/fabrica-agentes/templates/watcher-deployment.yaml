@@ -1,0 +1,112 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - Watcher Deployment (Singleton)
+=============================================================================
+*/}}
+{{- if .Values.watcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-watcher
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.watcher.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.watcher.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fabrica-agentes.watcher.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate  # Singleton - nao permitir multiplos watchers
+  template:
+    metadata:
+      labels:
+        {{- include "fabrica-agentes.watcher.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "fabrica-agentes.serviceAccountName" . }}
+
+      {{- include "fabrica-agentes.imagePullSecrets" . | nindent 6 }}
+
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+
+      initContainers:
+        - name: wait-for-api
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf http://{{ include "fabrica-agentes.fullname" . }}-api:{{ .Values.api.service.port }}/health; do
+                echo "Aguardando API..."
+                sleep 5
+              done
+              echo "API disponivel!"
+
+      containers:
+        - name: watcher
+          image: {{ include "fabrica-agentes.image" .Values.watcher.image }}
+          imagePullPolicy: {{ .Values.watcher.image.pullPolicy }}
+
+          envFrom:
+            - configMapRef:
+                name: {{ include "fabrica-agentes.fullname" . }}-config
+
+          env:
+            - name: APP_TYPE
+              value: "watcher"
+            - name: WATCHER_INTERVAL
+              value: {{ .Values.watcher.interval | quote }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: DATABASE_URL
+
+          resources:
+            {{- toYaml .Values.watcher.resources | nindent 12 }}
+
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "print('alive')"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          volumeMounts:
+            {{- if .Values.persistence.projects.enabled }}
+            - name: projects-data
+              mountPath: /app/projects
+            {{- end }}
+
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+
+      volumes:
+        {{- if .Values.persistence.projects.enabled }}
+        - name: projects-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-projects
+        {{- end }}
+
+      terminationGracePeriodSeconds: 60
+{{- end }}

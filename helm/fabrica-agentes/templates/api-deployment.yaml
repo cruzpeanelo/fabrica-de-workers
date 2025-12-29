@@ -1,0 +1,189 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - API Deployment
+=============================================================================
+*/}}
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "fabrica-agentes.api.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "fabrica-agentes.api.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.api.service.port | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "fabrica-agentes.serviceAccountName" . }}
+
+      {{- include "fabrica-agentes.imagePullSecrets" . | nindent 6 }}
+
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+
+      initContainers:
+        {{- if or .Values.postgresql.enabled .Values.externalDatabase.enabled }}
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
+                echo "Aguardando PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL disponivel!"
+          env:
+            - name: DATABASE_HOST
+              {{- if .Values.postgresql.enabled }}
+              value: {{ include "fabrica-agentes.fullname" . }}-postgresql
+              {{- else }}
+              value: {{ .Values.externalDatabase.host }}
+              {{- end }}
+            - name: DATABASE_PORT
+              value: "5432"
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: DATABASE_USER
+        {{- end }}
+
+      containers:
+        - name: api
+          image: {{ include "fabrica-agentes.image" .Values.api.image }}
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.service.port }}
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: {{ include "fabrica-agentes.fullname" . }}-config
+
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: ANTHROPIC_API_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: JWT_SECRET
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: SESSION_SECRET
+
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.api.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.healthCheck.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.path }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: {{ .Values.api.healthCheck.path }}
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+
+          volumeMounts:
+            {{- if .Values.persistence.projects.enabled }}
+            - name: projects-data
+              mountPath: /app/projects
+            {{- end }}
+            {{- if .Values.persistence.uploads.enabled }}
+            - name: uploads-data
+              mountPath: /app/uploads
+            {{- end }}
+            {{- if .Values.persistence.database.enabled }}
+            - name: database-data
+              mountPath: /app/factory/database
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+
+      volumes:
+        {{- if .Values.persistence.projects.enabled }}
+        - name: projects-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-projects
+        {{- end }}
+        {{- if .Values.persistence.uploads.enabled }}
+        - name: uploads-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-uploads
+        {{- end }}
+        {{- if .Values.persistence.database.enabled }}
+        - name: database-data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-database
+        {{- end }}
+        - name: tmp
+          emptyDir: {}
+
+      terminationGracePeriodSeconds: 30
+{{- end }}

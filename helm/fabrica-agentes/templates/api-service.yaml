@@ -1,0 +1,33 @@
+{{/*
+=============================================================================
+Fabrica de Agentes - API Service
+=============================================================================
+*/}}
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "fabrica-agentes.api.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: {{ .Values.api.service.port | quote }}
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    {{- include "fabrica-agentes.api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+      {{- if and (eq .Values.api.service.type "NodePort") .Values.api.service.nodePort }}
+      nodePort: {{ .Values.api.service.nodePort }}
+      {{- end }}
+      protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+{{- end }}

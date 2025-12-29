@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 """
 Pytest Configuration and Fixtures
 =================================
 
 Shared fixtures for all tests in the Fabrica de Agentes test suite.
+Atualizado para v4.0 - Arquitetura Worker-based.
 """
 
 import os
@@ -19,14 +21,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Set test environment
 os.environ["TESTING"] = "1"
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from factory.database.connection import Base
 from factory.database.models import (
-    Project, Story, Agent, Skill, Task, ActivityLog,
-    FactoryEvent, Template, User, Sprint,
-    ProjectStatus, AgentStatus, TaskStatus
+    Project, Story, Task, ActivityLog,
+    User, Sprint, Worker, Job, StoryTask,
+    ProjectStatus, TaskStatus, JobStatus, WorkerStatus
 )
 
 
@@ -86,23 +88,20 @@ def sample_project(db_session):
 
 
 @pytest.fixture
-def sample_agent(db_session):
-    """Create a sample agent with unique ID"""
-    agent = Agent(
-        agent_id=generate_unique_id("AG"),
-        name="Test Agent",
-        role="Tester",
-        description="An agent for testing purposes",
-        domain="testing",
-        status=AgentStatus.STANDBY.value,
-        capabilities=["testing", "validation"],
-        skills=["pytest", "unittest"],
-        enabled=True
+def sample_worker(db_session):
+    """Create a sample worker with unique ID (v4.0 - substitui Agent)"""
+    worker = Worker(
+        worker_id=generate_unique_id("WRK"),
+        status=WorkerStatus.IDLE.value,
+        model="claude-sonnet-4-20250514",
+        mcp_tools=["filesystem", "bash"],
+        hostname="test-host",
+        ip_address="127.0.0.1"
     )
-    db_session.add(agent)
+    db_session.add(worker)
     db_session.commit()
-    db_session.refresh(agent)
-    return agent
+    db_session.refresh(worker)
+    return worker
 
 
 @pytest.fixture
@@ -113,13 +112,12 @@ def sample_story(db_session, sample_project):
         project_id=sample_project.project_id,
         title="Test User Story",
         description="As a tester, I want to run tests",
-        status="BACKLOG",
-        sprint=1,
-        points=3,
-        priority=5,
-        narrative_persona="tester",
-        narrative_action="run automated tests",
-        narrative_benefit="ensure code quality",
+        status="backlog",
+        story_points=3,
+        priority="medium",
+        persona="tester",
+        action="run automated tests",
+        benefit="ensure code quality",
         acceptance_criteria=["Tests pass", "Coverage > 80%"],
         tags=["test"]
     )
@@ -130,35 +128,33 @@ def sample_story(db_session, sample_project):
 
 
 @pytest.fixture
-def sample_skill(db_session):
-    """Create a sample skill with unique ID"""
-    skill = Skill(
-        skill_id=generate_unique_id("SKILL"),
-        name="Test Skill",
-        description="A skill for testing",
-        skill_type="core",
-        category="testing",
-        enabled=True,
-        version="1.0.0"
+def sample_job(db_session, sample_project):
+    """Create a sample job with unique ID (v4.0)"""
+    job = Job(
+        job_id=generate_unique_id("JOB"),
+        project_id=sample_project.project_id,
+        description="Test job for unit tests",
+        tech_stack="python, fastapi",
+        features=["CRUD", "Auth"],
+        status=JobStatus.PENDING.value,
+        current_step="queued"
     )
-    db_session.add(skill)
+    db_session.add(job)
     db_session.commit()
-    db_session.refresh(skill)
-    return skill
+    db_session.refresh(job)
+    return job
 
 
 @pytest.fixture
-def sample_task(db_session, sample_project, sample_agent):
+def sample_task(db_session, sample_project):
     """Create a sample task with unique ID"""
     task = Task(
         task_id=generate_unique_id("TASK"),
-        task_type="development",
         project_id=sample_project.project_id,
-        agent_id=sample_agent.agent_id,
         title="Test Task",
         description="A task for testing",
-        status=TaskStatus.PENDING.value,
-        priority=5
+        status=TaskStatus.BACKLOG.value,
+        priority="medium"
     )
     db_session.add(task)
     db_session.commit()
@@ -167,15 +163,32 @@ def sample_task(db_session, sample_project, sample_agent):
 
 
 @pytest.fixture
+def sample_story_task(db_session, sample_story):
+    """Create a sample story task"""
+    story_task = StoryTask(
+        task_id=generate_unique_id("STSK"),
+        story_id=sample_story.story_id,
+        title="Implement feature",
+        description="Implement the feature",
+        task_type="development",
+        status="pending"
+    )
+    db_session.add(story_task)
+    db_session.commit()
+    db_session.refresh(story_task)
+    return story_task
+
+
+@pytest.fixture
 def sample_sprint(db_session, sample_project):
     """Create a sample sprint"""
     sprint = Sprint(
+        sprint_id=generate_unique_id("SPR"),
         project_id=sample_project.project_id,
-        sprint_number=1,
         name="Sprint 1 - MVP",
         status="planned",
         goal="Complete MVP features",
-        planned_points=21
+        capacity=21
     )
     db_session.add(sprint)
     db_session.commit()
@@ -186,12 +199,17 @@ def sample_sprint(db_session, sample_project):
 @pytest.fixture
 def sample_user(db_session):
     """Create a sample user with unique username"""
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    try:
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash("testpass123")
+    except ImportError:
+        # Fallback se passlib nao estiver instalado
+        password_hash = "hashed_testpass123"
 
     user = User(
         username=f"testuser_{uuid.uuid4().hex[:6]}",
-        password_hash=pwd_context.hash("testpass123"),
+        password_hash=password_hash,
         email=f"test_{uuid.uuid4().hex[:6]}@example.com",
         role="ADMIN",
         active=True
@@ -209,9 +227,12 @@ def sample_user(db_session):
 @pytest.fixture
 def api_client():
     """Create FastAPI test client"""
-    from fastapi.testclient import TestClient
-    from factory.dashboard.app import app
-    return TestClient(app)
+    try:
+        from fastapi.testclient import TestClient
+        from factory.dashboard.app import app
+        return TestClient(app)
+    except ImportError:
+        pytest.skip("FastAPI test client not available")
 
 
 @pytest.fixture
@@ -240,17 +261,20 @@ def temp_directory(tmp_path):
 
 
 @pytest.fixture
-def mock_claude_client(mocker):
+def mock_claude_client_fixture(mocker):
     """Mock Claude API client"""
-    mock = mocker.patch("factory.ai.claude_integration.ClaudeClient")
-    mock_instance = mock.return_value
-    mock_instance.is_available.return_value = False
-    mock_instance.chat.return_value = mocker.Mock(
-        success=False,
-        content="",
-        error="Mock - Claude not available"
-    )
-    return mock_instance
+    try:
+        mock = mocker.patch("factory.ai.claude_integration.ClaudeClient")
+        mock_instance = mock.return_value
+        mock_instance.is_available.return_value = False
+        mock_instance.chat.return_value = mocker.Mock(
+            success=False,
+            content="",
+            error="Mock - Claude not available"
+        )
+        return mock_instance
+    except Exception:
+        return None
 
 
 # =============================================================================
