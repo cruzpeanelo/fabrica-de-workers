@@ -1183,6 +1183,7 @@ HTML_TEMPLATE = """
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -1543,10 +1544,81 @@ HTML_TEMPLATE = """
         .progress-bar {
             transition: width 0.5s ease;
         }
+
+        /* Dark Mode */
+        .dark {
+            --bg-primary: #1F2937;
+            --bg-secondary: #374151;
+            --bg-card: #1F2937;
+            --text-primary: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --border-color: #4B5563;
+        }
+        .dark body, html.dark body { background-color: #111827 !important; }
+        .dark .bg-white { background-color: var(--bg-card) !important; }
+        .dark .bg-gray-100 { background-color: #111827 !important; }
+        .dark .bg-gray-50 { background-color: var(--bg-secondary) !important; }
+        .dark .text-gray-900 { color: var(--text-primary) !important; }
+        .dark .text-gray-700 { color: var(--text-secondary) !important; }
+        .dark .text-gray-600 { color: #9CA3AF !important; }
+        .dark .text-gray-500 { color: #9CA3AF !important; }
+        .dark .border-gray-200 { border-color: var(--border-color) !important; }
+        .dark .border-gray-300 { border-color: var(--border-color) !important; }
+        .dark .hover\\:bg-gray-100:hover { background-color: var(--bg-secondary) !important; }
+        .dark .story-card { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; }
+        .dark .narrative-box { background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); }
+        .dark .kanban-column { background-color: var(--bg-secondary) !important; }
+        .dark input, .dark textarea, .dark select {
+            background-color: var(--bg-secondary) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+        .dark .kbd {
+            background: #374151;
+            border-color: #4B5563;
+            color: #E5E7EB;
+        }
+        .dark-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dark-mode-toggle:hover { background: rgba(255,255,255,0.1); }
+        .dark-mode-icon { font-size: 1.1rem; }
+
+        /* Bulk Actions */
+        .bulk-toolbar {
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .bulk-action-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: rgba(255,255,255,0.1);
+        }
+        .bulk-action-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .story-card {
+            position: relative;
+        }
+        .story-card.ring-2 {
+            background-color: #EFF6FF !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div id="app">
+    <div id="app" :class="{ 'dark': isDarkMode }">
         <!-- HEADER -->
         <header class="belgo-blue text-white shadow-lg">
             <div class="container mx-auto px-4">
@@ -1601,6 +1673,14 @@ HTML_TEMPLATE = """
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                             </svg>
+                        </button>
+
+                        <!-- Dark Mode Toggle -->
+                        <button @click="toggleDarkMode"
+                                class="dark-mode-toggle text-white/70 hover:text-white"
+                                :title="isDarkMode ? 'Modo Claro' : 'Modo Escuro'">
+                            <span v-if="!isDarkMode" class="dark-mode-icon">🌙</span>
+                            <span v-else class="dark-mode-icon">☀️</span>
                         </button>
 
                         <!-- Nova Story -->
@@ -1661,6 +1741,22 @@ HTML_TEMPLATE = """
                                 <span class="text-gray-600">Story Points</span>
                                 <span class="font-medium">{{ totalPoints }}</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Sprint Burndown -->
+                    <div class="mb-6" v-if="selectedProjectId && sprints.length">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Burndown</h3>
+                            <button @click="showBurndownModal = true" class="text-xs text-blue-600 hover:underline">
+                                Expandir
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-2">
+                            <canvas id="burndown-mini" height="100"></canvas>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500 text-center">
+                            {{ burndownData.remaining }} pts restantes
                         </div>
                     </div>
 
@@ -1736,9 +1832,41 @@ HTML_TEMPLATE = """
                                 Limpar
                             </button>
                         </div>
+                        <!-- Bulk Select Toggle -->
+                        <button @click="toggleBulkSelectMode"
+                                :class="['px-3 py-1.5 rounded-lg text-sm font-medium transition',
+                                         bulkSelectMode ? 'bg-blue-500 text-white' : 'bg-white shadow-sm text-gray-600 hover:bg-gray-50']">
+                            <span v-if="bulkSelectMode">{{ selectedStories.length }} selecionadas</span>
+                            <span v-else>Selecionar</span>
+                        </button>
                         <div class="ml-auto text-xs text-gray-500">
                             {{ filteredStoriesCount }} stories
                         </div>
+                    </div>
+
+                    <!-- Bulk Actions Toolbar -->
+                    <div v-if="bulkSelectMode && selectedStories.length > 0"
+                         class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50
+                                bg-[#003B4A] text-white px-6 py-3 rounded-full shadow-xl
+                                flex items-center gap-4 bulk-toolbar">
+                        <span class="text-sm font-medium">{{ selectedStories.length }} stories selecionadas</span>
+                        <div class="h-4 w-px bg-white/30"></div>
+                        <button @click="bulkMoveStories('ready')" class="bulk-action-btn" title="Mover para Ready">
+                            Ready
+                        </button>
+                        <button @click="bulkMoveStories('in_progress')" class="bulk-action-btn" title="Mover para In Progress">
+                            In Progress
+                        </button>
+                        <button @click="bulkMoveStories('done')" class="bulk-action-btn" title="Mover para Done">
+                            Done
+                        </button>
+                        <div class="h-4 w-px bg-white/30"></div>
+                        <button @click="bulkDeleteStories" class="bulk-action-btn text-red-400 hover:text-red-300" title="Excluir selecionadas">
+                            🗑️ Excluir
+                        </button>
+                        <button @click="cancelBulkSelect" class="bulk-action-btn opacity-70" title="Cancelar">
+                            ✕
+                        </button>
                     </div>
 
                     <!-- Colunas do Kanban -->
@@ -1763,11 +1891,19 @@ HTML_TEMPLATE = """
                              style="max-height: calc(100vh - 200px);">
                             <!-- Story Card -->
                             <div v-for="story in column" :key="story.story_id"
-                                 @click="openStoryDetail(story)"
+                                 @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                  @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
                                  :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
-                                          'priority-' + story.priority]">
+                                          'priority-' + story.priority,
+                                          selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
+                                <!-- Bulk Select Checkbox -->
+                                <div v-if="bulkSelectMode" class="absolute top-2 left-2" @click.stop>
+                                    <input type="checkbox"
+                                           :checked="selectedStories.includes(story.story_id)"
+                                           @change="toggleBulkSelect(story)"
+                                           class="w-4 h-4 text-blue-600 rounded border-gray-300">
+                                </div>
                                 <!-- Quick Actions -->
                                 <div class="quick-actions" @click.stop>
                                     <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
@@ -2098,15 +2234,27 @@ HTML_TEMPLATE = """
 
         <!-- MODAL: Nova Story -->
         <div v-if="showNewStoryModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto">
-                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg">
+            <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800">
+                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
                     <h2 class="text-lg font-semibold">Nova User Story</h2>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm opacity-80">Template:</span>
+                        <select v-model="selectedTemplate" @change="applyTemplate"
+                                class="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white">
+                            <option value="">Selecionar...</option>
+                            <option value="feature">Feature</option>
+                            <option value="bugfix">Bug Fix</option>
+                            <option value="tech_debt">Tech Debt</option>
+                            <option value="spike">Spike/Pesquisa</option>
+                            <option value="improvement">Melhoria</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Titulo *</label>
                         <input v-model="newStory.title" type="text"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                placeholder="Ex: Implementar login com email">
                     </div>
 
@@ -2483,6 +2631,61 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- MODAL: Sprint Burndown Chart -->
+        <div v-if="showBurndownModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+             @click.self="showBurndownModal = false">
+            <div class="bg-white rounded-lg w-[700px] shadow-xl dark:bg-gray-800">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
+                    <h2 class="text-lg font-semibold">Sprint Burndown Chart</h2>
+                    <button @click="showBurndownModal = false" class="text-white/70 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div class="mb-4 flex items-center gap-4">
+                        <div>
+                            <label class="text-sm text-gray-500">Sprint:</label>
+                            <select v-model="selectedSprintId" @change="updateBurndownChart"
+                                    class="ml-2 border rounded px-2 py-1 text-sm">
+                                <option value="">Todos</option>
+                                <option v-for="s in sprints" :key="s.sprint_id" :value="s.sprint_id">{{ s.name }}</option>
+                            </select>
+                        </div>
+                        <div class="flex-1"></div>
+                        <div class="text-sm text-gray-500">
+                            <span class="inline-flex items-center gap-1"><span class="w-3 h-0.5 bg-blue-500 inline-block"></span> Ideal</span>
+                            <span class="ml-3 inline-flex items-center gap-1"><span class="w-3 h-0.5 bg-orange-500 inline-block"></span> Real</span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4" style="height: 300px;">
+                        <canvas id="burndown-full"></canvas>
+                    </div>
+                    <div class="mt-4 grid grid-cols-4 gap-4 text-center">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="text-2xl font-bold text-[#003B4A] dark:text-blue-400">{{ burndownData.total }}</div>
+                            <div class="text-xs text-gray-500">Total Points</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="text-2xl font-bold text-green-600">{{ burndownData.completed }}</div>
+                            <div class="text-xs text-gray-500">Completos</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="text-2xl font-bold text-orange-500">{{ burndownData.remaining }}</div>
+                            <div class="text-xs text-gray-500">Restantes</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                            <div class="text-2xl font-bold" :class="burndownData.velocity >= 0 ? 'text-green-600' : 'text-red-500'">
+                                {{ burndownData.velocity > 0 ? '+' : '' }}{{ burndownData.velocity }}
+                            </div>
+                            <div class="text-xs text-gray-500">Velocity</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -2591,6 +2794,76 @@ HTML_TEMPLATE = """
             const showNewSprintModal = ref(false);
             const showNewDocModal = ref(false);
             const showShortcutsModal = ref(false);
+            const showBurndownModal = ref(false);
+
+            // Burndown Chart
+            let burndownChart = null;
+            const burndownData = ref({
+                total: 0,
+                completed: 0,
+                remaining: 0,
+                velocity: 0,
+                dailyData: []
+            });
+
+            // Bulk Actions
+            const bulkSelectMode = ref(false);
+            const selectedStories = ref([]);
+
+            const toggleBulkSelectMode = () => {
+                bulkSelectMode.value = !bulkSelectMode.value;
+                if (!bulkSelectMode.value) {
+                    selectedStories.value = [];
+                }
+            };
+
+            const toggleBulkSelect = (story) => {
+                const idx = selectedStories.value.indexOf(story.story_id);
+                if (idx >= 0) {
+                    selectedStories.value.splice(idx, 1);
+                } else {
+                    selectedStories.value.push(story.story_id);
+                }
+            };
+
+            const cancelBulkSelect = () => {
+                bulkSelectMode.value = false;
+                selectedStories.value = [];
+            };
+
+            const bulkMoveStories = async (newStatus) => {
+                const count = selectedStories.value.length;
+                try {
+                    for (const storyId of selectedStories.value) {
+                        await fetch(`/api/stories/${storyId}/move`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                    }
+                    addToast('success', 'Stories movidas', count + ' stories movidas para ' + getColumnTitle(newStatus));
+                    cancelBulkSelect();
+                    loadProjectData();
+                } catch (e) {
+                    addToast('error', 'Erro', 'Nao foi possivel mover as stories');
+                }
+            };
+
+            const bulkDeleteStories = async () => {
+                const count = selectedStories.value.length;
+                if (!confirm('Tem certeza que deseja excluir ' + count + ' stories?')) return;
+
+                try {
+                    for (const storyId of selectedStories.value) {
+                        await fetch(`/api/stories/${storyId}`, { method: 'DELETE' });
+                    }
+                    addToast('success', 'Stories excluidas', count + ' stories foram excluidas');
+                    cancelBulkSelect();
+                    loadProjectData();
+                } catch (e) {
+                    addToast('error', 'Erro', 'Nao foi possivel excluir as stories');
+                }
+            };
 
             // Form data
             const newStory = ref({
@@ -2603,6 +2876,109 @@ HTML_TEMPLATE = """
             const newEpic = ref({ title: '', description: '', color: '#003B4A' });
             const newSprint = ref({ name: '', goal: '', capacity: 0 });
             const newDoc = ref({ title: '', doc_type: 'technical', content: '', test_instructions: '' });
+
+            // Story Templates
+            const selectedTemplate = ref('');
+            const storyTemplates = {
+                feature: {
+                    title: '[Feature] ',
+                    persona: 'usuario do sistema',
+                    action: '',
+                    benefit: 'tenha uma melhor experiencia',
+                    description: '## Contexto\\n\\n## Requisitos\\n\\n## Notas tecnicas\\n',
+                    criteria: 'Funcionalidade implementada conforme especificacao\\nTestes unitarios criados\\nDocumentacao atualizada',
+                    story_points: 5,
+                    priority: 'medium',
+                    complexity: 'medium',
+                    category: 'feature'
+                },
+                bugfix: {
+                    title: '[Bug] ',
+                    persona: 'usuario afetado',
+                    action: 'corrigir o problema encontrado',
+                    benefit: 'possa usar o sistema sem erros',
+                    description: '## Problema\\n\\n## Passos para reproduzir\\n1. \\n2. \\n3. \\n\\n## Comportamento esperado\\n\\n## Comportamento atual\\n',
+                    criteria: 'Bug corrigido e validado\\nTeste de regressao adicionado\\nNenhum efeito colateral identificado',
+                    story_points: 3,
+                    priority: 'high',
+                    complexity: 'medium',
+                    category: 'bug'
+                },
+                tech_debt: {
+                    title: '[Tech Debt] ',
+                    persona: 'desenvolvedor',
+                    action: 'refatorar/melhorar o codigo',
+                    benefit: 'o codigo seja mais mantivel',
+                    description: '## Debito tecnico\\n\\n## Impacto atual\\n\\n## Solucao proposta\\n\\n## Riscos\\n',
+                    criteria: 'Codigo refatorado\\nTestes passando\\nDocumentacao atualizada\\nPerformance mantida ou melhorada',
+                    story_points: 5,
+                    priority: 'medium',
+                    complexity: 'high',
+                    category: 'tech_debt'
+                },
+                spike: {
+                    title: '[Spike] ',
+                    persona: 'time de desenvolvimento',
+                    action: 'pesquisar e documentar',
+                    benefit: 'tenhamos informacao para decisoes',
+                    description: '## Objetivo da pesquisa\\n\\n## Perguntas a responder\\n1. \\n2. \\n\\n## Timebox\\n\\n## Entregaveis\\n- Documentacao\\n- POC (se aplicavel)',
+                    criteria: 'Pesquisa documentada\\nRecomendacoes claras\\nPOC funcionando (se aplicavel)\\nApresentacao para o time',
+                    story_points: 3,
+                    priority: 'medium',
+                    complexity: 'low',
+                    category: 'spike'
+                },
+                improvement: {
+                    title: '[Melhoria] ',
+                    persona: 'usuario do sistema',
+                    action: 'ter acesso a funcionalidade melhorada',
+                    benefit: 'tenha uma experiencia mais eficiente',
+                    description: '## Situacao atual\\n\\n## Melhoria proposta\\n\\n## Beneficios esperados\\n',
+                    criteria: 'Melhoria implementada\\nTestes atualizados\\nUsuarios notificados',
+                    story_points: 3,
+                    priority: 'medium',
+                    complexity: 'medium',
+                    category: 'improvement'
+                }
+            };
+
+            const applyTemplate = () => {
+                const template = storyTemplates[selectedTemplate.value];
+                if (template) {
+                    newStory.value = {
+                        ...newStory.value,
+                        title: template.title,
+                        persona: template.persona,
+                        action: template.action,
+                        benefit: template.benefit,
+                        description: template.description,
+                        story_points: template.story_points,
+                        priority: template.priority,
+                        complexity: template.complexity,
+                        category: template.category
+                    };
+                    newStoryCriteria.value = template.criteria;
+                    addToast('info', 'Template aplicado', 'Formulario preenchido com template ' + selectedTemplate.value);
+                }
+            };
+
+            // Dark Mode
+            const isDarkMode = ref(false);
+            const toggleDarkMode = () => {
+                isDarkMode.value = !isDarkMode.value;
+                document.documentElement.classList.toggle('dark', isDarkMode.value);
+                localStorage.setItem('darkMode', isDarkMode.value);
+                addToast('info', isDarkMode.value ? 'Modo escuro' : 'Modo claro', 'Tema alterado');
+            };
+
+            // Load dark mode preference
+            const loadDarkMode = () => {
+                const saved = localStorage.getItem('darkMode');
+                if (saved === 'true') {
+                    isDarkMode.value = true;
+                    document.documentElement.classList.add('dark');
+                }
+            };
 
             // Computed
             const totalStories = computed(() => {
@@ -2687,8 +3063,160 @@ HTML_TEMPLATE = """
                 sprints.value = await sprintsRes.json();
 
                 // Setup drag and drop
-                nextTick(() => setupSortable());
+                nextTick(() => {
+                    setupSortable();
+                    updateBurndownData();
+                });
             };
+
+            // Burndown Chart Functions
+            const updateBurndownData = () => {
+                let total = 0;
+                let completed = 0;
+                Object.entries(storyBoard.value).forEach(([status, stories]) => {
+                    stories.forEach(s => {
+                        total += s.story_points || 0;
+                        if (status === 'done') {
+                            completed += s.story_points || 0;
+                        }
+                    });
+                });
+                burndownData.value = {
+                    total,
+                    completed,
+                    remaining: total - completed,
+                    velocity: completed,
+                    dailyData: generateBurndownDays(total, completed)
+                };
+                nextTick(() => initMiniChart());
+            };
+
+            const generateBurndownDays = (total, completed) => {
+                // Generate sample burndown data for demonstration
+                const days = 10;
+                const idealPerDay = total / days;
+                const data = [];
+                for (let i = 0; i <= days; i++) {
+                    const idealRemaining = Math.max(0, total - (idealPerDay * i));
+                    // Simulate actual progress with some variance
+                    const actualRemaining = i === days ? (total - completed) :
+                        Math.max(0, total - (completed * i / days) - Math.random() * 3);
+                    data.push({
+                        day: i,
+                        ideal: Math.round(idealRemaining),
+                        actual: Math.round(actualRemaining)
+                    });
+                }
+                return data;
+            };
+
+            const initMiniChart = () => {
+                const canvas = document.getElementById('burndown-mini');
+                if (!canvas || !window.Chart) return;
+
+                const ctx = canvas.getContext('2d');
+                const data = burndownData.value.dailyData;
+                if (!data.length) return;
+
+                // Simple mini chart drawing
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const w = canvas.width;
+                const h = canvas.height;
+                const max = burndownData.value.total || 1;
+
+                // Draw ideal line (blue)
+                ctx.beginPath();
+                ctx.strokeStyle = '#3B82F6';
+                ctx.lineWidth = 2;
+                data.forEach((d, i) => {
+                    const x = (i / (data.length - 1)) * w;
+                    const y = h - (d.ideal / max) * h;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // Draw actual line (orange)
+                ctx.beginPath();
+                ctx.strokeStyle = '#FF6C00';
+                ctx.lineWidth = 2;
+                data.forEach((d, i) => {
+                    const x = (i / (data.length - 1)) * w;
+                    const y = h - (d.actual / max) * h;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            };
+
+            const updateBurndownChart = () => {
+                const canvas = document.getElementById('burndown-full');
+                if (!canvas || !window.Chart) return;
+
+                if (burndownChart) {
+                    burndownChart.destroy();
+                }
+
+                const data = burndownData.value.dailyData;
+                const labels = data.map(d => 'Dia ' + d.day);
+
+                burndownChart = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Ideal',
+                                data: data.map(d => d.ideal),
+                                borderColor: '#3B82F6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderDash: [5, 5],
+                                tension: 0.1,
+                                fill: false
+                            },
+                            {
+                                label: 'Atual',
+                                data: data.map(d => d.actual),
+                                borderColor: '#FF6C00',
+                                backgroundColor: 'rgba(255, 108, 0, 0.1)',
+                                tension: 0.1,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Story Points'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Sprint Days'
+                                }
+                            }
+                        }
+                    }
+                });
+            };
+
+            // Watch for burndown modal to init chart
+            watch(showBurndownModal, (newVal) => {
+                if (newVal) {
+                    nextTick(() => updateBurndownChart());
+                }
+            });
 
             const setupSortable = () => {
                 const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
@@ -3262,6 +3790,7 @@ HTML_TEMPLATE = """
             // Init
             onMounted(() => {
                 loadProjects();
+                loadDarkMode();
 
                 // Setup keyboard shortcuts
                 document.addEventListener('keydown', handleKeyboard);
@@ -3298,7 +3827,11 @@ HTML_TEMPLATE = """
                 formatTime, formatFileSize, renderMarkdown,
                 addToast, removeToast, getToastIcon, handleUndo,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
-                showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn
+                showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
+                selectedTemplate, applyTemplate, isDarkMode, toggleDarkMode,
+                showBurndownModal, burndownData, updateBurndownChart,
+                bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
+                cancelBulkSelect, bulkMoveStories, bulkDeleteStories
             };
         }
     }).mount('#app');
