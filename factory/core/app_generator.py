@@ -19,6 +19,7 @@ Suporta:
 
 Issue #75: Suporte a Node.js/Express
 Issue #76: Suporte a Frontend React/Vue (implementado em frontend_generator.py)
+Issue #78: Sincronizacao project_id com nome da pasta
 """
 
 import os
@@ -28,6 +29,93 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+
+
+# =============================================================================
+# UTILITY FUNCTIONS - Issue #78: Sincronizacao project_id com nome da pasta
+# =============================================================================
+
+
+def normalize_folder_name(name: str) -> str:
+    """
+    Normaliza um nome para formato de pasta valido.
+    Converte para lowercase e substitui hifens por underscores.
+
+    Issue #78: Sincronizacao project_id com nome da pasta
+
+    Args:
+        name: Nome a ser normalizado (pode ser project_id ou name)
+
+    Returns:
+        Nome normalizado para uso como pasta
+
+    Exemplo:
+        >>> normalize_folder_name("BELGO-BPM-001")
+        'belgo_bpm_001'
+    """
+    return name.lower().replace("-", "_").replace(" ", "_")
+
+
+def get_project_folder_variations(project_id: str) -> List[str]:
+    """
+    Gera todas as variacoes possiveis de nome de pasta para um project_id.
+
+    Issue #78: Sincronizacao project_id com nome da pasta
+
+    Args:
+        project_id: ID do projeto
+
+    Returns:
+        Lista de possiveis nomes de pasta
+    """
+    variations = [
+        project_id,
+        project_id.lower(),
+        project_id.upper(),
+        project_id.lower().replace("-", "_"),
+        project_id.upper().replace("-", "_"),
+        project_id.replace("-", "_"),
+        project_id.lower().replace("_", "-"),
+        project_id.replace(" ", "_").lower(),
+        project_id.replace(" ", "-").lower(),
+    ]
+    seen = set()
+    unique = []
+    for v in variations:
+        if v not in seen:
+            seen.add(v)
+            unique.append(v)
+    return unique
+
+
+def get_folder_path_from_db(project_id: str) -> Optional[str]:
+    """
+    Busca o folder_path do projeto no banco de dados.
+
+    Issue #78: Sincronizacao project_id com nome da pasta
+
+    Args:
+        project_id: ID do projeto
+
+    Returns:
+        Caminho da pasta do projeto ou None se nao encontrado
+    """
+    try:
+        from factory.database.connection import SessionLocal
+        from factory.database.models import Project
+
+        db = SessionLocal()
+        try:
+            project = db.query(Project).filter(
+                Project.project_id == project_id
+            ).first()
+            if project and project.folder_path:
+                return project.folder_path
+        finally:
+            db.close()
+    except Exception:
+        pass
+    return None
 
 
 class AppGenerator:
@@ -45,18 +133,42 @@ class AppGenerator:
         self.app_url = None
 
     def _find_project_path(self) -> Optional[Path]:
-        """Encontra o caminho do projeto (tenta varias convencoes de nome)."""
-        possible_names = [
-            self.project_id,
-            self.project_id.lower(),
-            self.project_id.lower().replace("-", "_"),
-            self.project_id.replace("-", "_"),
-        ]
+        """
+        Encontra o caminho do projeto usando multiplas estrategias.
 
-        for name in possible_names:
+        Issue #78: Sincronizacao project_id com nome da pasta
+
+        Estrategias (em ordem de prioridade):
+        1. Busca folder_path no banco de dados
+        2. Tenta variacoes do project_id como nome de pasta
+        3. Busca parcial por pastas que contem o project_id
+        """
+        # Estrategia 1: Buscar no banco de dados
+        db_folder_path = get_folder_path_from_db(self.project_id)
+        if db_folder_path:
+            path = Path(db_folder_path)
+            if path.exists():
+                return path
+
+        # Estrategia 2: Tentar variacoes do project_id
+        for name in get_project_folder_variations(self.project_id):
             path = self.PROJECTS_DIR / name
             if path.exists():
                 return path
+
+        # Estrategia 3: Busca parcial
+        if self.PROJECTS_DIR.exists():
+            search_term = normalize_folder_name(self.project_id)
+            base_search = re.sub(r'[-_]?\d{3,}$', '', search_term)
+
+            for folder in self.PROJECTS_DIR.iterdir():
+                if folder.is_dir():
+                    folder_normalized = normalize_folder_name(folder.name)
+                    if folder_normalized == search_term or \
+                       search_term in folder_normalized or \
+                       folder_normalized in search_term or \
+                       (base_search and base_search in folder_normalized):
+                        return folder
 
         return None
 
