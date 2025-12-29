@@ -1466,6 +1466,90 @@ class AgentPerformance(Base):
 
 
 # =============================================================================
+# AB TEST - Teste A/B de Codigo Gerado (Issue #71)
+# =============================================================================
+
+class ABTestStatus(str, Enum):
+    PENDING = "pending"
+    GENERATING = "generating"
+    TESTING = "testing"
+    COMPLETED = "completed"
+    WINNER_SELECTED = "winner_selected"
+    CANCELLED = "cancelled"
+
+
+class VariantStatus(str, Enum):
+    PENDING = "pending"
+    GENERATING = "generating"
+    GENERATED = "generated"
+    TESTING = "testing"
+    TESTED = "tested"
+    WINNER = "winner"
+    DISCARDED = "discarded"
+    FAILED = "failed"
+
+
+class ABTest(Base):
+    __tablename__ = "ab_tests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    test_id = Column(String(50), unique=True, nullable=False, index=True)
+    story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
+    title = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(30), default=ABTestStatus.PENDING.value, index=True)
+    winner_id = Column(String(50), nullable=True)
+    recommendation = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    created_by = Column(String(100), default="system")
+    variants = relationship("ABTestVariant", back_populates="ab_test", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "test_id": self.test_id, "story_id": self.story_id, "title": self.title,
+            "description": self.description, "status": self.status, "winner_id": self.winner_id,
+            "recommendation": self.recommendation or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "created_by": self.created_by,
+            "variants": [v.to_dict() for v in self.variants] if self.variants else []
+        }
+
+
+class ABTestVariant(Base):
+    __tablename__ = "ab_test_variants"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    variant_id = Column(String(50), unique=True, nullable=False, index=True)
+    test_id = Column(String(50), ForeignKey("ab_tests.test_id"), nullable=False, index=True)
+    ab_test = relationship("ABTest", back_populates="variants")
+    approach = Column(String(30), nullable=False)
+    status = Column(String(30), default=VariantStatus.PENDING.value, index=True)
+    code = Column(Text, nullable=True)
+    metrics = Column(JSON, default=dict)
+    test_results = Column(JSON, default=dict)
+    score = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    generated_at = Column(DateTime, nullable=True)
+    tested_at = Column(DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "variant_id": self.variant_id, "test_id": self.test_id, "approach": self.approach,
+            "status": self.status, "code": self.code, "metrics": self.metrics or {},
+            "test_results": self.test_results or {}, "score": self.score,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "generated_at": self.generated_at.isoformat() if self.generated_at else None,
+            "tested_at": self.tested_at.isoformat() if self.tested_at else None
+        }
+
+
+# =============================================================================
 # API MODELS (importados de api_models.py)
 # =============================================================================
 

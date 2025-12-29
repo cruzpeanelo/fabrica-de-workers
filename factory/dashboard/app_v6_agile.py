@@ -3387,6 +3387,20 @@ HTML_TEMPLATE = """
         .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
         .touch-target { min-width: 44px; min-height: 44px; }
 
+        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
+        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
+        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
+        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
+        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
+        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
+        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
+        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
+        .touch-target { min-width: 44px; min-height: 44px; }
+
     </style>
 </head>
 <body class="bg-gray-100">
@@ -3699,14 +3713,14 @@ HTML_TEMPLATE = """
 
                         <!-- Lista de Stories -->
                         <div :id="'column-' + status"
-                             class="kanban-column p-2 space-y-2 overflow-y-auto" role="region"
+                             class="kanban-column p-2 space-y-2 overflow-y-auto" role="region" role="region"
                              style="max-height: calc(100vh - 200px);">
                             <!-- Story Card -->
                             <div v-for="story in column" :key="story.story_id"
                                  @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                  @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
-                                 tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                 tabindex="0" tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                           'priority-' + story.priority,
                                           selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                 <!-- Bulk Select Checkbox -->
@@ -3816,14 +3830,14 @@ HTML_TEMPLATE = """
 
                                     <!-- Stories in Column -->
                                     <div :id="'swimlane-' + groupKey + '-' + status"
-                                         class="kanban-column p-2 space-y-2 overflow-y-auto" role="region"
+                                         class="kanban-column p-2 space-y-2 overflow-y-auto" role="region" role="region"
                                          style="min-height: 200px; max-height: 300px;">
                                         <!-- Story Card (same as regular Kanban) -->
                                         <div v-for="story in group[status]" :key="story.story_id"
                                              @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                              @contextmenu.prevent="showContextMenu($event, story)"
                                              :data-id="story.story_id"
-                                             tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                             tabindex="0" tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                                       'priority-' + story.priority,
                                                       selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                             <!-- Bulk Select Checkbox -->
@@ -3897,7 +3911,7 @@ HTML_TEMPLATE = """
             </main>
 
             <!-- CHAT PANEL -->
-            <aside id="chat-panel" class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" role="complementary" aria-label="Painel de chat com assistente IA" :class="{ 'open': mobileChatOpen }">
+            <aside id="chat-panel" id="chat-panel" class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" role="complementary" aria-label="Painel de chat com assistente IA" role="complementary" aria-label="Painel de chat com assistente IA" :class="{ 'open': mobileChatOpen }">
                 <!-- Header with Clear Button -->
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
                     <div class="flex items-center justify-between">
@@ -7460,11 +7474,23 @@ HTML_TEMPLATE = """
                 return marked.parse(text);
             };
 
-            // Toast Functions
+            
+            // Accessibility: Screen Reader Announcements (A11y - Issue #45)
+            const announceToScreenReader = (message, priority = 'polite') => {
+                const announcer = document.getElementById(priority === 'assertive' ? 'a11y-status' : 'a11y-announcer');
+                if (announcer) {
+                    announcer.textContent = '';
+                    setTimeout(() => { announcer.textContent = message; }, 100);
+                }
+            };
+
+// Toast Functions
             const addToast = (type, title, message = '', undoAction = null) => {
                 const id = ++toastId;
                 toasts.value.push({ id, type, title, message, undoAction });
                 setTimeout(() => removeToast(id), 5000);
+                // Announce toast to screen readers (A11y)
+                announceToScreenReader(title + (message ? ': ' + message : ''));
                 return id;
             };
 
