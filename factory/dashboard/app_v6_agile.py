@@ -518,6 +518,292 @@ class Test{safe_title}:
         db.close()
 
 
+
+# =============================================================================
+# API ENDPOINTS - SECURITY SCAN (SAST)
+# =============================================================================
+
+@app.post("/api/story-tasks/{task_id}/security-scan")
+def security_scan_for_task(task_id: str):
+    """
+    Analise de Seguranca Automatizada (SAST) para o codigo de uma task.
+    Usa Claude AI para identificar vulnerabilidades de seguranca.
+    """
+    db = SessionLocal()
+    try:
+        repo = StoryTaskRepository(db)
+        task = repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(404, "Task not found")
+
+        if not task.code_output:
+            raise HTTPException(400, "Task has no code output to analyze")
+
+        code = task.code_output
+
+        # Detectar linguagem
+        language = "python"
+        if "function " in code or "const " in code or "let " in code or "=>" in code:
+            language = "javascript"
+        elif "func " in code and "package " in code:
+            language = "go"
+        elif "public class " in code or "private void " in code:
+            language = "java"
+        elif "<?php" in code:
+            language = "php"
+
+        # Se Claude disponivel, usar IA para analise profunda
+        if HAS_CLAUDE:
+            try:
+                claude = get_claude_client()
+                if claude.is_available():
+                    return perform_ai_security_scan(code, language, task, claude)
+            except Exception as e:
+                print(f"[SecurityScan] Erro ao usar Claude: {e}")
+
+        # Fallback: analise basica com regex
+        return perform_basic_security_scan(code, language, task)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error performing security scan: {str(e)}")
+    finally:
+        db.close()
+
+
+def perform_ai_security_scan(code: str, language: str, task, claude) -> dict:
+    """Realiza analise de seguranca usando Claude AI"""
+
+    system_prompt = """Voce e um especialista em seguranca de aplicacoes (AppSec) com profundo conhecimento em analise estatica de codigo (SAST).
+
+Sua tarefa e analisar o codigo fornecido linha por linha e identificar vulnerabilidades de seguranca.
+
+Tipos de vulnerabilidades a detectar:
+1. SQL Injection - Queries SQL com concatenacao de strings ou inputs nao sanitizados
+2. XSS (Cross-Site Scripting) - Output nao escapado em HTML, dados de usuario nao sanitizados
+3. Command Injection - Execucao de comandos shell com input do usuario
+4. Path Traversal - Acesso a arquivos com input nao validado (../ etc)
+5. Hardcoded Secrets - Senhas, API keys, tokens hardcoded no codigo
+6. Insecure Dependencies - Uso de funcoes/metodos inseguros ou deprecados
+
+Para cada vulnerabilidade encontrada, forneca:
+- Tipo da vulnerabilidade
+- Severidade (Critical, High, Medium, Low)
+- Linha(s) afetada(s)
+- Descricao do problema
+- Sugestao de correcao
+- Referencia CWE quando aplicavel
+
+Responda APENAS em JSON valido no formato:
+{
+    "vulnerabilities": [
+        {
+            "type": "SQL Injection",
+            "severity": "Critical",
+            "line": 15,
+            "line_content": "codigo da linha afetada",
+            "description": "Descricao detalhada do problema",
+            "fix_suggestion": "Como corrigir",
+            "cwe": "CWE-89"
+        }
+    ],
+    "summary": {
+        "total": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0
+    },
+    "recommendations": ["Recomendacao geral 1", "Recomendacao geral 2"],
+    "secure_patterns_found": ["Padrao seguro identificado 1"]
+}
+
+Se nenhuma vulnerabilidade for encontrada, retorne vulnerabilities como lista vazia."""
+
+    # Adicionar numeros de linha ao codigo
+    lines = code.split('\n')
+    numbered_code = '\n'.join(f"{i+1}: {line}" for i, line in enumerate(lines))
+
+    message = f"""Analise o seguinte codigo {language} em busca de vulnerabilidades de seguranca:
+
+```{language}
+{numbered_code}
+```
+
+Contexto: Este codigo faz parte da task "{task.title}".
+
+Realize uma analise SAST completa e retorne os resultados em JSON."""
+
+    response = claude.chat(message, system_prompt, max_tokens=4096)
+
+    if response.success:
+        try:
+            content = response.content.strip()
+            if content.startswith("```"):
+                lines = content.split("\n")
+                content = "\n".join(lines[1:-1])
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.endswith("```"):
+                content = content[:-3]
+
+            result = json.loads(content)
+
+            if "vulnerabilities" not in result:
+                result["vulnerabilities"] = []
+            if "summary" not in result:
+                result["summary"] = calculate_summary(result["vulnerabilities"])
+
+            result["scan_type"] = "ai"
+            result["language"] = language
+            result["scanned_at"] = datetime.utcnow().isoformat()
+            result["task_id"] = task.task_id
+
+            return result
+
+        except json.JSONDecodeError:
+            return {
+                "vulnerabilities": [],
+                "summary": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0},
+                "scan_type": "ai",
+                "language": language,
+                "scanned_at": datetime.utcnow().isoformat(),
+                "task_id": task.task_id,
+                "recommendations": ["Analise manual recomendada"]
+            }
+
+    return perform_basic_security_scan(code, language, task)
+
+
+def calculate_summary(vulnerabilities: list) -> dict:
+    """Calcula resumo das vulnerabilidades"""
+    summary = {"total": len(vulnerabilities), "critical": 0, "high": 0, "medium": 0, "low": 0}
+    for v in vulnerabilities:
+        severity = v.get("severity", "").lower()
+        if severity in summary:
+            summary[severity] += 1
+    return summary
+
+
+def perform_basic_security_scan(code: str, language: str, task) -> dict:
+    """Analise basica de seguranca com regex (fallback)"""
+    import re
+
+    vulnerabilities = []
+    lines = code.split('\n')
+
+    patterns = {
+        "SQL Injection": [
+            (r'execute\s*\(\s*["'].*%s', "String formatting em query SQL"),
+            (r'execute\s*\(\s*f["']', "f-string em query SQL"),
+            (r'cursor\.execute\s*\([^,]+\+', "Concatenacao em cursor.execute"),
+        ],
+        "XSS": [
+            (r'innerHTML\s*=', "Uso de innerHTML sem sanitizacao"),
+            (r'document\.write\s*\(', "Uso de document.write"),
+            (r'dangerouslySetInnerHTML', "React dangerouslySetInnerHTML"),
+        ],
+        "Command Injection": [
+            (r'os\.system\s*\(', "Uso de os.system"),
+            (r'subprocess\.call\s*\([^)]*shell\s*=\s*True', "subprocess com shell=True"),
+            (r'eval\s*\(', "Uso de eval()"),
+            (r'exec\s*\(', "Uso de exec()"),
+        ],
+        "Path Traversal": [
+            (r'open\s*\([^)]*\+', "open() com concatenacao"),
+            (r'\.\.\/|\.\.\\\\', "Path traversal pattern"),
+        ],
+        "Hardcoded Secrets": [
+            (r'password\s*=\s*["'][^"']+["']', "Senha hardcoded"),
+            (r'api_key\s*=\s*["'][^"']+["']', "API key hardcoded"),
+            (r'secret\s*=\s*["'][^"']+["']', "Secret hardcoded"),
+        ],
+        "Insecure Dependencies": [
+            (r'pickle\.load', "Deserializacao insegura com pickle"),
+            (r'yaml\.load\s*\([^)]*\)', "yaml.load sem Loader seguro"),
+        ],
+    }
+
+    for line_num, line in enumerate(lines, 1):
+        for vuln_type, type_patterns in patterns.items():
+            for pattern, description in type_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    severity = "Medium"
+                    if vuln_type in ["SQL Injection", "Command Injection"]:
+                        severity = "Critical"
+                    elif vuln_type in ["XSS", "Hardcoded Secrets", "Path Traversal"]:
+                        severity = "High"
+
+                    vulnerabilities.append({
+                        "type": vuln_type,
+                        "severity": severity,
+                        "line": line_num,
+                        "line_content": line.strip()[:100],
+                        "description": description,
+                        "fix_suggestion": get_fix_suggestion(vuln_type),
+                        "cwe": get_cwe(vuln_type)
+                    })
+                    break
+
+    return {
+        "vulnerabilities": vulnerabilities,
+        "summary": calculate_summary(vulnerabilities),
+        "scan_type": "basic",
+        "language": language,
+        "scanned_at": datetime.utcnow().isoformat(),
+        "task_id": task.task_id,
+        "recommendations": get_general_recommendations(vulnerabilities)
+    }
+
+
+def get_fix_suggestion(vuln_type: str) -> str:
+    """Retorna sugestao de correcao para cada tipo de vulnerabilidade"""
+    suggestions = {
+        "SQL Injection": "Use prepared statements/parameterized queries",
+        "XSS": "Sanitize e escape output. Use textContent ao inves de innerHTML",
+        "Command Injection": "Evite os.system() e shell=True. Use subprocess com lista de argumentos",
+        "Path Traversal": "Valide e normalize paths. Verifique se o path esta dentro do diretorio permitido",
+        "Hardcoded Secrets": "Use variaveis de ambiente ou um secrets manager",
+        "Insecure Dependencies": "Use alternativas seguras: yaml.safe_load(), etc"
+    }
+    return suggestions.get(vuln_type, "Revise o codigo e aplique boas praticas de seguranca")
+
+
+def get_cwe(vuln_type: str) -> str:
+    """Retorna CWE ID para cada tipo de vulnerabilidade"""
+    cwes = {
+        "SQL Injection": "CWE-89",
+        "XSS": "CWE-79",
+        "Command Injection": "CWE-78",
+        "Path Traversal": "CWE-22",
+        "Hardcoded Secrets": "CWE-798",
+        "Insecure Dependencies": "CWE-327"
+    }
+    return cwes.get(vuln_type, "")
+
+
+def get_general_recommendations(vulnerabilities: list) -> list:
+    """Gera recomendacoes gerais baseadas nas vulnerabilidades encontradas"""
+    recommendations = []
+    types_found = set(v["type"] for v in vulnerabilities)
+
+    if "SQL Injection" in types_found:
+        recommendations.append("Implemente ORM ou use prepared statements em todas as queries")
+    if "XSS" in types_found:
+        recommendations.append("Implemente Content Security Policy (CSP) headers")
+    if "Command Injection" in types_found:
+        recommendations.append("Revise todas as chamadas de sistema e subprocess")
+    if "Hardcoded Secrets" in types_found:
+        recommendations.append("Configure um sistema de gerenciamento de secrets")
+
+    if not vulnerabilities:
+        recommendations.append("Nenhuma vulnerabilidade detectada na analise basica")
+        recommendations.append("Considere usar ferramentas SAST dedicadas como Bandit (Python)")
+
+    return recommendations
+
+
 # =============================================================================
 # API ENDPOINTS - DOCUMENTATION
 # =============================================================================
@@ -1874,6 +2160,62 @@ def start_project_test_app(project_id: str):
         return result
     except Exception as e:
         raise HTTPException(500, f"Erro ao iniciar aplicacao: {str(e)}")
+
+
+
+
+# =============================================================================
+# SECURITY ANALYZER - Issue #57
+# =============================================================================
+
+from factory.core.security_analyzer import (
+    SecurityAnalyzer, SecurityScanConfig, ScanType, get_security_badge
+)
+
+class SecurityScanRequest(BaseModel):
+    use_bandit: Optional[bool] = True
+    include_info: Optional[bool] = False
+    scan_dependencies: Optional[bool] = False
+
+
+@app.post("/api/projects/{project_id}/security-scan")
+async def run_security_scan(project_id: str, request: Optional[SecurityScanRequest] = None):
+    """Executa analise de seguranca SAST no projeto."""
+    try:
+        scan_types = [ScanType.SAST]
+        if request and request.scan_dependencies:
+            scan_types.append(ScanType.SCA)
+        config = SecurityScanConfig(
+            scan_types=scan_types,
+            use_bandit=request.use_bandit if request else True,
+            include_info=request.include_info if request else False,
+            verbose=False
+        )
+        analyzer = SecurityAnalyzer(config)
+        report = await analyzer.analyze(project_id)
+        badge = get_security_badge(report.security_score)
+        notify("security_scan_complete", {
+            "project_id": project_id,
+            "score": report.security_score,
+            "risk_level": report.risk_level,
+            "vulnerabilities_count": len(report.vulnerabilities),
+            "badge": badge
+        })
+        return report.to_dict()
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao executar scan de seguranca: {str(e)}")
+
+
+@app.get("/api/projects/{project_id}/security-status")
+def get_security_status(project_id: str):
+    """Retorna status de seguranca do projeto."""
+    return {"project_id": project_id, "has_scan": False}
+
+
+@app.get("/api/security/badge/{project_id}")
+def get_project_security_badge(project_id: str, score: int = 100):
+    """Retorna badge de seguranca."""
+    return {"project_id": project_id, "badge": get_security_badge(score)}
 
 
 # =============================================================================
