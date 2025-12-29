@@ -1,9 +1,61 @@
 """
-Factory Auth Module - SSO Integration and RBAC
-Includes SAML 2.0, Azure AD OAuth2 support, and Role-Based Access Control
+Factory Auth Module - Complete Authentication System
+Fabrica de Agentes v6.5
+
+Includes:
+- MFA/2FA: TOTP, backup codes, recovery flow (Issue #103)
+- OAuth 2.0: Authorization Code, Client Credentials, PKCE (Issue #109)
+- SSO: SAML 2.0, Azure AD OAuth2 support
+- RBAC: Role-Based Access Control
 """
 
-# SSO imports
+# =============================================================================
+# MFA IMPORTS (Issue #103)
+# =============================================================================
+try:
+    from .mfa import (
+        MFAService,
+        MFAStatus,
+        MFAMethod,
+        MFASetupRequest,
+        MFASetupResponse,
+        MFAVerifyRequest,
+        MFAVerifyResponse,
+        MFAEnforcementPolicy
+    )
+    HAS_MFA = True
+except ImportError as e:
+    print(f"[Auth] MFA module not available: {e}")
+    HAS_MFA = False
+
+# =============================================================================
+# OAUTH 2.0 IMPORTS (Issue #109)
+# =============================================================================
+try:
+    from .oauth2 import (
+        OAuth2Service,
+        get_oauth_service,
+        OAuthClient,
+        OAuthScopes,
+        GrantType,
+        ResponseType,
+        TokenType,
+        ClientType,
+        CodeChallengeMethod,
+        TokenResponse,
+        TokenIntrospectionResponse,
+        oauth2_router,
+        require_oauth_token,
+        require_oauth_scope
+    )
+    HAS_OAUTH2 = True
+except ImportError as e:
+    print(f"[Auth] OAuth2 module not available: {e}")
+    HAS_OAUTH2 = False
+
+# =============================================================================
+# SSO IMPORTS
+# =============================================================================
 try:
     from .sso import (
         sso_router,
@@ -17,7 +69,9 @@ try:
 except ImportError:
     HAS_SSO = False
 
-# RBAC imports
+# =============================================================================
+# RBAC IMPORTS
+# =============================================================================
 try:
     from .rbac import (
         RBACManager,
@@ -35,7 +89,48 @@ try:
 except ImportError:
     HAS_RBAC = False
 
-__all__ = []
+# =============================================================================
+# EXPORTS
+# =============================================================================
+__all__ = [
+    # Feature flags
+    'HAS_MFA',
+    'HAS_OAUTH2',
+    'HAS_SSO',
+    'HAS_RBAC'
+]
+
+# Add MFA exports if available
+if HAS_MFA:
+    __all__.extend([
+        'MFAService',
+        'MFAStatus',
+        'MFAMethod',
+        'MFASetupRequest',
+        'MFASetupResponse',
+        'MFAVerifyRequest',
+        'MFAVerifyResponse',
+        'MFAEnforcementPolicy'
+    ])
+
+# Add OAuth 2.0 exports if available
+if HAS_OAUTH2:
+    __all__.extend([
+        'OAuth2Service',
+        'get_oauth_service',
+        'OAuthClient',
+        'OAuthScopes',
+        'GrantType',
+        'ResponseType',
+        'TokenType',
+        'ClientType',
+        'CodeChallengeMethod',
+        'TokenResponse',
+        'TokenIntrospectionResponse',
+        'oauth2_router',
+        'require_oauth_token',
+        'require_oauth_scope'
+    ])
 
 # Add SSO exports if available
 if HAS_SSO:
@@ -60,6 +155,5 @@ if HAS_RBAC:
         'DEFAULT_ROLES',
         'RESOURCES',
         'ACTIONS',
-        'UserContext',
-        'HAS_RBAC'
+        'UserContext'
     ])

@@ -774,12 +774,54 @@ class AuditLogger:
         error_message: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         changes: Optional[Dict[str, Any]] = None,
-        severity: AuditSeverity = AuditSeverity.INFO
+        severity: AuditSeverity = AuditSeverity.INFO,
+        # SOC2/GDPR Compliance Fields
+        old_value: Optional[Any] = None,
+        new_value: Optional[Any] = None,
+        data_classification: Optional[str] = None,
+        legal_basis: Optional[str] = None,
+        data_subject_id: Optional[str] = None,
+        retention_days: Optional[int] = None,
+        correlation_id: Optional[str] = None,
+        source_system: Optional[str] = None,
+        geo_location: Optional[str] = None,
+        risk_score: Optional[int] = None
     ):
         """
-        Log an audit event.
+        Log an audit event with full SOC2/GDPR compliance.
 
         This is the main logging method. All other methods call this.
+
+        Args:
+            category: Event category (authentication, data_access, etc.)
+            action: Specific action taken
+            resource_type: Type of resource affected
+            resource_id: ID of the specific resource
+            user_id: ID of the user performing the action
+            username: Username of the actor
+            tenant_id: Multi-tenant organization ID
+            session_id: Session identifier
+            ip_address: Client IP address
+            user_agent: Browser/client user agent
+            request_id: Unique request identifier
+            endpoint: API endpoint accessed
+            method: HTTP method used
+            success: Whether the action succeeded
+            error_code: Error code if failed
+            error_message: Error message if failed
+            details: Additional event details
+            changes: Before/after changes dict
+            severity: Event severity level
+            old_value: Original value before change (SOC2/GDPR)
+            new_value: New value after change (SOC2/GDPR)
+            data_classification: Data classification level
+            legal_basis: GDPR legal basis for processing
+            data_subject_id: GDPR data subject identifier
+            retention_days: Custom retention period
+            correlation_id: ID to link related events
+            source_system: Origin system for federated logs
+            geo_location: Geographic location
+            risk_score: Risk assessment score (0-100)
         """
         if not AUDIT_LOG_ENABLED:
             return
@@ -788,9 +830,18 @@ class AuditLogger:
         if severity == AuditSeverity.INFO:
             severity = self._determine_severity(action, success)
 
-        # Redact PII from details
+        # Redact PII from details and values
         safe_details = self._redact_pii(details or {})
         safe_changes = self._redact_pii(changes) if changes else None
+        safe_old_value = self._redact_pii_value(old_value)
+        safe_new_value = self._redact_pii_value(new_value)
+
+        # Get retention days from policy if not specified
+        if retention_days is None:
+            cat_str = category.value if isinstance(category, AuditCategory) else category
+            policy = self._retention_policies.get(cat_str)
+            if policy:
+                retention_days = policy.retention_days
 
         # Create entry
         entry = AuditEntry(
@@ -815,6 +866,16 @@ class AuditLogger:
             error_message=error_message,
             details=safe_details,
             changes=safe_changes,
+            old_value=safe_old_value,
+            new_value=safe_new_value,
+            data_classification=data_classification,
+            legal_basis=legal_basis,
+            data_subject_id=data_subject_id,
+            retention_days=retention_days,
+            correlation_id=correlation_id,
+            source_system=source_system or "fabrica_de_agentes",
+            geo_location=geo_location,
+            risk_score=risk_score,
             checksum="",
             previous_checksum=self._last_checksum
         )
@@ -823,11 +884,15 @@ class AuditLogger:
         entry.checksum = self._calculate_checksum(entry)
         self._last_checksum = entry.checksum
 
-        # Write entry
+        # Write entry to database
         if AUDIT_LOG_ASYNC:
             self._write_queue.put(entry)
         else:
             self._write_entry(entry)
+
+        # Export to SIEM if enabled
+        if self._siem_exporter:
+            self._siem_exporter.export(entry)
 
     def _determine_severity(self, action: AuditAction, success: bool) -> AuditSeverity:
         """Determine severity based on action and result"""
@@ -870,9 +935,21 @@ class AuditLogger:
                 result[key] = "[REDACTED]"
             elif isinstance(value, dict):
                 result[key] = self._redact_pii(value)
+            elif isinstance(value, list):
+                result[key] = [self._redact_pii_value(v) for v in value]
             else:
                 result[key] = value
         return result
+
+    def _redact_pii_value(self, value: Any) -> Any:
+        """Redact PII from a single value (dict, list, or primitive)"""
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            return self._redact_pii(value)
+        if isinstance(value, list):
+            return [self._redact_pii_value(v) for v in value]
+        return value
 
     def _calculate_checksum(self, entry: AuditEntry) -> str:
         """Calculate HMAC checksum for integrity"""
@@ -991,9 +1068,13 @@ class AuditLogger:
         username: Optional[str] = None,
         tenant_id: Optional[str] = None,
         details: Optional[Dict] = None,
-        success: bool = True
+        success: bool = True,
+        # GDPR compliance fields
+        data_subject_id: Optional[str] = None,
+        legal_basis: Optional[str] = None,
+        data_classification: Optional[str] = None
     ):
-        """Log data access event"""
+        """Log data access event with GDPR compliance"""
         self.log(
             category=AuditCategory.DATA_ACCESS,
             action=action,
@@ -1003,7 +1084,10 @@ class AuditLogger:
             username=username,
             tenant_id=tenant_id,
             success=success,
-            details=details
+            details=details,
+            data_subject_id=data_subject_id,
+            legal_basis=legal_basis,
+            data_classification=data_classification
         )
 
     def log_data_modification(
@@ -1016,9 +1100,15 @@ class AuditLogger:
         tenant_id: Optional[str] = None,
         changes: Optional[Dict] = None,
         details: Optional[Dict] = None,
-        success: bool = True
+        success: bool = True,
+        # SOC2/GDPR compliance fields
+        old_value: Optional[Any] = None,
+        new_value: Optional[Any] = None,
+        data_subject_id: Optional[str] = None,
+        data_classification: Optional[str] = None,
+        correlation_id: Optional[str] = None
     ):
-        """Log data modification event"""
+        """Log data modification event with old/new values for SOC2/GDPR compliance"""
         self.log(
             category=AuditCategory.DATA_MODIFICATION,
             action=action,
@@ -1029,7 +1119,12 @@ class AuditLogger:
             tenant_id=tenant_id,
             changes=changes,
             details=details,
-            success=success
+            success=success,
+            old_value=old_value,
+            new_value=new_value,
+            data_subject_id=data_subject_id,
+            data_classification=data_classification,
+            correlation_id=correlation_id
         )
 
     def log_security_event(
