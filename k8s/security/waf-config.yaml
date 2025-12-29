@@ -1,0 +1,986 @@
+# WAF (Web Application Firewall) Configuration - Issue #99
+# ModSecurity with OWASP Core Rule Set (CRS) for Fabrica de Agentes
+# Provides protection against SQL Injection, XSS, and other attacks
+
+---
+# ModSecurity ConfigMap for WAF rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: modsecurity-config
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: modsecurity
+    app.kubernetes.io/component: waf
+    app.kubernetes.io/part-of: fabrica-de-agentes
+data:
+  # Main ModSecurity configuration
+  modsecurity.conf: |
+    # ModSecurity Core Configuration
+    # Enable ModSecurity
+    SecRuleEngine On
+
+    # Request body handling
+    SecRequestBodyAccess On
+    SecRequestBodyLimit 13107200
+    SecRequestBodyNoFilesLimit 131072
+    SecRequestBodyLimitAction Reject
+    SecRequestBodyJsonDepthLimit 512
+
+    # Response body handling
+    SecResponseBodyAccess On
+    SecResponseBodyMimeType text/plain text/html text/xml application/json
+    SecResponseBodyLimit 524288
+    SecResponseBodyLimitAction ProcessPartial
+
+    # Temporary files
+    SecTmpDir /tmp/modsecurity/tmp
+    SecDataDir /tmp/modsecurity/data
+    SecUploadDir /tmp/modsecurity/upload
+    SecUploadKeepFiles Off
+
+    # Debug settings (disable in production)
+    SecDebugLog /var/log/modsecurity/debug.log
+    SecDebugLogLevel 0
+
+    # Audit logging
+    SecAuditEngine RelevantOnly
+    SecAuditLogRelevantStatus "^(?:5|4(?!04))"
+    SecAuditLogParts ABIJDEFHZ
+    SecAuditLogType Serial
+    SecAuditLog /var/log/modsecurity/audit.log
+
+    # Server signature
+    SecServerSignature "Factory-WAF"
+
+    # PCRE limits
+    SecPcreMatchLimit 100000
+    SecPcreMatchLimitRecursion 100000
+
+    # Default action
+    SecDefaultAction "phase:1,log,auditlog,deny,status:403"
+    SecDefaultAction "phase:2,log,auditlog,deny,status:403"
+
+    # Rule engine settings
+    SecArgumentSeparator &
+    SecCookieFormat 0
+    SecUnicodeMapFile unicode.mapping 20127
+    SecStatusEngine On
+
+  # OWASP CRS Configuration
+  crs-setup.conf: |
+    # OWASP CRS Setup Configuration
+    # Paranoia Level (1-4, higher = more strict)
+    SecAction \
+      "id:900000,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:tx.paranoia_level=2"
+
+    # Anomaly scoring mode
+    SecAction \
+      "id:900110,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:tx.inbound_anomaly_score_threshold=5,\
+      setvar:tx.outbound_anomaly_score_threshold=4"
+
+    # Enforce body processing
+    SecAction \
+      "id:900200,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:tx.enforce_bodyproc_urlencoded=1"
+
+    # Allowed HTTP methods
+    SecAction \
+      "id:900220,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:'tx.allowed_methods=GET HEAD POST PUT DELETE PATCH OPTIONS'"
+
+    # Allowed content types
+    SecAction \
+      "id:900240,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:'tx.allowed_request_content_type=|application/x-www-form-urlencoded| |multipart/form-data| |multipart/related| |text/xml| |application/xml| |application/soap+xml| |application/json| |application/cloudevents+json| |application/cloudevents-batch+json|'"
+
+    # Allowed HTTP versions
+    SecAction \
+      "id:900250,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:'tx.allowed_http_versions=HTTP/1.0 HTTP/1.1 HTTP/2 HTTP/2.0'"
+
+    # Block on detection
+    SecAction \
+      "id:900990,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:tx.blocking_paranoia_level=2"
+
+  # Custom rules for Factory application
+  factory-rules.conf: |
+    # Factory-specific WAF Rules
+
+    # Rule ID Range: 100000-199999 (custom rules)
+
+    # ======================================
+    # SQL Injection Protection
+    # ======================================
+
+    # Block common SQL injection patterns
+    SecRule ARGS|ARGS_NAMES|REQUEST_BODY "@detectSQLi" \
+      "id:100001,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'SQL Injection Attempt Detected',\
+      tag:'application-multi',\
+      tag:'language-sql',\
+      tag:'attack-sqli',\
+      severity:CRITICAL"
+
+    # Block UNION-based SQL injection
+    SecRule ARGS|REQUEST_BODY "@rx (?i)union\s+(all\s+)?select" \
+      "id:100002,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'SQL Injection - UNION SELECT',\
+      tag:'attack-sqli',\
+      severity:CRITICAL"
+
+    # Block SQL comments in input
+    SecRule ARGS|REQUEST_BODY "@rx (/\*|\*/|--|#)" \
+      "id:100003,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'SQL Injection - SQL Comment',\
+      tag:'attack-sqli',\
+      severity:HIGH"
+
+    # Block SQL functions
+    SecRule ARGS|REQUEST_BODY "@rx (?i)(sleep|benchmark|waitfor|delay|shutdown)\s*\(" \
+      "id:100004,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'SQL Injection - Dangerous Function',\
+      tag:'attack-sqli',\
+      severity:CRITICAL"
+
+    # ======================================
+    # XSS (Cross-Site Scripting) Protection
+    # ======================================
+
+    # Block XSS patterns
+    SecRule ARGS|ARGS_NAMES|REQUEST_BODY "@detectXSS" \
+      "id:100010,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'XSS Attack Detected',\
+      tag:'attack-xss',\
+      severity:CRITICAL"
+
+    # Block script tags
+    SecRule ARGS|REQUEST_BODY "@rx (?i)<script[^>]*>.*?</script>" \
+      "id:100011,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'XSS - Script Tag Detected',\
+      tag:'attack-xss',\
+      severity:CRITICAL"
+
+    # Block event handlers
+    SecRule ARGS|REQUEST_BODY "@rx (?i)on(load|error|click|mouse|focus|blur|change|submit|key)\s*=" \
+      "id:100012,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'XSS - Event Handler Detected',\
+      tag:'attack-xss',\
+      severity:HIGH"
+
+    # Block javascript: protocol
+    SecRule ARGS|REQUEST_BODY "@rx (?i)javascript:" \
+      "id:100013,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'XSS - Javascript Protocol',\
+      tag:'attack-xss',\
+      severity:HIGH"
+
+    # Block data: protocol
+    SecRule ARGS|REQUEST_BODY "@rx (?i)data:text/html" \
+      "id:100014,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'XSS - Data Protocol',\
+      tag:'attack-xss',\
+      severity:HIGH"
+
+    # ======================================
+    # Command Injection Protection
+    # ======================================
+
+    # Block command injection
+    SecRule ARGS|REQUEST_BODY "@rx (?i)(;|\||`|\$\(|&&|\|\|)\s*(cat|ls|pwd|whoami|id|uname|wget|curl|nc|bash|sh|python|perl|ruby)" \
+      "id:100020,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Command Injection Attempt',\
+      tag:'attack-rce',\
+      severity:CRITICAL"
+
+    # Block backtick execution
+    SecRule ARGS|REQUEST_BODY "@contains `" \
+      "id:100021,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Command Injection - Backtick',\
+      tag:'attack-rce',\
+      severity:HIGH"
+
+    # ======================================
+    # Path Traversal Protection
+    # ======================================
+
+    # Block path traversal
+    SecRule ARGS|REQUEST_URI "@rx (\.\./|\.\.\\)" \
+      "id:100030,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Path Traversal Attempt',\
+      tag:'attack-lfi',\
+      severity:CRITICAL"
+
+    # Block null bytes
+    SecRule ARGS|REQUEST_URI "@rx %00" \
+      "id:100031,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Null Byte Injection',\
+      tag:'attack-lfi',\
+      severity:HIGH"
+
+    # ======================================
+    # API Protection
+    # ======================================
+
+    # Require Content-Type for POST/PUT/PATCH
+    SecRule REQUEST_METHOD "@rx ^(POST|PUT|PATCH)$" \
+      "id:100040,\
+      phase:1,\
+      chain"
+      SecRule &REQUEST_HEADERS:Content-Type "@eq 0" \
+        "deny,\
+        status:400,\
+        log,\
+        msg:'Missing Content-Type Header',\
+        tag:'api-protection',\
+        severity:WARNING"
+
+    # Block suspicious user agents
+    SecRule REQUEST_HEADERS:User-Agent "@rx (?i)(sqlmap|nikto|nessus|acunetix|havij|w3af|dirbuster|gobuster)" \
+      "id:100041,\
+      phase:1,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Suspicious Scanner Detected',\
+      tag:'scanner-detection',\
+      severity:HIGH"
+
+    # ======================================
+    # JSON Protection
+    # ======================================
+
+    # Validate JSON structure
+    SecRule REQUEST_HEADERS:Content-Type "@rx application/json" \
+      "id:100050,\
+      phase:2,\
+      chain"
+      SecRule REQUEST_BODY "!@rx ^[\s\r\n]*[\[{]" \
+        "deny,\
+        status:400,\
+        log,\
+        msg:'Invalid JSON Structure',\
+        tag:'protocol-attack',\
+        severity:WARNING"
+
+    # ======================================
+    # Factory Application Specific Rules
+    # ======================================
+
+    # Protect API endpoints
+    SecRule REQUEST_URI "@beginsWith /api/" \
+      "id:100060,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:tx.api_request=1"
+
+    # Restrict admin endpoints
+    SecRule REQUEST_URI "@rx ^/api/admin" \
+      "id:100061,\
+      phase:1,\
+      chain"
+      SecRule &REQUEST_HEADERS:Authorization "@eq 0" \
+        "deny,\
+        status:401,\
+        log,\
+        msg:'Unauthorized Admin Access Attempt',\
+        tag:'access-control',\
+        severity:HIGH"
+
+    # Block attempts to access internal endpoints
+    SecRule REQUEST_URI "@rx (?i)(actuator|metrics|debug|swagger|\.env|\.git|\.config)" \
+      "id:100062,\
+      phase:1,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'Blocked Access to Sensitive Endpoint',\
+      tag:'security-bypass',\
+      severity:HIGH"
+
+    # ======================================
+    # Exclusions for known safe paths
+    # ======================================
+
+    # Allow WebSocket connections
+    SecRule REQUEST_URI "@beginsWith /ws/" \
+      "id:100100,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      ctl:ruleRemoveById=920170"
+
+    # Allow file uploads to specific endpoint
+    SecRule REQUEST_URI "@eq /api/upload" \
+      "id:100101,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      ctl:requestBodyLimit=104857600"
+
+    # Allow health check endpoints without strict rules
+    SecRule REQUEST_URI "@rx ^/(health|ready|live)$" \
+      "id:100102,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      ctl:ruleEngine=Off"
+
+  # Rate limiting rules
+  rate-limiting.conf: |
+    # Rate Limiting Configuration
+
+    # Initialize IP tracking
+    SecAction \
+      "id:110001,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      initcol:ip=%{REMOTE_ADDR}"
+
+    # Count requests per IP
+    SecAction \
+      "id:110002,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:ip.request_count=+1,\
+      expirevar:ip.request_count=60"
+
+    # Block if more than 100 requests per minute (general)
+    SecRule IP:REQUEST_COUNT "@gt 100" \
+      "id:110003,\
+      phase:1,\
+      deny,\
+      status:429,\
+      log,\
+      msg:'Rate Limit Exceeded - General',\
+      tag:'rate-limit',\
+      severity:WARNING"
+
+    # Track API requests separately
+    SecRule REQUEST_URI "@beginsWith /api/" \
+      "id:110010,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:ip.api_request_count=+1,\
+      expirevar:ip.api_request_count=60"
+
+    # Block if more than 60 API requests per minute
+    SecRule IP:API_REQUEST_COUNT "@gt 60" \
+      "id:110011,\
+      phase:1,\
+      deny,\
+      status:429,\
+      log,\
+      msg:'Rate Limit Exceeded - API',\
+      tag:'rate-limit',\
+      severity:WARNING"
+
+    # Track login attempts
+    SecRule REQUEST_URI "@eq /api/auth/login" \
+      "id:110020,\
+      phase:1,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:ip.login_attempt_count=+1,\
+      expirevar:ip.login_attempt_count=300"
+
+    # Block if more than 5 login attempts per 5 minutes
+    SecRule IP:LOGIN_ATTEMPT_COUNT "@gt 5" \
+      "id:110021,\
+      phase:1,\
+      deny,\
+      status:429,\
+      log,\
+      msg:'Rate Limit Exceeded - Login Attempts',\
+      tag:'rate-limit',\
+      tag:'brute-force',\
+      severity:HIGH"
+
+    # Track failed requests
+    SecRule RESPONSE_STATUS "@rx ^4" \
+      "id:110030,\
+      phase:3,\
+      pass,\
+      t:none,\
+      nolog,\
+      setvar:ip.error_count=+1,\
+      expirevar:ip.error_count=300"
+
+    # Block if too many errors
+    SecRule IP:ERROR_COUNT "@gt 20" \
+      "id:110031,\
+      phase:1,\
+      deny,\
+      status:429,\
+      log,\
+      msg:'Too Many Errors - Potential Attack',\
+      tag:'rate-limit',\
+      severity:WARNING"
+
+---
+# WAF Deployment using ModSecurity with Nginx
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-waf
+  namespace: factory
+  labels:
+    app: factory-waf
+    app.kubernetes.io/name: factory-waf
+    app.kubernetes.io/component: waf
+    app.kubernetes.io/part-of: fabrica-de-agentes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: factory-waf
+  template:
+    metadata:
+      labels:
+        app: factory-waf
+        app.kubernetes.io/name: factory-waf
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+    spec:
+      serviceAccountName: factory-waf
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: modsecurity
+          image: owasp/modsecurity-crs:nginx-alpine
+          imagePullPolicy: Always
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+
+          env:
+            - name: BACKEND
+              value: "http://factory-api:8000"
+            - name: PORT
+              value: "8080"
+            - name: PROXY_SSL
+              value: "off"
+            - name: MODSEC_RULE_ENGINE
+              value: "On"
+            - name: PARANOIA
+              value: "2"
+            - name: ANOMALY_INBOUND
+              value: "5"
+            - name: ANOMALY_OUTBOUND
+              value: "4"
+            - name: BLOCKING_PARANOIA
+              value: "2"
+            - name: EXECUTING_PARANOIA
+              value: "2"
+            - name: DETECTION_PARANOIA
+              value: "2"
+            - name: ENFORCE_BODYPROC_URLENCODED
+              value: "1"
+            - name: VALIDATE_UTF8_ENCODING
+              value: "1"
+            - name: MAX_NUM_ARGS
+              value: "255"
+            - name: ARG_NAME_LENGTH
+              value: "100"
+            - name: ARG_LENGTH
+              value: "400"
+            - name: TOTAL_ARG_LENGTH
+              value: "64000"
+            - name: MAX_FILE_SIZE
+              value: "100000000"
+            - name: COMBINED_FILE_SIZES
+              value: "100000000"
+            - name: ALLOWED_METHODS
+              value: "GET HEAD POST PUT DELETE PATCH OPTIONS"
+            - name: ALLOWED_REQUEST_CONTENT_TYPE
+              value: "application/x-www-form-urlencoded|multipart/form-data|multipart/related|text/xml|application/xml|application/soap+xml|application/json|application/cloudevents+json|application/cloudevents-batch+json"
+            - name: ALLOWED_HTTP_VERSIONS
+              value: "HTTP/1.0 HTTP/1.1 HTTP/2 HTTP/2.0"
+
+          volumeMounts:
+            - name: modsecurity-config
+              mountPath: /etc/modsecurity.d/owasp-crs/rules/CUSTOM-FACTORY-RULES.conf
+              subPath: factory-rules.conf
+            - name: modsecurity-config
+              mountPath: /etc/modsecurity.d/owasp-crs/rules/CUSTOM-RATE-LIMITING.conf
+              subPath: rate-limiting.conf
+            - name: tmp
+              mountPath: /tmp/modsecurity
+            - name: logs
+              mountPath: /var/log/modsecurity
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+        # Nginx Prometheus Exporter sidecar
+        - name: nginx-exporter
+          image: nginx/nginx-prometheus-exporter:0.11
+          args:
+            - "-nginx.scrape-uri=http://localhost:8080/stub_status"
+
+          ports:
+            - name: metrics
+              containerPort: 9113
+              protocol: TCP
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+
+      volumes:
+        - name: modsecurity-config
+          configMap:
+            name: modsecurity-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+        - name: logs
+          emptyDir:
+            sizeLimit: 500Mi
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - factory-waf
+                topologyKey: kubernetes.io/hostname
+
+---
+# WAF Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: factory-waf
+  namespace: factory
+  labels:
+    app: factory-waf
+    app.kubernetes.io/name: factory-waf
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+    - name: metrics
+      port: 9113
+      targetPort: 9113
+      protocol: TCP
+  selector:
+    app: factory-waf
+
+---
+# ServiceAccount for WAF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-waf
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-waf
+automountServiceAccountToken: false
+
+---
+# HorizontalPodAutoscaler for WAF
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: factory-waf-hpa
+  namespace: factory
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: factory-waf
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+
+---
+# PodDisruptionBudget for WAF
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: factory-waf-pdb
+  namespace: factory
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: factory-waf
+
+---
+# Network Policy for WAF
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: factory-waf-network-policy
+  namespace: factory
+spec:
+  podSelector:
+    matchLabels:
+      app: factory-waf
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
+
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9113
+
+  egress:
+    # Allow to API backend
+    - to:
+        - podSelector:
+            matchLabels:
+              app: factory-api
+      ports:
+        - protocol: TCP
+          port: 8000
+
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# Ingress with WAF
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: factory-waf-ingress
+  namespace: factory
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Rate limiting at ingress level
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss: https:;" always;
+      add_header Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()" always;
+spec:
+  tls:
+    - hosts:
+        - factory.example.com
+        - api.factory.example.com
+      secretName: factory-tls-cert
+  rules:
+    - host: factory.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: factory-waf
+                port:
+                  number: 80
+    - host: api.factory.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: factory-waf
+                port:
+                  number: 80
+
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: factory-waf-monitor
+  namespace: factory
+  labels:
+    app: factory-waf
+spec:
+  selector:
+    matchLabels:
+      app: factory-waf
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+
+---
+# PrometheusRule for WAF alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: factory-waf-alerts
+  namespace: factory
+  labels:
+    app: factory-waf
+spec:
+  groups:
+    - name: waf.rules
+      rules:
+        - alert: WAFHighErrorRate
+          expr: |
+            sum(rate(nginx_http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(nginx_http_requests_total[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "WAF high error rate"
+            description: "WAF error rate is above 5%"
+
+        - alert: WAFHighLatency
+          expr: |
+            histogram_quantile(0.99, sum(rate(nginx_http_request_duration_seconds_bucket[5m])) by (le)) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "WAF high latency"
+            description: "WAF P99 latency is above 2 seconds"
+
+        - alert: WAFBlocked429
+          expr: |
+            sum(rate(nginx_http_requests_total{status="429"}[5m])) > 10
+          for: 5m
+          labels:
+            severity: info
+          annotations:
+            summary: "High rate limiting activity"
+            description: "WAF is blocking many requests with 429 status"
+
+        - alert: WAFPodNotReady
+          expr: |
+            kube_pod_status_ready{namespace="factory",pod=~"factory-waf.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "WAF pod not ready"
+            description: "WAF pod {{ $labels.pod }} is not ready"

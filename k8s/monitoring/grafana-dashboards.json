@@ -1,0 +1,794 @@
+{
+  "_comment": "Fabrica de Agentes - Grafana Dashboards Configuration",
+  "_issue": "Issue #96: Stack de Metricas Prometheus/Grafana",
+  "dashboards": [
+    {
+      "name": "Fabrica de Agentes - Overview",
+      "uid": "fabrica-overview",
+      "dashboard": {
+        "annotations": {
+          "list": [
+            {
+              "builtIn": 1,
+              "datasource": "-- Grafana --",
+              "enable": true,
+              "hide": true,
+              "iconColor": "rgba(0, 211, 255, 1)",
+              "name": "Annotations & Alerts",
+              "type": "dashboard"
+            }
+          ]
+        },
+        "editable": true,
+        "gnetId": null,
+        "graphTooltip": 0,
+        "id": null,
+        "links": [],
+        "panels": [
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+            "id": 1,
+            "panels": [],
+            "title": "Service Health",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [
+                  { "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "green", "value": 1 }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+            "id": 2,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+              "textMode": "auto"
+            },
+            "pluginVersion": "9.0.0",
+            "targets": [
+              { "expr": "up{job=\"fabrica-api\"}", "refId": "A" }
+            ],
+            "title": "API Status",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 2 },
+                    { "color": "red", "value": 1 }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+            "id": 3,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+            },
+            "targets": [
+              { "expr": "count(up{job=\"fabrica-workers\"} == 1)", "refId": "A" }
+            ],
+            "title": "Active Workers",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.01 },
+                    { "color": "red", "value": 0.05 }
+                  ]
+                },
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+            "id": 4,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "center"
+            },
+            "targets": [
+              { "expr": "fabrica:api_error_rate:5m", "refId": "A" }
+            ],
+            "title": "Error Rate",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.5 },
+                    { "color": "red", "value": 2 }
+                  ]
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+            "id": 5,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "center"
+            },
+            "targets": [
+              { "expr": "fabrica:api_latency_p95:5m", "refId": "A" }
+            ],
+            "title": "P95 Latency",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null }
+                  ]
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+            "id": 6,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area"
+            },
+            "targets": [
+              { "expr": "sum(rate(http_requests_total{job=\"fabrica-api\"}[5m]))", "refId": "A" }
+            ],
+            "title": "Request Rate",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 50 },
+                    { "color": "red", "value": 100 }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+            "id": 7,
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area"
+            },
+            "targets": [
+              { "expr": "worker_jobs_pending", "refId": "A" }
+            ],
+            "title": "Pending Jobs",
+            "type": "stat"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+            "id": 10,
+            "panels": [],
+            "title": "API Performance",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "axisLabel": "",
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "showPoints": "never",
+                  "spanNulls": true
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+            "id": 11,
+            "options": {
+              "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+              "tooltip": { "mode": "multi" }
+            },
+            "targets": [
+              { "expr": "sum(rate(http_requests_total{job=\"fabrica-api\"}[5m])) by (status_code)", "legendFormat": "{{status_code}}", "refId": "A" }
+            ],
+            "title": "Request Rate by Status Code",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "axisLabel": "",
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "lineWidth": 1
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+            "id": 12,
+            "options": {
+              "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }
+            },
+            "targets": [
+              { "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{job=\"fabrica-api\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+              { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"fabrica-api\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+              { "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=\"fabrica-api\"}[5m])) by (le))", "legendFormat": "p99", "refId": "C" }
+            ],
+            "title": "Request Latency Percentiles",
+            "type": "timeseries"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+            "id": 20,
+            "panels": [],
+            "title": "Workers",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 20
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+            "id": 21,
+            "targets": [
+              { "expr": "sum(rate(worker_jobs_completed_total{status=\"success\"}[5m]))", "legendFormat": "Success", "refId": "A" },
+              { "expr": "sum(rate(worker_jobs_completed_total{status=\"failed\"}[5m]))", "legendFormat": "Failed", "refId": "B" }
+            ],
+            "title": "Worker Job Completion Rate",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
+            "id": 22,
+            "targets": [
+              { "expr": "histogram_quantile(0.5, sum(rate(worker_job_duration_seconds_bucket[5m])) by (le, worker_type))", "legendFormat": "{{worker_type}} p50", "refId": "A" },
+              { "expr": "histogram_quantile(0.95, sum(rate(worker_job_duration_seconds_bucket[5m])) by (le, worker_type))", "legendFormat": "{{worker_type}} p95", "refId": "B" }
+            ],
+            "title": "Job Duration by Worker Type",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "bars",
+                  "fillOpacity": 80
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+            "id": 23,
+            "targets": [
+              { "expr": "worker_jobs_pending", "legendFormat": "Pending", "refId": "A" },
+              { "expr": "worker_jobs_processing", "legendFormat": "Processing", "refId": "B" }
+            ],
+            "title": "Job Queue Status",
+            "type": "timeseries"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+            "id": 30,
+            "panels": [],
+            "title": "Database (PostgreSQL)",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+            "id": 31,
+            "targets": [
+              { "expr": "pg_stat_activity_count", "legendFormat": "Active Connections", "refId": "A" },
+              { "expr": "pg_settings_max_connections", "legendFormat": "Max Connections", "refId": "B" }
+            ],
+            "title": "PostgreSQL Connections",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+            "id": 32,
+            "targets": [
+              { "expr": "rate(pg_stat_database_tup_inserted[5m])", "legendFormat": "Inserts", "refId": "A" },
+              { "expr": "rate(pg_stat_database_tup_updated[5m])", "legendFormat": "Updates", "refId": "B" },
+              { "expr": "rate(pg_stat_database_tup_deleted[5m])", "legendFormat": "Deletes", "refId": "C" },
+              { "expr": "rate(pg_stat_database_tup_fetched[5m])", "legendFormat": "Fetches", "refId": "D" }
+            ],
+            "title": "PostgreSQL Operations",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+            "id": 33,
+            "targets": [
+              { "expr": "pg_replication_lag_seconds", "legendFormat": "Replication Lag", "refId": "A" }
+            ],
+            "title": "PostgreSQL Replication Lag",
+            "type": "timeseries"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+            "id": 40,
+            "panels": [],
+            "title": "Redis",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 20
+                },
+                "unit": "bytes"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 0, "y": 33 },
+            "id": 41,
+            "targets": [
+              { "expr": "redis_memory_used_bytes", "legendFormat": "Used", "refId": "A" },
+              { "expr": "redis_memory_max_bytes", "legendFormat": "Max", "refId": "B" }
+            ],
+            "title": "Redis Memory",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "ops"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 8, "y": 33 },
+            "id": 42,
+            "targets": [
+              { "expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "Commands/s", "refId": "A" }
+            ],
+            "title": "Redis Commands",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 16, "y": 33 },
+            "id": 43,
+            "targets": [
+              { "expr": "redis_connected_clients", "legendFormat": "Connected Clients", "refId": "A" },
+              { "expr": "redis_blocked_clients", "legendFormat": "Blocked Clients", "refId": "B" }
+            ],
+            "title": "Redis Clients",
+            "type": "timeseries"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+            "id": 50,
+            "panels": [],
+            "title": "Infrastructure",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 20
+                },
+                "unit": "percent",
+                "max": 100
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 0, "y": 42 },
+            "id": 51,
+            "targets": [
+              { "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}", "refId": "A" }
+            ],
+            "title": "CPU Usage",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 20
+                },
+                "unit": "bytes"
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 8, "y": 42 },
+            "id": 52,
+            "targets": [
+              { "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "legendFormat": "Used {{instance}}", "refId": "A" },
+              { "expr": "node_memory_MemTotal_bytes", "legendFormat": "Total {{instance}}", "refId": "B" }
+            ],
+            "title": "Memory Usage",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 20
+                },
+                "unit": "percent",
+                "max": 100
+              }
+            },
+            "gridPos": { "h": 8, "w": 8, "x": 16, "y": 42 },
+            "id": 53,
+            "targets": [
+              { "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100)", "legendFormat": "{{instance}}", "refId": "A" }
+            ],
+            "title": "Disk Usage",
+            "type": "timeseries"
+          }
+        ],
+        "refresh": "30s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "tags": ["fabrica-agentes", "overview"],
+        "templating": {
+          "list": []
+        },
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "timepicker": {},
+        "timezone": "browser",
+        "title": "Fabrica de Agentes - Overview",
+        "uid": "fabrica-overview",
+        "version": 1
+      }
+    },
+    {
+      "name": "Fabrica de Agentes - SLO Dashboard",
+      "uid": "fabrica-slo",
+      "dashboard": {
+        "panels": [
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+            "id": 1,
+            "title": "SLO Overview",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "yellow", "value": 99 },
+                    { "color": "green", "value": 99.5 }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+            "id": 2,
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "reduceOptions": { "calcs": ["lastNotNull"] }
+            },
+            "targets": [
+              { "expr": "(1 - fabrica:api_error_rate:5m) * 100", "refId": "A" }
+            ],
+            "title": "Availability SLO (Target: 99.5%)",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "yellow", "value": 95 },
+                    { "color": "green", "value": 99 }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+            "id": 3,
+            "targets": [
+              { "expr": "(sum(rate(http_request_duration_seconds_bucket{job=\"fabrica-api\",le=\"0.5\"}[1h])) / sum(rate(http_request_duration_seconds_count{job=\"fabrica-api\"}[1h]))) * 100", "refId": "A" }
+            ],
+            "title": "Latency SLO (< 500ms, Target: 99%)",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "yellow", "value": 95 },
+                    { "color": "green", "value": 99 }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+            "id": 4,
+            "targets": [
+              { "expr": "(sum(rate(worker_jobs_completed_total{status=\"success\"}[1h])) / sum(rate(worker_jobs_completed_total[1h]))) * 100", "refId": "A" }
+            ],
+            "title": "Worker Success Rate (Target: 99%)",
+            "type": "stat"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "yellow", "value": 0.001 },
+                    { "color": "red", "value": 0.005 }
+                  ]
+                },
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+            "id": 5,
+            "targets": [
+              { "expr": "1 - ((1 - fabrica:api_error_rate:5m) * 0.995)", "legendFormat": "Burn Rate", "refId": "A" }
+            ],
+            "title": "Error Budget Burn Rate",
+            "type": "stat"
+          },
+          {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+            "id": 10,
+            "title": "SLO Trends (30 days)",
+            "type": "row"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+            "id": 11,
+            "targets": [
+              { "expr": "1 - fabrica:api_error_rate:5m", "legendFormat": "Availability", "refId": "A" },
+              { "expr": "0.995", "legendFormat": "SLO Target (99.5%)", "refId": "B" }
+            ],
+            "title": "Availability Over Time",
+            "type": "timeseries"
+          },
+          {
+            "datasource": "Prometheus",
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "palette-classic" },
+                "custom": {
+                  "drawStyle": "line",
+                  "fillOpacity": 10
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+            "id": 12,
+            "targets": [
+              { "expr": "fabrica:api_latency_p50:5m", "legendFormat": "P50", "refId": "A" },
+              { "expr": "fabrica:api_latency_p95:5m", "legendFormat": "P95", "refId": "B" },
+              { "expr": "fabrica:api_latency_p99:5m", "legendFormat": "P99", "refId": "C" },
+              { "expr": "0.5", "legendFormat": "SLO Target (500ms)", "refId": "D" }
+            ],
+            "title": "Latency Percentiles Over Time",
+            "type": "timeseries"
+          }
+        ],
+        "refresh": "1m",
+        "schemaVersion": 36,
+        "tags": ["fabrica-agentes", "slo"],
+        "time": {
+          "from": "now-7d",
+          "to": "now"
+        },
+        "title": "Fabrica de Agentes - SLO Dashboard",
+        "uid": "fabrica-slo",
+        "version": 1
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "Prometheus",
+      "type": "prometheus",
+      "url": "http://prometheus-server.monitoring.svc.cluster.local:9090",
+      "access": "proxy",
+      "isDefault": true
+    }
+  ],
+  "alertNotificationChannels": [
+    {
+      "name": "Slack Alerts",
+      "type": "slack",
+      "settings": {
+        "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+        "recipient": "#alerts-fabrica"
+      }
+    },
+    {
+      "name": "PagerDuty",
+      "type": "pagerduty",
+      "settings": {
+        "integrationKey": "YOUR_PAGERDUTY_KEY"
+      }
+    }
+  ]
+}

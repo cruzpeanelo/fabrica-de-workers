@@ -1305,6 +1305,403 @@ class AuditLogger:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    # -------------------------------------------------------------------------
+    # SIEM Export Methods
+    # -------------------------------------------------------------------------
+
+    def export_to_siem(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        format: str = "json",
+        siem_config: Optional[SIEMExportConfig] = None
+    ) -> Dict[str, Any]:
+        """
+        Export audit logs to SIEM system.
+
+        Args:
+            start_date: Start of date range
+            end_date: End of date range
+            format: Export format (json, cef, syslog)
+            siem_config: Optional SIEM configuration override
+
+        Returns:
+            Export result with count and status
+        """
+        try:
+            from factory.database.audit_models import AuditLogEntry
+
+            if SessionLocal is None:
+                return {"success": False, "error": "Database not available"}
+
+            db = SessionLocal()
+            try:
+                logs = db.query(AuditLogEntry).filter(
+                    AuditLogEntry.timestamp >= start_date,
+                    AuditLogEntry.timestamp <= end_date
+                ).order_by(AuditLogEntry.timestamp.asc()).all()
+
+                # Convert to AuditEntry objects
+                entries = []
+                for log in logs:
+                    entry = AuditEntry(
+                        audit_id=log.audit_id,
+                        timestamp=log.timestamp,
+                        user_id=log.user_id,
+                        username=log.username,
+                        tenant_id=log.tenant_id,
+                        session_id=log.session_id,
+                        category=log.category,
+                        action=log.action,
+                        severity=log.severity,
+                        resource_type=log.resource_type,
+                        resource_id=log.resource_id,
+                        ip_address=log.ip_address,
+                        user_agent=log.user_agent,
+                        request_id=log.request_id,
+                        endpoint=log.endpoint,
+                        method=log.method,
+                        success=log.success,
+                        error_code=log.error_code,
+                        error_message=log.error_message,
+                        details=log.details or {},
+                        changes=log.changes,
+                        checksum=log.checksum,
+                        previous_checksum=log.previous_checksum
+                    )
+                    entries.append(entry)
+
+                # Export using provided config or default exporter
+                exporter = SIEMExporter(siem_config) if siem_config else self._siem_exporter
+                if exporter is None:
+                    exporter = SIEMExporter()
+
+                for entry in entries:
+                    exporter.export(entry)
+
+                # Flush immediately
+                exporter._flush_batch()
+
+                return {
+                    "success": True,
+                    "exported_count": len(entries),
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat(),
+                    "format": format
+                }
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def export_for_download(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        format: str = "json",
+        category: Optional[str] = None,
+        user_id: Optional[int] = None
+    ) -> bytes:
+        """
+        Export audit logs for download (compliance reports).
+
+        Args:
+            start_date: Start of date range
+            end_date: End of date range
+            format: Export format (json, csv, cef)
+            category: Optional category filter
+            user_id: Optional user filter
+
+        Returns:
+            Gzipped bytes of the export
+        """
+        try:
+            from factory.database.audit_models import AuditLogEntry
+
+            if SessionLocal is None:
+                return b""
+
+            db = SessionLocal()
+            try:
+                query = db.query(AuditLogEntry).filter(
+                    AuditLogEntry.timestamp >= start_date,
+                    AuditLogEntry.timestamp <= end_date
+                )
+
+                if category:
+                    query = query.filter(AuditLogEntry.category == category)
+                if user_id:
+                    query = query.filter(AuditLogEntry.user_id == user_id)
+
+                logs = query.order_by(AuditLogEntry.timestamp.asc()).all()
+
+                # Convert to AuditEntry objects
+                entries = []
+                for log in logs:
+                    entry = AuditEntry(
+                        audit_id=log.audit_id,
+                        timestamp=log.timestamp,
+                        user_id=log.user_id,
+                        username=log.username,
+                        tenant_id=log.tenant_id,
+                        session_id=log.session_id,
+                        category=log.category,
+                        action=log.action,
+                        severity=log.severity,
+                        resource_type=log.resource_type,
+                        resource_id=log.resource_id,
+                        ip_address=log.ip_address,
+                        user_agent=log.user_agent,
+                        request_id=log.request_id,
+                        endpoint=log.endpoint,
+                        method=log.method,
+                        success=log.success,
+                        error_code=log.error_code,
+                        error_message=log.error_message,
+                        details=log.details or {},
+                        changes=log.changes,
+                        checksum=log.checksum,
+                        previous_checksum=log.previous_checksum
+                    )
+                    entries.append(entry)
+
+                # Use SIEMExporter's batch export
+                exporter = SIEMExporter()
+                return exporter.export_batch(entries, format)
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            print(f"[AuditLogger] Export error: {e}")
+            return b""
+
+    def archive_old_logs(self, days: int = None) -> Dict[str, Any]:
+        """
+        Archive logs older than specified days to cold storage.
+
+        Moves logs to archive table with compression.
+        """
+        if days is None:
+            days = AUDIT_ARCHIVE_DAYS
+
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+
+        try:
+            from factory.database.audit_models import AuditLogEntry, AuditLogArchive
+
+            if SessionLocal is None:
+                return {"success": False, "error": "Database not available"}
+
+            db = SessionLocal()
+            try:
+                # Get logs to archive
+                logs = db.query(AuditLogEntry).filter(
+                    AuditLogEntry.timestamp < cutoff_date
+                ).all()
+
+                if not logs:
+                    return {"success": True, "archived_count": 0}
+
+                # Create archive batch ID
+                batch_id = f"ARCH-{uuid.uuid4().hex[:8].upper()}"
+
+                # Archive each log
+                archived_count = 0
+                for log in logs:
+                    archive_entry = AuditLogArchive(
+                        audit_id=log.audit_id,
+                        original_timestamp=log.timestamp,
+                        data=log.to_dict(),
+                        archive_batch=batch_id,
+                        checksum=log.checksum
+                    )
+                    db.add(archive_entry)
+                    db.delete(log)
+                    archived_count += 1
+
+                db.commit()
+
+                return {
+                    "success": True,
+                    "archived_count": archived_count,
+                    "batch_id": batch_id,
+                    "cutoff_date": cutoff_date.isoformat()
+                }
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def get_gdpr_data_subject_logs(
+        self,
+        data_subject_id: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all audit logs related to a specific data subject (GDPR compliance).
+
+        Used for Data Subject Access Requests (DSAR).
+
+        Args:
+            data_subject_id: ID of the data subject
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of audit log entries for the data subject
+        """
+        try:
+            from factory.database.audit_models import AuditLogEntry
+
+            if SessionLocal is None:
+                return []
+
+            db = SessionLocal()
+            try:
+                query = db.query(AuditLogEntry).filter(
+                    AuditLogEntry.details.contains({"data_subject_id": data_subject_id})
+                )
+
+                if start_date:
+                    query = query.filter(AuditLogEntry.timestamp >= start_date)
+                if end_date:
+                    query = query.filter(AuditLogEntry.timestamp <= end_date)
+
+                logs = query.order_by(AuditLogEntry.timestamp.desc()).all()
+                return [log.to_dict() for log in logs]
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            print(f"[AuditLogger] GDPR query error: {e}")
+            return []
+
+    def generate_compliance_report(
+        self,
+        report_type: str,
+        start_date: datetime,
+        end_date: datetime,
+        tenant_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate a compliance report for SOC2/GDPR audits.
+
+        Args:
+            report_type: Type of report (soc2, gdpr, iso27001)
+            start_date: Report period start
+            end_date: Report period end
+            tenant_id: Optional tenant filter
+
+        Returns:
+            Compliance report with statistics and findings
+        """
+        try:
+            from factory.database.audit_models import AuditLogEntry, ComplianceReport
+
+            if SessionLocal is None:
+                return {"success": False, "error": "Database not available"}
+
+            db = SessionLocal()
+            try:
+                # Build query
+                query = db.query(AuditLogEntry).filter(
+                    AuditLogEntry.timestamp >= start_date,
+                    AuditLogEntry.timestamp <= end_date
+                )
+
+                if tenant_id:
+                    query = query.filter(AuditLogEntry.tenant_id == tenant_id)
+
+                logs = query.all()
+
+                # Calculate statistics
+                total_events = len(logs)
+                auth_events = sum(1 for l in logs if l.category == "authentication")
+                security_events = sum(1 for l in logs if l.category == "security")
+                failed_events = sum(1 for l in logs if not l.success)
+                critical_events = sum(1 for l in logs if l.severity == "critical")
+
+                # Group by category
+                category_counts = {}
+                for log in logs:
+                    cat = log.category
+                    category_counts[cat] = category_counts.get(cat, 0) + 1
+
+                # Find potential issues
+                findings = []
+
+                # Check for brute force patterns
+                failed_logins = [l for l in logs if l.action == "login_failure"]
+                if len(failed_logins) > 10:
+                    findings.append({
+                        "severity": "warning",
+                        "finding": f"High number of failed login attempts: {len(failed_logins)}",
+                        "recommendation": "Review failed login patterns for potential brute force attacks"
+                    })
+
+                # Check for privilege escalation
+                priv_events = [l for l in logs if l.action == "privilege_escalation"]
+                if priv_events:
+                    findings.append({
+                        "severity": "critical",
+                        "finding": f"Privilege escalation attempts detected: {len(priv_events)}",
+                        "recommendation": "Immediately investigate these events"
+                    })
+
+                # Generate report
+                report_id = f"RPT-{uuid.uuid4().hex[:8].upper()}"
+                report = {
+                    "report_id": report_id,
+                    "report_type": report_type,
+                    "period": {
+                        "start": start_date.isoformat(),
+                        "end": end_date.isoformat()
+                    },
+                    "tenant_id": tenant_id,
+                    "summary": {
+                        "total_events": total_events,
+                        "authentication_events": auth_events,
+                        "security_events": security_events,
+                        "failed_events": failed_events,
+                        "critical_events": critical_events
+                    },
+                    "category_breakdown": category_counts,
+                    "findings": findings,
+                    "compliance_status": "compliant" if not critical_events else "review_required",
+                    "generated_at": datetime.utcnow().isoformat()
+                }
+
+                # Save report to database
+                db_report = ComplianceReport(
+                    report_id=report_id,
+                    report_type=report_type,
+                    title=f"{report_type.upper()} Compliance Report",
+                    period_start=start_date,
+                    period_end=end_date,
+                    tenant_id=tenant_id,
+                    summary=report["summary"],
+                    findings=findings,
+                    statistics=category_counts,
+                    status="generated"
+                )
+                db.add(db_report)
+                db.commit()
+
+                return report
+
+            finally:
+                db.close()
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
 
 # =============================================================================
 # DECORATOR FOR AUTOMATIC AUDIT LOGGING
@@ -1542,6 +1939,7 @@ __all__ = [
     # Core
     "AuditLogger",
     "get_audit_logger",
+    "SIEMExporter",
 
     # Enums
     "AuditCategory",
@@ -1551,10 +1949,18 @@ __all__ = [
     # Models
     "AuditEntry",
     "AuditQuery",
+    "RetentionPolicy",
+    "SIEMExportConfig",
 
     # Decorator
     "audit_log",
 
     # Middleware
     "AuditMiddleware",
+
+    # Configuration
+    "RETENTION_CONFIG",
+    "SIEM_ENABLED",
+    "AUDIT_RETENTION_DAYS",
+    "AUDIT_ARCHIVE_DAYS",
 ]

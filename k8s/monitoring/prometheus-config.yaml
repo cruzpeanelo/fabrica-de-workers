@@ -1,0 +1,931 @@
+# =============================================================================
+# Fabrica de Agentes - Prometheus Monitoring Stack
+# =============================================================================
+# Issue #96: Stack de Metricas Prometheus/Grafana
+#
+# Este arquivo configura:
+#   - Prometheus Server com scraping de metricas
+#   - Alertmanager para alertas
+#   - ServiceMonitors para auto-discovery
+#   - PrometheusRules para SLOs
+#
+# Deploy:
+#   kubectl apply -f k8s/monitoring/prometheus-config.yaml
+#
+# Acesso:
+#   kubectl port-forward svc/prometheus-server 9090:9090 -n monitoring
+# =============================================================================
+
+---
+# =============================================================================
+# Namespace
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: fabrica-agentes
+
+---
+# =============================================================================
+# Prometheus ConfigMap - Configuracao principal
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: server
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'fabrica-agentes'
+        environment: 'production'
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager:9093
+
+    # Rule files
+    rule_files:
+      - /etc/prometheus/rules/*.yaml
+
+    # Scrape configurations
+    scrape_configs:
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # Kubernetes API server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # Kubernetes nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+
+      # Kubernetes node cAdvisor
+      - job_name: 'kubernetes-cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      # Kubernetes pods with prometheus.io annotations
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      # Kubernetes services
+      - job_name: 'kubernetes-services'
+        kubernetes_sd_configs:
+          - role: service
+        metrics_path: /metrics
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_name
+
+      # Fabrica de Agentes API
+      - job_name: 'fabrica-api'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - fabrica-agentes
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: fabrica-api
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: service
+
+      # Fabrica Workers
+      - job_name: 'fabrica-workers'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - fabrica-agentes
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: fabrica-workers
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+      # PostgreSQL
+      - job_name: 'postgresql'
+        static_configs:
+          - targets: ['postgres-exporter:9187']
+        relabel_configs:
+          - target_label: service
+            replacement: postgresql
+
+      # Redis
+      - job_name: 'redis'
+        static_configs:
+          - targets: ['redis-exporter:9121']
+        relabel_configs:
+          - target_label: service
+            replacement: redis
+
+      # Node Exporter
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_endpoints_name]
+            action: keep
+            regex: node-exporter
+
+  # Recording rules for performance
+  recording_rules.yaml: |
+    groups:
+      - name: fabrica-recording-rules
+        interval: 30s
+        rules:
+          # API request rate
+          - record: fabrica:api_requests:rate5m
+            expr: sum(rate(http_requests_total{job="fabrica-api"}[5m])) by (method, status_code, endpoint)
+
+          # API latency percentiles
+          - record: fabrica:api_latency_p50:5m
+            expr: histogram_quantile(0.5, sum(rate(http_request_duration_seconds_bucket{job="fabrica-api"}[5m])) by (le, endpoint))
+
+          - record: fabrica:api_latency_p95:5m
+            expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="fabrica-api"}[5m])) by (le, endpoint))
+
+          - record: fabrica:api_latency_p99:5m
+            expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="fabrica-api"}[5m])) by (le, endpoint))
+
+          # Error rate
+          - record: fabrica:api_error_rate:5m
+            expr: sum(rate(http_requests_total{job="fabrica-api",status_code=~"5.."}[5m])) / sum(rate(http_requests_total{job="fabrica-api"}[5m]))
+
+          # Worker job rates
+          - record: fabrica:worker_jobs_completed:rate5m
+            expr: sum(rate(worker_jobs_completed_total[5m])) by (worker_type, status)
+
+          # Active workers
+          - record: fabrica:workers_active:count
+            expr: count(up{job="fabrica-workers"} == 1)
+
+          # Database connections
+          - record: fabrica:db_connections:current
+            expr: pg_stat_activity_count
+
+          # Redis memory
+          - record: fabrica:redis_memory_used:bytes
+            expr: redis_memory_used_bytes
+
+---
+# =============================================================================
+# Prometheus Alert Rules
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: rules
+data:
+  alerts.yaml: |
+    groups:
+      # =======================================================================
+      # SLO Alerts - Availability
+      # =======================================================================
+      - name: slo-availability
+        rules:
+          - alert: FactoryAPIHighErrorRate
+            expr: fabrica:api_error_rate:5m > 0.01
+            for: 5m
+            labels:
+              severity: warning
+              slo: availability
+            annotations:
+              summary: "API error rate above 1%"
+              description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/high-error-rate"
+
+          - alert: FactoryAPIHighErrorRateCritical
+            expr: fabrica:api_error_rate:5m > 0.05
+            for: 2m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "API error rate above 5% - SLO breach"
+              description: "Error rate is {{ $value | humanizePercentage }}. Immediate action required."
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/high-error-rate"
+
+          - alert: FactoryAPIDown
+            expr: up{job="fabrica-api"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "Fabrica API is down"
+              description: "API instance {{ $labels.instance }} is not responding"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/api-down"
+
+      # =======================================================================
+      # SLO Alerts - Latency
+      # =======================================================================
+      - name: slo-latency
+        rules:
+          - alert: FactoryAPIHighLatency
+            expr: fabrica:api_latency_p95:5m > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              slo: latency
+            annotations:
+              summary: "API P95 latency above 500ms"
+              description: "P95 latency is {{ $value | humanizeDuration }} for endpoint {{ $labels.endpoint }}"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/high-latency"
+
+          - alert: FactoryAPIHighLatencyCritical
+            expr: fabrica:api_latency_p99:5m > 2
+            for: 2m
+            labels:
+              severity: critical
+              slo: latency
+            annotations:
+              summary: "API P99 latency above 2s - SLO breach"
+              description: "P99 latency is {{ $value | humanizeDuration }}. Performance severely degraded."
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/high-latency"
+
+      # =======================================================================
+      # Worker Alerts
+      # =======================================================================
+      - name: worker-alerts
+        rules:
+          - alert: NoActiveWorkers
+            expr: fabrica:workers_active:count == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "No active workers available"
+              description: "All workers are down. Job processing is halted."
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/no-workers"
+
+          - alert: WorkerJobFailureRate
+            expr: sum(rate(worker_jobs_completed_total{status="failed"}[5m])) / sum(rate(worker_jobs_completed_total[5m])) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Worker job failure rate above 10%"
+              description: "{{ $value | humanizePercentage }} of jobs are failing"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/worker-failures"
+
+          - alert: WorkerJobQueueBacklog
+            expr: worker_jobs_pending > 100
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Job queue backlog growing"
+              description: "{{ $value }} jobs pending. Consider scaling workers."
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/queue-backlog"
+
+      # =======================================================================
+      # Database Alerts
+      # =======================================================================
+      - name: database-alerts
+        rules:
+          - alert: PostgresDown
+            expr: pg_up == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "PostgreSQL is down"
+              description: "PostgreSQL instance {{ $labels.instance }} is not responding"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/postgres-down"
+
+          - alert: PostgresHighConnections
+            expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PostgreSQL connection usage above 80%"
+              description: "{{ $value | humanizePercentage }} of max connections in use"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/postgres-connections"
+
+          - alert: PostgresSlowQueries
+            expr: rate(pg_stat_statements_seconds_total[5m]) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PostgreSQL slow queries detected"
+              description: "Query {{ $labels.query }} averaging {{ $value | humanizeDuration }}"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/slow-queries"
+
+          - alert: PostgresReplicationLag
+            expr: pg_replication_lag_seconds > 30
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PostgreSQL replication lag"
+              description: "Replication lag is {{ $value | humanizeDuration }}"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/replication-lag"
+
+      # =======================================================================
+      # Redis Alerts
+      # =======================================================================
+      - name: redis-alerts
+        rules:
+          - alert: RedisDown
+            expr: redis_up == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Redis is down"
+              description: "Redis instance {{ $labels.instance }} is not responding"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/redis-down"
+
+          - alert: RedisHighMemoryUsage
+            expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Redis memory usage above 90%"
+              description: "Redis is using {{ $value | humanizePercentage }} of max memory"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/redis-memory"
+
+          - alert: RedisRejectedConnections
+            expr: rate(redis_rejected_connections_total[5m]) > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Redis rejecting connections"
+              description: "{{ $value }} connections rejected per second"
+              runbook_url: "https://docs.fabrica-agentes.com/runbooks/redis-connections"
+
+      # =======================================================================
+      # Infrastructure Alerts
+      # =======================================================================
+      - name: infrastructure-alerts
+        rules:
+          - alert: HighCPUUsage
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on {{ $labels.instance }}"
+              description: "CPU usage is {{ $value }}%"
+
+          - alert: HighMemoryUsage
+            expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage on {{ $labels.instance }}"
+              description: "Memory usage is {{ $value | humanizePercentage }}"
+
+          - alert: DiskSpaceLow
+            expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low disk space on {{ $labels.instance }}"
+              description: "Only {{ $value | humanizePercentage }} disk space remaining on {{ $labels.mountpoint }}"
+
+          - alert: DiskSpaceCritical
+            expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.05
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Critical disk space on {{ $labels.instance }}"
+              description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+      # =======================================================================
+      # Kubernetes Alerts
+      # =======================================================================
+      - name: kubernetes-alerts
+        rules:
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total{namespace="fabrica-agentes"}[15m]) > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.pod }} is crash looping"
+              description: "Pod has restarted {{ $value }} times in the last 15 minutes"
+
+          - alert: PodNotReady
+            expr: kube_pod_status_ready{namespace="fabrica-agentes",condition="true"} == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.pod }} is not ready"
+              description: "Pod has been in non-ready state for 5 minutes"
+
+          - alert: DeploymentReplicasMismatch
+            expr: kube_deployment_spec_replicas{namespace="fabrica-agentes"} != kube_deployment_status_replicas_available{namespace="fabrica-agentes"}
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.deployment }} replicas mismatch"
+              description: "Expected {{ $labels.spec_replicas }} replicas, but only {{ $labels.status_replicas }} available"
+
+          - alert: PVCAlmostFull
+            expr: kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes > 0.85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PVC {{ $labels.persistentvolumeclaim }} almost full"
+              description: "PVC is {{ $value | humanizePercentage }} full"
+
+---
+# =============================================================================
+# Prometheus Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-server
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+        app.kubernetes.io/component: server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: prometheus
+      securityContext:
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.48.0
+          imagePullPolicy: IfNotPresent
+
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=15d
+            - --storage.tsdb.retention.size=10GB
+            - --web.console.libraries=/etc/prometheus/console_libraries
+            - --web.console.templates=/etc/prometheus/consoles
+            - --web.enable-lifecycle
+            - --web.enable-admin-api
+
+          ports:
+            - name: http
+              containerPort: 9090
+              protocol: TCP
+
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 4
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+            - name: rules-volume
+              mountPath: /etc/prometheus/rules
+            - name: storage-volume
+              mountPath: /prometheus
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+        - name: rules-volume
+          configMap:
+            name: prometheus-rules
+        - name: storage-volume
+          persistentVolumeClaim:
+            claimName: prometheus-storage
+
+---
+# =============================================================================
+# Prometheus Service
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-server
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: server
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+  selector:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: server
+
+---
+# =============================================================================
+# Prometheus PVC
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-storage
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+
+---
+# =============================================================================
+# Prometheus ServiceAccount and RBAC
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["get"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring
+
+---
+# =============================================================================
+# Alertmanager ConfigMap
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.example.com:587'
+      smtp_from: 'alertmanager@fabrica-agentes.com'
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+    route:
+      group_by: ['alertname', 'severity', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+      routes:
+        # Critical alerts go to PagerDuty
+        - match:
+            severity: critical
+          receiver: 'pagerduty-critical'
+          continue: true
+
+        # All alerts to Slack
+        - match_re:
+            severity: warning|critical
+          receiver: 'slack-notifications'
+          continue: true
+
+        # SLO alerts special handling
+        - match:
+            slo: availability
+          receiver: 'slo-availability'
+          group_wait: 10s
+
+    receivers:
+      - name: 'default-receiver'
+        email_configs:
+          - to: 'devops@fabrica-agentes.com'
+            send_resolved: true
+
+      - name: 'pagerduty-critical'
+        pagerduty_configs:
+          - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+            severity: critical
+            description: '{{ .CommonAnnotations.summary }}'
+            details:
+              firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
+              resolved: '{{ template "pagerduty.default.instances" .Alerts.Resolved }}'
+
+      - name: 'slack-notifications'
+        slack_configs:
+          - channel: '#alerts-fabrica'
+            send_resolved: true
+            icon_emoji: ':warning:'
+            title: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }}'
+            text: >-
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Runbook:* {{ .Annotations.runbook_url }}
+              {{ end }}
+
+      - name: 'slo-availability'
+        slack_configs:
+          - channel: '#slo-alerts'
+            send_resolved: true
+            icon_emoji: ':rotating_light:'
+            title: 'SLO ALERT: {{ .CommonLabels.alertname }}'
+            text: >-
+              {{ range .Alerts }}
+              *SLO:* {{ .Labels.slo }}
+              *Summary:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'namespace']
+
+---
+# =============================================================================
+# Alertmanager Deployment
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alertmanager
+    spec:
+      securityContext:
+        fsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.26.0
+          imagePullPolicy: IfNotPresent
+
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+            - --web.external-url=http://alertmanager.fabrica-agentes.com
+
+          ports:
+            - name: http
+              containerPort: 9093
+
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/alertmanager
+            - name: storage-volume
+              mountPath: /alertmanager
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alertmanager-config
+        - name: storage-volume
+          emptyDir: {}
+
+---
+# =============================================================================
+# Alertmanager Service
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 9093
+      targetPort: 9093
+  selector:
+    app.kubernetes.io/name: alertmanager

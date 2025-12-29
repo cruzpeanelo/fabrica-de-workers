@@ -90,6 +90,48 @@ except ImportError:
     HAS_RBAC = False
 
 # =============================================================================
+# SAML VALIDATOR IMPORTS (Issue #84)
+# =============================================================================
+try:
+    from .saml_validator import (
+        SAMLValidator,
+        SAMLValidationResult,
+        SAMLCertificateConfig,
+        SAMLAssertion,
+        ValidationStatus,
+        create_saml_validator
+    )
+    HAS_SAML_VALIDATOR = True
+except ImportError as e:
+    print(f"[Auth] SAML Validator not available: {e}")
+    HAS_SAML_VALIDATOR = False
+
+# =============================================================================
+# ABAC IMPORTS (Issue #85)
+# =============================================================================
+try:
+    from .abac import (
+        ABACEngine,
+        ABACContext,
+        Policy,
+        Condition,
+        EvaluationResult,
+        Effect,
+        ConditionOperator,
+        AttributeSource,
+        require_permission as abac_require_permission,
+        require_resource_owner,
+        check_permission as abac_check_permission,
+        get_abac_engine,
+        set_abac_engine,
+        abac_router
+    )
+    HAS_ABAC = True
+except ImportError as e:
+    print(f"[Auth] ABAC module not available: {e}")
+    HAS_ABAC = False
+
+# =============================================================================
 # EXPORTS
 # =============================================================================
 __all__ = [
@@ -97,7 +139,9 @@ __all__ = [
     'HAS_MFA',
     'HAS_OAUTH2',
     'HAS_SSO',
-    'HAS_RBAC'
+    'HAS_RBAC',
+    'HAS_SAML_VALIDATOR',
+    'HAS_ABAC'
 ]
 
 # Add MFA exports if available
@@ -156,4 +200,34 @@ if HAS_RBAC:
         'RESOURCES',
         'ACTIONS',
         'UserContext'
+    ])
+
+# Add SAML Validator exports if available (Issue #84)
+if HAS_SAML_VALIDATOR:
+    __all__.extend([
+        'SAMLValidator',
+        'SAMLValidationResult',
+        'SAMLCertificateConfig',
+        'SAMLAssertion',
+        'ValidationStatus',
+        'create_saml_validator'
+    ])
+
+# Add ABAC exports if available (Issue #85)
+if HAS_ABAC:
+    __all__.extend([
+        'ABACEngine',
+        'ABACContext',
+        'Policy',
+        'Condition',
+        'EvaluationResult',
+        'Effect',
+        'ConditionOperator',
+        'AttributeSource',
+        'abac_require_permission',
+        'require_resource_owner',
+        'abac_check_permission',
+        'get_abac_engine',
+        'set_abac_engine',
+        'abac_router'
     ])

@@ -1,0 +1,487 @@
+# =============================================================================
+# Fabrica de Agentes - Velero Backup Schedules
+# =============================================================================
+# Issue #97: Backup Automatizado Database e PVCs
+#
+# Este arquivo configura:
+#   - Schedules de backup automatico com Velero
+#   - Backup de PVCs (Persistent Volume Claims)
+#   - Retencao configuravel por tipo de backup
+#   - Labels para organizacao de backups
+#
+# Pre-requisitos:
+#   1. Velero instalado no cluster
+#   2. Plugin de cloud storage configurado (AWS/Azure/GCP)
+#   3. BackupStorageLocation configurado
+#
+# Instalacao do Velero:
+#   velero install \
+#     --provider aws \
+#     --plugins velero/velero-plugin-for-aws:v1.8.0 \
+#     --bucket fabrica-agentes-velero-backups \
+#     --backup-location-config region=us-east-1 \
+#     --secret-file ./credentials-velero \
+#     --use-volume-snapshots=true \
+#     --snapshot-location-config region=us-east-1
+#
+# Deploy:
+#   kubectl apply -f k8s/backup/velero-schedule.yaml
+#
+# Verificar:
+#   velero schedule get
+#   velero backup get
+# =============================================================================
+
+---
+# =============================================================================
+# BackupStorageLocation - Destino dos backups
+# =============================================================================
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+spec:
+  provider: aws
+  objectStorage:
+    bucket: fabrica-agentes-velero-backups
+    prefix: backups
+  config:
+    region: us-east-1
+    s3ForcePathStyle: "false"
+    s3Url: https://s3.us-east-1.amazonaws.com
+  accessMode: ReadWrite
+  default: true
+
+---
+# =============================================================================
+# VolumeSnapshotLocation - Snapshots de volumes
+# =============================================================================
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: default
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+spec:
+  provider: aws
+  config:
+    region: us-east-1
+
+---
+# =============================================================================
+# Schedule: Backup Diario Completo (2:00 AM UTC)
+# =============================================================================
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fabrica-daily-full
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+    backup-type: daily
+spec:
+  # Executar diariamente as 2:00 AM UTC
+  schedule: "0 2 * * *"
+
+  # Pausar schedule se necessario
+  paused: false
+
+  # Template do backup
+  template:
+    # Namespaces a incluir
+    includedNamespaces:
+      - fabrica-agentes
+
+    # Recursos a incluir (todos por padrao)
+    includedResources:
+      - '*'
+
+    # Excluir recursos temporarios
+    excludedResources:
+      - events
+      - events.events.k8s.io
+
+    # Incluir PVCs
+    snapshotVolumes: true
+
+    # Metodo de backup de volumes
+    defaultVolumesToFsBackup: false
+
+    # TTL - retencao de 30 dias
+    ttl: 720h  # 30 dias
+
+    # Labels para o backup
+    metadata:
+      labels:
+        backup-schedule: daily-full
+        environment: production
+
+    # Hooks para consistencia
+    hooks:
+      resources:
+        # Pre-backup: flush Redis
+        - name: redis-flush
+          includedNamespaces:
+            - fabrica-agentes
+          labelSelector:
+            matchLabels:
+              app: redis
+          pre:
+            - exec:
+                container: redis
+                command:
+                  - /bin/sh
+                  - -c
+                  - redis-cli BGSAVE && sleep 5
+                onError: Continue
+                timeout: 60s
+
+        # Pre-backup: PostgreSQL checkpoint
+        - name: postgres-checkpoint
+          includedNamespaces:
+            - fabrica-agentes
+          labelSelector:
+            matchLabels:
+              app: postgresql
+          pre:
+            - exec:
+                container: postgresql
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    psql -U postgres -c "CHECKPOINT;"
+                    psql -U postgres -c "SELECT pg_switch_wal();" || true
+                onError: Continue
+                timeout: 120s
+
+    # Storage location
+    storageLocation: default
+
+    # Snapshot location
+    volumeSnapshotLocations:
+      - default
+
+---
+# =============================================================================
+# Schedule: Backup Semanal com Retencao Longa (Domingo 3:00 AM UTC)
+# =============================================================================
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fabrica-weekly-retention
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+    backup-type: weekly
+spec:
+  # Executar aos domingos as 3:00 AM UTC
+  schedule: "0 3 * * 0"
+  paused: false
+
+  template:
+    includedNamespaces:
+      - fabrica-agentes
+
+    includedResources:
+      - '*'
+
+    excludedResources:
+      - events
+      - events.events.k8s.io
+
+    snapshotVolumes: true
+    defaultVolumesToFsBackup: false
+
+    # Retencao de 90 dias para backups semanais
+    ttl: 2160h  # 90 dias
+
+    metadata:
+      labels:
+        backup-schedule: weekly-retention
+        environment: production
+        retention: long-term
+
+    hooks:
+      resources:
+        - name: postgres-checkpoint
+          includedNamespaces:
+            - fabrica-agentes
+          labelSelector:
+            matchLabels:
+              app: postgresql
+          pre:
+            - exec:
+                container: postgresql
+                command:
+                  - /bin/sh
+                  - -c
+                  - psql -U postgres -c "CHECKPOINT;"
+                onError: Continue
+                timeout: 120s
+
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+
+---
+# =============================================================================
+# Schedule: Backup Mensal Arquivado (Dia 1 as 4:00 AM UTC)
+# =============================================================================
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fabrica-monthly-archive
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+    backup-type: monthly
+spec:
+  # Executar no dia 1 de cada mes as 4:00 AM UTC
+  schedule: "0 4 1 * *"
+  paused: false
+
+  template:
+    includedNamespaces:
+      - fabrica-agentes
+
+    includedResources:
+      - '*'
+
+    excludedResources:
+      - events
+      - events.events.k8s.io
+
+    snapshotVolumes: true
+    defaultVolumesToFsBackup: true  # Backup file-level para arquivo
+
+    # Retencao de 1 ano para backups mensais
+    ttl: 8760h  # 365 dias
+
+    metadata:
+      labels:
+        backup-schedule: monthly-archive
+        environment: production
+        retention: archive
+
+    hooks:
+      resources:
+        - name: postgres-full-backup
+          includedNamespaces:
+            - fabrica-agentes
+          labelSelector:
+            matchLabels:
+              app: postgresql
+          pre:
+            - exec:
+                container: postgresql
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Preparando backup mensal completo..."
+                    psql -U postgres -c "CHECKPOINT;"
+                    psql -U postgres -c "VACUUM ANALYZE;"
+                onError: Continue
+                timeout: 300s
+
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+
+---
+# =============================================================================
+# Schedule: Backup de Configuracoes (6h em 6h)
+# =============================================================================
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fabrica-config-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+    backup-type: config
+spec:
+  # Executar a cada 6 horas
+  schedule: "0 */6 * * *"
+  paused: false
+
+  template:
+    includedNamespaces:
+      - fabrica-agentes
+
+    # Apenas configuracoes, sem volumes
+    includedResources:
+      - configmaps
+      - secrets
+      - services
+      - deployments
+      - statefulsets
+      - ingresses
+      - networkpolicies
+      - serviceaccounts
+      - roles
+      - rolebindings
+
+    # Sem snapshots de volume
+    snapshotVolumes: false
+    defaultVolumesToFsBackup: false
+
+    # Retencao de 7 dias
+    ttl: 168h  # 7 dias
+
+    metadata:
+      labels:
+        backup-schedule: config-backup
+        environment: production
+        type: configuration
+
+    storageLocation: default
+
+---
+# =============================================================================
+# Schedule: Backup Pre-Deploy (para CI/CD)
+# =============================================================================
+# Este schedule e pausado por padrao e deve ser trigado pelo CI/CD
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: fabrica-pre-deploy
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/part-of: fabrica-agentes
+    backup-type: pre-deploy
+spec:
+  # Nunca executa automaticamente (trigado pelo CI/CD)
+  schedule: "0 0 31 2 *"  # 31 de fevereiro = nunca
+  paused: true
+
+  template:
+    includedNamespaces:
+      - fabrica-agentes
+
+    includedResources:
+      - '*'
+
+    excludedResources:
+      - events
+      - events.events.k8s.io
+
+    snapshotVolumes: true
+    defaultVolumesToFsBackup: false
+
+    # Retencao de 24 horas
+    ttl: 24h
+
+    metadata:
+      labels:
+        backup-schedule: pre-deploy
+        environment: production
+        triggered-by: ci-cd
+
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+
+---
+# =============================================================================
+# ConfigMap: Scripts de Backup Helper
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: velero-helper-scripts
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+data:
+  # Script para trigger backup pre-deploy
+  trigger-pre-deploy.sh: |
+    #!/bin/bash
+    # Trigger backup antes de deploy
+    BACKUP_NAME="pre-deploy-$(date +%Y%m%d-%H%M%S)"
+
+    velero backup create $BACKUP_NAME \
+      --from-schedule=fabrica-pre-deploy \
+      --wait
+
+    if [ $? -eq 0 ]; then
+      echo "Backup $BACKUP_NAME completed successfully"
+      exit 0
+    else
+      echo "Backup failed!"
+      exit 1
+    fi
+
+  # Script para verificar status de backups
+  check-backup-status.sh: |
+    #!/bin/bash
+    echo "=== Velero Backup Status ==="
+    echo ""
+    echo "Schedules:"
+    velero schedule get
+    echo ""
+    echo "Recent Backups (last 10):"
+    velero backup get --output=wide | head -11
+    echo ""
+    echo "Failed Backups:"
+    velero backup get --selector velero.io/schedule-name!=pre-deploy | grep -i failed || echo "None"
+
+  # Script para restore
+  restore-backup.sh: |
+    #!/bin/bash
+    BACKUP_NAME=$1
+
+    if [ -z "$BACKUP_NAME" ]; then
+      echo "Usage: restore-backup.sh <backup-name>"
+      echo ""
+      echo "Available backups:"
+      velero backup get
+      exit 1
+    fi
+
+    echo "WARNING: This will restore namespace fabrica-agentes from backup $BACKUP_NAME"
+    read -p "Continue? (yes/no): " CONFIRM
+
+    if [ "$CONFIRM" != "yes" ]; then
+      echo "Aborted."
+      exit 0
+    fi
+
+    velero restore create --from-backup $BACKUP_NAME --wait
+
+    if [ $? -eq 0 ]; then
+      echo "Restore completed successfully"
+      kubectl get pods -n fabrica-agentes
+    else
+      echo "Restore failed!"
+      exit 1
+    fi
+
+  # Script para limpeza manual
+  cleanup-old-backups.sh: |
+    #!/bin/bash
+    DAYS=${1:-30}
+
+    echo "Cleaning up backups older than $DAYS days..."
+
+    # List backups to delete
+    velero backup get --output=json | \
+      jq -r ".items[] | select(.status.completionTimestamp != null) | select((now - (.status.completionTimestamp | fromdateiso8601)) / 86400 > $DAYS) | .metadata.name" | \
+      while read BACKUP; do
+        echo "Deleting backup: $BACKUP"
+        velero backup delete $BACKUP --confirm
+      done
+
+    echo "Cleanup complete."
