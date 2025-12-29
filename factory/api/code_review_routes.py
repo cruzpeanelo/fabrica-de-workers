@@ -191,11 +191,83 @@ def review_task_code(task_id: str):
         review["task_title"] = task.title
         review["reviewed_at"] = datetime.utcnow().isoformat()
 
+        # Save review result to task
+        task.review_result = review
+        task.updated_at = datetime.utcnow()
+        db.commit()
+
         return review
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(500, f"Error reviewing code: {str(e)}")
+    finally:
+        db.close()
+
+
+# Issue #52 - Code Review endpoint (alias)
+@router.post("/story-tasks/{task_id}/code-review")
+def code_review_task(task_id: str, code: Optional[str] = None):
+    """
+    Code Review assistido por IA para uma task (Issue #52).
+
+    Analisa codigo para:
+    - Bugs potenciais
+    - Vulnerabilidades de seguranca
+    - Problemas de performance
+    - Boas praticas
+
+    Retorna analise completa com secoes:
+    - Qualidade
+    - Seguranca
+    - Performance
+    - Sugestoes
+
+    Args:
+        task_id: ID da task
+        code: Codigo a analisar (opcional, usa code_output da task se nao fornecido)
+    """
+    if not SessionLocal:
+        raise HTTPException(500, "Database not configured")
+
+    if not perform_code_review:
+        raise HTTPException(500, "Code review module not available")
+
+    db = SessionLocal()
+    try:
+        repo = StoryTaskRepository(db)
+        task = repo.get_by_id(task_id)
+
+        if not task:
+            raise HTTPException(404, "Task not found")
+
+        # Get code to review
+        code_to_review = code if code else task.code_output
+
+        if not code_to_review:
+            raise HTTPException(400, "No code available for review. Task has no code_output.")
+
+        # Perform review
+        review = perform_code_review(
+            code_to_review,
+            task.title,
+            task.task_type or "development"
+        )
+
+        review["task_id"] = task_id
+        review["task_title"] = task.title
+
+        # Save review result to task
+        task.review_result = review
+        task.updated_at = datetime.utcnow()
+        db.commit()
+
+        return review
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error performing code review: {str(e)}")
     finally:
         db.close()

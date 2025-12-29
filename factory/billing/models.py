@@ -158,8 +158,8 @@ class Tenant(Base):
     }
     """
 
-    # Metadados
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    extra_data = Column(JSON, default=dict)
 
     # Trial
     trial_started_at = Column(DateTime, nullable=True)
@@ -297,8 +297,8 @@ class Plan(Base):
     # Ordem de exibicao
     display_order = Column(Integer, default=0)
 
-    # Metadados
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    extra_data = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -392,8 +392,8 @@ class Subscription(Base):
     discount_amount = Column(Integer, default=0)  # em centavos
     coupon_code = Column(String(50), nullable=True)
 
-    # Metadados
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    extra_data = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -618,8 +618,8 @@ class Invoice(Base):
     # Notas
     notes = Column(Text, nullable=True)
 
-    # Metadados
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    extra_data = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -712,8 +712,8 @@ class PaymentMethod(Base):
     billing_email = Column(String(255), nullable=True)
     billing_address = Column(JSON, default=dict)
 
-    # Metadados
-    metadata = Column(JSON, default=dict)
+    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
+    extra_data = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -146,7 +146,7 @@ class Tenant(Base):
     })
 
     # Metadados
-    metadata = Column(JSON, default=dict)
+    tenant_metadata = Column(JSON, default=dict)  # Renamed from 'metadata' (SQLAlchemy reserved)
     tags = Column(JSON, default=list)
 
     # Timestamps
@@ -188,7 +188,7 @@ class Tenant(Base):
             data["phone"] = self.phone
             data["address"] = self.address
             data["primary_domain"] = self.primary_domain
-            data["metadata"] = self.metadata
+            data["tenant_metadata"] = self.tenant_metadata
 
         return data
 
@@ -940,7 +940,7 @@ class TenantAuditLog(Base):
     description = Column(Text, nullable=True)
     old_value = Column(JSON, default=dict)  # Valor anterior (para updates)
     new_value = Column(JSON, default=dict)  # Novo valor
-    metadata = Column(JSON, default=dict)   # Dados adicionais
+    audit_metadata = Column(JSON, default=dict)   # Dados adicionais (renamed from metadata)
 
     # Resultado
     success = Column(Boolean, default=True)

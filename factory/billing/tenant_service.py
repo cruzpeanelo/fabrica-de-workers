@@ -15,9 +15,28 @@ Autor: Fabrica de Agentes
 import uuid
 import re
 import logging
+import unicodedata
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List, Tuple
-from slugify import slugify
+
+# Tentar importar python-slugify, se nao disponivel, usar versao simples
+try:
+    from slugify import slugify
+except ImportError:
+    def slugify(text: str, lowercase: bool = True, max_length: int = 100) -> str:
+        """Versao simplificada de slugify"""
+        # Normalizar Unicode
+        text = unicodedata.normalize('NFKD', str(text))
+        text = text.encode('ascii', 'ignore').decode('ascii')
+        # Remover caracteres nao alfanumericos
+        text = re.sub(r'[^\w\s-]', '', text)
+        # Substituir espacos por hifens
+        text = re.sub(r'[\s_]+', '-', text)
+        # Remover hifens duplicados
+        text = re.sub(r'-+', '-', text).strip('-')
+        if lowercase:
+            text = text.lower()
+        return text[:max_length]
 
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -376,10 +395,10 @@ class TenantService:
             tenant.suspended_at = datetime.utcnow()
 
             # Registrar motivo nos metadados
-            if not tenant.metadata:
-                tenant.metadata = {}
-            tenant.metadata["suspension_reason"] = reason
-            tenant.metadata["suspended_at"] = datetime.utcnow().isoformat()
+            if not tenant.extra_data:
+                tenant.extra_data = {}
+            tenant.extra_data["suspension_reason"] = reason
+            tenant.extra_data["suspended_at"] = datetime.utcnow().isoformat()
 
             self.db.commit()
             logger.warning(f"Tenant suspenso: {tenant_id} - {reason}")
@@ -428,9 +447,9 @@ class TenantService:
             tenant.suspended_at = None
 
             # Registrar reativacao
-            if not tenant.metadata:
-                tenant.metadata = {}
-            tenant.metadata["reactivated_at"] = datetime.utcnow().isoformat()
+            if not tenant.extra_data:
+                tenant.extra_data = {}
+            tenant.extra_data["reactivated_at"] = datetime.utcnow().isoformat()
 
             self.db.commit()
             logger.info(f"Tenant reativado: {tenant_id}")
@@ -485,10 +504,10 @@ class TenantService:
                 tenant.config.update(prefs)
 
             # Marcar onboarding como completo
-            if not tenant.metadata:
-                tenant.metadata = {}
-            tenant.metadata["onboarding_completed"] = True
-            tenant.metadata["onboarding_completed_at"] = datetime.utcnow().isoformat()
+            if not tenant.extra_data:
+                tenant.extra_data = {}
+            tenant.extra_data["onboarding_completed"] = True
+            tenant.extra_data["onboarding_completed_at"] = datetime.utcnow().isoformat()
 
             self.db.commit()
 

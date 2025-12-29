@@ -13,6 +13,7 @@ Implementa:
 """
 
 import uuid
+import asyncio
 from datetime import datetime
 from functools import wraps
 from typing import Optional, List, Dict, Any, Callable
@@ -22,9 +23,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 # Database imports
-import sys
-sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
-
 from factory.database.connection import SessionLocal
 
 
@@ -999,7 +997,3 @@ def initialize_default_roles(user: UserContext = Depends(get_current_user)):
         return {"message": "Default roles re-initialized", "roles": list(DEFAULT_ROLES.keys())}
     finally:
         db.close()
-
-
-# Import asyncio for decorator
-import asyncio

@@ -69,22 +69,164 @@ JOB_MAX_RETRIES = int(os.getenv("JOB_MAX_RETRIES", 3))
 JOB_RETRY_DELAY = int(os.getenv("JOB_RETRY_DELAY", 30))
 
 # =============================================================================
-# CLAUDE API
+# LLM PROVIDER SETTINGS (Multi-provider support)
 # =============================================================================
 
-# API Key
+# Provedor padrao (claude, azure_openai, aws_bedrock, google_vertex)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "claude")
+
+# Claude (Anthropic)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-
-# Modelo padrao
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
-
-# Token limits
 CLAUDE_MAX_TOKENS = int(os.getenv("CLAUDE_MAX_TOKENS", 4096))
 CLAUDE_CONTEXT_LIMIT = int(os.getenv("CLAUDE_CONTEXT_LIMIT", 200000))
+
+# Azure OpenAI
+AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY", "")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+
+# AWS Bedrock
+AWS_BEDROCK_REGION = os.getenv("AWS_BEDROCK_REGION", "us-east-1")
+AWS_BEDROCK_MODEL = os.getenv("AWS_BEDROCK_MODEL", "anthropic.claude-3-sonnet-20240229-v1:0")
+
+# Google Vertex AI
+GOOGLE_VERTEX_PROJECT = os.getenv("GOOGLE_VERTEX_PROJECT", "")
+GOOGLE_VERTEX_LOCATION = os.getenv("GOOGLE_VERTEX_LOCATION", "us-central1")
+GOOGLE_VERTEX_MODEL = os.getenv("GOOGLE_VERTEX_MODEL", "gemini-1.0-pro")
 
 # Autonomous loop settings
 AUTONOMOUS_MAX_ITERATIONS = int(os.getenv("AUTONOMOUS_MAX_ITERATIONS", 5))
 AUTONOMOUS_FIX_ATTEMPTS = int(os.getenv("AUTONOMOUS_FIX_ATTEMPTS", 3))
+
+# Claude Model Registry
+CLAUDE_MODELS = {
+    "opus": {
+        "id": "claude-opus-4-5-20251101",
+        "name": "Claude Opus 4.5",
+        "description": "Modelo mais avancado para tarefas complexas",
+        "cost_tier": "high",
+        "recommended_for": ["complex_code", "architecture", "research"]
+    },
+    "sonnet": {
+        "id": "claude-sonnet-4-20250514",
+        "name": "Claude Sonnet 4",
+        "description": "Equilibrio entre performance e custo",
+        "cost_tier": "medium",
+        "recommended_for": ["general", "development", "analysis"]
+    },
+    "haiku": {
+        "id": "claude-3-5-haiku-20241022",
+        "name": "Claude Haiku 3.5",
+        "description": "Rapido e economico",
+        "cost_tier": "low",
+        "recommended_for": ["simple_tasks", "quick_fixes", "documentation"]
+    }
+}
+
+
+def get_available_claude_models() -> list:
+    """Retorna lista de modelos Claude disponiveis"""
+    return [{"key": k, **v} for k, v in CLAUDE_MODELS.items()]
+
+
+def get_claude_model(model_key: str) -> str:
+    """Retorna ID do modelo pelo key"""
+    model_info = CLAUDE_MODELS.get(model_key.lower(), {})
+    return model_info.get("id", CLAUDE_MODEL)
+
+
+def get_model_for_complexity(complexity: str) -> str:
+    """Retorna modelo apropriado para a complexidade da tarefa"""
+    complexity_mapping = {
+        "simple": "claude-3-5-haiku-20241022",
+        "low": "claude-3-5-haiku-20241022",
+        "medium": "claude-sonnet-4-20250514",
+        "high": "claude-sonnet-4-20250514",
+        "complex": "claude-sonnet-4-20250514",
+        "very_high": "claude-opus-4-5-20251101",
+        "very_complex": "claude-opus-4-5-20251101"
+    }
+    return complexity_mapping.get(complexity.lower(), CLAUDE_MODEL)
+
+# =============================================================================
+# MULTIPLOS MODELOS CLAUDE (Issue #26)
+# =============================================================================
+
+# Modelos disponiveis com suas configuracoes
+CLAUDE_MODELS = {
+    "opus": {
+        "id": "claude-opus-4-5-20251101",
+        "name": "Claude Opus 4.5",
+        "description": "Modelo avancado para tarefas complexas e raciocinio profundo",
+        "max_tokens": 8192,
+        "cost_tier": "high",
+        "recommended_for": ["architecture", "security", "complex_refactoring", "critical_bugs"]
+    },
+    "sonnet": {
+        "id": "claude-sonnet-4-20250514",
+        "name": "Claude Sonnet 4",
+        "description": "Balanco entre qualidade e velocidade (padrao)",
+        "max_tokens": 8192,
+        "cost_tier": "medium",
+        "recommended_for": ["development", "code_review", "testing", "bug_fixes"]
+    },
+    "haiku": {
+        "id": "claude-haiku-3-5-20241022",
+        "name": "Claude Haiku 3.5",
+        "description": "Modelo rapido e economico para tarefas simples",
+        "max_tokens": 4096,
+        "cost_tier": "low",
+        "recommended_for": ["formatting", "documentation", "simple_fixes", "translations"]
+    }
+}
+
+# Modelo padrao por nivel de complexidade
+CLAUDE_MODEL_DEFAULTS = {
+    "simple": "haiku",      # Tarefas simples -> Haiku (economico)
+    "standard": "sonnet",   # Desenvolvimento padrao -> Sonnet
+    "complex": "opus",      # Tarefas complexas -> Opus
+}
+
+# Configuracoes de selecao automatica
+CLAUDE_AUTO_MODEL_SELECTION = os.getenv("CLAUDE_AUTO_MODEL_SELECTION", "true").lower() == "true"
+CLAUDE_PREFER_ECONOMY = os.getenv("CLAUDE_PREFER_ECONOMY", "false").lower() == "true"
+CLAUDE_PREFER_QUALITY = os.getenv("CLAUDE_PREFER_QUALITY", "false").lower() == "true"
+CLAUDE_ENABLE_FALLBACK = os.getenv("CLAUDE_ENABLE_FALLBACK", "true").lower() == "true"
+
+
+def get_claude_model(model_key: str = None) -> str:
+    """Retorna o ID do modelo Claude baseado na chave."""
+    if not model_key:
+        return CLAUDE_MODEL
+    if model_key.startswith("claude-"):
+        return model_key
+    model_config = CLAUDE_MODELS.get(model_key.lower())
+    if model_config:
+        return model_config["id"]
+    return CLAUDE_MODEL
+
+
+def get_model_for_complexity(complexity: str) -> str:
+    """Retorna o modelo recomendado para um nivel de complexidade."""
+    model_key = CLAUDE_MODEL_DEFAULTS.get(complexity.lower(), "sonnet")
+    return get_claude_model(model_key)
+
+
+def get_available_claude_models() -> list:
+    """Retorna lista de modelos disponiveis para UI."""
+    return [
+        {
+            "key": key,
+            "id": config["id"],
+            "name": config["name"],
+            "description": config["description"],
+            "cost_tier": config["cost_tier"],
+            "recommended_for": config["recommended_for"]
+        }
+        for key, config in CLAUDE_MODELS.items()
+    ]
 
 # =============================================================================
 # AUTHENTICATION

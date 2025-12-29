@@ -408,11 +408,11 @@ class BillingService:
             subscription.stripe_price_id = new_plan.stripe_price_monthly_id
 
             # Registrar mudanca nos metadados
-            if not subscription.metadata:
-                subscription.metadata = {}
-            if "plan_changes" not in subscription.metadata:
-                subscription.metadata["plan_changes"] = []
-            subscription.metadata["plan_changes"].append({
+            if not subscription.extra_data:
+                subscription.extra_data = {}
+            if "plan_changes" not in subscription.extra_data:
+                subscription.extra_data["plan_changes"] = []
+            subscription.extra_data["plan_changes"].append({
                 "from": old_plan_id,
                 "to": new_plan.plan_id,
                 "date": datetime.utcnow().isoformat()

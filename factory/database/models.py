@@ -1575,6 +1575,368 @@ except ImportError:
 
 
 # =============================================================================
+# MARKETPLACE - Templates, Skills e Configuracoes (Issue #56)
+# =============================================================================
+
+class MarketplaceCategory(str, Enum):
+    """Categorias do Marketplace"""
+    PROJECT_TEMPLATE = "project_template"
+    STORY_TEMPLATE = "story_template"
+    SKILL = "skill"
+    AGENT_CONFIG = "agent_config"
+
+
+class MarketplaceItem(Base):
+    """
+    Modelo base para itens do Marketplace
+    Templates, Skills e Configuracoes de Agentes
+    """
+    __tablename__ = "marketplace_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Dados principais
+    name = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(30), default=MarketplaceCategory.STORY_TEMPLATE.value, index=True)
+
+    # Autor e versao
+    author = Column(String(100), default="Fabrica de Agentes")
+    version = Column(String(20), default="1.0.0")
+
+    # Tags para busca
+    tags = Column(JSON, default=list)
+
+    # Metricas
+    downloads = Column(Integer, default=0)
+    rating = Column(Float, default=0.0)
+    reviews_count = Column(Integer, default=0)
+
+    # Status
+    verified = Column(Boolean, default=False)
+    featured = Column(Boolean, default=False)
+    published = Column(Boolean, default=True)
+
+    # Thumbnail/imagem
+    thumbnail = Column(Text, nullable=True)
+
+    # Conteudo do item (JSON com dados especificos de cada tipo)
+    content = Column(JSON, default=dict)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relacionamentos
+    reviews = relationship("MarketplaceReview", back_populates="item", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "item_id": self.item_id,
+            "name": self.name,
+            "description": self.description,
+            "category": self.category,
+            "author": self.author,
+            "version": self.version,
+            "tags": self.tags or [],
+            "downloads": self.downloads,
+            "rating": self.rating,
+            "reviews_count": self.reviews_count,
+            "verified": self.verified,
+            "featured": self.featured,
+            "published": self.published,
+            "thumbnail": self.thumbnail,
+            "content": self.content or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def __repr__(self):
+        return f"<MarketplaceItem {self.item_id}: {self.name[:30]} [{self.category}]>"
+
+
+class MarketplaceReview(Base):
+    """
+    Modelo para Reviews/Avaliacoes de itens do Marketplace
+    """
+    __tablename__ = "marketplace_reviews"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    review_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Relacionamento com item
+    item_id = Column(String(50), ForeignKey("marketplace_items.item_id"), nullable=False, index=True)
+    item = relationship("MarketplaceItem", back_populates="reviews")
+
+    # Usuario que fez a review
+    user_id = Column(String(100), nullable=False)
+
+    # Avaliacao
+    rating = Column(Integer, nullable=False)  # 1-5
+    comment = Column(Text, nullable=True)
+
+    # Utilidade
+    helpful_count = Column(Integer, default=0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "review_id": self.review_id,
+            "item_id": self.item_id,
+            "user_id": self.user_id,
+            "rating": self.rating,
+            "comment": self.comment,
+            "helpful_count": self.helpful_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<MarketplaceReview {self.review_id}: {self.rating} stars>"
+
+
+class MarketplaceDownload(Base):
+    """
+    Modelo para rastrear downloads de itens do Marketplace
+    """
+    __tablename__ = "marketplace_downloads"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Item baixado
+    item_id = Column(String(50), nullable=False, index=True)
+
+    # Usuario que baixou
+    user_id = Column(String(100), nullable=False, index=True)
+
+    # Projeto onde foi instalado (opcional)
+    project_id = Column(String(50), nullable=True, index=True)
+
+    # Timestamps
+    downloaded_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "item_id": self.item_id,
+            "user_id": self.user_id,
+            "project_id": self.project_id,
+            "downloaded_at": self.downloaded_at.isoformat() if self.downloaded_at else None
+        }
+
+    def __repr__(self):
+        return f"<MarketplaceDownload {self.item_id} by {self.user_id}>"
+
+
+# =============================================================================
+# RBAC - Role-Based Access Control (v6.1 - Issue #12)
+# =============================================================================
+
+class Permission(Base):
+    """
+    Modelo para Permissoes granulares
+    Define acoes permitidas em recursos especificos
+    """
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    permission_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Recurso e acao
+    resource = Column(String(50), nullable=False, index=True)  # stories, tasks, projects, users, etc.
+    action = Column(String(20), nullable=False)  # create, read, update, delete, manage
+
+    # Descricao
+    description = Column(String(200), nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "permission_id": self.permission_id,
+            "resource": self.resource,
+            "action": self.action,
+            "description": self.description,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<Permission {self.resource}:{self.action}>"
+
+
+class Role(Base):
+    """
+    Modelo para Roles (Papeis)
+    Agrupa permissoes para facilitar atribuicao a usuarios
+    """
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    role_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Dados
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+
+    # Permissoes (JSON array de permission_ids ou resource:action strings)
+    permissions = Column(JSON, default=list)
+
+    # Nivel hierarquico (quanto maior, mais privilegios)
+    level = Column(Integer, default=0)
+
+    # Role do sistema (nao pode ser deletado)
+    is_system = Column(Boolean, default=False)
+
+    # Status
+    active = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relacionamentos
+    user_roles = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "role_id": self.role_id,
+            "name": self.name,
+            "description": self.description,
+            "permissions": self.permissions or [],
+            "level": self.level,
+            "is_system": self.is_system,
+            "active": self.active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def has_permission(self, resource: str, action: str) -> bool:
+        """Verifica se a role tem a permissao especificada"""
+        if not self.permissions:
+            return False
+
+        permission_key = f"{resource}:{action}"
+
+        # Verificar permissao exata
+        if permission_key in self.permissions:
+            return True
+
+        # Verificar wildcard (ex: stories:* permite todas acoes em stories)
+        if f"{resource}:*" in self.permissions:
+            return True
+
+        # Verificar permissao total (admin)
+        if "*:*" in self.permissions:
+            return True
+
+        return False
+
+    def __repr__(self):
+        return f"<Role {self.name} [level={self.level}]>"
+
+
+class UserRole(Base):
+    """
+    Modelo para Associacao Usuario-Role
+    Permite atribuir roles a usuarios, opcionalmente por projeto
+    """
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamentos
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role_id = Column(String(50), ForeignKey("roles.role_id"), nullable=False, index=True)
+
+    # Escopo opcional (se None, aplica globalmente)
+    project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=True, index=True)
+
+    # Relacionamentos ORM
+    user = relationship("User", backref="user_roles")
+    role = relationship("Role", back_populates="user_roles")
+
+    # Atribuido por
+    assigned_by = Column(String(100), nullable=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+    # Expiracao opcional
+    expires_at = Column(DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "role_id": self.role_id,
+            "project_id": self.project_id,
+            "assigned_by": self.assigned_by,
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "role": self.role.to_dict() if self.role else None
+        }
+
+    def is_valid(self) -> bool:
+        """Verifica se a atribuicao ainda e valida"""
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return False
+        return True
+
+    def __repr__(self):
+        scope = f" in {self.project_id}" if self.project_id else " (global)"
+        return f"<UserRole user={self.user_id} role={self.role_id}{scope}>"
+
+
+class AuditLog(Base):
+    """
+    Modelo para Log de Auditoria de Acoes RBAC
+    Registra todas as acoes de usuarios para compliance
+    """
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Quem fez
+    user_id = Column(Integer, nullable=True, index=True)
+    username = Column(String(100), nullable=True)
+
+    # O que fez
+    action = Column(String(50), nullable=False, index=True)  # create, read, update, delete, login, etc.
+    resource = Column(String(50), nullable=False, index=True)
+    resource_id = Column(String(100), nullable=True)
+
+    # Detalhes
+    details = Column(JSON, default=dict)
+    ip_address = Column(String(50), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+
+    # Resultado
+    success = Column(Boolean, default=True)
+    error_message = Column(Text, nullable=True)
+
+    # Timestamp
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "username": self.username,
+            "action": self.action,
+            "resource": self.resource,
+            "resource_id": self.resource_id,
+            "details": self.details or {},
+            "ip_address": self.ip_address,
+            "success": self.success,
+            "error_message": self.error_message,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None
+        }
+
+    def __repr__(self):
+        return f"<AuditLog {self.username}:{self.action}:{self.resource}>"
+
+
+# =============================================================================
 # DEPRECATED MODELS (mantidos para compatibilidade durante migracao)
 # =============================================================================
 

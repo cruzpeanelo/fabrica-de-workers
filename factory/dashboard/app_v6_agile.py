@@ -66,25 +66,6 @@ except ImportError:
     HAS_CLAUDE = False
     print("[Dashboard] Claude integration not available")
 
-
-# Project Import Module (Issue #69)
-from factory.dashboard.project_import import (
-    analyze_project_structure,
-    generate_stories_from_analysis,
-    process_import as import_project_process,
-    get_progress as get_import_progress_data,
-    import_progress
-)
-
-# Tech Debt Analysis Module (Issue #60)
-from factory.core.tech_debt_analyzer import (
-    analyze_project_tech_debt,
-    add_to_history as add_tech_debt_history,
-    get_history as get_tech_debt_history,
-    get_trend as get_tech_debt_trend,
-    get_debt_recommendations
-)
-
 # Criar tabelas
 Base.metadata.create_all(bind=engine)
 
@@ -107,53 +88,14 @@ app.add_middleware(
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
-# Preview/Staging endpoints (Issue #66)
-from factory.api.preview_routes import router as preview_router
-app.include_router(preview_router)
-
-# Code Review endpoints (Issue #52)
-from factory.api.code_review_routes import router as code_review_router
-app.include_router(code_review_router)
-
-# Analytics de Produtividade endpoints (Issue #65)
-from factory.dashboard.analytics_endpoints import register_analytics_endpoints
-register_analytics_endpoints(app, SessionLocal, Story, Sprint, HAS_CLAUDE, get_claude_client if HAS_CLAUDE else None)
-# Marketplace endpoints (Issue #56)
+# Project Preview API Router (Issue #73)
 try:
-    from factory.api.marketplace_routes import router as marketplace_router
-    app.include_router(marketplace_router, prefix="/api/marketplace")
-except ImportError:
-    print("[Dashboard] Marketplace routes not available")
+    from factory.api.project_preview import router as preview_router
+    app.include_router(preview_router)
+    print("[Dashboard] Project Preview router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Project Preview router not available: {e}")
 
-
-
-# =============================================================================
-# NOTIFICATION TYPES
-# =============================================================================
-
-class NotificationType:
-    """Notification types for real-time updates"""
-    STORY_CREATED = "story_created"
-    STORY_MOVED = "story_moved"
-    STORY_UPDATED = "story_updated"
-    STORY_DELETED = "story_deleted"
-    TASK_CREATED = "task_created"
-    TASK_COMPLETED = "task_completed"
-    TASK_UPDATED = "task_updated"
-    DOC_CREATED = "doc_created"
-    CHAT_MESSAGE = "chat_message"
-    APP_READY = "app_ready"
-    BUILD_STARTED = "build_started"
-    BUILD_COMPLETED = "build_completed"
-    BUILD_FAILED = "build_failed"
-    CONNECTION = "connection"
-    PONG = "pong"
-
-
-# Slack/Teams Integration Config
-SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
-TEAMS_WEBHOOK_URL = os.getenv("TEAMS_WEBHOOK_URL", "")
-NOTIFICATIONS_ENABLED = os.getenv("NOTIFICATIONS_ENABLED", "true").lower() == "true"
 
 
 # =============================================================================
@@ -163,9 +105,6 @@ NOTIFICATIONS_ENABLED = os.getenv("NOTIFICATIONS_ENABLED", "true").lower() == "t
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
-        self.notification_history: List[dict] = []
-        self.max_history = 100
-        self.unread_count = 0
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -174,36 +113,6 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-
-    def add_notification(self, notification: dict):
-        """Add notification to history"""
-        notification["id"] = str(uuid.uuid4())[:8]
-        notification["read"] = False
-        self.notification_history.insert(0, notification)
-        self.unread_count += 1
-        if len(self.notification_history) > self.max_history:
-            self.notification_history = self.notification_history[:self.max_history]
-
-    def mark_as_read(self, notification_id: str = None):
-        """Mark notification(s) as read"""
-        if notification_id:
-            for n in self.notification_history:
-                if n.get("id") == notification_id and not n.get("read"):
-                    n["read"] = True
-                    self.unread_count = max(0, self.unread_count - 1)
-                    break
-        else:
-            for n in self.notification_history:
-                n["read"] = True
-            self.unread_count = 0
-
-    def get_history(self, limit: int = 50) -> List[dict]:
-        """Get notification history"""
-        return self.notification_history[:limit]
-
-    def get_unread_count(self) -> int:
-        """Get unread notification count"""
-        return self.unread_count
 
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
@@ -214,87 +123,10 @@ class ConnectionManager:
 
 ws_manager = ConnectionManager()
 
-
-async def send_slack_notification(notification_type: str, data: dict):
-    """Send notification to Slack webhook"""
-    if not SLACK_WEBHOOK_URL:
-        return
-    try:
-        import httpx
-        title_map = {
-            NotificationType.STORY_CREATED: ":sparkles: Nova Story Criada",
-            NotificationType.STORY_MOVED: ":arrow_right: Story Movida",
-            NotificationType.TASK_COMPLETED: ":white_check_mark: Task Completada",
-            NotificationType.APP_READY: ":rocket: App Pronto",
-            NotificationType.BUILD_COMPLETED: ":package: Build Completado",
-            NotificationType.BUILD_FAILED: ":x: Build Falhou",
-        }
-        title = title_map.get(notification_type, f":bell: {notification_type}")
-        text = ""
-        if "title" in data:
-            text = f"*{data.get('story_id', data.get('task_id', ''))}*: {data['title']}"
-        elif "message" in data:
-            text = data["message"]
-        else:
-            text = str(data)
-        payload = {"blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": f"{title}\n{text}"}}]}
-        async with httpx.AsyncClient() as client:
-            await client.post(SLACK_WEBHOOK_URL, json=payload, timeout=5.0)
-    except Exception as e:
-        print(f"[Slack] Error sending notification: {e}")
-
-
-async def send_teams_notification(notification_type: str, data: dict):
-    """Send notification to Microsoft Teams webhook"""
-    if not TEAMS_WEBHOOK_URL:
-        return
-    try:
-        import httpx
-        title_map = {
-            NotificationType.STORY_CREATED: "Nova Story Criada",
-            NotificationType.STORY_MOVED: "Story Movida",
-            NotificationType.TASK_COMPLETED: "Task Completada",
-            NotificationType.APP_READY: "App Pronto",
-            NotificationType.BUILD_COMPLETED: "Build Completado",
-            NotificationType.BUILD_FAILED: "Build Falhou",
-        }
-        title = title_map.get(notification_type, notification_type)
-        text = ""
-        if "title" in data:
-            text = f"**{data.get('story_id', data.get('task_id', ''))}**: {data['title']}"
-        elif "message" in data:
-            text = data["message"]
-        else:
-            text = str(data)
-        payload = {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": "003B4A",
-            "summary": title,
-            "sections": [{"activityTitle": title, "activitySubtitle": "Fabrica de Agentes", "text": text, "markdown": True}]
-        }
-        async with httpx.AsyncClient() as client:
-            await client.post(TEAMS_WEBHOOK_URL, json=payload, timeout=5.0)
-    except Exception as e:
-        print(f"[Teams] Error sending notification: {e}")
-
-
 def notify(notification_type: str, data: dict):
-    """Send notification via WebSocket and optionally to Slack/Teams"""
     message = {"type": notification_type, "data": data, "timestamp": datetime.utcnow().isoformat() + "Z"}
-    if notification_type not in [NotificationType.PONG, NotificationType.CONNECTION]:
-        ws_manager.add_notification(message.copy())
     try:
         asyncio.create_task(ws_manager.broadcast(message))
-        if NOTIFICATIONS_ENABLED and notification_type in [
-            NotificationType.STORY_CREATED, NotificationType.STORY_MOVED,
-            NotificationType.TASK_COMPLETED, NotificationType.APP_READY,
-            NotificationType.BUILD_COMPLETED, NotificationType.BUILD_FAILED
-        ]:
-            if SLACK_WEBHOOK_URL:
-                asyncio.create_task(send_slack_notification(notification_type, data))
-            if TEAMS_WEBHOOK_URL:
-                asyncio.create_task(send_teams_notification(notification_type, data))
     except:
         pass
 
@@ -504,6 +336,98 @@ def delete_story(story_id: str):
     try:
         repo = StoryRepository(db)
         if repo.delete(story_id):
+            // Load preview data
+            const loadPreviewData = async () => {
+                if (!selectedProjectId.value) return;
+                previewLoading.value = true;
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/preview`);
+                    if (res.ok) {
+                        previewData.value = await res.json();
+                    }
+                } catch (e) {
+                    console.error('Error loading preview:', e);
+                } finally {
+                    previewLoading.value = false;
+                }
+            };
+
+            // Open preview modal
+            const openProjectPreview = async () => {
+                showProjectPreview.value = true;
+                await loadPreviewData();
+            };
+
+            // Refresh preview data
+            const refreshPreviewData = async () => {
+                await loadPreviewData();
+                addToast('success', 'Atualizado', 'Dados do preview atualizados');
+            };
+
+            // Start app preview
+            const startAppPreview = async () => {
+                try {
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/start-app`, {
+                        method: 'POST'
+                    });
+                    const result = await res.json();
+                    if (result.success || result.status === 'already_running') {
+                        addToast('success', 'Servidor iniciado', 'A aplicacao esta rodando');
+                        await loadPreviewData();
+                    } else {
+                        addToast('error', 'Erro', result.message || 'Falha ao iniciar servidor');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao iniciar servidor');
+                }
+            };
+
+            // Run tests
+            const runProjectTests = async () => {
+                try {
+                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({command: 'npm test'})
+                    });
+                    addToast('info', 'Testes iniciados', 'Executando testes do projeto...');
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao executar testes');
+                }
+            };
+
+            // Build project
+            const buildProject = async () => {
+                try {
+                    await fetch(`/api/projects/${selectedProjectId.value}/terminal/execute`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({command: 'npm run build'})
+                    });
+                    addToast('info', 'Build iniciado', 'Construindo o projeto...');
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha ao construir projeto');
+                }
+            };
+
+            // Open app preview
+            const openAppPreview = () => {
+                if (previewData.value?.app_status?.app_url) {
+                    window.open(previewData.value.app_status.app_url, '_blank');
+                }
+            };
+
+            // Open file viewer
+            const openFileViewer = (file) => {
+                console.log('Open file:', file);
+            };
+
+            // Open doc viewer
+            const openDocViewer = (doc) => {
+                console.log('Open doc:', doc);
+            };
+            // ==================== END PROJECT PREVIEW DASHBOARD ====================
+
             return {"message": "Story deleted"}
         raise HTTPException(404, "Story not found")
     finally:
@@ -545,10 +469,7 @@ def get_story_board(project_id: str):
 
 @app.post("/api/stories/{story_id}/estimate")
 def estimate_story_effort(story_id: str):
-    """
-    Estima story points usando Claude AI.
-    Analisa titulo, descricao, criterios de aceite e compara com stories similares.
-    """
+    """Estima story points usando Claude AI."""
     db = SessionLocal()
     try:
         story_repo = StoryRepository(db)
@@ -580,14 +501,8 @@ def estimate_story_effort(story_id: str):
         db.commit()
         db.refresh(estimate)
 
-        result = estimate.to_dict()
-        notify("story_estimated", {
-            "story_id": story_id,
-            "estimated_points": estimate_result["estimated_points"],
-            "confidence": estimate_result.get("confidence", 0.8)
-        })
-        return result
-
+        notify("story_estimated", {"story_id": story_id, "estimated_points": estimate_result["estimated_points"]})
+        return estimate.to_dict()
     except HTTPException:
         raise
     except Exception as e:
@@ -599,12 +514,10 @@ def estimate_story_effort(story_id: str):
 
 @app.get("/api/stories/{story_id}/estimates")
 def get_story_estimates(story_id: str):
-    """Retorna historico de estimativas de uma story"""
+    """Retorna historico de estimativas"""
     db = SessionLocal()
     try:
-        estimates = db.query(StoryEstimate).filter(
-            StoryEstimate.story_id == story_id
-        ).order_by(StoryEstimate.created_at.desc()).all()
+        estimates = db.query(StoryEstimate).filter(StoryEstimate.story_id == story_id).order_by(StoryEstimate.created_at.desc()).all()
         return [e.to_dict() for e in estimates]
     finally:
         db.close()
@@ -612,189 +525,75 @@ def get_story_estimates(story_id: str):
 
 @app.post("/api/stories/{story_id}/estimates/{estimate_id}/accept")
 def accept_story_estimate(story_id: str, estimate_id: str, adjusted_points: Optional[int] = None):
-    """Aceita ou ajusta uma estimativa"""
+    """Aceita ou ajusta estimativa"""
     db = SessionLocal()
     try:
-        estimate = db.query(StoryEstimate).filter(
-            StoryEstimate.estimate_id == estimate_id,
-            StoryEstimate.story_id == story_id
-        ).first()
+        estimate = db.query(StoryEstimate).filter(StoryEstimate.estimate_id == estimate_id, StoryEstimate.story_id == story_id).first()
         if not estimate:
             raise HTTPException(404, "Estimate not found")
-
         estimate.accepted = True
         estimate.accepted_at = datetime.utcnow()
-
         final_points = adjusted_points if adjusted_points else estimate.estimated_points
         if adjusted_points and adjusted_points != estimate.estimated_points:
             estimate.adjusted_to = adjusted_points
-
-        story_repo = StoryRepository(db)
-        story = story_repo.get_by_id(story_id)
+        story = StoryRepository(db).get_by_id(story_id)
         if story:
             story.story_points = final_points
-            if final_points <= 2:
-                story.complexity = "low"
-            elif final_points <= 5:
-                story.complexity = "medium"
-            elif final_points <= 8:
-                story.complexity = "high"
-            else:
-                story.complexity = "very_high"
-
+            story.complexity = "low" if final_points <= 2 else "medium" if final_points <= 5 else "high" if final_points <= 8 else "very_high"
         db.commit()
-        db.refresh(estimate)
-
-        result = estimate.to_dict()
-        notify("estimate_accepted", {
-            "story_id": story_id,
-            "estimate_id": estimate_id,
-            "final_points": final_points
-        })
-        return result
-
+        notify("estimate_accepted", {"story_id": story_id, "final_points": final_points})
+        return estimate.to_dict()
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(500, f"Erro ao aceitar estimativa: {str(e)}")
+        raise HTTPException(500, f"Erro: {str(e)}")
     finally:
         db.close()
 
 
-def generate_story_estimate(story: Story, completed_stories: list, db) -> dict:
-    """Gera estimativa de story points usando Claude AI."""
+def generate_story_estimate(story, completed_stories, db):
     if HAS_CLAUDE:
         try:
             claude = get_claude_client()
             if claude.is_available():
                 return estimate_with_claude(story, completed_stories, claude)
-        except Exception as e:
-            print(f"[Estimate] Erro ao usar Claude: {e}")
+        except: pass
     return estimate_with_heuristics(story, completed_stories)
 
 
-def estimate_with_claude(story: Story, completed_stories: list, claude) -> dict:
-    """Gera estimativa usando Claude AI"""
-    story_context = f"""
-STORY A ESTIMAR:
-ID: {story.story_id}
-Titulo: {story.title}
-Narrativa: Como um {story.persona or '[nao definido]'}, eu quero {story.action or '[nao definido]'}, para que {story.benefit or '[nao definido]'}
-Descricao: {story.description or 'Sem descricao'}
-Criterios de Aceite: {len(story.acceptance_criteria or [])} criterios
-Definition of Done: {len(story.definition_of_done or [])} itens
-Notas Tecnicas: {story.technical_notes or 'Sem notas'}
-Categoria: {story.category}
-"""
-
-    similar_context = ""
-    if completed_stories:
-        similar_context = "\nSTORIES CONCLUIDAS PARA REFERENCIA:\n"
-        for s in completed_stories[:10]:
-            similar_context += f"- {s.story_id}: {s.title} ({s.story_points} pts)\n"
-
-    system_prompt = """Voce e um Scrum Master experiente especializado em estimativa de User Stories.
-Sua tarefa e estimar story points usando a sequencia Fibonacci: 1, 2, 3, 5, 8, 13, 21.
-
-Responda APENAS com JSON valido:
-{
-    "estimated_points": <numero Fibonacci>,
-    "confidence": <0.0 a 1.0>,
-    "complexity": "<low|medium|high|very_high>",
-    "justification": "<explicacao em 2-3 frases>",
-    "factors": [{"name": "<fator>", "impact": "<low|medium|high>", "description": "<descricao>"}],
-    "similar_stories": [{"story_id": "<id>", "title": "<titulo>", "points": <pontos>, "similarity": "<high|medium|low>"}],
-    "recommendations": ["<sugestao 1>", "<sugestao 2>"]
-}"""
-
-    message = f"Estime os story points para esta User Story:\n{story_context}{similar_context}\nRetorne a estimativa em JSON."
-
-    response = claude.chat(message, system_prompt, max_tokens=1024)
-
-    if response.success:
-        try:
-            content = response.content.strip()
-            if content.startswith("```"):
-                lines = content.split("\n")
-                content = "\n".join(lines[1:-1])
-            result = json.loads(content)
-            points = result.get("estimated_points", 5)
-            if points not in [1, 2, 3, 5, 8, 13, 21]:
-                closest = min([1, 2, 3, 5, 8, 13, 21], key=lambda x: abs(x - points))
-                result["estimated_points"] = closest
-            return result
-        except json.JSONDecodeError:
-            return estimate_with_heuristics(story, completed_stories)
+def estimate_with_claude(story, completed_stories, claude):
+    ctx = f"STORY: {story.story_id} - {story.title}\nNarrativa: {story.persona}/{story.action}/{story.benefit}\nCriterios: {len(story.acceptance_criteria or [])}\nCategoria: {story.category}"
+    prompt = "Estime story points (1,2,3,5,8,13,21). Retorne JSON: {estimated_points, confidence, complexity, justification, factors, similar_stories, recommendations}"
+    try:
+        resp = claude.chat(ctx + "\n" + prompt, "Voce e um Scrum Master.", max_tokens=1024)
+        if resp.success:
+            import json
+            c = resp.content.strip()
+            if c.startswith("```"): c = "\n".join(c.split("\n")[1:-1])
+            r = json.loads(c)
+            if r.get("estimated_points") not in [1,2,3,5,8,13,21]:
+                r["estimated_points"] = min([1,2,3,5,8,13,21], key=lambda x: abs(x - r.get("estimated_points", 5)))
+            return r
+    except: pass
     return estimate_with_heuristics(story, completed_stories)
 
 
-def estimate_with_heuristics(story: Story, completed_stories: list) -> dict:
-    """Gera estimativa usando heuristicas (fallback)"""
-    complexity_score = 0
-    criteria_count = len(story.acceptance_criteria or [])
-    if criteria_count == 0:
-        complexity_score += 2
-    elif criteria_count <= 2:
-        complexity_score += 1
-    elif criteria_count <= 5:
-        complexity_score += 2
-    else:
-        complexity_score += 3
-
-    title_words = len((story.title or "").split())
-    desc_words = len((story.description or "").split())
-    if title_words + desc_words < 10:
-        complexity_score += 1
-    elif title_words + desc_words < 30:
-        complexity_score += 2
-    else:
-        complexity_score += 3
-
-    category_complexity = {"bug": 1, "improvement": 2, "feature": 3, "tech_debt": 2, "spike": 2}
-    complexity_score += category_complexity.get(story.category, 2)
-
+def estimate_with_heuristics(story, completed_stories):
+    score = 0
+    cc = len(story.acceptance_criteria or [])
+    score += 2 if cc == 0 else 1 if cc <= 2 else 2 if cc <= 5 else 3
+    words = len((story.title or "").split()) + len((story.description or "").split())
+    score += 1 if words < 10 else 2 if words < 30 else 3
+    score += {"bug":1,"improvement":2,"feature":3,"tech_debt":2,"spike":2}.get(story.category, 2)
     if story.technical_notes:
-        notes_lower = story.technical_notes.lower()
-        if any(kw in notes_lower for kw in ['integracao', 'api', 'database', 'migration']):
-            complexity_score += 2
-        if any(kw in notes_lower for kw in ['complexo', 'dificil', 'cuidado']):
-            complexity_score += 2
+        n = story.technical_notes.lower()
+        if any(k in n for k in ['integracao','api','database']): score += 2
+        if any(k in n for k in ['complexo','dificil']): score += 2
+    pts = 1 if score<=3 else 2 if score<=5 else 3 if score<=7 else 5 if score<=9 else 8 if score<=11 else 13 if score<=13 else 21
+    cpx = "low" if pts<=2 else "medium" if pts<=5 else "high" if pts<=13 else "very_high"
+    return {"estimated_points":pts,"confidence":0.6,"complexity":cpx,"justification":f"Heuristica: {cc} criterios, score {score}","factors":[{"name":"Criterios","impact":"medium","description":f"{cc}"}],"similar_stories":[],"recommendations":[]}
 
-    if complexity_score <= 3:
-        estimated_points, complexity = 1, "low"
-    elif complexity_score <= 5:
-        estimated_points, complexity = 2, "low"
-    elif complexity_score <= 7:
-        estimated_points, complexity = 3, "medium"
-    elif complexity_score <= 9:
-        estimated_points, complexity = 5, "medium"
-    elif complexity_score <= 11:
-        estimated_points, complexity = 8, "high"
-    elif complexity_score <= 13:
-        estimated_points, complexity = 13, "high"
-    else:
-        estimated_points, complexity = 21, "very_high"
-
-    similar = []
-    for s in completed_stories[:5]:
-        similar.append({"story_id": s.story_id, "title": s.title[:50], "points": s.story_points, "similarity": "medium"})
-
-    factors = [
-        {"name": "Criterios de aceite", "impact": "medium" if criteria_count <= 3 else "high", "description": f"{criteria_count} criterios definidos"},
-        {"name": "Descricao", "impact": "low" if desc_words < 20 else "medium", "description": f"{desc_words} palavras na descricao"},
-        {"name": "Categoria", "impact": "medium", "description": f"Tipo: {story.category}"}
-    ]
-
-    return {
-        "estimated_points": estimated_points,
-        "confidence": 0.6,
-        "complexity": complexity,
-        "justification": f"Estimativa baseada em heuristicas: {criteria_count} criterios de aceite, categoria {story.category}, score de complexidade {complexity_score}.",
-        "factors": factors,
-        "similar_stories": similar,
-        "recommendations": ["Considere detalhar mais os criterios de aceite para uma estimativa mais precisa", "Compare com stories similares ja concluidas"]
-    }
 
 # =============================================================================
 # API ENDPOINTS - STORY TASKS
@@ -954,17 +753,13 @@ class Test{safe_title}:
         db.close()
 
 
-
 # =============================================================================
 # API ENDPOINTS - SECURITY SCAN (SAST)
 # =============================================================================
 
 @app.post("/api/story-tasks/{task_id}/security-scan")
 def security_scan_for_task(task_id: str):
-    """
-    Analise de Seguranca Automatizada (SAST) para o codigo de uma task.
-    Usa Claude AI para identificar vulnerabilidades de seguranca.
-    """
+    """Analise de Seguranca Automatizada (SAST) - Issue #57"""
     db = SessionLocal()
     try:
         repo = StoryTaskRepository(db)
@@ -977,315 +772,184 @@ def security_scan_for_task(task_id: str):
 
         code = task.code_output
 
-        # Detectar linguagem
+        # Detect language
         language = "python"
-        if "function " in code or "const " in code or "let " in code or "=>" in code:
+        if "function " in code or "const " in code or "let " in code:
             language = "javascript"
-        elif "func " in code and "package " in code:
-            language = "go"
         elif "public class " in code or "private void " in code:
             language = "java"
-        elif "<?php" in code:
-            language = "php"
+        elif "func " in code and "package " in code:
+            language = "go"
 
-        # Se Claude disponivel, usar IA para analise profunda
+        # Try AI-powered scan first
         if HAS_CLAUDE:
             try:
                 claude = get_claude_client()
-                if claude.is_available():
-                    return perform_ai_security_scan(code, language, task, claude)
-            except Exception as e:
-                print(f"[SecurityScan] Erro ao usar Claude: {e}")
+                if claude and claude.is_available():
+                    prompt = f"""Analise o codigo abaixo e identifique vulnerabilidades de seguranca.
 
-        # Fallback: analise basica com regex
-        return perform_basic_security_scan(code, language, task)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Error performing security scan: {str(e)}")
-    finally:
-        db.close()
-
-
-def perform_ai_security_scan(code: str, language: str, task, claude) -> dict:
-    """Realiza analise de seguranca usando Claude AI"""
-
-    system_prompt = """Voce e um especialista em seguranca de aplicacoes (AppSec) com profundo conhecimento em analise estatica de codigo (SAST).
-
-Sua tarefa e analisar o codigo fornecido linha por linha e identificar vulnerabilidades de seguranca.
-
-Tipos de vulnerabilidades a detectar:
-1. SQL Injection - Queries SQL com concatenacao de strings ou inputs nao sanitizados
-2. XSS (Cross-Site Scripting) - Output nao escapado em HTML, dados de usuario nao sanitizados
-3. Command Injection - Execucao de comandos shell com input do usuario
-4. Path Traversal - Acesso a arquivos com input nao validado (../ etc)
-5. Hardcoded Secrets - Senhas, API keys, tokens hardcoded no codigo
-6. Insecure Dependencies - Uso de funcoes/metodos inseguros ou deprecados
-
-Para cada vulnerabilidade encontrada, forneca:
-- Tipo da vulnerabilidade
-- Severidade (Critical, High, Medium, Low)
-- Linha(s) afetada(s)
-- Descricao do problema
-- Sugestao de correcao
-- Referencia CWE quando aplicavel
-
-Responda APENAS em JSON valido no formato:
-{
-    "vulnerabilities": [
-        {
-            "type": "SQL Injection",
-            "severity": "Critical",
-            "line": 15,
-            "line_content": "codigo da linha afetada",
-            "description": "Descricao detalhada do problema",
-            "fix_suggestion": "Como corrigir",
-            "cwe": "CWE-89"
-        }
-    ],
-    "summary": {
-        "total": 0,
-        "critical": 0,
-        "high": 0,
-        "medium": 0,
-        "low": 0
-    },
-    "recommendations": ["Recomendacao geral 1", "Recomendacao geral 2"],
-    "secure_patterns_found": ["Padrao seguro identificado 1"]
-}
-
-Se nenhuma vulnerabilidade for encontrada, retorne vulnerabilities como lista vazia."""
-
-    # Adicionar numeros de linha ao codigo
-    lines = code.split('\n')
-    numbered_code = '\n'.join(f"{i+1}: {line}" for i, line in enumerate(lines))
-
-    message = f"""Analise o seguinte codigo {language} em busca de vulnerabilidades de seguranca:
-
+CODIGO ({language}):
 ```{language}
-{numbered_code}
+{code}
 ```
 
-Contexto: Este codigo faz parte da task "{task.title}".
+Analise linha por linha buscando:
+1. **SQL Injection**: String formatting em queries, concatenacao, falta de parametrizacao
+2. **XSS (Cross-Site Scripting)**: innerHTML, document.write, falta de sanitizacao
+3. **Command Injection**: os.system, subprocess com shell=True, eval(), exec()
+4. **Path Traversal**: Caminhos relativos nao validados, ../ em paths
+5. **Hardcoded Secrets**: Senhas, API keys, tokens em codigo
+6. **Insecure Dependencies**: pickle.load, yaml.load sem safe_load
 
-Realize uma analise SAST completa e retorne os resultados em JSON."""
+Para cada vulnerabilidade encontrada, retorne em JSON:
+{{{{
+    "vulnerabilities": [
+        {{{{
+            "type": "SQL Injection|XSS|Command Injection|Path Traversal|Hardcoded Secrets|Insecure Dependencies",
+            "severity": "Critical|High|Medium|Low",
+            "line": numero_da_linha,
+            "code_snippet": "codigo_vulneravel",
+            "description": "Descricao do problema",
+            "recommendation": "Como corrigir",
+            "cwe": "CWE-XXX"
+        }}}}
+    ],
+    "summary": {{{{
+        "total": numero_total,
+        "critical": quantidade,
+        "high": quantidade,
+        "medium": quantidade,
+        "low": quantidade
+    }}}},
+    "recommendations": ["Recomendacao geral 1", "Recomendacao geral 2"]
+}}}}
 
-    response = claude.chat(message, system_prompt, max_tokens=4096)
+Se nao encontrar vulnerabilidades, retorne:
+{{{{
+    "vulnerabilities": [],
+    "summary": {{{{"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}}}},
+    "recommendations": ["Codigo aparenta estar seguro"]
+}}}}
 
-    if response.success:
-        try:
-            content = response.content.strip()
-            if content.startswith("```"):
-                lines = content.split("\n")
-                content = "\n".join(lines[1:-1])
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.endswith("```"):
-                content = content[:-3]
+IMPORTANTE: Retorne APENAS o JSON, sem explicacoes adicionais."""
 
-            result = json.loads(content)
+                    response = claude.generate(prompt)
+                    if response:
+                        import json
+                        try:
+                            # Extract JSON from response
+                            json_str = response
+                            if "```json" in response:
+                                json_str = response.split("```json")[1].split("```")[0]
+                            elif "```" in response:
+                                json_str = response.split("```")[1].split("```")[0]
 
-            if "vulnerabilities" not in result:
-                result["vulnerabilities"] = []
-            if "summary" not in result:
-                result["summary"] = calculate_summary(result["vulnerabilities"])
+                            result = json.loads(json_str.strip())
+                            result["scan_type"] = "ai"
+                            result["language"] = language
+                            result["scanned_at"] = datetime.utcnow().isoformat()
+                            result["task_id"] = task_id
+                            return result
+                        except json.JSONDecodeError:
+                            pass  # Fall back to basic scan
+            except Exception:
+                pass  # Fall back to basic scan
 
-            result["scan_type"] = "ai"
-            result["language"] = language
-            result["scanned_at"] = datetime.utcnow().isoformat()
-            result["task_id"] = task.task_id
+        # Basic pattern-based scan (fallback)
+        import re
 
-            return result
+        patterns = {
+            "SQL Injection": [
+                (r"execute.*%s", "String formatting em query SQL"),
+                (r"execute.*f['\"\"]", "f-string em query SQL"),
+                (r"cursor\.execute.*\+", "Concatenacao em cursor.execute"),
+            ],
+            "XSS": [
+                (r"innerHTML\s*=", "Uso de innerHTML sem sanitizacao"),
+                (r"document\.write", "Uso de document.write"),
+                (r"dangerouslySetInnerHTML", "React dangerouslySetInnerHTML"),
+            ],
+            "Command Injection": [
+                (r"os\.system\s*\(", "Uso de os.system"),
+                (r"subprocess.*shell\s*=\s*True", "subprocess com shell=True"),
+                (r"\beval\s*\(", "Uso de eval()"),
+                (r"\bexec\s*\(", "Uso de exec()"),
+            ],
+            "Path Traversal": [
+                (r"open\s*\(.*\+", "open() com concatenacao"),
+                (r"\.\./" , "Path traversal pattern"),
+            ],
+            "Hardcoded Secrets": [
+                (r"password\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "Senha hardcoded"),
+                (r"api_key\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "API key hardcoded"),
+                (r"secret\s*=\s*['\"\"][^'\"\"]+" + "['\"\"]", "Secret hardcoded"),
+            ],
+            "Insecure Dependencies": [
+                (r"pickle\.load", "Deserializacao insegura com pickle"),
+                (r"yaml\.load\s*\(", "yaml.load sem Loader seguro"),
+            ],
+        }
 
-        except json.JSONDecodeError:
-            return {
-                "vulnerabilities": [],
-                "summary": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0},
-                "scan_type": "ai",
-                "language": language,
-                "scanned_at": datetime.utcnow().isoformat(),
-                "task_id": task.task_id,
-                "recommendations": ["Analise manual recomendada"]
-            }
+        cwe_mapping = {
+            "SQL Injection": "CWE-89",
+            "XSS": "CWE-79",
+            "Command Injection": "CWE-78",
+            "Path Traversal": "CWE-22",
+            "Hardcoded Secrets": "CWE-798",
+            "Insecure Dependencies": "CWE-502",
+        }
 
-    return perform_basic_security_scan(code, language, task)
+        severity_mapping = {
+            "SQL Injection": "Critical",
+            "XSS": "High",
+            "Command Injection": "Critical",
+            "Path Traversal": "High",
+            "Hardcoded Secrets": "High",
+            "Insecure Dependencies": "Medium",
+        }
 
+        vulnerabilities = []
+        lines = code.split("\n")
 
-def calculate_summary(vulnerabilities: list) -> dict:
-    """Calcula resumo das vulnerabilidades"""
-    summary = {"total": len(vulnerabilities), "critical": 0, "high": 0, "medium": 0, "low": 0}
-    for v in vulnerabilities:
-        severity = v.get("severity", "").lower()
-        if severity in summary:
-            summary[severity] += 1
-    return summary
+        for vuln_type, pattern_list in patterns.items():
+            for pattern, description in pattern_list:
+                for line_num, line in enumerate(lines, 1):
+                    if re.search(pattern, line, re.IGNORECASE):
+                        vulnerabilities.append({
+                            "type": vuln_type,
+                            "severity": severity_mapping.get(vuln_type, "Medium"),
+                            "line": line_num,
+                            "code_snippet": line.strip()[:100],
+                            "description": description,
+                            "recommendation": f"Revise esta linha para evitar {vuln_type}",
+                            "cwe": cwe_mapping.get(vuln_type, "CWE-000")
+                        })
 
+        summary = {
+            "total": len(vulnerabilities),
+            "critical": len([v for v in vulnerabilities if v["severity"] == "Critical"]),
+            "high": len([v for v in vulnerabilities if v["severity"] == "High"]),
+            "medium": len([v for v in vulnerabilities if v["severity"] == "Medium"]),
+            "low": len([v for v in vulnerabilities if v["severity"] == "Low"]),
+        }
 
-def perform_basic_security_scan(code: str, language: str, task) -> dict:
-    """Analise basica de seguranca com regex (fallback)"""
-    import re
+        recommendations = []
+        if summary["critical"] > 0:
+            recommendations.append("Corrija vulnerabilidades criticas imediatamente")
+        if summary["high"] > 0:
+            recommendations.append("Priorize correcao de vulnerabilidades de alta severidade")
+        if summary["total"] == 0:
+            recommendations.append("Nenhuma vulnerabilidade detectada pelo scan basico")
 
-    vulnerabilities = []
-    lines = code.split('\n')
-
-    patterns = {
-        "SQL Injection": [
-            (r'execute\s*\(\s*["'].*%s', "String formatting em query SQL"),
-            (r'execute\s*\(\s*f["']', "f-string em query SQL"),
-            (r'cursor\.execute\s*\([^,]+\+', "Concatenacao em cursor.execute"),
-        ],
-        "XSS": [
-            (r'innerHTML\s*=', "Uso de innerHTML sem sanitizacao"),
-            (r'document\.write\s*\(', "Uso de document.write"),
-            (r'dangerouslySetInnerHTML', "React dangerouslySetInnerHTML"),
-        ],
-        "Command Injection": [
-            (r'os\.system\s*\(', "Uso de os.system"),
-            (r'subprocess\.call\s*\([^)]*shell\s*=\s*True', "subprocess com shell=True"),
-            (r'eval\s*\(', "Uso de eval()"),
-            (r'exec\s*\(', "Uso de exec()"),
-        ],
-        "Path Traversal": [
-            (r'open\s*\([^)]*\+', "open() com concatenacao"),
-            (r'\.\.\/|\.\.\\\\', "Path traversal pattern"),
-        ],
-        "Hardcoded Secrets": [
-            (r'password\s*=\s*["'][^"']+["']', "Senha hardcoded"),
-            (r'api_key\s*=\s*["'][^"']+["']', "API key hardcoded"),
-            (r'secret\s*=\s*["'][^"']+["']', "Secret hardcoded"),
-        ],
-        "Insecure Dependencies": [
-            (r'pickle\.load', "Deserializacao insegura com pickle"),
-            (r'yaml\.load\s*\([^)]*\)', "yaml.load sem Loader seguro"),
-        ],
-    }
-
-    for line_num, line in enumerate(lines, 1):
-        for vuln_type, type_patterns in patterns.items():
-            for pattern, description in type_patterns:
-                if re.search(pattern, line, re.IGNORECASE):
-                    severity = "Medium"
-                    if vuln_type in ["SQL Injection", "Command Injection"]:
-                        severity = "Critical"
-                    elif vuln_type in ["XSS", "Hardcoded Secrets", "Path Traversal"]:
-                        severity = "High"
-
-                    vulnerabilities.append({
-                        "type": vuln_type,
-                        "severity": severity,
-                        "line": line_num,
-                        "line_content": line.strip()[:100],
-                        "description": description,
-                        "fix_suggestion": get_fix_suggestion(vuln_type),
-                        "cwe": get_cwe(vuln_type)
-                    })
-                    break
-
-    return {
-        "vulnerabilities": vulnerabilities,
-        "summary": calculate_summary(vulnerabilities),
-        "scan_type": "basic",
-        "language": language,
-        "scanned_at": datetime.utcnow().isoformat(),
-        "task_id": task.task_id,
-        "recommendations": get_general_recommendations(vulnerabilities)
-    }
-
-
-def get_fix_suggestion(vuln_type: str) -> str:
-    """Retorna sugestao de correcao para cada tipo de vulnerabilidade"""
-    suggestions = {
-        "SQL Injection": "Use prepared statements/parameterized queries",
-        "XSS": "Sanitize e escape output. Use textContent ao inves de innerHTML",
-        "Command Injection": "Evite os.system() e shell=True. Use subprocess com lista de argumentos",
-        "Path Traversal": "Valide e normalize paths. Verifique se o path esta dentro do diretorio permitido",
-        "Hardcoded Secrets": "Use variaveis de ambiente ou um secrets manager",
-        "Insecure Dependencies": "Use alternativas seguras: yaml.safe_load(), etc"
-    }
-    return suggestions.get(vuln_type, "Revise o codigo e aplique boas praticas de seguranca")
-
-
-def get_cwe(vuln_type: str) -> str:
-    """Retorna CWE ID para cada tipo de vulnerabilidade"""
-    cwes = {
-        "SQL Injection": "CWE-89",
-        "XSS": "CWE-79",
-        "Command Injection": "CWE-78",
-        "Path Traversal": "CWE-22",
-        "Hardcoded Secrets": "CWE-798",
-        "Insecure Dependencies": "CWE-327"
-    }
-    return cwes.get(vuln_type, "")
-
-
-def get_general_recommendations(vulnerabilities: list) -> list:
-    """Gera recomendacoes gerais baseadas nas vulnerabilidades encontradas"""
-    recommendations = []
-    types_found = set(v["type"] for v in vulnerabilities)
-
-    if "SQL Injection" in types_found:
-        recommendations.append("Implemente ORM ou use prepared statements em todas as queries")
-    if "XSS" in types_found:
-        recommendations.append("Implemente Content Security Policy (CSP) headers")
-    if "Command Injection" in types_found:
-        recommendations.append("Revise todas as chamadas de sistema e subprocess")
-    if "Hardcoded Secrets" in types_found:
-        recommendations.append("Configure um sistema de gerenciamento de secrets")
-
-    if not vulnerabilities:
-        recommendations.append("Nenhuma vulnerabilidade detectada na analise basica")
-        recommendations.append("Considere usar ferramentas SAST dedicadas como Bandit (Python)")
-
-    return recommendations
-
-
-
-
-# =============================================================================
-# API ENDPOINTS - SECURITY SCAN (SAST)
-# =============================================================================
-
-@app.post("/api/story-tasks/{task_id}/security-scan")
-def security_scan_for_task(task_id: str):
-    """
-    Analise de Seguranca Automatizada (SAST) para o codigo de uma task.
-    Usa Claude AI para identificar vulnerabilidades de seguranca.
-    """
-    db = SessionLocal()
-    try:
-        repo = StoryTaskRepository(db)
-        task = repo.get_by_id(task_id)
-        if not task:
-            raise HTTPException(404, "Task not found")
-
-        if not task.code_output:
-            raise HTTPException(400, "Task has no code output to analyze")
-
-        code = task.code_output
-
-        # Detectar linguagem
-        language = "python"
-        if "function " in code or "const " in code or "let " in code or "=>" in code:
-            language = "javascript"
-        elif "func " in code and "package " in code:
-            language = "go"
-        elif "public class " in code or "private void " in code:
-            language = "java"
-        elif "<?php" in code:
-            language = "php"
-
-        # Se Claude disponivel, usar IA para analise profunda
-        if HAS_CLAUDE:
-            try:
-                claude = get_claude_client()
-                if claude.is_available():
-                    return perform_ai_security_scan(code, language, task, claude)
-            except Exception as e:
-                print(f"[SecurityScan] Erro ao usar Claude: {e}")
-
-        # Fallback: analise basica com regex
-        return perform_basic_security_scan(code, language, task)
+        return {
+            "vulnerabilities": vulnerabilities,
+            "summary": summary,
+            "recommendations": recommendations,
+            "scan_type": "basic",
+            "language": language,
+            "scanned_at": datetime.utcnow().isoformat(),
+            "task_id": task_id
+        }
 
     except HTTPException:
         raise
@@ -1294,107 +958,6 @@ def security_scan_for_task(task_id: str):
     finally:
         db.close()
 
-
-def perform_ai_security_scan(code: str, language: str, task, claude) -> dict:
-    """Realiza analise de seguranca usando Claude AI"""
-
-    system_prompt = """Voce e um especialista em seguranca de aplicacoes (AppSec).
-Analise o codigo e identifique vulnerabilidades de seguranca.
-
-Tipos a detectar: SQL Injection, XSS, Command Injection, Path Traversal, Hardcoded Secrets, Insecure Dependencies.
-
-Responda em JSON:
-{
-    "vulnerabilities": [{"type": "...", "severity": "Critical|High|Medium|Low", "line": N, "line_content": "...", "description": "...", "fix_suggestion": "...", "cwe": "CWE-XX"}],
-    "summary": {"total": N, "critical": N, "high": N, "medium": N, "low": N},
-    "recommendations": ["..."],
-    "secure_patterns_found": ["..."]
-}"""
-
-    lines = code.split('\n')
-    numbered = '\n'.join(f"{i+1}: {l}" for i, l in enumerate(lines))
-    message = f"Analise SAST do codigo {language}:\n```{language}\n{numbered}\n```\nTask: {task.title}"
-
-    response = claude.chat(message, system_prompt, max_tokens=4096)
-
-    if response.success:
-        try:
-            c = response.content.strip()
-            if c.startswith("```"):
-                c = "\n".join(c.split("\n")[1:-1])
-            result = json.loads(c)
-            result["scan_type"] = "ai"
-            result["language"] = language
-            result["scanned_at"] = datetime.utcnow().isoformat()
-            result["task_id"] = task.task_id
-            return result
-        except:
-            pass
-
-    return perform_basic_security_scan(code, language, task)
-
-
-def perform_basic_security_scan(code: str, language: str, task) -> dict:
-    """Analise basica de seguranca com regex"""
-    import re as regex_module
-
-    vulnerabilities = []
-    lines = code.split('\n')
-
-    patterns = {
-        "SQL Injection": [
-            (r"execute.*%s", "String formatting em query SQL"),
-            (r"execute.*f['"]", "f-string em query SQL"),
-        ],
-        "XSS": [
-            (r"innerHTML\s*=", "innerHTML sem sanitizacao"),
-            (r"document\.write", "document.write inseguro"),
-        ],
-        "Command Injection": [
-            (r"os\.system", "os.system inseguro"),
-            (r"subprocess.*shell\s*=\s*True", "subprocess com shell=True"),
-        ],
-        "Hardcoded Secrets": [
-            (r"password\s*=\s*['"][^'"]+['"]", "Senha hardcoded"),
-            (r"api_key\s*=\s*['"][^'"]+['"]", "API key hardcoded"),
-        ],
-        "Insecure Dependencies": [
-            (r"pickle\.load", "pickle.load inseguro"),
-        ],
-    }
-
-    for line_num, line in enumerate(lines, 1):
-        for vuln_type, pats in patterns.items():
-            for pat, desc in pats:
-                if regex_module.search(pat, line, regex_module.IGNORECASE):
-                    sev = "Critical" if vuln_type in ["SQL Injection", "Command Injection"] else "High"
-                    vulnerabilities.append({
-                        "type": vuln_type,
-                        "severity": sev,
-                        "line": line_num,
-                        "line_content": line.strip()[:100],
-                        "description": desc,
-                        "fix_suggestion": "Corrija usando praticas seguras",
-                        "cwe": ""
-                    })
-                    break
-
-    total = len(vulnerabilities)
-    summary = {"total": total, "critical": 0, "high": 0, "medium": 0, "low": 0}
-    for v in vulnerabilities:
-        s = v["severity"].lower()
-        if s in summary:
-            summary[s] += 1
-
-    return {
-        "vulnerabilities": vulnerabilities,
-        "summary": summary,
-        "scan_type": "basic",
-        "language": language,
-        "scanned_at": datetime.utcnow().isoformat(),
-        "task_id": task.task_id,
-        "recommendations": ["Use ferramentas SAST dedicadas para analise completa"]
-    }
 
 # =============================================================================
 # API ENDPOINTS - DOCUMENTATION
@@ -1739,6 +1302,12 @@ Gere a documentacao agora em JSON."""
         except json.JSONDecodeError:
             # Se falhar o parse, usar como texto direto
             return {
+
+                // Project Preview Dashboard (Issue #73)
+                showProjectPreview, previewData, previewActiveTab, previewViewportMode,
+                previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
+                startAppPreview, runProjectTests, buildProject, openAppPreview,
+                openFileViewer, openDocViewer,
                 "title": f"Documentacao {doc_type.upper()} - {story.get('title')}",
                 "content": response.content,
                 "test_instructions": "Veja secao de testes na documentacao",
@@ -2373,188 +1942,6 @@ def clear_chat_history(project_id: Optional[str] = None, story_id: Optional[str]
 
 
 # =============================================================================
-# API ENDPOINTS - PAIR PROGRAMMING
-# =============================================================================
-
-class PairProgrammingRequest(BaseModel):
-    code: str
-    language: Optional[str] = "python"
-    context: Optional[str] = None
-    task_id: Optional[str] = None
-    story_id: Optional[str] = None
-
-
-class PairProgrammingExplainRequest(BaseModel):
-    code: str
-    language: Optional[str] = "python"
-    context: Optional[str] = None
-
-
-class PairProgrammingRefactorRequest(BaseModel):
-    code: str
-    language: Optional[str] = "python"
-    refactor_type: Optional[str] = "general"
-    context: Optional[str] = None
-
-
-@app.post("/api/pair-programming/suggest")
-def pair_programming_suggest(request: PairProgrammingRequest):
-    """Gera sugestoes de codigo em tempo real usando Claude AI"""
-    if not HAS_CLAUDE:
-        return {"success": False, "error": "Claude AI not available", "suggestion": ""}
-
-    try:
-        claude = get_claude_client()
-        if not claude.is_available():
-            return {"success": False, "error": "Claude AI not configured", "suggestion": ""}
-
-        context_info = ""
-        if request.context:
-            context_info = f"\nContexto adicional: {request.context}"
-        if request.task_id:
-            context_info += f"\nTask ID: {request.task_id}"
-        if request.story_id:
-            context_info += f"\nStory ID: {request.story_id}"
-
-        system_prompt = f"""Voce e um assistente de Pair Programming especializado.
-Sua tarefa e completar o codigo parcial fornecido pelo usuario.
-
-INSTRUCOES:
-1. Analise o codigo parcial
-2. Sugira a CONTINUACAO mais provavel e util
-3. Retorne APENAS o codigo que deve ser adicionado (nao repita o codigo existente)
-4. Mantenha o estilo e padrao do codigo existente
-5. Se o codigo estiver incompleto (ex: funcao sem corpo), complete-o
-6. Se houver um padrao obvio, continue-o
-7. Seja conciso - sugira apenas o proximo trecho logico (1-5 linhas geralmente)
-8. NAO inclua explicacoes, apenas o codigo
-
-Linguagem: {request.language}
-{context_info}"""
-
-        response = claude.chat(
-            message=f"Complete este codigo:\n\n```{request.language}\n{request.code}\n```",
-            system_prompt=system_prompt,
-            max_tokens=500
-        )
-
-        if response.success:
-            suggestion = response.content.strip()
-            if suggestion.startswith("```"):
-                lines = suggestion.split("\n")
-                suggestion = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-            return {"success": True, "suggestion": suggestion, "language": request.language}
-        else:
-            return {"success": False, "error": response.error, "suggestion": ""}
-    except Exception as e:
-        return {"success": False, "error": str(e), "suggestion": ""}
-
-
-@app.post("/api/pair-programming/explain")
-def pair_programming_explain(request: PairProgrammingExplainRequest):
-    """Explica o que um trecho de codigo faz"""
-    if not HAS_CLAUDE:
-        return {"success": False, "error": "Claude AI not available", "explanation": ""}
-
-    try:
-        claude = get_claude_client()
-        if not claude.is_available():
-            return {"success": False, "error": "Claude AI not configured", "explanation": ""}
-
-        context_info = ""
-        if request.context:
-            context_info = f"\nContexto adicional: {request.context}"
-
-        system_prompt = f"""Voce e um assistente de Pair Programming especializado em explicar codigo.
-
-INSTRUCOES:
-1. Explique o codigo de forma clara e didatica
-2. Descreva o que cada parte faz
-3. Mencione padroes de design utilizados, se houver
-4. Aponte possiveis problemas ou melhorias
-5. Use linguagem acessivel para desenvolvedores de todos os niveis
-6. Formate a resposta em Markdown para melhor leitura
-
-Linguagem: {request.language}
-{context_info}"""
-
-        response = claude.chat(
-            message=f"Explique este codigo:\n\n```{request.language}\n{request.code}\n```",
-            system_prompt=system_prompt,
-            max_tokens=1500
-        )
-
-        if response.success:
-            return {"success": True, "explanation": response.content, "language": request.language}
-        else:
-            return {"success": False, "error": response.error, "explanation": ""}
-    except Exception as e:
-        return {"success": False, "error": str(e), "explanation": ""}
-
-
-@app.post("/api/pair-programming/refactor")
-def pair_programming_refactor(request: PairProgrammingRefactorRequest):
-    """Sugere refatoracao para um trecho de codigo"""
-    if not HAS_CLAUDE:
-        return {"success": False, "error": "Claude AI not available", "refactored_code": "", "explanation": ""}
-
-    try:
-        claude = get_claude_client()
-        if not claude.is_available():
-            return {"success": False, "error": "Claude AI not configured", "refactored_code": "", "explanation": ""}
-
-        refactor_instructions = {
-            "general": "Melhore o codigo aplicando boas praticas gerais de programacao.",
-            "performance": "Otimize o codigo para melhor performance, reduzindo complexidade e uso de recursos.",
-            "readability": "Melhore a legibilidade do codigo com nomes melhores, comentarios e estrutura clara.",
-            "security": "Identifique e corrija vulnerabilidades de seguranca no codigo."
-        }
-
-        instruction = refactor_instructions.get(request.refactor_type, refactor_instructions["general"])
-
-        context_info = ""
-        if request.context:
-            context_info = f"\nContexto adicional: {request.context}"
-
-        system_prompt = f"""Voce e um assistente de Pair Programming especializado em refatoracao de codigo.
-
-INSTRUCOES:
-1. {instruction}
-2. Retorne o codigo refatorado completo
-3. Mantenha a funcionalidade original
-4. Apos o codigo, explique as mudancas feitas
-
-Linguagem: {request.language}
-Tipo de refatoracao: {request.refactor_type}
-{context_info}"""
-
-        response = claude.chat(
-            message=f"Refatore este codigo:\n\n```{request.language}\n{request.code}\n```",
-            system_prompt=system_prompt,
-            max_tokens=2000
-        )
-
-        if response.success:
-            content = response.content
-            import re
-            code_match = re.search(r'```[\w]*\n(.*?)```', content, re.DOTALL)
-            refactored_code = code_match.group(1).strip() if code_match else ""
-            return {
-                "success": True,
-                "refactored_code": refactored_code,
-                "full_response": content,
-                "language": request.language,
-                "refactor_type": request.refactor_type
-            }
-        else:
-            return {"success": False, "error": response.error, "refactored_code": "", "explanation": ""}
-    except Exception as e:
-        return {"success": False, "error": str(e), "refactored_code": "", "explanation": ""}
-
-
-
-
-# =============================================================================
 # API ENDPOINTS - ATTACHMENTS
 # =============================================================================
 
@@ -2739,103 +2126,6 @@ def get_status():
     finally:
         db.close()
 
-
-
-
-# =============================================================================
-# API ENDPOINTS - PROJECT IMPORT (Issue #69)
-# =============================================================================
-
-@app.post("/api/projects/import")
-async def import_project(
-    file: Optional[UploadFile] = File(None),
-    github_url: Optional[str] = Form(None),
-    project_name: Optional[str] = Form(None),
-    generate_stories: bool = Form(True)
-):
-    """
-    Imports an existing project from ZIP file or GitHub URL.
-
-    - Accepts ZIP file upload OR GitHub URL
-    - Analyzes project structure (Python, Node, etc.)
-    - Extracts README for description
-    - Identifies modules/components
-    - Optionally generates stories from TODOs and AI analysis
-    """
-    db = SessionLocal()
-    try:
-        claude_client = get_claude_client() if HAS_CLAUDE else None
-        projects_dir = r'C:\Users\lcruz\Fabrica de Agentes\projects'
-
-        result = await import_project_process(
-            file=file,
-            github_url=github_url,
-            project_name=project_name,
-            generate_stories=generate_stories,
-            db_session=db,
-            project_repo=ProjectRepository(db),
-            story_repo=StoryRepository(db),
-            claude_client=claude_client,
-            notify_func=notify,
-            projects_base_dir=projects_dir
-        )
-        return result
-    finally:
-        db.close()
-
-
-@app.get("/api/projects/import/progress/{import_id}")
-def get_import_progress(import_id: str):
-    """Returns the current progress of a project import"""
-    return get_import_progress_data(import_id)
-
-
-@app.post("/api/projects/{project_id}/analyze")
-def analyze_existing_project(project_id: str):
-    """Analyzes an existing project and returns structure information."""
-    db = SessionLocal()
-    try:
-        project_repo = ProjectRepository(db)
-        project = project_repo.get_by_id(project_id)
-
-        if not project:
-            raise HTTPException(404, "Project not found")
-
-        if not project.folder_path or not Path(project.folder_path).exists():
-            raise HTTPException(400, "Project folder not found")
-
-        analysis = analyze_project_structure(project.folder_path)
-        return {"project_id": project_id, "analysis": analysis}
-    finally:
-        db.close()
-
-
-@app.post("/api/projects/{project_id}/generate-stories-from-code")
-def generate_stories_from_code(project_id: str):
-    """Generates User Stories based on existing project code analysis."""
-    db = SessionLocal()
-    try:
-        project_repo = ProjectRepository(db)
-        story_repo = StoryRepository(db)
-        project = project_repo.get_by_id(project_id)
-
-        if not project:
-            raise HTTPException(404, "Project not found")
-
-        if not project.folder_path or not Path(project.folder_path).exists():
-            raise HTTPException(400, "Project folder not found")
-
-        analysis = analyze_project_structure(project.folder_path)
-        claude_client = get_claude_client() if HAS_CLAUDE else None
-        stories = generate_stories_from_analysis(project_id, analysis, story_repo, claude_client)
-
-        return {
-            "project_id": project_id,
-            "stories_created": len(stories),
-            "stories": stories
-        }
-    finally:
-        db.close()
 
 # =============================================================================
 # API ENDPOINTS - TERMINAL
@@ -3033,284 +2323,6 @@ def start_project_test_app(project_id: str):
         raise HTTPException(500, f"Erro ao iniciar aplicacao: {str(e)}")
 
 
-
-
-# =============================================================================
-# SECURITY ANALYZER - Issue #57
-# =============================================================================
-
-from factory.core.security_analyzer import (
-    SecurityAnalyzer, SecurityScanConfig, ScanType, get_security_badge
-)
-
-class SecurityScanRequest(BaseModel):
-    use_bandit: Optional[bool] = True
-    include_info: Optional[bool] = False
-    scan_dependencies: Optional[bool] = False
-
-
-@app.post("/api/projects/{project_id}/security-scan")
-async def run_security_scan(project_id: str, request: Optional[SecurityScanRequest] = None):
-    """Executa analise de seguranca SAST no projeto."""
-    try:
-        scan_types = [ScanType.SAST]
-        if request and request.scan_dependencies:
-            scan_types.append(ScanType.SCA)
-        config = SecurityScanConfig(
-            scan_types=scan_types,
-            use_bandit=request.use_bandit if request else True,
-            include_info=request.include_info if request else False,
-            verbose=False
-        )
-        analyzer = SecurityAnalyzer(config)
-        report = await analyzer.analyze(project_id)
-        badge = get_security_badge(report.security_score)
-        notify("security_scan_complete", {
-            "project_id": project_id,
-            "score": report.security_score,
-            "risk_level": report.risk_level,
-            "vulnerabilities_count": len(report.vulnerabilities),
-            "badge": badge
-        })
-        return report.to_dict()
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao executar scan de seguranca: {str(e)}")
-
-
-@app.get("/api/projects/{project_id}/security-status")
-def get_security_status(project_id: str):
-    """Retorna status de seguranca do projeto."""
-    return {"project_id": project_id, "has_scan": False}
-
-
-@app.get("/api/security/badge/{project_id}")
-def get_project_security_badge(project_id: str, score: int = 100):
-    """Retorna badge de seguranca."""
-    return {"project_id": project_id, "badge": get_security_badge(score)}
-
-
-# =============================================================================
-# REFACTORING ENGINE - ANALISE DE DEBT E REFATORACAO AUTOMATICA (Issue #60)
-# =============================================================================
-
-from factory.core.refactoring_engine import (
-    RefactoringEngine,
-    analyze_project_debt,
-    get_debt_score,
-    get_debt_items,
-    auto_refactor,
-    generate_debt_stories
-)
-
-
-class RefactorRequest(BaseModel):
-    """Request para refatoracao"""
-    apply_all: bool = False
-    refactoring_id: Optional[int] = None
-
-
-@app.get("/api/projects/{project_id}/debt-score")
-def get_project_debt_score(project_id: str):
-    """
-    Retorna o score de technical debt do projeto.
-
-    O score varia de 0-100, onde maior = melhor qualidade.
-    Inclui subscores para:
-    - Duplicacao
-    - Complexidade
-    - Manutenibilidade
-    - Legibilidade
-    """
-    try:
-        result = get_debt_score(project_id)
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao calcular debt score: {str(e)}")
-
-
-@app.get("/api/projects/{project_id}/debt-items")
-def get_project_debt_items(project_id: str):
-    """
-    Retorna lista de itens de technical debt (code smells).
-
-    Cada item inclui:
-    - Tipo de smell
-    - Severidade
-    - Arquivo e linha
-    - Sugestao de correcao
-    - Tempo estimado de fix
-    """
-    try:
-        result = get_debt_items(project_id)
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao listar debt items: {str(e)}")
-
-
-@app.get("/api/projects/{project_id}/debt-analysis")
-def get_project_debt_analysis(project_id: str):
-    """
-    Analise completa de technical debt do projeto.
-
-    Retorna:
-    - Score geral e por categoria
-    - Lista de code smells
-    - Sugestoes de refatoracao
-    - Resumo executivo
-    """
-    try:
-        result = analyze_project_debt(project_id)
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao analisar debt: {str(e)}")
-
-
-@app.post("/api/projects/{project_id}/refactor")
-def refactor_project(project_id: str, request: RefactorRequest = None):
-    """
-    Executa refatoracao automatica no projeto.
-
-    Pode:
-    - Aplicar todas refatoracoes seguras (apply_all=True)
-    - Aplicar refatoracao especifica (refactoring_id)
-    - Listar refatoracoes disponiveis (sem parametros)
-    """
-    try:
-        if request and request.apply_all:
-            result = auto_refactor(project_id, apply_all=True)
-            if result.get("refactoring_result", {}).get("applied_count", 0) > 0:
-                notify("refactoring_applied", {
-                    "project_id": project_id,
-                    "applied_count": result["refactoring_result"]["applied_count"],
-                    "message": f"Aplicadas {result['refactoring_result']['applied_count']} refatoracoes"
-                })
-        elif request and request.refactoring_id is not None:
-            engine = RefactoringEngine(project_id)
-            engine.analyze()
-            result = engine.apply_refactoring(request.refactoring_id)
-            if result.get("success"):
-                notify("refactoring_applied", {
-                    "project_id": project_id,
-                    "message": result.get("message", "Refatoracao aplicada")
-                })
-        else:
-            result = auto_refactor(project_id, apply_all=False)
-
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao refatorar: {str(e)}")
-
-
-@app.post("/api/projects/{project_id}/generate-debt-stories")
-def generate_project_debt_stories(project_id: str):
-    """
-    Gera stories de User Story para resolver technical debt.
-
-    Agrupa smells por tipo e cria stories com:
-    - Titulo descritivo
-    - Narrativa Agile (persona, action, benefit)
-    - Story points estimados
-    - Criterios de aceite
-    """
-    try:
-        result = generate_debt_stories(project_id)
-
-        if result.get("suggested_stories"):
-            notify("debt_stories_generated", {
-                "project_id": project_id,
-                "count": len(result["suggested_stories"]),
-                "message": f"Geradas {len(result['suggested_stories'])} stories de debt"
-            })
-
-        return result
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao gerar stories: {str(e)}")
-
-
-# =============================================================================
-# API ENDPOINTS - NOTIFICATIONS
-# =============================================================================
-
-@app.get("/api/notifications")
-def get_notifications(limit: int = 50):
-    """Get notification history"""
-    return {
-        "notifications": ws_manager.get_history(limit),
-        "unread_count": ws_manager.get_unread_count()
-    }
-
-
-@app.post("/api/notifications/mark-read")
-def mark_notifications_read(notification_id: Optional[str] = None):
-    """Mark notification(s) as read"""
-    ws_manager.mark_as_read(notification_id)
-    return {"success": True, "unread_count": ws_manager.get_unread_count()}
-
-
-@app.post("/api/notifications/mark-all-read")
-def mark_all_notifications_read():
-    """Mark all notifications as read"""
-    ws_manager.mark_as_read()
-    return {"success": True, "unread_count": 0}
-
-
-# =============================================================================
-# API ENDPOINTS - INTEGRATIONS (SLACK/TEAMS)
-# =============================================================================
-
-class WebhookConfig(BaseModel):
-    webhook_url: str
-    enabled: bool = True
-
-
-class TestNotification(BaseModel):
-    message: str = "Test notification from Fabrica de Agentes"
-
-
-@app.get("/api/integrations/config")
-def get_integrations_config():
-    """Get current integration configuration status"""
-    return {
-        "slack": {"configured": bool(SLACK_WEBHOOK_URL), "enabled": NOTIFICATIONS_ENABLED},
-        "teams": {"configured": bool(TEAMS_WEBHOOK_URL), "enabled": NOTIFICATIONS_ENABLED},
-        "notifications_enabled": NOTIFICATIONS_ENABLED
-    }
-
-
-@app.post("/api/integrations/slack/webhook")
-async def configure_slack_webhook(config: WebhookConfig):
-    """Configure Slack webhook URL"""
-    global SLACK_WEBHOOK_URL
-    SLACK_WEBHOOK_URL = config.webhook_url if config.enabled else ""
-    return {"success": True, "message": "Slack webhook configured", "configured": bool(SLACK_WEBHOOK_URL)}
-
-
-@app.post("/api/integrations/slack/test")
-async def test_slack_notification(test: TestNotification = TestNotification()):
-    """Send a test notification to Slack"""
-    if not SLACK_WEBHOOK_URL:
-        raise HTTPException(400, "Slack webhook URL not configured")
-    await send_slack_notification("test", {"message": test.message})
-    return {"success": True, "message": "Test notification sent to Slack"}
-
-
-@app.post("/api/integrations/teams/webhook")
-async def configure_teams_webhook(config: WebhookConfig):
-    """Configure Teams webhook URL"""
-    global TEAMS_WEBHOOK_URL
-    TEAMS_WEBHOOK_URL = config.webhook_url if config.enabled else ""
-    return {"success": True, "message": "Teams webhook configured", "configured": bool(TEAMS_WEBHOOK_URL)}
-
-
-@app.post("/api/integrations/teams/test")
-async def test_teams_notification(test: TestNotification = TestNotification()):
-    """Send a test notification to Microsoft Teams"""
-    if not TEAMS_WEBHOOK_URL:
-        raise HTTPException(400, "Teams webhook URL not configured")
-    await send_teams_notification("test", {"message": test.message})
-    return {"success": True, "message": "Test notification sent to Teams"}
-
-
 # =============================================================================
 # WEBSOCKET ENDPOINT
 # =============================================================================
@@ -3322,11 +2334,7 @@ async def websocket_notifications(websocket: WebSocket):
     try:
         await websocket.send_json({
             "type": "connection",
-            "data": {
-                "status": "connected",
-                "message": "Conectado ao servidor de notificacoes",
-                "unread_count": ws_manager.get_unread_count()
-            },
+            "data": {"status": "connected", "message": "Conectado ao servidor de notificacoes"},
             "timestamp": datetime.utcnow().isoformat() + "Z"
         })
         while True:
@@ -3334,12 +2342,6 @@ async def websocket_notifications(websocket: WebSocket):
                 data = await websocket.receive_text()
                 if data == "ping":
                     await websocket.send_json({"type": "pong", "timestamp": datetime.utcnow().isoformat() + "Z"})
-                elif data == "get_unread_count":
-                    await websocket.send_json({
-                        "type": "unread_count",
-                        "data": {"count": ws_manager.get_unread_count()},
-                        "timestamp": datetime.utcnow().isoformat() + "Z"
-                    })
             except WebSocketDisconnect:
                 break
             except:
@@ -3370,17 +2372,6 @@ HTML_TEMPLATE = """
     <!-- xterm.js for terminal -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
-    <!-- highlight.js for syntax highlighting -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/python.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/javascript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/typescript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/java.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/go.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/rust.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/sql.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/bash.min.js"></script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -3422,52 +2413,33 @@ HTML_TEMPLATE = """
         .kanban-column { min-height: 400px; }
 
         /* Swimlanes */
-        .swimlanes-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
         .swimlane {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            padding: 0;
-            margin-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 16px 0;
+            margin-bottom: 16px;
         }
         .swimlane:last-child {
-            margin-bottom: 0;
+            border-bottom: none;
         }
         .swimlane-header {
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #e5e7eb;
-            user-select: none;
-        }
-        .swimlane-header:hover {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            gap: 8px;
         }
         .swimlane-content {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             overflow-x: auto;
-            padding: 12px;
-            background: #fafafa;
-            border-radius: 0 0 8px 8px;
+            padding: 0 8px;
         }
         .swimlane-column {
             flex-shrink: 0;
-            width: 260px;
-            min-width: 260px;
-        }
-        .swimlane-collapsed .swimlane-content {
-            display: none;
-        }
-        .rotate-90 {
-            transform: rotate(90deg);
+            width: 280px;
         }
 
         .narrative-box {
@@ -3481,207 +2453,180 @@ HTML_TEMPLATE = """
         .markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 0.75rem; }
         .markdown-content ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
-        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.85em; }
-        .markdown-content pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; }
-        .markdown-content pre code { background: transparent; color: inherit; padding: 0; font-size: 0.8rem; }
+        .markdown-content code { background: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
 
-        /* Chat UX Improvements */
-        .chat-message { animation: chatMessageSlideIn 0.3s ease-out; position: relative; }
-        .chat-message:hover .chat-message-actions { opacity: 1; }
-        .chat-message-actions { opacity: 0; transition: opacity 0.2s ease; position: absolute; top: -8px; right: 8px; display: flex; gap: 4px; background: white; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px; }
-        .chat-message-actions button { background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; color: #6b7280; font-size: 0.75rem; display: flex; align-items: center; gap: 2px; transition: all 0.2s; }
-        .chat-message-actions button:hover { background: #f3f4f6; color: #1f2937; }
-        .chat-message-actions button.reaction-active { color: #FF6C00; background: #fff7ed; }
-        @keyframes chatMessageSlideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Typing Indicator */
-        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 12px 16px; background: #f3f4f6; border-radius: 12px; border-bottom-left-radius: 4px; width: fit-content; }
-        .typing-indicator span { width: 8px; height: 8px; background: #9ca3af; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out both; }
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0s; }
-        @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
-
-        /* Quick Action Chips */
-        .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
-        .quick-action-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 20px; font-size: 0.75rem; color: #374151; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .quick-action-chip:hover { background: #003B4A; color: white; border-color: #003B4A; }
-        .quick-action-chip svg { width: 14px; height: 14px; }
-
-        /* New Message Indicator */
-        .new-message-indicator { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #003B4A; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: bounceIn 0.3s ease; z-index: 10; }
-        .new-message-indicator:hover { background: #004d5f; }
-        @keyframes bounceIn { 0% { transform: translateX(-50%) scale(0.8); opacity: 0; } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
-
-        /* Chat Error and Actions */
-        .chat-error { background: #fef2f2 !important; border: 1px solid #fecaca; color: #dc2626 !important; }
-        .chat-error-retry { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; margin-top: 8px; background: #dc2626; color: white; border: none; border-radius: 4px; font-size: 0.7rem; cursor: pointer; transition: background 0.2s; }
-        .chat-error-retry:hover { background: #b91c1c; }
-        .chat-header-actions { display: flex; gap: 8px; }
-        .chat-header-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; transition: background 0.2s; }
-        .chat-header-btn:hover { background: rgba(255,255,255,0.2); }
-
-        /* Code Syntax Highlighting */
-        .hljs-keyword { color: #c792ea; }
-        .hljs-string { color: #c3e88d; }
-        .hljs-number { color: #f78c6c; }
-        .hljs-function { color: #82aaff; }
-        .hljs-comment { color: #676e95; font-style: italic; }
-
-
-        /* Pair Programming Styles */
-        .pair-programming-container {
-            display: flex;
-            height: 100%;
-            gap: 16px;
+        
+        /* ===== PROJECT PREVIEW DASHBOARD STYLES (Issue #73) ===== */
+        .preview-dashboard {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100%;
         }
-        .pp-editor-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-        .pp-chat-panel {
-            width: 350px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid #e5e7eb;
-            padding-left: 16px;
-        }
-        .pp-code-editor {
-            flex: 1;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 14px;
-            line-height: 1.5;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            resize: none;
-            tab-size: 4;
-        }
-        .pp-code-editor:focus {
-            outline: none;
-            border-color: var(--belgo-orange);
-        }
-        .pp-suggestion {
-            color: #6b7280;
-            font-style: italic;
-            opacity: 0.7;
-        }
-        .pp-toolbar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-        .pp-toolbar select {
-            padding: 6px 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 13px;
-        }
-        .pp-toolbar button {
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .pp-btn-primary {
-            background: var(--belgo-orange);
-            color: white;
-            border: none;
-        }
-        .pp-btn-primary:hover {
-            background: #e65c00;
-        }
-        .pp-btn-secondary {
-            background: var(--belgo-blue);
-            color: white;
-            border: none;
-        }
-        .pp-btn-secondary:hover {
-            opacity: 0.9;
-        }
-        .pp-btn-outline {
+        .preview-card {
             background: white;
-            color: var(--belgo-blue);
-            border: 1px solid var(--belgo-blue);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
         }
-        .pp-btn-outline:hover {
-            background: var(--belgo-blue);
+        .preview-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .preview-header {
+            background: linear-gradient(135deg, #003B4A 0%, #005566 100%);
             color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
         }
-        .pp-history {
-            flex: 1;
-            overflow-y: auto;
-            space-y: 12px;
+        .preview-metric {
+            text-align: center;
+            padding: 16px;
         }
-        .pp-history-item {
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 13px;
+        .preview-metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #003B4A;
         }
-        .pp-history-item.suggestion {
-            border-left: 3px solid var(--belgo-orange);
+        .preview-metric-label {
+            font-size: 0.75rem;
+            color: #6B7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
-        .pp-history-item.explanation {
-            border-left: 3px solid #3b82f6;
+        .preview-progress-bar {
+            height: 12px;
+            background: #E5E7EB;
+            border-radius: 6px;
+            overflow: hidden;
         }
-        .pp-history-item.refactor {
-            border-left: 3px solid #10b981;
+        .preview-progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
         }
-        .pp-loading {
+        .preview-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #6b7280;
-            font-size: 13px;
         }
-        .pp-loading-spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid #e5e7eb;
-            border-top-color: var(--belgo-orange);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .pp-result-panel {
-            margin-top: 12px;
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-        }
-        .pp-result-header {
+        .preview-file-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-        }
-        .pp-result-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--belgo-blue);
-        }
-        .pp-code-block {
-            background: #1e1e1e;
-            color: #d4d4d4;
+            gap: 12px;
             padding: 12px;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .preview-file-item:hover {
+            background: #F9FAFB;
+            border-color: #D1D5DB;
+        }
+        .preview-file-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 1.25rem;
+        }
+        .preview-doc-card {
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+        .preview-doc-card:hover {
+            border-color: #3B82F6;
+            background: #F0F9FF;
+        }
+        .preview-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .preview-action-btn.primary {
+            background: #FF6C00;
+            color: white;
+        }
+        .preview-action-btn.primary:hover {
+            background: #E56000;
+        }
+        .preview-action-btn.secondary {
+            background: white;
+            color: #003B4A;
+            border: 1px solid #D1D5DB;
+        }
+        .preview-action-btn.secondary:hover {
+            background: #F3F4F6;
+        }
+        .preview-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid #E5E7EB;
+            margin-bottom: 16px;
+        }
+        .preview-tab {
+            padding: 12px 20px;
+            font-weight: 500;
+            color: #6B7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s ease;
+        }
+        .preview-tab:hover {
+            color: #003B4A;
+        }
+        .preview-tab.active {
+            color: #003B4A;
+            border-color: #FF6C00;
+        }
+        .preview-iframe-container {
+            border: 2px solid #E5E7EB;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+        }
+        .preview-iframe-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #F3F4F6;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .preview-iframe-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .preview-viewport-btn {
+            padding: 6px 12px;
+            border: 1px solid #D1D5DB;
             border-radius: 6px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            white-space: pre;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .preview-viewport-btn.active {
+            background: #003B4A;
+            color: white;
+            border-color: #003B4A;
         }
 
         /* Toast Notifications */
@@ -4115,72 +3060,21 @@ HTML_TEMPLATE = """
         @supports (padding: env(safe-area-inset-top)) { .header-container { padding-top: env(safe-area-inset-top); } .mobile-bottom-nav { padding-bottom: env(safe-area-inset-bottom); } }
 
         @media print { .mobile-menu-btn, .mobile-bottom-nav, .mobile-overlay { display: none !important; } }
-        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
-        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
-        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
-        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
-        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
-        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
-        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
-        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
-        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
-        .touch-target { min-width: 44px; min-height: 44px; }
-
-        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
-        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
-        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
-        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
-        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
-        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
-        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
-        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
-        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
-        .touch-target { min-width: 44px; min-height: 44px; }
-
-        /* ===================== ACCESSIBILITY (A11y) - Issue #45 ===================== */
-        .skip-link { position: absolute; top: -40px; left: 0; background: #003B4A; color: white; padding: 8px 16px; z-index: 10000; text-decoration: none; font-weight: 600; border-radius: 0 0 4px 0; transition: top 0.2s ease; }
-        .skip-link:focus { top: 0; outline: 3px solid #FF6C00; outline-offset: 2px; }
-        *:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; }
-        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, [role="button"]:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.2); }
-        .dark button:focus-visible, .dark a:focus-visible, .dark input:focus-visible, .dark select:focus-visible, .dark textarea:focus-visible, .dark [tabindex]:focus-visible { outline-color: #FFB366 !important; box-shadow: 0 0 0 4px rgba(255, 179, 102, 0.3); }
-        .story-card:focus-visible { outline: 3px solid #FF6C00 !important; outline-offset: 2px !important; box-shadow: 0 0 0 4px rgba(255, 108, 0, 0.3), 0 4px 12px rgba(0,0,0,0.15) !important; }
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        .a11y-live-region { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .story-card:hover { transform: none !important; } .animate-pulse, .animate-spin { animation: none !important; } }
-        @media (prefers-contrast: high) { .story-card { border: 2px solid #000 !important; } .priority-urgent { border-left: 6px solid #EF4444 !important; } .priority-high { border-left: 6px solid #F59E0B !important; } .priority-medium { border-left: 6px solid #3B82F6 !important; } .priority-low { border-left: 6px solid #10B981 !important; } }
-        .kanban-column:focus-within { box-shadow: inset 0 0 0 2px #003B4A; }
-        .touch-target { min-width: 44px; min-height: 44px; }
-
     </style>
 </head>
 <body class="bg-gray-100">
     <div id="app" :class="{ 'dark': isDarkMode }">
-        <!-- Skip Links for Keyboard Navigation (A11y) -->
-        <a href="#main-content" class="skip-link">Pular para conteudo principal</a>
-        <a href="#kanban-board" class="skip-link" style="left: 220px;">Pular para Kanban</a>
-        <a href="#chat-panel" class="skip-link" style="left: 380px;">Pular para Chat</a>
-
-        <!-- Live Region for Screen Reader Announcements (A11y) -->
-        <div id="a11y-announcer" class="a11y-live-region" aria-live="polite" aria-atomic="true"></div>
-        <div id="a11y-status" class="a11y-live-region" role="status" aria-live="polite"></div>
-
         <!-- Mobile Overlay -->
-        <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false" aria-hidden="true"></div>
+        <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false"></div>
         <!-- Pull to Refresh -->
-        <div class="pull-refresh-indicator" :class="{ 'visible': isPullingToRefresh }" role="status" aria-live="polite"><div class="spinner spinner-sm" aria-hidden="true"></div><span>Atualizando...</span></div>
+        <div class="pull-refresh-indicator" :class="{ 'visible': isPullingToRefresh }"><div class="spinner spinner-sm"></div><span>Atualizando...</span></div>
         <!-- HEADER -->
-        <header class="belgo-blue text-white shadow-lg" role="banner">
+        <header class="belgo-blue text-white shadow-lg">
             <div class="container mx-auto px-4 header-container">
                 <div class="flex items-center justify-between h-16">
                     <div class="flex items-center gap-4">
                         <!-- Hamburger Menu (Mobile) -->
-                        <button class="mobile-menu-btn" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen" aria-label="Menu de navegacao" :aria-expanded="mobileMenuOpen">
+                        <button class="mobile-menu-btn" :class="{ 'active': mobileMenuOpen }" @click="mobileMenuOpen = !mobileMenuOpen">
                             <span></span><span></span><span></span>
                         </button>
                         <div class="flex items-center gap-2">
@@ -4240,41 +3134,6 @@ HTML_TEMPLATE = """
                             <span class="hidden sm:inline">{{ wsStatusText }}</span>
                         </div>
 
-                        <!-- Notifications Panel -->
-                        <div class="relative">
-                            <button @click="toggleNotificationsPanel" class="relative text-white/70 hover:text-white p-2" title="Notificacoes">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                                </svg>
-                                <span v-if="unreadNotificationCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                                    {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
-                                </span>
-                            </button>
-                            <div v-if="showNotificationsPanel" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 max-h-96 overflow-hidden" @click.stop>
-                                <div class="p-3 border-b flex justify-between items-center bg-gray-50">
-                                    <span class="font-semibold text-gray-800">Notificacoes</span>
-                                    <button v-if="unreadNotificationCount > 0" @click="markAllNotificationsRead" class="text-xs text-blue-600 hover:text-blue-800">Marcar todas como lidas</button>
-                                </div>
-                                <div class="overflow-y-auto max-h-72">
-                                    <div v-if="notifications.length === 0" class="p-4 text-center text-gray-500">Nenhuma notificacao</div>
-                                    <div v-for="n in notifications" :key="n.id" :class="['p-3 border-b hover:bg-gray-50 cursor-pointer transition', !n.read ? 'bg-blue-50' : '']" @click="markNotificationRead(n.id)">
-                                        <div class="flex items-start gap-2">
-                                            <span class="text-lg">{{ getNotificationIcon(n.type) }}</span>
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-gray-900 truncate">{{ getNotificationTitle(n.type) }}</p>
-                                                <p class="text-xs text-gray-600 truncate">{{ getNotificationText(n) }}</p>
-                                                <p class="text-xs text-gray-400 mt-1">{{ formatNotificationTime(n.timestamp) }}</p>
-                                            </div>
-                                            <span v-if="!n.read" class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-2 border-t bg-gray-50">
-                                    <button @click="showNotificationPreferences = true; showNotificationsPanel = false" class="w-full text-xs text-gray-600 hover:text-gray-800 py-1">Configurar notificacoes</button>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Notification Sound Toggle -->
                         <button @click="toggleNotificationSound" class="text-white/70 hover:text-white p-1" :title="notificationSoundEnabled ? 'Desativar som' : 'Ativar som'">
                             <span v-if="notificationSoundEnabled">🔔</span>
@@ -4291,7 +3150,7 @@ HTML_TEMPLATE = """
 
                         <!-- Nova Story -->
                         <button @click="showNewStoryModal = true"
-                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition" aria-label="Criar nova User Story">
+                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition">
                             + Nova Story
                         </button>
                     </div>
@@ -4301,7 +3160,7 @@ HTML_TEMPLATE = """
 
         <div class="flex main-content-mobile" style="height: calc(100vh - 64px);">
             <!-- SIDEBAR -->
-            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }" role="complementary" aria-label="Menu lateral de navegacao">
+            <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }">
                 <div class="p-4">
                     <!-- Projetos -->
                     <div class="mb-6">
@@ -4370,7 +3229,19 @@ HTML_TEMPLATE = """
                     <div class="space-y-2">
                         <button @click="showNewEpicModal = true"
                                 class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">
-                            + Novo Epic
+                            
+                    <!-- Project Preview Button (Issue #73) -->
+                    <button @click="openProjectPreview"
+                            v-if="selectedProjectId"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-[#003B4A] to-[#005566] text-white rounded transition hover:opacity-90">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        <span>Preview do Projeto</span>
+                    </button>
+
+                    + Novo Epic
                         </button>
                         <button @click="showNewSprintModal = true"
                                 class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">
@@ -4381,7 +3252,7 @@ HTML_TEMPLATE = """
             </aside>
 
             <!-- MAIN CONTENT - KANBAN -->
-            <main id="main-content" class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content" role="main" aria-label="Quadro Kanban de Stories">
+            <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
                 <div v-if="!selectedProjectId" class="flex items-center justify-center h-full text-gray-500">
                     <div class="text-center max-w-md">
                         <div class="text-6xl mb-4">🚀</div>
@@ -4504,14 +3375,14 @@ HTML_TEMPLATE = """
 
                         <!-- Lista de Stories -->
                         <div :id="'column-' + status"
-                             class="kanban-column p-2 space-y-2 overflow-y-auto" role="region" role="region"
+                             class="kanban-column p-2 space-y-2 overflow-y-auto"
                              style="max-height: calc(100vh - 200px);">
                             <!-- Story Card -->
                             <div v-for="story in column" :key="story.story_id"
                                  @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                  @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
-                                 tabindex="0" tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                 :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                           'priority-' + story.priority,
                                           selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                 <!-- Bulk Select Checkbox -->
@@ -4523,17 +3394,12 @@ HTML_TEMPLATE = """
                                 </div>
                                 <!-- Quick Actions -->
                                 <div class="quick-actions" @click.stop>
-                                    <button @click="estimateStoryEffort(story)" class="quick-btn" title="Estimar esforco (IA)" style="background: #8B5CF6;">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                        </svg>
-                                    </button>
-                                    <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna" aria-label="Mover story para proxima coluna">
+                                    <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                         </svg>
                                     </button>
-                                    <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir" aria-label="Excluir story">
+                                    <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
@@ -4583,29 +3449,16 @@ HTML_TEMPLATE = """
                     <!-- Swimlanes View -->
                     <div v-else class="swimlanes-container">
                         <div v-for="(group, groupKey) in groupedStories" :key="groupKey" class="swimlane">
-                            <!-- Swimlane Header (Collapsible) -->
-                            <div class="swimlane-header cursor-pointer" @click="toggleSwimlane(groupKey)">
-                                <div class="flex items-center gap-2">
-                                    <svg :class="['w-4 h-4 transition-transform', isSwimlaneCollapsed(groupKey) ? '' : 'rotate-90']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                    <span :style="group.color ? {borderLeft: `4px solid ${group.color}`, paddingLeft: '8px'} : {}"
-                                          class="font-semibold">
-                                        {{ group.name }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                                        {{ getSwimlaneStoryCount(group) }} stories
-                                    </span>
-                                    <span class="text-xs text-gray-500">
-                                        {{ getSwimlanePoints(group) }} pts
-                                    </span>
-                                </div>
+                            <!-- Swimlane Header -->
+                            <div class="swimlane-header">
+                                <span :style="group.color ? {borderLeft: `4px solid ${group.color}`} : {}"
+                                      class="pl-2">
+                                    {{ group.name }}
+                                </span>
                             </div>
 
                             <!-- Swimlane Content (Columns) -->
-                            <div v-show="!isSwimlaneCollapsed(groupKey)" class="swimlane-content">
+                            <div class="swimlane-content">
                                 <div v-for="status in ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done']"
                                      :key="status"
                                      class="swimlane-column bg-gray-100 rounded-lg">
@@ -4621,14 +3474,14 @@ HTML_TEMPLATE = """
 
                                     <!-- Stories in Column -->
                                     <div :id="'swimlane-' + groupKey + '-' + status"
-                                         class="kanban-column p-2 space-y-2 overflow-y-auto" role="region" role="region"
+                                         class="kanban-column p-2 space-y-2 overflow-y-auto"
                                          style="min-height: 200px; max-height: 300px;">
                                         <!-- Story Card (same as regular Kanban) -->
                                         <div v-for="story in group[status]" :key="story.story_id"
                                              @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                              @contextmenu.prevent="showContextMenu($event, story)"
                                              :data-id="story.story_id"
-                                             tabindex="0" tabindex="0" :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
+                                             :class="['story-card bg-white rounded-lg shadow p-3 card-animate',
                                                       'priority-' + story.priority,
                                                       selectedStories.includes(story.story_id) ? 'ring-2 ring-blue-500' : '']">
                                             <!-- Bulk Select Checkbox -->
@@ -4640,17 +3493,12 @@ HTML_TEMPLATE = """
                                             </div>
                                             <!-- Quick Actions -->
                                             <div class="quick-actions" @click.stop>
-                                                <button @click="estimateStoryEffort(story)" class="quick-btn" title="Estimar esforco (IA)" aria-label="Estimar esforco da story com IA" style="background: #8B5CF6;">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                                    </svg>
-                                                </button>
-                                                <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna" aria-label="Mover story para proxima coluna">
+                                                <button @click="moveToNextColumn(story)" class="quick-btn success" title="Mover para proxima coluna">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                                     </svg>
                                                 </button>
-                                                <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir" aria-label="Excluir story">
+                                                <button @click="deleteStoryWithConfirm(story)" class="quick-btn danger" title="Excluir">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                     </svg>
@@ -4702,111 +3550,28 @@ HTML_TEMPLATE = """
             </main>
 
             <!-- CHAT PANEL -->
-            <aside id="chat-panel" id="chat-panel" class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" role="complementary" aria-label="Painel de chat com assistente IA" role="complementary" aria-label="Painel de chat com assistente IA" :class="{ 'open': mobileChatOpen }">
-                <!-- Header with Clear Button -->
+            <aside class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" :class="{ 'open': mobileChatOpen }">
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xl">🤖</span>
-                            <span class="font-semibold">Assistente</span>
-                        </div>
-                        <div class="chat-header-actions">
-                            <button @click="confirmClearChat" class="chat-header-btn" title="Limpar conversa">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">🤖</span>
+                        <span class="font-semibold">Assistente</span>
                     </div>
                 </div>
 
-                <!-- Messages Container -->
-                <div class="flex-1 overflow-y-auto p-4 chat-messages relative" ref="chatMessages" @scroll="handleChatScroll">
-                    <!-- Messages -->
+                <!-- Mensagens -->
+                <div class="flex-1 overflow-y-auto p-4 chat-messages" ref="chatMessages">
                     <div v-for="msg in chatHistory" :key="msg.message_id"
-                         :class="['mb-4 chat-message', msg.role === 'user' ? 'text-right' : 'text-left']">
-                        <div :class="['inline-block max-w-[90%] p-3 rounded-lg text-sm relative',
+                         :class="['mb-4', msg.role === 'user' ? 'text-right' : 'text-left']">
+                        <div :class="['inline-block max-w-[90%] p-3 rounded-lg text-sm',
                                       msg.role === 'user'
                                         ? 'bg-[#003B4A] text-white rounded-br-none'
-                                        : msg.isError ? 'chat-error rounded-bl-none' : 'bg-gray-100 text-gray-800 rounded-bl-none']">
-                            <!-- Message Content -->
+                                        : 'bg-gray-100 text-gray-800 rounded-bl-none']">
                             <div v-if="msg.role === 'assistant'" class="markdown-content" v-html="renderMarkdown(msg.content)"></div>
                             <div v-else>{{ msg.content }}</div>
-
-                            <!-- Retry Button for Errors -->
-                            <button v-if="msg.isError" @click="retryMessage(msg)" class="chat-error-retry">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Tentar novamente
-                            </button>
-
-                            <!-- Message Actions -->
-                            <div v-if="msg.role === 'assistant' && !msg.isError" class="chat-message-actions">
-                                <button @click="copyMessage(msg.content)" title="Copiar">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                    </svg>
-                                </button>
-                                <button @click="toggleReaction(msg, 'thumbsUp')" :class="{ 'reaction-active': msg.reaction === 'thumbsUp' }" title="Util">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
-                                    </svg>
-                                </button>
-                                <button @click="toggleReaction(msg, 'thumbsDown')" :class="{ 'reaction-active': msg.reaction === 'thumbsDown' }" title="Nao util">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/>
-                                    </svg>
-                                </button>
-                            </div>
                         </div>
-                        <!-- Timestamp -->
                         <div class="text-xs text-gray-400 mt-1">
-                            {{ formatChatTime(msg.created_at) }}
+                            {{ formatTime(msg.created_at) }}
                         </div>
-                    </div>
-
-                    <!-- Typing Indicator -->
-                    <div v-if="isTyping" class="mb-4 text-left">
-                        <div class="typing-indicator">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-
-                    <!-- New Message Indicator -->
-                    <div v-if="hasNewMessages && !isAtBottom"
-                         class="new-message-indicator"
-                         @click="scrollChatToBottom">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                        </svg>
-                        Nova mensagem
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="px-4 py-2 border-t border-gray-100">
-                    <div class="quick-actions">
-                        <button class="quick-action-chip" @click="quickAction('criar story')">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Criar Story
-                        </button>
-                        <button class="quick-action-chip" @click="quickAction('listar stories')">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                            </svg>
-                            Listar Stories
-                        </button>
-                        <button class="quick-action-chip" @click="quickAction('status do projeto')">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                            Status
-                        </button>
                     </div>
                 </div>
 
@@ -4815,20 +3580,14 @@ HTML_TEMPLATE = """
                     <div class="flex gap-2">
                         <input v-model="chatInput"
                                @keyup.enter="sendMessage"
-                               :disabled="isTyping"
                                type="text"
-                               placeholder="Digite sua mensagem..." aria-label="Mensagem para o assistente IA"
-                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A] disabled:bg-gray-50 disabled:cursor-not-allowed">
+                               placeholder="Digite sua mensagem..."
+                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A]">
                         <button @click="sendMessage"
-                                :disabled="isTyping || !chatInput.trim()"
-                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg v-if="!isTyping" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                            </svg>
-                            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         </button>
                     </div>
@@ -4860,7 +3619,7 @@ HTML_TEMPLATE = """
                 <!-- Tabs -->
                 <div class="border-b border-gray-200">
                     <div class="flex">
-                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos', 'PairProg']" :key="tab"
+                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos']" :key="tab"
                                 @click="activeTab = tab"
                                 :class="['px-4 py-3 text-sm font-medium',
                                          activeTab === tab ? 'tab-active' : 'text-gray-500 hover:text-gray-700']">
@@ -4924,10 +3683,8 @@ HTML_TEMPLATE = """
                                 <span class="text-xs text-gray-500">Story Points</span>
                                 <div class="flex items-center gap-2">
                                     <span class="font-medium">{{ selectedStory.story_points }}</span>
-                                    <button @click="estimateStoryPoints"
-                                            :disabled="estimatingStory"
-                                            class="text-xs bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
-                                            title="Estimar com IA">
+                                    <button @click="estimateStoryPoints" :disabled="estimatingStory"
+                                            class="text-xs bg-purple-600 text-white px-2 py-0.5 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
                                         <svg v-if="!estimatingStory" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                                         </svg>
@@ -4935,7 +3692,7 @@ HTML_TEMPLATE = """
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                         </svg>
-                                        {{ estimatingStory ? 'Analisando...' : 'Estimar com IA' }}
+                                        {{ estimatingStory ? 'Analisando...' : 'IA' }}
                                     </button>
                                 </div>
                             </div>
@@ -4950,30 +3707,6 @@ HTML_TEMPLATE = """
                             <div>
                                 <span class="text-xs text-gray-500">Categoria</span>
                                 <div class="font-medium capitalize">{{ selectedStory.category }}</div>
-                            </div>
-                        </div>
-
-                        <!-- Historico de Estimativas -->
-                        <div v-if="storyEstimates.length > 0" class="pt-4 border-t border-gray-200">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-xs text-gray-500">Historico de Estimativas</span>
-                                <button @click="showEstimateHistory = !showEstimateHistory" class="text-xs text-blue-600 hover:text-blue-800">
-                                    {{ showEstimateHistory ? 'Ocultar' : 'Ver historico' }} ({{ storyEstimates.length }})
-                                </button>
-                            </div>
-                            <div v-if="showEstimateHistory" class="space-y-2 max-h-40 overflow-y-auto">
-                                <div v-for="est in storyEstimates" :key="est.estimate_id"
-                                     class="text-xs p-2 bg-gray-50 rounded border border-gray-200">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-medium">{{ est.estimated_points }} pts</span>
-                                        <span class="text-gray-400">{{ formatDate(est.created_at) }}</span>
-                                    </div>
-                                    <div class="text-gray-600 mt-1">{{ est.justification }}</div>
-                                    <div v-if="est.accepted" class="text-green-600 mt-1 flex items-center gap-1">
-                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                        Aceita{{ est.adjusted_to ? ' (ajustada para ' + est.adjusted_to + ' pts)' : '' }}
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
@@ -5036,9 +3769,9 @@ HTML_TEMPLATE = """
                                     </div>
                                 </div>
 
-                                <!-- Generate Tests Button -->
+                                <!-- Generate Tests & Code Review Buttons -->
                                 <div v-if="task.code_output" class="mt-2 pt-2 border-t border-gray-100">
-                                    <div class="flex gap-2 flex-wrap">
+                                    <div class="flex flex-wrap gap-2">
                                         <button @click.stop="generateTestsForTask(task)"
                                                 :disabled="generatingTests === task.task_id"
                                                 class="text-xs bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
@@ -5051,24 +3784,34 @@ HTML_TEMPLATE = """
                                             </svg>
                                             {{ generatingTests === task.task_id ? 'Gerando...' : 'Generate Tests' }}
                                         </button>
-                                        <!-- Security Scan Button -->
-                                        <button @click.stop="runSecurityScan(task)"
-                                                :disabled="scanningTask === task.task_id"
-                                                class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 disabled:opacity-50 flex items-center gap-1">
-                                            <svg v-if="scanningTask !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                        <!-- Code Review Button (Issue #52) -->
+                                        <button @click.stop="codeReviewTask(task)"
+                                                :disabled="reviewingCode === task.task_id"
+                                                class="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1">
+                                            <svg v-if="reviewingCode !== task.task_id" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                                             </svg>
                                             <svg v-else class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                                             </svg>
-                                            {{ scanningTask === task.task_id ? 'Analisando...' : 'Scan de Seguranca' }}
+                                            {{ reviewingCode === task.task_id ? 'Analisando...' : 'Review com IA' }}
                                         </button>
                                     </div>
                                     <div v-if="task.generated_tests?.test_code" class="mt-1">
                                         <button @click.stop="showGeneratedTests(task)"
                                                 class="text-xs text-purple-600 hover:text-purple-800 underline">
                                             Ver testes gerados ({{ task.generated_tests.test_count || 0 }} testes)
+                                        </button>
+                                    </div>
+                                    <!-- Code Review Result (Issue #52) -->
+                                    <div v-if="task.review_result?.score" class="mt-1">
+                                        <button @click.stop="showCodeReviewResult(task)"
+                                                class="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1">
+                                            <span :class="task.review_result.score >= 80 ? 'text-green-600' : task.review_result.score >= 60 ? 'text-yellow-600' : 'text-red-600'">
+                                                Score: {{ task.review_result.score }}
+                                            </span>
+                                            - Ver analise
                                         </button>
                                     </div>
                                 </div>
@@ -5382,89 +4125,6 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
-            
-            <!-- Technical Debt Score (Issue #60) -->
-            <div v-if="debtScore" class="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-4">
-                <div class="flex items-start gap-4">
-                    <div class="text-4xl">&#128200;</div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between">
-                            <h4 class="font-semibold text-gray-800 text-lg">Technical Debt Score</h4>
-                            <span :class="['px-3 py-1 rounded-full text-sm font-medium',
-                                debtScore.debt_score?.overall >= 80 ? 'bg-green-100 text-green-800' :
-                                debtScore.debt_score?.overall >= 60 ? 'bg-blue-100 text-blue-800' :
-                                debtScore.debt_score?.overall >= 40 ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800']">
-                                {{ debtScore.debt_score?.overall || 0 }}/100
-                            </span>
-                        </div>
-                        <p class="text-gray-600 mt-1">{{ debtScore.summary?.status_message || 'Analisando...' }}</p>
-
-                        <!-- Score bars -->
-                        <div class="mt-3 space-y-2">
-                            <div class="flex items-center gap-2 text-sm">
-                                <span class="w-28 text-gray-500">Duplicacao:</span>
-                                <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-blue-500 h-2 rounded-full transition-all"
-                                         :style="{width: (debtScore.debt_score?.duplication || 0) + '%'}"></div>
-                                </div>
-                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.duplication || 0 }}%</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm">
-                                <span class="w-28 text-gray-500">Complexidade:</span>
-                                <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-purple-500 h-2 rounded-full transition-all"
-                                         :style="{width: (debtScore.debt_score?.complexity || 0) + '%'}"></div>
-                                </div>
-                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.complexity || 0 }}%</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm">
-                                <span class="w-28 text-gray-500">Manutencao:</span>
-                                <div class="flex-1 bg-gray-200 rounded-full h-2">
-                                    <div class="bg-green-500 h-2 rounded-full transition-all"
-                                         :style="{width: (debtScore.debt_score?.maintainability || 0) + '%'}"></div>
-                                </div>
-                                <span class="w-10 text-right text-gray-600">{{ debtScore.debt_score?.maintainability || 0 }}%</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 flex flex-wrap gap-3">
-                            <button @click="analyzeDebt"
-                                    :disabled="analyzingDebt"
-                                    class="px-4 py-2 bg-[#003B4A] text-white rounded-lg font-medium hover:bg-blue-900 transition-colors flex items-center gap-2 disabled:opacity-50">
-                                <span v-if="!analyzingDebt">&#128269;</span>
-                                <div v-else class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                {{ analyzingDebt ? 'Analisando...' : 'Analisar Debt' }}
-                            </button>
-                            <button @click="applyRefactoring"
-                                    :disabled="refactoring || !debtScore.debt_score"
-                                    class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2 disabled:opacity-50">
-                                <span v-if="!refactoring">&#9881;</span>
-                                <div v-else class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                                {{ refactoring ? 'Refatorando...' : 'Refatorar Codigo' }}
-                            </button>
-                            <button @click="generateDebtStories"
-                                    :disabled="generatingDebtStories || !debtScore.debt_score"
-                                    class="px-4 py-2 bg-white text-[#003B4A] border border-[#003B4A] rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50">
-                                <span>&#128221;</span>
-                                Gerar Stories
-                            </button>
-                        </div>
-
-                        <!-- Recommendations -->
-                        <div v-if="debtScore.summary?.recommendations?.length" class="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <h5 class="text-sm font-medium text-yellow-800 mb-2">Recomendacoes:</h5>
-                            <ul class="text-sm text-yellow-700 space-y-1">
-                                <li v-for="rec in debtScore.summary.recommendations" :key="rec" class="flex items-start gap-2">
-                                    <span>&#8226;</span>
-                                    <span>{{ rec }}</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Terminal Avancado (colapsavel para usuarios tecnicos) -->
             <details class="mt-6 bg-gray-50 rounded-lg border border-gray-200">
                 <summary class="p-4 cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 flex items-center gap-2">
@@ -5515,175 +4175,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
             </details>
-
-            <!-- Preview Environments Section (Issue #66) -->
-            <details class="mt-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-                <summary class="p-4 cursor-pointer text-sm font-semibold text-[#003B4A] hover:bg-gray-50 flex items-center gap-2">
-                    <span class="text-xl">&#127760;</span> Ambientes de Preview e Staging
-                    <span v-if="previewEnvironments.length > 0" class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">{{ previewEnvironments.length }} ativos</span>
-                </summary>
-                <div class="p-4 border-t border-gray-200">
-                    <!-- Header Actions -->
-                    <div class="flex items-center justify-between mb-4">
-                        <p class="text-sm text-gray-600">Crie ambientes isolados para testar stories e branches</p>
-                        <div class="flex gap-2">
-                            <button @click="createStoryPreview"
-                                    :disabled="!selectedStory || creatingPreview"
-                                    class="px-3 py-1.5 bg-[#FF6C00] text-white rounded text-xs font-medium hover:bg-orange-600 disabled:opacity-50 flex items-center gap-1">
-                                <span v-if="!creatingPreview">&#128640;</span>
-                                <div v-else class="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full"></div>
-                                Preview Story
-                            </button>
-                            <button @click="showCreateBranchPreviewModal = true"
-                                    class="px-3 py-1.5 bg-[#003B4A] text-white rounded text-xs font-medium hover:bg-opacity-90 flex items-center gap-1">
-                                <span>&#128194;</span> Preview Branch
-                            </button>
-                            <button @click="createStagingEnv"
-                                    :disabled="hasStagingEnv || creatingPreview"
-                                    class="px-3 py-1.5 bg-purple-600 text-white rounded text-xs font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1">
-                                <span>&#9889;</span> Staging
-                            </button>
-                            <button @click="loadPreviewEnvironments"
-                                    class="px-2 py-1.5 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300">
-                                &#8635;
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div v-if="previewsLoading" class="flex items-center justify-center py-8">
-                        <div class="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
-                        <span class="ml-2 text-gray-500">Carregando ambientes...</span>
-                    </div>
-
-                    <!-- Preview List -->
-                    <div v-else-if="previewEnvironments.length > 0" class="space-y-3">
-                        <div v-for="preview in previewEnvironments" :key="preview.preview_id"
-                             class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition">
-                            <div class="flex items-start justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span :class="getPreviewTypeClass(preview.preview_type)" class="px-2 py-0.5 rounded text-xs font-medium">
-                                            {{ preview.preview_type }}
-                                        </span>
-                                        <span :class="getPreviewStatusClass(preview.status)" class="px-2 py-0.5 rounded text-xs">
-                                            {{ preview.status }}
-                                        </span>
-                                        <span v-if="preview.health_status === 'healthy'" class="text-green-500 text-xs">&#9679; Online</span>
-                                        <span v-else-if="preview.health_status === 'unhealthy'" class="text-red-500 text-xs">&#9679; Problema</span>
-                                    </div>
-                                    <h4 class="font-medium text-gray-800">{{ preview.name }}</h4>
-                                    <p v-if="preview.url" class="text-sm text-blue-600 mt-1">
-                                        <a :href="preview.internal_url || preview.url" target="_blank" class="hover:underline flex items-center gap-1">
-                                            {{ preview.url }} <span class="text-xs">&#8599;</span>
-                                        </a>
-                                    </p>
-                                    <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                                        <span v-if="preview.story_id">Story: {{ preview.story_id }}</span>
-                                        <span v-if="preview.branch_name">Branch: {{ preview.branch_name }}</span>
-                                        <span>Porta: {{ preview.port }}</span>
-                                        <span v-if="preview.expires_at">Expira: {{ formatPreviewDate(preview.expires_at) }}</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <button v-if="preview.qr_code" @click="showPreviewQRCode(preview)"
-                                            class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded" title="QR Code">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
-                                        </svg>
-                                    </button>
-                                    <button v-if="preview.status === 'stopped'" @click="startPreviewEnv(preview.preview_id)"
-                                            class="p-2 text-green-500 hover:text-green-600 hover:bg-green-50 rounded" title="Iniciar">&#9654;</button>
-                                    <button v-else-if="preview.status === 'running'" @click="stopPreviewEnv(preview.preview_id)"
-                                            class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded" title="Parar">&#9632;</button>
-                                    <button @click="destroyPreviewEnv(preview.preview_id)"
-                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded" title="Destruir">&#128465;</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div v-else class="text-center py-8 text-gray-500">
-                        <div class="text-4xl mb-2">&#127760;</div>
-                        <p class="text-sm">Nenhum ambiente de preview ativo</p>
-                        <p class="text-xs mt-1">Crie um preview para testar stories ou branches em ambiente isolado</p>
-                    </div>
-
-                    <!-- Preview Stats -->
-                    <div v-if="previewStats" class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
-                        <div class="flex gap-4">
-                            <span>Total: {{ previewStats.total || 0 }}</span>
-                            <span>Running: {{ previewStats.by_status?.running || 0 }}</span>
-                            <span>Stopped: {{ previewStats.by_status?.stopped || 0 }}</span>
-                        </div>
-                        <button v-if="previewStats.expiring_soon > 0" @click="cleanupExpiredPreviews"
-                                class="text-amber-600 hover:text-amber-700">
-                            {{ previewStats.expiring_soon }} expirando em breve - Limpar
-                        </button>
-                    </div>
-                </div>
-            </details>
         </div>
-
-        <!-- MODAL: Create Branch Preview -->
-        <div v-if="showCreateBranchPreviewModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg w-[400px]">
-                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg">
-                    <h2 class="text-lg font-semibold">Criar Preview de Branch</h2>
-                </div>
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Branch *</label>
-                        <input v-model="newBranchPreview.branch_name" type="text"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                               placeholder="Ex: feature/login">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Preview</label>
-                        <input v-model="newBranchPreview.name" type="text"
-                               class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                               placeholder="Ex: Preview Feature Login">
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <label class="flex items-center gap-2 text-sm text-gray-600">
-                            <input v-model="newBranchPreview.auto_destroy" type="checkbox" class="rounded">
-                            Auto-destruir
-                        </label>
-                        <div v-if="newBranchPreview.auto_destroy">
-                            <label class="text-sm text-gray-600">Apos</label>
-                            <input v-model.number="newBranchPreview.destroy_after_hours" type="number" min="1" max="168"
-                                   class="w-16 ml-1 border border-gray-300 rounded px-2 py-1 text-sm">
-                            <span class="text-sm text-gray-600">horas</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
-                    <button @click="showCreateBranchPreviewModal = false"
-                            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                    <button @click="createBranchPreview"
-                            :disabled="!newBranchPreview.branch_name || creatingPreview"
-                            class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
-                        Criar Preview
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: QR Code -->
-        <div v-if="showQRCodeModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg w-[350px] p-6 text-center">
-                <h3 class="text-lg font-semibold mb-4">QR Code - Acesso Mobile</h3>
-                <div class="mb-4">
-                    <img :src="currentQRCode.qr_code" alt="QR Code" class="mx-auto w-48 h-48">
-                </div>
-                <p class="text-sm text-gray-600 mb-2">{{ currentQRCode.name }}</p>
-                <p class="text-xs text-blue-600 break-all">{{ currentQRCode.url }}</p>
-                <button @click="showQRCodeModal = false"
-                        class="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Fechar</button>
-            </div>
-        </div>
-
 
 
         <!-- MODAL: Nova Story -->
@@ -5862,6 +4354,35 @@ HTML_TEMPLATE = """
                             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                     <button @click="createTask"
                             class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">Criar Task</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- MODAL: Estimativa -->
+        <div v-if="showEstimateModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[450px] max-h-[80vh] overflow-y-auto">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">Estimativa IA</h2>
+                    <button @click="showEstimateModal = false" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="p-6" v-if="currentEstimate">
+                    <div class="text-center mb-4">
+                        <div class="text-5xl font-bold text-purple-600">{{ currentEstimate.estimated_points }}</div>
+                        <div class="text-gray-500">Story Points</div>
+                        <div class="text-sm text-gray-600 mt-1">Confianca: {{ Math.round(currentEstimate.confidence * 100) }}%</div>
+                    </div>
+                    <div class="mb-4 p-3 bg-blue-50 rounded text-sm">{{ currentEstimate.justification }}</div>
+                    <div class="mb-4 flex gap-2 flex-wrap justify-center">
+                        <button v-for="p in [1,2,3,5,8,13,21]" :key="p" @click="adjustedPoints = p"
+                                :class="['w-10 h-10 rounded font-bold', adjustedPoints === p ? 'bg-purple-600 text-white' : 'bg-gray-100 hover:bg-purple-100']">{{ p }}</button>
+                    </div>
+                </div>
+                <div class="p-4 border-t flex justify-end gap-2">
+                    <button @click="showEstimateModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Fechar</button>
+                    <button @click="acceptEstimate" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Aceitar {{ adjustedPoints || currentEstimate?.estimated_points }} pts
+                    </button>
                 </div>
             </div>
         </div>
@@ -6075,73 +4596,6 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- MODAL: Estimativa de Esforco (Issue #63) -->
-        <div v-if="showEstimateModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="closeEstimateModal">
-            <div class="bg-white rounded-lg w-[600px] shadow-xl max-h-[90vh] overflow-y-auto">
-                <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-t-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                            </div>
-                            <div>
-                                <h2 class="text-lg font-semibold">Estimativa Inteligente</h2>
-                                <p v-if="estimatingStory" class="text-sm opacity-80">{{ estimatingStory.story_id }}: {{ estimatingStory.title }}</p>
-                            </div>
-                        </div>
-                        <button @click="closeEstimateModal" class="text-white/70 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                    </div>
-                </div>
-                <div v-if="estimateLoading" class="p-8 text-center">
-                    <div class="spinner spinner-lg mx-auto mb-4"></div>
-                    <p class="text-gray-600">Analisando story com IA...</p>
-                    <p class="text-sm text-gray-500 mt-2">Comparando com stories similares e avaliando complexidade</p>
-                </div>
-                <div v-else-if="currentEstimate" class="p-4">
-                    <div class="text-center mb-6 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg">
-                        <p class="text-sm text-gray-600 mb-2">Story Points Sugeridos</p>
-                        <div class="text-5xl font-bold text-purple-600">{{ currentEstimate.estimated_points }}</div>
-                        <div class="mt-2 flex items-center justify-center gap-2">
-                            <span :class="['px-3 py-1 rounded-full text-sm font-medium', getConfidenceColor(currentEstimate.confidence)]">{{ Math.round(currentEstimate.confidence * 100) }}% de confianca</span>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Complexidade Detectada</h4>
-                        <div class="flex items-center gap-2">
-                            <span :class="['w-3 h-3 rounded-full', getComplexityColor(currentEstimate.complexity_detected)]"></span>
-                            <span class="capitalize font-medium">{{ currentEstimate.complexity_detected }}</span>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Justificativa</h4>
-                        <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{{ currentEstimate.justification }}</p>
-                    </div>
-                    <div v-if="currentEstimate.factors && currentEstimate.factors.length" class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Fatores Considerados</h4>
-                        <div class="flex flex-wrap gap-2">
-                            <span v-for="(factor, idx) in currentEstimate.factors" :key="idx" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">{{ factor }}</span>
-                        </div>
-                    </div>
-                    <div v-if="currentEstimate.similar_stories && currentEstimate.similar_stories.length" class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Stories Similares</h4>
-                        <div class="space-y-2">
-                            <div v-for="(sim, idx) in currentEstimate.similar_stories" :key="idx" class="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
-                                <span class="text-gray-700">{{ sim.story_id }}: {{ sim.title }}</span>
-                                <span class="font-medium text-purple-600">{{ sim.points }} pts</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
-                    <button @click="closeEstimateModal" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancelar</button>
-                    <button v-if="currentEstimate" @click="applyEstimate" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                        Aplicar Estimativa
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- MODAL: Atalhos de Teclado -->
         <div v-if="showShortcutsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
              @click.self="showShortcutsModal = false">
@@ -6296,318 +4750,6 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- MODAL: Security Scan Results -->
-        <div v-if="showSecurityScanModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showSecurityScanModal = false">
-            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
-                <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
-                    <div>
-                        <h2 class="text-lg font-semibold">Analise de Seguranca (SAST)</h2>
-                        <p class="text-sm text-red-200" v-if="currentSecurityScan">{{ currentSecurityScan.language }} | {{ currentSecurityScan.scan_type === 'ai' ? 'IA' : 'Basica' }} | {{ currentSecurityScan.summary?.total || 0 }} vulnerabilidades</p>
-                    </div>
-                    <button @click="showSecurityScanModal = false" class="text-white/70 hover:text-white">X</button>
-                </div>
-                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
-                    <!-- Summary -->
-                    <div v-if="currentSecurityScan?.summary" class="grid grid-cols-5 gap-3 mb-6">
-                        <div class="bg-gray-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-gray-700">{{ currentSecurityScan.summary.total }}</div>
-                            <div class="text-xs text-gray-500">Total</div>
-                        </div>
-                        <div class="bg-red-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-red-700">{{ currentSecurityScan.summary.critical }}</div>
-                            <div class="text-xs text-red-600">Critical</div>
-                        </div>
-                        <div class="bg-orange-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-orange-700">{{ currentSecurityScan.summary.high }}</div>
-                            <div class="text-xs text-orange-600">High</div>
-                        </div>
-                        <div class="bg-yellow-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-yellow-700">{{ currentSecurityScan.summary.medium }}</div>
-                            <div class="text-xs text-yellow-600">Medium</div>
-                        </div>
-                        <div class="bg-blue-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-blue-700">{{ currentSecurityScan.summary.low }}</div>
-                            <div class="text-xs text-blue-600">Low</div>
-                        </div>
-                    </div>
-                    <!-- Vulnerabilities -->
-                    <div v-if="currentSecurityScan?.vulnerabilities?.length" class="space-y-3">
-                        <h3 class="font-semibold text-gray-800 mb-2">Vulnerabilidades</h3>
-                        <div v-for="(vuln, idx) in currentSecurityScan.vulnerabilities" :key="idx"
-                             class="border rounded-lg p-4"
-                             :class="{'border-red-300 bg-red-50': vuln.severity === 'Critical', 'border-orange-300 bg-orange-50': vuln.severity === 'High', 'border-yellow-300 bg-yellow-50': vuln.severity === 'Medium', 'border-blue-300 bg-blue-50': vuln.severity === 'Low'}">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 rounded text-xs font-medium"
-                                          :class="{'bg-red-600 text-white': vuln.severity === 'Critical', 'bg-orange-500 text-white': vuln.severity === 'High', 'bg-yellow-500 text-white': vuln.severity === 'Medium', 'bg-blue-500 text-white': vuln.severity === 'Low'}">
-                                        {{ vuln.severity }}
-                                    </span>
-                                    <span class="font-semibold text-gray-800">{{ vuln.type }}</span>
-                                    <span v-if="vuln.cwe" class="text-xs text-gray-500">({{ vuln.cwe }})</span>
-                                </div>
-                                <span class="text-xs text-gray-500">Linha {{ vuln.line }}</span>
-                            </div>
-                            <p class="text-sm text-gray-700 mb-2">{{ vuln.description }}</p>
-                            <div v-if="vuln.line_content" class="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono mb-2">{{ vuln.line_content }}</div>
-                            <div class="bg-green-50 border border-green-200 rounded p-2">
-                                <span class="text-xs font-medium text-green-800">Correcao:</span>
-                                <p class="text-xs text-green-700 mt-1">{{ vuln.fix_suggestion }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- No Vulnerabilities -->
-                    <div v-else-if="currentSecurityScan" class="text-center py-8">
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-800">Nenhuma Vulnerabilidade</h3>
-                        <p class="text-gray-600 text-sm">Codigo passou na analise de seguranca.</p>
-                    </div>
-                    <!-- Recommendations -->
-                    <div v-if="currentSecurityScan?.recommendations?.length" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-blue-800 mb-2">Recomendacoes</h4>
-                        <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
-                            <li v-for="rec in currentSecurityScan.recommendations">{{ rec }}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: Security Scan Results -->
-        <div v-if="showSecurityScanModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showSecurityScanModal = false">
-            <div class="bg-white rounded-lg w-[900px] max-h-[90vh] shadow-xl overflow-hidden">
-                <div class="p-4 border-b flex justify-between items-center bg-red-600 text-white rounded-t-lg">
-                    <div>
-                        <h2 class="text-lg font-semibold flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                            </svg>
-                            Analise de Seguranca (SAST)
-                        </h2>
-                        <p class="text-sm text-red-200" v-if="currentSecurityScan">
-                            {{ currentSecurityScan.language }} | {{ currentSecurityScan.scan_type === 'ai' ? 'Analise IA' : 'Analise Basica' }} | {{ currentSecurityScan.summary?.total || 0 }} vulnerabilidades
-                        </p>
-                    </div>
-                    <button @click="showSecurityScanModal = false" class="text-white/70 hover:text-white">X</button>
-                </div>
-                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
-                    <!-- Summary Cards -->
-                    <div v-if="currentSecurityScan?.summary" class="grid grid-cols-5 gap-3 mb-6">
-                        <div class="bg-gray-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-gray-700">{{ currentSecurityScan.summary.total }}</div>
-                            <div class="text-xs text-gray-500">Total</div>
-                        </div>
-                        <div class="bg-red-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-red-700">{{ currentSecurityScan.summary.critical }}</div>
-                            <div class="text-xs text-red-600">Critical</div>
-                        </div>
-                        <div class="bg-orange-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-orange-700">{{ currentSecurityScan.summary.high }}</div>
-                            <div class="text-xs text-orange-600">High</div>
-                        </div>
-                        <div class="bg-yellow-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-yellow-700">{{ currentSecurityScan.summary.medium }}</div>
-                            <div class="text-xs text-yellow-600">Medium</div>
-                        </div>
-                        <div class="bg-blue-100 rounded-lg p-3 text-center">
-                            <div class="text-2xl font-bold text-blue-700">{{ currentSecurityScan.summary.low }}</div>
-                            <div class="text-xs text-blue-600">Low</div>
-                        </div>
-                    </div>
-
-                    <!-- Vulnerabilities List -->
-                    <div v-if="currentSecurityScan?.vulnerabilities?.length" class="space-y-3">
-                        <h3 class="font-semibold text-gray-800 mb-2">Vulnerabilidades Encontradas</h3>
-                        <div v-for="(vuln, idx) in currentSecurityScan.vulnerabilities" :key="idx"
-                             class="border rounded-lg p-4"
-                             :class="{
-                                 'border-red-300 bg-red-50': vuln.severity === 'Critical',
-                                 'border-orange-300 bg-orange-50': vuln.severity === 'High',
-                                 'border-yellow-300 bg-yellow-50': vuln.severity === 'Medium',
-                                 'border-blue-300 bg-blue-50': vuln.severity === 'Low'
-                             }">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 rounded text-xs font-medium"
-                                          :class="{
-                                              'bg-red-600 text-white': vuln.severity === 'Critical',
-                                              'bg-orange-500 text-white': vuln.severity === 'High',
-                                              'bg-yellow-500 text-white': vuln.severity === 'Medium',
-                                              'bg-blue-500 text-white': vuln.severity === 'Low'
-                                          }">
-                                        {{ vuln.severity }}
-                                    </span>
-                                    <span class="font-semibold text-gray-800">{{ vuln.type }}</span>
-                                    <span v-if="vuln.cwe" class="text-xs text-gray-500">({{ vuln.cwe }})</span>
-                                </div>
-                                <span class="text-xs text-gray-500">Linha {{ vuln.line }}</span>
-                            </div>
-                            <p class="text-sm text-gray-700 mb-2">{{ vuln.description }}</p>
-                            <div v-if="vuln.line_content" class="bg-gray-800 text-gray-100 p-2 rounded text-xs font-mono mb-2 overflow-x-auto">
-                                {{ vuln.line_content }}
-                            </div>
-                            <div class="bg-green-50 border border-green-200 rounded p-2">
-                                <span class="text-xs font-medium text-green-800">Sugestao de correcao:</span>
-                                <p class="text-xs text-green-700 mt-1">{{ vuln.fix_suggestion }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- No Vulnerabilities -->
-                    <div v-else-if="currentSecurityScan && !currentSecurityScan.vulnerabilities?.length"
-                         class="text-center py-8">
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Nenhuma Vulnerabilidade Detectada</h3>
-                        <p class="text-gray-600 text-sm">O codigo passou na analise de seguranca.</p>
-                    </div>
-
-                    <!-- Recommendations -->
-                    <div v-if="currentSecurityScan?.recommendations?.length" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Recomendacoes
-                        </h4>
-                        <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
-                            <li v-for="(rec, idx) in currentSecurityScan.recommendations" :key="idx">{{ rec }}</li>
-                        </ul>
-                    </div>
-
-                    <!-- Secure Patterns Found -->
-                    <div v-if="currentSecurityScan?.secure_patterns_found?.length" class="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-green-800 mb-2 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Padroes Seguros Identificados
-                        </h4>
-                        <ul class="list-disc list-inside text-sm text-green-700 space-y-1">
-                            <li v-for="(pattern, idx) in currentSecurityScan.secure_patterns_found" :key="idx">{{ pattern }}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: Notification Preferences -->
-        <div v-if="showNotificationPreferences" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showNotificationPreferences = false">
-            <div class="bg-white rounded-lg w-[500px] shadow-xl">
-                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
-                    <h2 class="text-lg font-semibold">Preferencias de Notificacao</h2>
-                    <button @click="showNotificationPreferences = false" class="text-white/70 hover:text-white">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="p-4 space-y-4">
-                    <p class="text-sm text-gray-600 mb-4">Escolha quais tipos de notificacao voce deseja receber:</p>
-                    <div class="space-y-3">
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">📝</span>
-                                <div>
-                                    <span class="font-medium">Nova Story</span>
-                                    <p class="text-xs text-gray-500">Quando uma story e criada</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.story_created" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">➡️</span>
-                                <div>
-                                    <span class="font-medium">Story Movida</span>
-                                    <p class="text-xs text-gray-500">Quando uma story muda de coluna</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.story_moved" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">✅</span>
-                                <div>
-                                    <span class="font-medium">Task Completa</span>
-                                    <p class="text-xs text-gray-500">Quando uma task e completada</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.task_completed" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">🚀</span>
-                                <div>
-                                    <span class="font-medium">App Pronto</span>
-                                    <p class="text-xs text-gray-500">Quando a aplicacao esta pronta para teste</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.app_ready" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">📦</span>
-                                <div>
-                                    <span class="font-medium">Build Completo</span>
-                                    <p class="text-xs text-gray-500">Quando um build e finalizado</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.build_completed" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">❌</span>
-                                <div>
-                                    <span class="font-medium">Build Falhou</span>
-                                    <p class="text-xs text-gray-500">Quando um build falha</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.build_failed" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xl">💬</span>
-                                <div>
-                                    <span class="font-medium">Nova Mensagem</span>
-                                    <p class="text-xs text-gray-500">Mensagens do assistente IA</p>
-                                </div>
-                            </div>
-                            <input type="checkbox" v-model="notificationPreferences.chat_message" class="w-5 h-5 text-[#FF6C00] rounded">
-                        </label>
-                    </div>
-                </div>
-                <div class="p-4 border-t flex justify-end gap-3">
-                    <button @click="showNotificationPreferences = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                        Cancelar
-                    </button>
-                    <button @click="saveNotificationPreferences" class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">
-                        Salvar Preferencias
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL: Analytics Dashboard (Issue #65) -->
-        <div v-if="showAnalyticsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showAnalyticsModal = false">
-            <div class="bg-white rounded-lg w-[95vw] max-w-[1200px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
-                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg"><div><h2 class="text-lg font-semibold">Analytics de Produtividade</h2><p class="text-sm text-blue-200">Metricas do time e insights</p></div><div class="flex items-center gap-4"><select v-model="analyticsDays" @change="loadAnalytics" class="bg-white/10 text-white border border-white/20 rounded px-3 py-1 text-sm"><option value="7" class="text-gray-800">7 dias</option><option value="30" class="text-gray-800">30 dias</option><option value="90" class="text-gray-800">90 dias</option></select><button @click="showAnalyticsModal = false" class="text-white/70 hover:text-white text-xl">X</button></div></div>
-                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);"><div v-if="analyticsLoading" class="flex items-center justify-center py-12"><div class="spinner"></div><span class="ml-3">Carregando...</span></div>
-                <div v-else-if="analyticsData">
-                    <div v-if="analyticsData.alerts?.length" class="mb-6"><div v-for="(alert, i) in analyticsData.alerts" :key="i" :class="['p-4 rounded-lg mb-2', alert.type === 'danger' ? 'bg-red-50' : alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50']"><h4 class="font-semibold">{{ alert.title }}</h4><p class="text-sm">{{ alert.message }}</p></div></div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6"><div class="bg-blue-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.total_stories || 0 }}</div><div class="text-xs opacity-80">Total Stories</div></div><div class="bg-green-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.stories_completed || 0 }}</div><div class="text-xs opacity-80">Concluidas</div></div><div class="bg-purple-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.points_delivered || 0 }}</div><div class="text-xs opacity-80">Pontos</div></div><div class="bg-orange-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_velocity || 0).toFixed(1) }}</div><div class="text-xs opacity-80">Velocity</div></div><div class="bg-cyan-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_cycle_time_days || 0).toFixed(1) }}d</div><div class="text-xs opacity-80">Cycle Time</div></div><div class="bg-pink-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.predictability_score || 0).toFixed(0) }}%</div><div class="text-xs opacity-80">Predictability</div></div></div>
-                    <div class="mb-6" v-if="analyticsData.top_contributors?.length"><h3 class="font-semibold mb-4">Top Contribuidores</h3><div class="space-y-2"><div v-for="(dev, i) in analyticsData.top_contributors" :key="dev.assignee" class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">{{ i + 1 }}</div><div class="flex-1"><div class="font-medium">{{ dev.assignee }}</div><div class="text-sm text-gray-500">{{ dev.stories_completed }}/{{ dev.stories_total }} stories</div></div><div class="text-green-600 font-bold">{{ dev.completion_rate }}%</div></div></div></div>
-                    <div v-if="analyticsInsights" class="bg-purple-50 rounded-lg p-6 border border-purple-200"><h3 class="font-semibold mb-2">AI Insights</h3><p class="text-gray-700 mb-4">{{ analyticsInsights.summary }}</p><div v-if="analyticsInsights.insights?.length" class="space-y-2"><div v-for="insight in analyticsInsights.insights" :key="insight.title" class="p-3 bg-white rounded-lg"><div class="font-medium">{{ insight.title }}</div><div class="text-sm text-gray-600">{{ insight.description }}</div></div></div></div>
-                </div></div>
-            </div>
-        </div>
-
         <!-- CONTEXT MENU -->
         <div v-if="contextMenu.visible"
              class="context-menu"
@@ -6641,6 +4783,256 @@ HTML_TEMPLATE = """
             </div>
             <div class="context-menu-item danger" @click="contextMenuAction('delete')">
                 <span>🗑️</span> Excluir
+            </div>
+        </div>
+
+        
+        <!-- PROJECT PREVIEW DASHBOARD MODAL (Issue #73) -->
+        <div v-if="showProjectPreview && selectedProjectId"
+             class="fixed inset-0 bg-black/50 z-50 overflow-y-auto"
+             @click.self="showProjectPreview = false">
+            <div class="min-h-screen py-8 px-4">
+                <div class="max-w-6xl mx-auto">
+                    <button @click="showProjectPreview = false"
+                            class="fixed top-4 right-4 z-50 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+
+                    <div class="preview-dashboard p-6 rounded-xl">
+                        <!-- Header -->
+                        <div class="preview-header">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm opacity-70 mb-1">{{ previewData?.project?.project_type }}</div>
+                                    <h1 class="text-2xl font-bold">{{ previewData?.project?.name || 'Carregando...' }}</h1>
+                                    <p class="text-sm opacity-80 mt-1">{{ previewData?.project?.description }}</p>
+                                </div>
+                                <button @click="refreshPreviewData" class="preview-action-btn secondary">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    Atualizar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="preview-tabs">
+                            <div v-for="tab in ['Overview', 'Arquivos', 'Documentacao', 'Testes']"
+                                 :key="tab"
+                                 @click="previewActiveTab = tab"
+                                 :class="['preview-tab', previewActiveTab === tab ? 'active' : '']">
+                                {{ tab }}
+                            </div>
+                        </div>
+
+                        <!-- Tab: Overview -->
+                        <div v-if="previewActiveTab === 'Overview'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Metricas -->
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Metricas do Projeto</div>
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="preview-metric">
+                                        <div class="preview-metric-value">{{ previewData?.metrics?.stories?.total || 0 }}</div>
+                                        <div class="preview-metric-label">Stories</div>
+                                    </div>
+                                    <div class="preview-metric">
+                                        <div class="preview-metric-value text-green-600">{{ previewData?.metrics?.stories?.done || 0 }}</div>
+                                        <div class="preview-metric-label">Concluidas</div>
+                                    </div>
+                                    <div class="preview-metric">
+                                        <div class="preview-metric-value text-blue-600">{{ previewData?.tasks_summary?.total || 0 }}</div>
+                                        <div class="preview-metric-label">Tasks</div>
+                                    </div>
+                                    <div class="preview-metric">
+                                        <div class="preview-metric-value text-purple-600">{{ previewData?.metrics?.total_docs || 0 }}</div>
+                                        <div class="preview-metric-label">Documentos</div>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm mb-2">
+                                        <span class="font-medium">Progresso Geral</span>
+                                        <span class="font-bold text-[#003B4A]">{{ previewData?.metrics?.progress || 0 }}%</span>
+                                    </div>
+                                    <div class="preview-progress-bar">
+                                        <div class="preview-progress-fill"
+                                             :style="{
+                                                 width: (previewData?.metrics?.progress || 0) + '%',
+                                                 backgroundColor: (previewData?.metrics?.progress || 0) < 30 ? '#EF4444' :
+                                                                  (previewData?.metrics?.progress || 0) < 70 ? '#F59E0B' : '#10B981'
+                                             }">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status por Coluna -->
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Status das Stories</div>
+                                <div class="space-y-3">
+                                    <div v-for="(count, status) in {
+                                        'Backlog': previewData?.metrics?.stories?.backlog || 0,
+                                        'Ready': previewData?.metrics?.stories?.ready || 0,
+                                        'In Progress': previewData?.metrics?.stories?.in_progress || 0,
+                                        'Review': previewData?.metrics?.stories?.review || 0,
+                                        'Testing': previewData?.metrics?.stories?.testing || 0,
+                                        'Done': previewData?.metrics?.stories?.done || 0
+                                    }" :key="status" class="flex items-center gap-3">
+                                        <div class="w-24 text-sm text-gray-600">{{ status }}</div>
+                                        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full rounded-full bg-blue-500"
+                                                 :style="{width: (previewData?.metrics?.stories?.total ? (count / previewData.metrics.stories.total * 100) : 0) + '%'}">
+                                            </div>
+                                        </div>
+                                        <div class="w-8 text-right text-sm font-medium">{{ count }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Acoes Rapidas</div>
+                                <div class="space-y-3">
+                                    <button @click="startAppPreview" class="preview-action-btn primary w-full justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                        </svg>
+                                        Iniciar Servidor
+                                    </button>
+                                    <button @click="runProjectTests" class="preview-action-btn secondary w-full justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Rodar Testes
+                                    </button>
+                                    <button @click="buildProject" class="preview-action-btn secondary w-full justify-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                        </svg>
+                                        Build
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Arquivos -->
+                        <div v-if="previewActiveTab === 'Arquivos'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">
+                                    Arquivos do Projeto
+                                    <span class="text-xs font-normal text-gray-500 ml-auto">
+                                        {{ previewData?.project_files?.total_files || 0 }} arquivos
+                                    </span>
+                                </div>
+                                <div v-if="previewData?.project_files?.exists" class="space-y-2">
+                                    <div v-for="file in previewData?.project_files?.recent_files?.slice(0, 8)"
+                                         :key="file.path"
+                                         class="preview-file-item">
+                                        <div class="preview-file-icon bg-blue-100 text-blue-600">
+                                            <span v-if="file.name.endsWith('.py')">PY</span>
+                                            <span v-else-if="file.name.endsWith('.js') || file.name.endsWith('.ts')">JS</span>
+                                            <span v-else>F</span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-medium text-sm truncate">{{ file.name }}</div>
+                                            <div class="text-xs text-gray-500">{{ file.path }}</div>
+                                        </div>
+                                        <div class="text-xs text-gray-400">
+                                            {{ formatFileSize(file.size) }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="text-center py-8 text-gray-500">
+                                    <p>Pasta do projeto ainda nao foi criada</p>
+                                </div>
+                            </div>
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Tipos de Arquivo</div>
+                                <div v-if="previewData?.project_files?.by_type" class="space-y-3">
+                                    <div v-for="(count, ext) in previewData?.project_files?.by_type"
+                                         :key="ext"
+                                         class="flex items-center gap-3">
+                                        <div class="w-16 text-sm font-mono text-gray-600">{{ ext }}</div>
+                                        <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                                            <div class="h-full bg-blue-500 rounded-full"
+                                                 :style="{width: (count / previewData.project_files.total_files * 100) + '%'}">
+                                            </div>
+                                        </div>
+                                        <div class="w-10 text-right text-sm font-medium">{{ count }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Documentacao -->
+                        <div v-if="previewActiveTab === 'Documentacao'" class="preview-card p-6">
+                            <div class="preview-section-title">
+                                Documentacao do Projeto
+                                <span class="text-xs font-normal text-gray-500 ml-auto">
+                                    {{ previewData?.documentation?.total || 0 }} documentos
+                                </span>
+                            </div>
+                            <div v-if="previewData?.documentation?.items?.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div v-for="doc in previewData?.documentation?.items"
+                                     :key="doc.doc_id"
+                                     class="preview-doc-card cursor-pointer">
+                                    <div class="font-medium text-sm">{{ doc.title }}</div>
+                                    <div class="text-xs text-gray-500 capitalize">{{ doc.doc_type }}</div>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-12 text-gray-500">
+                                <p>Nenhuma documentacao gerada ainda</p>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Testes -->
+                        <div v-if="previewActiveTab === 'Testes'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Resultados de Testes</div>
+                                <div class="grid grid-cols-3 gap-4 mb-6">
+                                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                                        <div class="text-3xl font-bold text-green-600">{{ previewData?.test_results?.passed || 0 }}</div>
+                                        <div class="text-xs text-green-700">Passando</div>
+                                    </div>
+                                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                                        <div class="text-3xl font-bold text-red-600">{{ previewData?.test_results?.failed || 0 }}</div>
+                                        <div class="text-xs text-red-700">Falhando</div>
+                                    </div>
+                                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                                        <div class="text-3xl font-bold text-yellow-600">{{ previewData?.test_results?.skipped || 0 }}</div>
+                                        <div class="text-xs text-yellow-700">Ignorados</div>
+                                    </div>
+                                </div>
+                                <button @click="runProjectTests" class="preview-action-btn primary w-full justify-center">
+                                    Executar Testes
+                                </button>
+                            </div>
+                            <div class="preview-card p-6">
+                                <div class="preview-section-title">Resumo de Tasks</div>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Total de Tasks</span>
+                                        <span class="font-bold">{{ previewData?.tasks_summary?.total || 0 }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Completadas</span>
+                                        <span class="font-bold text-green-600">{{ previewData?.tasks_summary?.completed || 0 }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Em Progresso</span>
+                                        <span class="font-bold text-blue-600">{{ previewData?.tasks_summary?.in_progress || 0 }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600">Pendentes</span>
+                                        <span class="font-bold text-gray-400">{{ previewData?.tasks_summary?.pending || 0 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -6748,25 +5140,6 @@ HTML_TEMPLATE = """
             const terminalOutputInterval = ref(null);
             const previewUrl = ref('http://localhost:3000');
             const previewViewport = ref('desktop');
-            // Preview Environments (Issue #66)
-            const previewEnvironments = ref([]);
-            const previewStats = ref(null);
-            const previewsLoading = ref(false);
-            const creatingPreview = ref(false);
-            const showCreateBranchPreviewModal = ref(false);
-            const showQRCodeModal = ref(false);
-            const currentQRCode = ref({});
-            const newBranchPreview = ref({
-                branch_name: '',
-                name: '',
-                auto_destroy: true,
-                destroy_after_hours: 48
-            });
-            const hasStagingEnv = computed(() => {
-                return previewEnvironments.value.some(p => p.preview_type === 'staging' && p.status !== 'destroyed');
-            });
-
-
 
             const selectedProjectId = ref('');
             const selectedSprintId = ref('');
@@ -6775,23 +5148,10 @@ HTML_TEMPLATE = """
             const epics = ref([]);
             const sprints = ref([]);
             const selectedStory = ref(null);
-            // Pair Programming State
-            const ppCode = ref('');
-            const ppLanguage = ref('python');
-            const ppSuggestion = ref('');
-            const ppSelectedCode = ref('');
-            const ppLoading = ref(false);
-            const ppHistory = ref([]);
-            const ppRefactorType = ref('general');
-
             const activeTab = ref('Detalhes');
             const chatHistory = ref([]);
             const chatInput = ref('');
             const chatMessages = ref(null);
-            const isTyping = ref(false);
-            const hasNewMessages = ref(false);
-            const isAtBottom = ref(true);
-            const lastFailedMessage = ref(null);
 
             // Search & Filters
             const searchQuery = ref('');
@@ -6799,82 +5159,11 @@ HTML_TEMPLATE = """
             const filterPriority = ref('');
             const filterAssignee = ref('');
             const groupBy = ref('');
-            const collapsedSwimlanes = ref({});
-
-            // Swimlane toggle function
-            const toggleSwimlane = (groupKey) => {
-                collapsedSwimlanes.value[groupKey] = \!collapsedSwimlanes.value[groupKey];
-            };
-
-            // Check if swimlane is collapsed
-            const isSwimlaneCollapsed = (groupKey) => {
-                return collapsedSwimlanes.value[groupKey] || false;
-            };
-
-            // Get swimlane story count
-            const getSwimlaneStoryCount = (group) => {
-                let count = 0;
-                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
-                statuses.forEach(status => {
-                    if (group[status] && Array.isArray(group[status])) {
-                        count += group[status].length;
-                    }
-                });
-                return count;
-            };
-
-            // Get swimlane story points total
-            const getSwimlanePoints = (group) => {
-                let points = 0;
-                const statuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
-                statuses.forEach(status => {
-                    if (group[status] && Array.isArray(group[status])) {
-                        group[status].forEach(story => {
-                            points += story.story_points || 0;
-                        });
-                    }
-                });
-                return points;
-            };
 
             // Mobile State
             const mobileMenuOpen = ref(false);
             const mobileChatOpen = ref(false);
             const isPullingToRefresh = ref(false);
-            const currentKanbanColumn = ref(0);
-
-            // Kanban scroll tracking for mobile
-            const initKanbanScrollTracking = () => {
-                const kanbanContainer = document.querySelector('.kanban-container');
-                if (!kanbanContainer) return;
-
-                const updateCurrentColumn = () => {
-                    const containerWidth = kanbanContainer.clientWidth;
-                    const scrollLeft = kanbanContainer.scrollLeft;
-                    const columnWidth = containerWidth * 0.85;
-                    const newColumn = Math.round(scrollLeft / columnWidth);
-                    currentKanbanColumn.value = Math.min(5, Math.max(0, newColumn));
-                };
-
-                kanbanContainer.addEventListener('scroll', updateCurrentColumn, { passive: true });
-            };
-
-            // Scroll to specific Kanban column (for mobile navigation)
-            const scrollToKanbanColumn = (columnIndex) => {
-                const kanbanContainer = document.querySelector('.kanban-container');
-                if (!kanbanContainer) return;
-
-                const containerWidth = kanbanContainer.clientWidth;
-                const columnWidth = containerWidth * 0.85;
-                const targetScroll = columnIndex * columnWidth;
-
-                kanbanContainer.scrollTo({
-                    left: targetScroll,
-                    behavior: 'smooth'
-                });
-
-                currentKanbanColumn.value = columnIndex;
-            };
 
             // Toast Notifications
             const toasts = ref([]);
@@ -6888,21 +5177,6 @@ HTML_TEMPLATE = """
             let ws = null;
             let wsReconnectTimer = null;
             const notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
-
-            // Notification Center State
-            const showNotificationsPanel = ref(false);
-            const showNotificationPreferences = ref(false);
-            const notifications = ref([]);
-            const unreadNotificationCount = ref(0);
-            const notificationPreferences = ref({
-                story_created: true,
-                story_moved: true,
-                task_completed: true,
-                app_ready: true,
-                build_completed: true,
-                build_failed: true,
-                chat_message: true
-            });
 
             // Confirm Modal
             const showConfirmModal = ref(false);
@@ -6932,6 +5206,13 @@ HTML_TEMPLATE = """
             const showNewSprintModal = ref(false);
             const showNewDocModal = ref(false);
             const showGenerateDocsDropdown = ref(false);
+
+            // Estimation refs
+            const showEstimateModal = ref(false);
+            const estimatingStory = ref(false);
+            const currentEstimate = ref(null);
+            const adjustedPoints = ref(null);
+            const storyEstimates = ref([]);
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
 
@@ -6939,49 +5220,22 @@ HTML_TEMPLATE = """
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
             const currentGeneratedTests = ref(null);
+            const showDesignEditor = ref(false);
 
             // Code Review (Issue #52)
-            const reviewingCode = ref(false);
-            const showReviewResultModal = ref(false);
-            const codeReviewResult = ref(null);
-
-            // Security Scan
-            const scanningTask = ref(null);
-            const showSecurityScanModal = ref(false);
-            const currentSecurityScan = ref(null);
-
-            // Security Scan
-            const scanningTask = ref(null);
-            const showSecurityScanModal = ref(false);
-            const currentSecurityScan = ref(null);
-            const showDesignEditor = ref(false);
+            const reviewingCode = ref(null);
+            const showCodeReviewModal = ref(false);
+            const currentCodeReview = ref(null);
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
-            // Project Import (Issue #69)
-            const showImportProjectModal = ref(false);
-            const importTab = ref('zip');
-            const importFile = ref(null);
-            const importGithubUrl = ref('');
-            const importProjectName = ref('');
-            const importGenerateStories = ref(true);
-            const importInProgress = ref(false);
-            const importProgressPercent = ref(0);
-            const importProgressMessage = ref('');
-            const importResult = ref(null);
-            const importDragOver = ref(false);
+            // Project Preview Dashboard (Issue #73)
+            const showProjectPreview = ref(false);
+            const previewData = ref(null);
+            const previewActiveTab = ref('Overview');
+            const previewViewportMode = ref('desktop');
+            const previewLoading = ref(false);
 
 
-            // A/B Testing (Issue #71)
-            const showABTestModal = ref(false);
-            const abTests = ref([]);
-            const currentABTest = ref(null);
-            const abTestLoading = ref(false);
-            const newABTest = ref({
-                title: '',
-                num_variants: 3,
-                requirements: '',
-                test_code: ''
-            });
 
             // Burndown Chart
             let burndownChart = null;
@@ -6996,125 +5250,6 @@ HTML_TEMPLATE = """
             // Bulk Actions
             const bulkSelectMode = ref(false);
             const selectedStories = ref([]);
-
-            
-            // Pair Programming Methods
-            const updateSelection = (e) => {
-                const textarea = e.target;
-                ppSelectedCode.value = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-            };
-
-            const insertTab = (e) => {
-                const textarea = e.target;
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                ppCode.value = ppCode.value.substring(0, start) + '    ' + ppCode.value.substring(end);
-                nextTick(() => {
-                    textarea.selectionStart = textarea.selectionEnd = start + 4;
-                });
-            };
-
-            const requestSuggestion = async () => {
-                if (!ppCode.value.trim()) return;
-                ppLoading.value = true;
-                try {
-                    const response = await fetch('/api/pair-programming/suggest', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            code: ppCode.value,
-                            language: ppLanguage.value,
-                            story_id: selectedStory.value?.story_id
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        ppSuggestion.value = data.suggestion;
-                        ppHistory.value.unshift({
-                            type: 'suggestion',
-                            content: data.suggestion,
-                            time: new Date().toLocaleTimeString()
-                        });
-                    } else {
-                        addToast('error', 'Erro', data.error || 'Falha ao obter sugestao');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
-                } finally {
-                    ppLoading.value = false;
-                }
-            };
-
-            const acceptSuggestion = () => {
-                ppCode.value += '\n' + ppSuggestion.value;
-                ppSuggestion.value = '';
-            };
-
-            const requestExplanation = async () => {
-                const codeToExplain = ppSelectedCode.value || ppCode.value;
-                if (!codeToExplain.trim()) return;
-                ppLoading.value = true;
-                try {
-                    const response = await fetch('/api/pair-programming/explain', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            code: codeToExplain,
-                            language: ppLanguage.value
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        ppHistory.value.unshift({
-                            type: 'explanation',
-                            content: data.explanation,
-                            time: new Date().toLocaleTimeString()
-                        });
-                    } else {
-                        addToast('error', 'Erro', data.error || 'Falha ao obter explicacao');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
-                } finally {
-                    ppLoading.value = false;
-                }
-            };
-
-            const requestRefactor = async () => {
-                if (!ppCode.value.trim()) return;
-                ppLoading.value = true;
-                try {
-                    const response = await fetch('/api/pair-programming/refactor', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            code: ppCode.value,
-                            language: ppLanguage.value,
-                            refactor_type: ppRefactorType.value
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        ppHistory.value.unshift({
-                            type: 'refactor',
-                            code: data.refactored_code,
-                            explanation: data.full_response,
-                            time: new Date().toLocaleTimeString()
-                        });
-                    } else {
-                        addToast('error', 'Erro', data.error || 'Falha ao refatorar');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', 'Falha na comunicacao com o servidor');
-                } finally {
-                    ppLoading.value = false;
-                }
-            };
-
-            const applyRefactor = (code) => {
-                ppCode.value = code;
-                addToast('success', 'Aplicado', 'Codigo refatorado aplicado no editor');
-            };
 
             const toggleBulkSelectMode = () => {
                 bulkSelectMode.value = !bulkSelectMode.value;
@@ -7476,83 +5611,6 @@ HTML_TEMPLATE = """
             // App Status State
             const appStatus = ref(null);
             const appStatusLoading = ref(false);
-
-            // Refactoring (Issue #60)
-            const debtScore = ref(null);
-            const analyzingDebt = ref(false);
-            const refactoring = ref(false);
-            const generatingDebtStories = ref(false);
-
-            const analyzeDebt = async () => {
-                if (!selectedProjectId.value) return;
-                analyzingDebt.value = true;
-                try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/debt-score`);
-                    const result = await response.json();
-                    debtScore.value = result;
-                    addToast('info', 'Analise Completa', `Score: ${result.debt_score?.overall || 0}/100`);
-                } catch (error) {
-                    addToast('error', 'Erro', 'Falha ao analisar debt');
-                    console.error('Error analyzing debt:', error);
-                } finally {
-                    analyzingDebt.value = false;
-                }
-            };
-
-            const applyRefactoring = async () => {
-                if (!selectedProjectId.value) return;
-                refactoring.value = true;
-                try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/refactor`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ apply_all: true })
-                    });
-                    const result = await response.json();
-                    if (result.refactoring_result?.applied_count > 0) {
-                        addToast('success', 'Refatoracao Aplicada',
-                            `${result.refactoring_result.applied_count} refatoracoes aplicadas`);
-                        await analyzeDebt(); // Refresh score
-                    } else {
-                        addToast('info', 'Sem Refatoracoes', 'Nenhuma refatoracao automatica disponivel');
-                    }
-                } catch (error) {
-                    addToast('error', 'Erro', 'Falha ao refatorar');
-                    console.error('Error refactoring:', error);
-                } finally {
-                    refactoring.value = false;
-                }
-            };
-
-            const generateDebtStories = async () => {
-                if (!selectedProjectId.value) return;
-                generatingDebtStories.value = true;
-                try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/generate-debt-stories`, {
-                        method: 'POST'
-                    });
-                    const result = await response.json();
-                    if (result.suggested_stories?.length > 0) {
-                        addToast('success', 'Stories Geradas',
-                            `${result.suggested_stories.length} stories de debt sugeridas`);
-                    } else {
-                        addToast('info', 'Sem Sugestoes', 'Nenhuma story de debt sugerida');
-                    }
-                } catch (error) {
-                    addToast('error', 'Erro', 'Falha ao gerar stories');
-                    console.error('Error generating debt stories:', error);
-                } finally {
-                    generatingDebtStories.value = false;
-                }
-            };
-
-            // Auto-analyze debt when project is selected
-            watch(selectedProjectId, async (newId) => {
-                if (newId) {
-                    await analyzeDebt();
-                }
-            });
-
             const generatingApp = ref(false);
             const startingApp = ref(false);
 
@@ -7754,47 +5812,6 @@ HTML_TEMPLATE = """
                 const res = await fetch('/api/projects');
                 projects.value = await res.json();
             };
-
-            
-            // Pair Programming Methods (#59)
-            const checkPairStatus = async () => {
-                try {
-                    const response = await fetch('/api/pair-program/status');
-                    if (response.ok) pairStatus.value = await response.json();
-                } catch (error) {
-                    pairStatus.value = { available: false, active_sessions: 0, modes: [] };
-                }
-            };
-
-            const sendPairMessage = async () => {
-                if (\!pairMessage.value.trim() || pairLoading.value) return;
-                const message = pairMessage.value;
-                pairMessage.value = '';
-                pairLoading.value = true;
-                pairChatHistory.value.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
-                try {
-                    const response = await fetch('/api/pair-program', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: message, selected_code: selectedStory.value?.code_output || '' })
-                    });
-                    const data = await response.json();
-                    pairChatHistory.value.push({ role: 'assistant', content: response.ok ? data.response : ('Erro: ' + (data.detail || 'Falha')), timestamp: new Date().toISOString() });
-                    if (data.session_id) pairSessionId.value = data.session_id;
-                } catch (error) {
-                    pairChatHistory.value.push({ role: 'assistant', content: 'Erro: ' + error.message, timestamp: new Date().toISOString() });
-                } finally { pairLoading.value = false; }
-            };
-
-            const pairAction = async (action) => {
-                const prompts = { explain: 'Explique o codigo', refactor: 'Sugira refatoracoes', bugs: 'Detecte bugs', next: 'Sugira proximos passos' };
-                pairMessage.value = prompts[action] || 'Analise';
-                await sendPairMessage();
-            };
-
-            const formatChatMessage = (c) => c ? c.replace(/
-/g, '<br>') : '';
-            const formatTime = (t) => t ? new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
 
             const loadProjectData = async () => {
                 if (!selectedProjectId.value) return;
@@ -8204,6 +6221,38 @@ HTML_TEMPLATE = """
                 }
             };
 
+
+            // Estimation functions
+            const estimateStoryPoints = async () => {
+                if (!selectedStory.value || estimatingStory.value) return;
+                estimatingStory.value = true;
+                adjustedPoints.value = null;
+                try {
+                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/estimate`, { method: 'POST' });
+                    if (res.ok) {
+                        currentEstimate.value = await res.json();
+                        adjustedPoints.value = currentEstimate.value.estimated_points;
+                        showEstimateModal.value = true;
+                        addToast('success', 'Estimativa gerada', `${currentEstimate.value.estimated_points} pts sugeridos`);
+                    } else { throw new Error('Erro'); }
+                } catch (e) { addToast('error', 'Erro', e.message); }
+                finally { estimatingStory.value = false; }
+            };
+
+            const acceptEstimate = async () => {
+                if (!currentEstimate.value) return;
+                try {
+                    const pts = adjustedPoints.value || currentEstimate.value.estimated_points;
+                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/estimates/${currentEstimate.value.estimate_id}/accept?adjusted_points=${pts}`, { method: 'POST' });
+                    if (res.ok) {
+                        selectedStory.value.story_points = pts;
+                        showEstimateModal.value = false;
+                        addToast('success', 'Aceito', `${pts} pts`);
+                        await loadStories();
+                    }
+                } catch (e) { addToast('error', 'Erro', e.message); }
+            };
+
             const generateDocs = async (docType) => {
                 showGenerateDocsDropdown.value = false;
                 generatingDocs.value = true;
@@ -8256,96 +6305,47 @@ HTML_TEMPLATE = """
                 }
             };
 
-            // Review Code with AI
-            const reviewCodeWithAI = async () => {
-                if (!selectedStory.value?.story_id) return;
-                reviewingCode.value = true;
-                try {
-                    const res = await fetch(`/api/stories/${selectedStory.value.story_id}/review-code`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    if (res.ok) {
-                        const result = await res.json();
-                        codeReviewResult.value = result;
-                        showReviewResultModal.value = true;
-                        const quality = result.score >= 80 ? 'Excelente' : result.score >= 50 ? 'Aceitavel' : 'Precisa melhorias';
-                        addToast('success', `Code Review: ${result.score}/100 - ${quality}`, result.summary);
-                    } else {
-                        const err = await res.json();
-                        throw new Error(err.detail || 'Erro ao revisar codigo');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro no Code Review', e.message);
-                } finally {
-                    reviewingCode.value = false;
-                }
-            };
-
             const showGeneratedTests = (task) => {
                 currentGeneratedTests.value = task.generated_tests;
                 showGeneratedTestsModal.value = true;
             };
 
-            // Security Scan
-            const runSecurityScan = async (task) => {
-                if (scanningTask.value === task.task_id) return;
-                scanningTask.value = task.task_id;
+            // Code Review (Issue #52)
+            const codeReviewTask = async (task) => {
+                if (reviewingCode.value === task.task_id) return;
+                reviewingCode.value = task.task_id;
                 try {
-                    const res = await fetch(`/api/story-tasks/${task.task_id}/security-scan`, { method: 'POST' });
-                    if (res.ok) {
-                        currentSecurityScan.value = await res.json();
-                        showSecurityScanModal.value = true;
-                        const total = currentSecurityScan.value.summary?.total || 0;
-                        if (total > 0) {
-                            addToast('warning', 'Vulnerabilidades', `${total} encontradas`);
-                        } else {
-                            addToast('success', 'Codigo Seguro', 'Nenhuma vulnerabilidade');
-                        }
-                    } else {
-                        throw new Error((await res.json()).detail || 'Erro');
-                    }
-                } catch (e) {
-                    addToast('error', 'Erro', e.message);
-                } finally {
-                    scanningTask.value = null;
-                }
-            };
-
-            // Security Scan for Task
-            const runSecurityScan = async (task) => {
-                if (scanningTask.value === task.task_id) return;
-                scanningTask.value = task.task_id;
-                try {
-                    const res = await fetch(`/api/story-tasks/${task.task_id}/security-scan`, {
+                    const res = await fetch(`/api/story-tasks/${task.task_id}/code-review`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                     });
                     if (res.ok) {
                         const result = await res.json();
-                        currentSecurityScan.value = result;
-                        showSecurityScanModal.value = true;
-                        const vulnCount = result.summary?.total || 0;
-                        if (vulnCount > 0) {
-                            const critical = result.summary?.critical || 0;
-                            const high = result.summary?.high || 0;
-                            if (critical > 0 || high > 0) {
-                                addToast('warning', 'Vulnerabilidades Encontradas', `${vulnCount} vulnerabilidades (${critical} criticas, ${high} altas)`);
-                            } else {
-                                addToast('info', 'Scan Completo', `${vulnCount} vulnerabilidades de baixa/media severidade`);
+                        task.review_result = result;
+                        addToast('success', 'Analise concluida!', `Score: ${result.score}/100`);
+                        currentCodeReview.value = result;
+                        showCodeReviewModal.value = true;
+                        // Reload story to update task
+                        if (selectedStory.value) {
+                            const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                            if (storyRes.ok) {
+                                selectedStory.value = await storyRes.json();
                             }
-                        } else {
-                            addToast('success', 'Codigo Seguro', 'Nenhuma vulnerabilidade detectada');
                         }
                     } else {
                         const err = await res.json();
-                        throw new Error(err.detail || 'Erro ao executar scan de seguranca');
+                        throw new Error(err.detail || 'Erro ao analisar codigo');
                     }
                 } catch (e) {
-                    addToast('error', 'Erro no Scan', e.message);
+                    addToast('error', 'Erro no Code Review', e.message);
                 } finally {
-                    scanningTask.value = null;
+                    reviewingCode.value = null;
                 }
+            };
+
+            const showCodeReviewResult = (task) => {
+                currentCodeReview.value = task.review_result;
+                showCodeReviewModal.value = true;
             };
 
             const copyTestCode = async () => {
@@ -8440,22 +6440,11 @@ HTML_TEMPLATE = """
                 nextTick(() => scrollChatToBottom());
             };
 
-            const sendMessage = async (messageOverride = null) => {
-                const messageContent = messageOverride || chatInput.value;
-                if (!messageContent.trim()) return;
+            const sendMessage = async () => {
+                if (!chatInput.value.trim()) return;
 
+                const messageContent = chatInput.value;
                 chatInput.value = ''; // Clear immediately for better UX
-                isTyping.value = true;
-
-                // Add user message immediately
-                const userMsg = {
-                    message_id: 'user-' + Date.now(),
-                    role: 'user',
-                    content: messageContent,
-                    created_at: new Date().toISOString()
-                };
-                chatHistory.value.push(userMsg);
-                nextTick(() => scrollChatToBottom());
 
                 try {
                     const res = await fetch('/api/chat/message', {
@@ -8472,135 +6461,30 @@ HTML_TEMPLATE = """
                     }
 
                     const data = await res.json();
-                    // Remove the temporary user message if the server returned one
                     if (data.user_message) {
-                        const idx = chatHistory.value.findIndex(m => m.message_id === userMsg.message_id);
-                        if (idx !== -1) chatHistory.value.splice(idx, 1);
                         chatHistory.value.push(data.user_message);
                     }
                     if (data.assistant_message) {
                         chatHistory.value.push(data.assistant_message);
-                        if (!isAtBottom.value) {
-                            hasNewMessages.value = true;
-                        }
                     }
-                    lastFailedMessage.value = null;
                     nextTick(() => scrollChatToBottom());
                 } catch (error) {
                     console.error('Chat error:', error);
-                    lastFailedMessage.value = messageContent;
-                    // Show error message with retry option
+                    // Show error message
                     chatHistory.value.push({
                         message_id: 'error-' + Date.now(),
                         role: 'assistant',
-                        content: 'Desculpe, ocorreu um erro ao processar sua mensagem.',
-                        created_at: new Date().toISOString(),
-                        isError: true,
-                        originalMessage: messageContent
+                        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+                        created_at: new Date().toISOString()
                     });
                     nextTick(() => scrollChatToBottom());
-                } finally {
-                    isTyping.value = false;
                 }
             };
 
             const scrollChatToBottom = () => {
                 if (chatMessages.value) {
                     chatMessages.value.scrollTop = chatMessages.value.scrollHeight;
-                    isAtBottom.value = true;
-                    hasNewMessages.value = false;
                 }
-            };
-
-            const handleChatScroll = () => {
-                if (chatMessages.value) {
-                    const { scrollTop, scrollHeight, clientHeight } = chatMessages.value;
-                    isAtBottom.value = scrollHeight - scrollTop - clientHeight < 50;
-                    if (isAtBottom.value) {
-                        hasNewMessages.value = false;
-                    }
-                }
-            };
-
-            const copyMessage = async (content) => {
-                try {
-                    // Strip HTML tags for plain text copy
-                    const plainText = content.replace(/<[^>]*>/g, '');
-                    await navigator.clipboard.writeText(plainText);
-                    addToast('success', 'Copiado!', 'Mensagem copiada para a area de transferencia');
-                } catch (err) {
-                    addToast('error', 'Erro', 'Nao foi possivel copiar');
-                }
-            };
-
-            const toggleReaction = (msg, reaction) => {
-                if (msg.reaction === reaction) {
-                    msg.reaction = null;
-                } else {
-                    msg.reaction = reaction;
-                }
-            };
-
-            const retryMessage = (errorMsg) => {
-                // Remove error message
-                const idx = chatHistory.value.findIndex(m => m.message_id === errorMsg.message_id);
-                if (idx !== -1) {
-                    chatHistory.value.splice(idx, 1);
-                }
-                // Also remove the user message that caused the error
-                if (idx > 0 && chatHistory.value[idx - 1]?.role === 'user') {
-                    chatHistory.value.splice(idx - 1, 1);
-                }
-                // Retry sending
-                sendMessage(errorMsg.originalMessage || lastFailedMessage.value);
-            };
-
-            const quickAction = (action) => {
-                chatInput.value = action;
-                sendMessage();
-            };
-
-            const confirmClearChat = () => {
-                confirmModal.value = {
-                    title: 'Limpar Conversa',
-                    message: 'Tem certeza que deseja limpar todo o historico de conversa?',
-                    itemName: 'conversa',
-                    confirmText: 'Limpar',
-                    onConfirm: clearChat
-                };
-                showConfirmModal.value = true;
-            };
-
-            const clearChat = async () => {
-                try {
-                    await fetch('/api/chat/history?project_id=' + selectedProjectId.value, { method: 'DELETE' });
-                    chatHistory.value = [{
-                        message_id: 'welcome',
-                        role: 'assistant',
-                        content: 'Conversa limpa! Como posso ajudar?',
-                        created_at: new Date().toISOString()
-                    }];
-                    addToast('success', 'Conversa limpa', 'Historico de mensagens foi apagado');
-                } catch (err) {
-                    addToast('error', 'Erro', 'Nao foi possivel limpar a conversa');
-                }
-                showConfirmModal.value = false;
-            };
-
-            const formatChatTime = (isoString) => {
-                if (!isoString) return '';
-                const date = new Date(isoString);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffMins = Math.floor(diffMs / 60000);
-                const diffHours = Math.floor(diffMs / 3600000);
-                const diffDays = Math.floor(diffMs / 86400000);
-
-                if (diffMins < 1) return 'agora';
-                if (diffMins < 60) return diffMins + ' min atras';
-                if (diffHours < 24) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                if (diffDays < 7) return date.toLocaleDateString('pt-BR', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
             };
 
             // Helpers
@@ -8642,23 +6526,11 @@ HTML_TEMPLATE = """
                 return marked.parse(text);
             };
 
-            
-            // Accessibility: Screen Reader Announcements (A11y - Issue #45)
-            const announceToScreenReader = (message, priority = 'polite') => {
-                const announcer = document.getElementById(priority === 'assertive' ? 'a11y-status' : 'a11y-announcer');
-                if (announcer) {
-                    announcer.textContent = '';
-                    setTimeout(() => { announcer.textContent = message; }, 100);
-                }
-            };
-
-// Toast Functions
+            // Toast Functions
             const addToast = (type, title, message = '', undoAction = null) => {
                 const id = ++toastId;
                 toasts.value.push({ id, type, title, message, undoAction });
                 setTimeout(() => removeToast(id), 5000);
-                // Announce toast to screen readers (A11y)
-                announceToScreenReader(title + (message ? ': ' + message : ''));
                 return id;
             };
 
@@ -8700,132 +6572,10 @@ HTML_TEMPLATE = """
                 } catch(e) { wsStatus.value = 'disconnected'; }
             };
             const handleWebSocketNotification = (n) => {
-                if (n.type === 'pong') return;
-                if (n.type === 'connection') {
-                    if (n.data && n.data.unread_count !== undefined) {
-                        unreadNotificationCount.value = n.data.unread_count;
-                    }
-                    return;
-                }
-                if (n.type === 'unread_count') {
-                    unreadNotificationCount.value = n.data.count;
-                    return;
-                }
-                if (notificationPreferences.value[n.type] === false) return;
-                notifications.value.unshift({
-                    id: n.id || Date.now().toString(),
-                    type: n.type,
-                    data: n.data,
-                    timestamp: n.timestamp,
-                    read: false
-                });
-                if (notifications.value.length > 50) {
-                    notifications.value = notifications.value.slice(0, 50);
-                }
-                unreadNotificationCount.value++;
-                const cfg = {
-                    story_created: ['Nova Story', n.data.story_id+': '+n.data.title],
-                    story_moved: ['Story Movida', n.data.story_id + ' para ' + n.data.to],
-                    story_updated: ['Story Atualizada', n.data.story_id],
-                    task_completed: ['Task Completa', n.data.task_id],
-                    chat_message: ['Nova Mensagem', n.data.preview||''],
-                    app_ready: ['App Pronto', n.data.message || 'Aplicacao pronta para teste'],
-                    build_completed: ['Build Completo', n.data.message || 'Build finalizado'],
-                    build_failed: ['Build Falhou', n.data.message || 'Erro no build']
-                }[n.type];
-                if (cfg) {
-                    addToast(n.type, cfg[0], cfg[1]);
-                    if(notificationSoundEnabled.value) try{notificationSound.play();}catch(e){};
-                    if(selectedProjectId.value) loadProjectData();
-                }
+                if (n.type === 'pong' || n.type === 'connection') return;
+                const cfg = { story_created: ['Nova Story', n.data.story_id+': '+n.data.title], story_moved: ['Story Movida', n.data.story_id], story_updated: ['Story Atualizada', n.data.story_id], task_completed: ['Task Completa', n.data.task_id], chat_message: ['Nova Mensagem', n.data.preview||''] }[n.type];
+                if (cfg) { addToast(n.type, cfg[0], cfg[1]); if(notificationSoundEnabled.value) try{notificationSound.play();}catch(e){}; if(selectedProjectId.value) loadProjectData(); }
             };
-
-            const toggleNotificationsPanel = () => {
-                showNotificationsPanel.value = !showNotificationsPanel.value;
-                if (showNotificationsPanel.value) loadNotifications();
-            };
-
-            const loadNotifications = async () => {
-                try {
-                    const res = await fetch('/api/notifications?limit=50');
-                    const data = await res.json();
-                    notifications.value = data.notifications || [];
-                    unreadNotificationCount.value = data.unread_count || 0;
-                } catch (e) { console.error('Error loading notifications:', e); }
-            };
-
-            const markNotificationRead = async (notificationId) => {
-                try {
-                    await fetch('/api/notifications/mark-read?notification_id=' + notificationId, { method: 'POST' });
-                    const n = notifications.value.find(x => x.id === notificationId);
-                    if (n && !n.read) {
-                        n.read = true;
-                        unreadNotificationCount.value = Math.max(0, unreadNotificationCount.value - 1);
-                    }
-                } catch (e) { console.error('Error marking notification read:', e); }
-            };
-
-            const markAllNotificationsRead = async () => {
-                try {
-                    await fetch('/api/notifications/mark-all-read', { method: 'POST' });
-                    notifications.value.forEach(n => n.read = true);
-                    unreadNotificationCount.value = 0;
-                } catch (e) { console.error('Error marking all notifications read:', e); }
-            };
-
-            const getNotificationIcon = (type) => {
-                const icons = {
-                    story_created: '📝', story_moved: '➡️', story_updated: '✏️', story_deleted: '🗑️',
-                    task_created: '📋', task_completed: '✅', task_updated: '🔄', doc_created: '📄',
-                    chat_message: '💬', app_ready: '🚀', build_started: '🔨', build_completed: '📦', build_failed: '❌'
-                };
-                return icons[type] || '🔔';
-            };
-
-            const getNotificationTitle = (type) => {
-                const titles = {
-                    story_created: 'Nova Story', story_moved: 'Story Movida', story_updated: 'Story Atualizada',
-                    story_deleted: 'Story Excluida', task_created: 'Nova Task', task_completed: 'Task Completa',
-                    task_updated: 'Task Atualizada', doc_created: 'Nova Documentacao', chat_message: 'Nova Mensagem',
-                    app_ready: 'App Pronto', build_started: 'Build Iniciado', build_completed: 'Build Completo', build_failed: 'Build Falhou'
-                };
-                return titles[type] || type;
-            };
-
-            const getNotificationText = (n) => {
-                if (n.data) {
-                    if (n.data.title) return n.data.title;
-                    if (n.data.message) return n.data.message;
-                    if (n.data.story_id) return n.data.story_id;
-                    if (n.data.task_id) return n.data.task_id;
-                }
-                return '';
-            };
-
-            const formatNotificationTime = (timestamp) => {
-                if (!timestamp) return '';
-                const date = new Date(timestamp);
-                const now = new Date();
-                const diff = now - date;
-                if (diff < 60000) return 'Agora';
-                if (diff < 3600000) return Math.floor(diff / 60000) + ' min atras';
-                if (diff < 86400000) return Math.floor(diff / 3600000) + 'h atras';
-                return date.toLocaleDateString('pt-BR');
-            };
-
-            const saveNotificationPreferences = () => {
-                localStorage.setItem('notificationPreferences', JSON.stringify(notificationPreferences.value));
-                showNotificationPreferences.value = false;
-                addToast('success', 'Preferencias salvas', 'Suas preferencias de notificacao foram salvas');
-            };
-
-            const loadNotificationPreferences = () => {
-                const saved = localStorage.getItem('notificationPreferences');
-                if (saved) {
-                    try { notificationPreferences.value = { ...notificationPreferences.value, ...JSON.parse(saved) }; } catch (e) {}
-                }
-            };
-
             const toggleNotificationSound = () => { notificationSoundEnabled.value = !notificationSoundEnabled.value; localStorage.setItem('notificationSoundEnabled', notificationSoundEnabled.value); addToast('info', notificationSoundEnabled.value ? 'Som ativado' : 'Som desativado'); };
             const loadNotificationSoundPreference = () => { const s = localStorage.getItem('notificationSoundEnabled'); if(s!==null) notificationSoundEnabled.value = s==='true'; };
 
@@ -8896,99 +6646,12 @@ HTML_TEMPLATE = """
                 );
             };
 
-
-            // ===== PROJECT IMPORT FUNCTIONS (Issue #69) =====
-
-            const handleImportFile = (event) => {
-                const file = event.target.files[0];
-                if (file && file.name.endsWith('.zip')) {
-                    importFile.value = file;
-                } else {
-                    addToast('error', 'Erro', 'Por favor selecione um arquivo ZIP');
-                }
-            };
-
-            const handleImportDrop = (event) => {
-                importDragOver.value = false;
-                const file = event.dataTransfer.files[0];
-                if (file && file.name.endsWith('.zip')) {
-                    importFile.value = file;
-                } else {
-                    addToast('error', 'Erro', 'Por favor arraste um arquivo ZIP');
-                }
-            };
-
-            const resetImport = () => {
-                importFile.value = null;
-                importGithubUrl.value = '';
-                importProjectName.value = '';
-                importGenerateStories.value = true;
-                importInProgress.value = false;
-                importProgressPercent.value = 0;
-                importProgressMessage.value = '';
-                importResult.value = null;
-                importTab.value = 'zip';
-            };
-
-            const executeImport = async () => {
-                importInProgress.value = true;
-                importProgressPercent.value = 0;
-                importProgressMessage.value = 'Preparando importacao...';
-                importResult.value = null;
-
-                try {
-                    const formData = new FormData();
-
-                    if (importTab.value === 'zip' && importFile.value) {
-                        formData.append('file', importFile.value);
-                    } else if (importTab.value === 'github' && importGithubUrl.value) {
-                        formData.append('github_url', importGithubUrl.value);
-                    }
-
-                    if (importProjectName.value) {
-                        formData.append('project_name', importProjectName.value);
-                    }
-                    formData.append('generate_stories', importGenerateStories.value);
-
-                    const progressInterval = setInterval(() => {
-                        if (importProgressPercent.value < 90) {
-                            importProgressPercent.value += 10;
-                            const messages = ['Extraindo arquivos...', 'Analisando estrutura...', 'Detectando linguagem...', 'Identificando dependencias...', 'Criando projeto...', 'Gerando User Stories...', 'Finalizando...'];
-                            importProgressMessage.value = messages[Math.min(Math.floor(importProgressPercent.value / 15), messages.length - 1)];
-                        }
-                    }, 500);
-
-                    const response = await fetch('/api/projects/import', { method: 'POST', body: formData });
-                    clearInterval(progressInterval);
-
-                    if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.detail || 'Erro ao importar projeto');
-                    }
-
-                    const result = await response.json();
-                    importProgressPercent.value = 100;
-                    importProgressMessage.value = 'Importacao concluida!';
-                    importResult.value = result;
-                    await loadProjects();
-                    addToast('success', 'Sucesso', 'Projeto "' + result.project.name + '" importado com ' + result.stories_created + ' stories!');
-
-                } catch (error) {
-                    console.error('Import error:', error);
-                    addToast('error', 'Erro na importacao', error.message);
-                    importProgressPercent.value = 0;
-                    importProgressMessage.value = '';
-                } finally {
-                    importInProgress.value = false;
-                }
-            };
-
-            const selectImportedProject = () => {
-                if (importResult.value && importResult.value.project) {
-                    selectedProjectId.value = importResult.value.project.project_id;
-                    loadProjectData();
-                    showImportProjectModal.value = false;
-                    resetImport();
+            // Accessibility: Announce messages to screen readers
+            const announceToScreenReader = (message) => {
+                const announcer = document.getElementById('a11y-announcer');
+                if (announcer) {
+                    announcer.textContent = '';
+                    setTimeout(() => { announcer.textContent = message; }, 100);
                 }
             };
 
@@ -9285,12 +6948,6 @@ Process ${data.status}`);
                 loadProjects();
                 loadDarkMode();
                 loadNotificationSoundPreference();
-                checkPairStatus();
-
-                // Initialize mobile scroll tracking after DOM is ready
-                nextTick(() => {
-                    initKanbanScrollTracking();
-                });
 
                 // Connect WebSocket for real-time notifications
                 connectWebSocket();
@@ -9314,65 +6971,43 @@ Process ${data.status}`);
 
             return {
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
-                storyBoard, epics, sprints, selectedStory, activeTab, ppCode, ppLanguage, ppSuggestion, ppSelectedCode, ppLoading, ppHistory, ppRefactorType, updateSelection, insertTab, requestSuggestion, acceptSuggestion, requestExplanation, requestRefactor, applyRefactor,
+                storyBoard, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
+                showEstimateModal, estimatingStory, currentEstimate, adjustedPoints, storyEstimates,
+                estimateStoryPoints, acceptEstimate,
                 showShortcutsModal, showConfirmModal, confirmModal,
                 contextMenu, isLoading,
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, filteredStoriesCount, searchQuery, searchInput, toasts,
                 filterPriority, filterAssignee, clearFilters,
-                // Swimlanes
-                groupBy, groupedStories, collapsedSwimlanes,
-                toggleSwimlane, isSwimlaneCollapsed, getSwimlaneStoryCount, getSwimlanePoints,
                 loadProjectData, getColumnTitle, getColumnPoints, getEpicName,
                 openStoryDetail, createStory, createTask, toggleTaskComplete,
                 createEpic, createSprint, createDoc, editStory, uploadFile, filterByEpic,
                 sendMessage, getTaskStatusClass, getDocTypeClass,
-                formatTime, formatFileSize, renderMarkdown, formatChatTime,
-                isTyping, hasNewMessages, isAtBottom, handleChatScroll,
-                copyMessage, toggleReaction, retryMessage, quickAction,
-                confirmClearChat, clearChat,
+                formatTime, formatFileSize, renderMarkdown,
                 addToast, removeToast, getToastIcon, handleUndo,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
-                showEstimateModal, estimatingStory, currentEstimate, estimateLoading,
-                estimateStoryEffort, applyEstimate, closeEstimateModal, getConfidenceColor, getComplexityColor,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, isDarkMode, toggleDarkMode,
                 showBurndownModal, burndownData, updateBurndownChart,
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
                 terminalCommand, terminalRunning, previewUrl, previewViewport,
-                previewEnvironments, previewStats, previewsLoading, creatingPreview,
-                showCreateBranchPreviewModal, showQRCodeModal, currentQRCode, newBranchPreview, hasStagingEnv,
-                loadPreviewEnvironments, createStoryPreview, createBranchPreview, createStagingEnv,
-                startPreviewEnv, stopPreviewEnv, destroyPreviewEnv, showPreviewQRCode, cleanupExpiredPreviews,
-                getPreviewTypeClass, getPreviewStatusClass, formatPreviewDate,
-
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
-                // Notification Center
-                showNotificationsPanel, showNotificationPreferences, notifications, unreadNotificationCount,
-                notificationPreferences, toggleNotificationsPanel, loadNotifications, markNotificationRead,
-                markAllNotificationsRead, getNotificationIcon, getNotificationTitle, getNotificationText,
-                formatNotificationTime, saveNotificationPreferences, loadNotificationPreferences,
                 generatingTests, showGeneratedTestsModal, currentGeneratedTests,
                 generateTestsForTask, showGeneratedTests, copyTestCode, downloadTestCode,
-                scanningTask, showSecurityScanModal, currentSecurityScan, runSecurityScan,
-                // Code Review (Issue #52)
-                reviewingCode, showReviewResultModal, codeReviewResult, reviewCodeWithAI,
                 // Project Status (user-friendly)
                 storyCounts, projectProgress, isProjectReady, projectReadinessText,
                 projectReadinessClass, projectReadinessIcon, projectStatusMessage,
                 nextSteps, projectSteps, timelineProgress, showTestInstructions, openTestEnvironment,
                 // App Testing
                 appStatus, appStatusLoading, generatingApp, startingApp,
-                debtScore, analyzingDebt, refactoring, generatingDebtStories,
-                analyzeDebt, applyRefactoring, generateDebtStories,
                 checkAppStatus, generateAndStartApp, startAndOpenApp, openDocs,
                 // Mobile State
-                mobileMenuOpen, mobileChatOpen, isPullingToRefresh, currentKanbanColumn, scrollToKanbanColumn
+                mobileMenuOpen, mobileChatOpen, isPullingToRefresh
             };
         }
     }).mount('#app');
@@ -9386,6 +7021,7 @@ Process ${data.status}`);
 def index():
     """Pagina principal - Dashboard Agile"""
     return HTML_TEMPLATE
+
 
 
 # =============================================================================
@@ -9430,7 +7066,6 @@ def export_executive_csv(project_id: Optional[str] = None):
 def executive_dashboard():
     """Executive Dashboard - Business Intelligence"""
     return get_executive_template()
-
 
 # =============================================================================
 # MAIN

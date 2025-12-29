@@ -28,4 +28,5 @@ __all__ = [
     "openapi_v1",
     "schemas",
     "middleware",
+    "execution_routes",
 ]
