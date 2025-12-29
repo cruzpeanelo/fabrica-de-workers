@@ -311,7 +311,7 @@ class ChatbotKnowledgeDocument(Base):
     processed_at = Column(DateTime, nullable=True)
 
     # Metadados
-    metadata = Column(JSON, default=dict)
+    doc_metadata = Column(JSON, default=dict)
     tags = Column(JSON, default=list)
 
     # Timestamps

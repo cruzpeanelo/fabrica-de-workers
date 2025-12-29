@@ -238,3 +238,85 @@ async def detailed_health_check(
             "total": len(await queue.get_workers())
         }
     }
+
+
+# =============================================================================
+# MODEL ROUTES (Issue #26 - Suporte a Multiplos Modelos)
+# =============================================================================
+
+@router.get("/models", response_model=List[ClaudeModelInfo])
+async def list_claude_models():
+    """
+    Lista modelos Claude disponiveis.
+
+    Retorna informacoes sobre cada modelo incluindo:
+    - Custo (low, medium, high)
+    - Casos de uso recomendados
+    - Capacidades
+    """
+    from factory.config import get_available_claude_models
+    return get_available_claude_models()
+
+
+@router.get("/models/{model_key}")
+async def get_claude_model_info(model_key: str):
+    """
+    Retorna informacoes detalhadas de um modelo especifico.
+
+    Args:
+        model_key: Chave do modelo (opus, sonnet, haiku)
+    """
+    from factory.config import CLAUDE_MODELS, get_claude_model
+
+    if model_key.lower() not in CLAUDE_MODELS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Modelo '{model_key}' nao encontrado. Modelos disponiveis: opus, sonnet, haiku"
+        )
+
+    config = CLAUDE_MODELS[model_key.lower()]
+    return {
+        "key": model_key.lower(),
+        **config
+    }
+
+
+@router.post("/models/select")
+async def select_model_for_task(
+    description: str = Query(None, description="Descricao da tarefa"),
+    complexity: str = Query(None, description="Complexidade (simple, medium, complex, very_complex)"),
+    story_points: int = Query(None, ge=1, le=21, description="Story points")
+):
+    """
+    Sugere o modelo mais apropriado para uma tarefa.
+
+    Baseado em:
+    - Descricao da tarefa
+    - Complexidade
+    - Story points
+
+    Retorna o modelo recomendado e alternativas.
+    """
+    try:
+        from factory.core.model_selector import select_model_for_task as select_fn
+        result = select_fn(
+            description=description,
+            complexity=complexity,
+            story_points=story_points
+        )
+        return result
+    except ImportError:
+        # Fallback se model_selector nao disponivel
+        from factory.config import get_model_for_complexity, CLAUDE_MODEL
+        if complexity:
+            model_id = get_model_for_complexity(complexity)
+        else:
+            model_id = CLAUDE_MODEL
+        return {
+            "model": model_id,
+            "model_name": "Sonnet 4 (Default)",
+            "reason": "Selecao automatica nao disponivel, usando modelo padrao",
+            "confidence": 0.5,
+            "alternatives": [],
+            "estimated_cost": 0.0
+        }

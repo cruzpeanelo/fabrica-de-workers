@@ -899,9 +899,9 @@ def configure_logging(
     logger = get_logger("logging_config")
     logger.info(
         "Sistema de logging configurado",
-        level=level,
-        format=format,
-        output=output,
+        log_level=level,
+        log_format=format,
+        log_output=output,
         environment=environment,
         log_dir=str(log_dir)
     )

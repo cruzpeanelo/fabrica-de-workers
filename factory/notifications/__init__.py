@@ -100,6 +100,24 @@ from .templates.default_templates import (
     get_template_variables
 )
 
+from .event_handlers import (
+    NotificationEventHandler,
+    event_handler,
+    get_event_handler,
+    notify_on_complete,
+    notify_on_error
+)
+
+from .config import (
+    NotificationConfig,
+    EmailConfig,
+    SlackConfig,
+    TeamsConfig,
+    QuietHoursConfig,
+    load_config,
+    setup_notification_manager
+)
+
 __all__ = [
     # Manager
     "NotificationManager",
@@ -137,7 +155,23 @@ __all__ = [
     "TEAMS_TEMPLATES",
     "get_template",
     "list_available_templates",
-    "get_template_variables"
+    "get_template_variables",
+
+    # Event Handlers
+    "NotificationEventHandler",
+    "event_handler",
+    "get_event_handler",
+    "notify_on_complete",
+    "notify_on_error",
+
+    # Config
+    "NotificationConfig",
+    "EmailConfig",
+    "SlackConfig",
+    "TeamsConfig",
+    "QuietHoursConfig",
+    "load_config",
+    "setup_notification_manager"
 ]
 
 __version__ = "1.0.0"

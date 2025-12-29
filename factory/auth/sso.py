@@ -1006,3 +1006,79 @@ async def test_sso_connection(provider: str = Query(..., description="Provider t
 
     else:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+
+
+# -----------------------------------------------------------------------------
+# SSO Login Page (Standalone)
+# -----------------------------------------------------------------------------
+
+@sso_router.get("/sso/login-page", response_class=HTMLResponse)
+async def sso_login_page(redirect_url: str = Query("/", description="URL to redirect after login")):
+    """
+    Standalone SSO login page with buttons for all configured providers.
+    """
+    config = get_sso_config()
+
+    azure_enabled = config.azure_ad.enabled
+    saml_enabled = config.saml.enabled
+
+    return HTMLResponse(content=f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login SSO - Fabrica de Agentes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .belgo-blue {{ background-color: #003B4A; }}
+        .belgo-orange {{ background-color: #FF6C00; }}
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md">
+        <!-- Logo/Header -->
+        <div class="text-center mb-8">
+            <div class="belgo-blue text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Fabrica de Agentes</h1>
+            <p class="text-gray-500 mt-1">Autenticacao Single Sign-On</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-lg font-semibold text-gray-700 mb-6 text-center">Escolha seu provedor</h2>
+
+            <div class="space-y-4">
+                {'<a href="/api/auth/azure/login?redirect_url=' + redirect_url + '" class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"><svg class="w-6 h-6" viewBox="0 0 21 21" fill="none"><rect width="10" height="10" fill="#F25022"/><rect x="11" width="10" height="10" fill="#7FBA00"/><rect y="11" width="10" height="10" fill="#00A4EF"/><rect x="11" y="11" width="10" height="10" fill="#FFB900"/></svg><span class="font-medium text-gray-700">Login com Microsoft Azure</span></a>' if azure_enabled else ''}
+
+                {'<a href="/api/auth/saml/login?redirect_url=' + redirect_url + '" class="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"><svg class="w-6 h-6 text-[#003B4A]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg><span class="font-medium text-gray-700">Login com SSO Corporativo (SAML)</span></a>' if saml_enabled else ''}
+
+                {'<div class="text-center py-8 text-gray-400"><svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><p>Nenhum provedor SSO configurado</p></div>' if not azure_enabled and not saml_enabled else ''}
+            </div>
+
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">ou</span>
+                </div>
+            </div>
+
+            <a href="/" class="block w-full text-center py-2 text-gray-500 hover:text-gray-700 text-sm">
+                Voltar para o Dashboard
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-gray-400 text-xs mt-8">
+            Fabrica de Agentes v6.0 - Sistema Agile
+        </p>
+    </div>
+</body>
+</html>
+""")

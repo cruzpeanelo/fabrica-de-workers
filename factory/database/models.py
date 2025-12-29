@@ -1253,6 +1253,115 @@ class ExecutionLog(Base):
 
 
 # =============================================================================
+# CODE VERSION - Versionamento de Codigo (Issue #58)
+# =============================================================================
+
+class CodeVersion(Base):
+    """
+    Modelo para Versoes de Codigo - Snapshots do codigo gerado
+    Permite versionamento, diff visual, rollback e branches
+    """
+    __tablename__ = "code_versions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    version_hash = Column(String(20), unique=True, nullable=False, index=True)
+
+    # Relacionamentos
+    story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
+    task_id = Column(String(50), nullable=True, index=True)
+
+    # Metadados da versao
+    message = Column(Text, nullable=False)  # Mensagem descritiva
+    author = Column(String(100), default="system")  # Agente/worker que criou
+
+    # Conteudo dos arquivos (JSON: {path: content})
+    files_content = Column(JSON, default=dict)  # Conteudo completo
+    file_hashes = Column(JSON, default=dict)    # Hashes dos arquivos
+
+    # Historico
+    parent_hash = Column(String(20), nullable=True, index=True)  # Versao anterior
+    branch = Column(String(100), default="main", index=True)     # Nome da branch
+
+    # Metadados extras
+    metadata = Column(JSON, default=dict)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self):
+        return {
+            "version_hash": self.version_hash,
+            "story_id": self.story_id,
+            "task_id": self.task_id,
+            "message": self.message,
+            "author": self.author,
+            "files_count": len(self.files_content) if self.files_content else 0,
+            "file_hashes": self.file_hashes or {},
+            "parent_hash": self.parent_hash,
+            "branch": self.branch,
+            "metadata": self.metadata or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def get_files_list(self) -> list:
+        """Retorna lista de arquivos sem conteudo"""
+        if not self.files_content:
+            return []
+        return list(self.files_content.keys())
+
+    def __repr__(self):
+        return f"<CodeVersion {self.version_hash}: {self.message[:30]} [{self.branch}]>"
+
+
+class CodeBranch(Base):
+    """
+    Modelo para Branches de Codigo - Permite experimentos paralelos
+    """
+    __tablename__ = "code_branches"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    branch_id = Column(String(20), unique=True, nullable=False, index=True)
+
+    # Relacionamentos
+    story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
+
+    # Dados da branch
+    branch_name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    base_hash = Column(String(20), nullable=True)  # Hash de onde a branch foi criada
+
+    # Status
+    is_default = Column(Boolean, default=False)
+    is_merged = Column(Boolean, default=False)
+    merged_into = Column(String(100), nullable=True)  # Branch onde foi merged
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    merged_at = Column(DateTime, nullable=True)
+
+    # Criado por
+    created_by = Column(String(100), default="system")
+
+    def to_dict(self):
+        return {
+            "branch_id": self.branch_id,
+            "story_id": self.story_id,
+            "branch_name": self.branch_name,
+            "description": self.description,
+            "base_hash": self.base_hash,
+            "is_default": self.is_default,
+            "is_merged": self.is_merged,
+            "merged_into": self.merged_into,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "merged_at": self.merged_at.isoformat() if self.merged_at else None,
+            "created_by": self.created_by
+        }
+
+    def __repr__(self):
+        return f"<CodeBranch {self.branch_name} ({self.story_id})>"
+
+
+# =============================================================================
 # API MODELS (importados de api_models.py)
 # =============================================================================
 

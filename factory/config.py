@@ -100,6 +100,24 @@ DEFAULT_ADMIN_USER = os.getenv("DEFAULT_ADMIN_USER", "admin")
 DEFAULT_ADMIN_PASS = os.getenv("DEFAULT_ADMIN_PASS", "admin123")
 
 # =============================================================================
+# STRIPE / BILLING
+# =============================================================================
+
+# Stripe API Keys
+STRIPE_API_KEY = os.getenv("STRIPE_API_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+
+# Billing Settings
+BILLING_ENABLED = os.getenv("BILLING_ENABLED", "true").lower() == "true"
+BILLING_TRIAL_DAYS = int(os.getenv("BILLING_TRIAL_DAYS", 14))
+BILLING_GRACE_PERIOD_DAYS = int(os.getenv("BILLING_GRACE_PERIOD_DAYS", 7))
+
+# Multi-Tenant Settings
+MULTI_TENANT_ENABLED = os.getenv("MULTI_TENANT_ENABLED", "true").lower() == "true"
+TENANT_BASE_DOMAIN = os.getenv("TENANT_BASE_DOMAIN", "fabricadeagentes.com")
+
+# =============================================================================
 # RATE LIMITING
 # =============================================================================
 

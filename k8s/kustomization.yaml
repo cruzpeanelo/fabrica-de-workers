@@ -1,0 +1,63 @@
+# =============================================================================
+# Fabrica de Agentes - Kustomization
+# =============================================================================
+# Permite customizar e aplicar todos os manifests de uma vez
+#
+# Aplicar com: kubectl apply -k k8s/
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace padrao
+namespace: fabrica-agentes
+
+# Labels comuns
+commonLabels:
+  app.kubernetes.io/name: fabrica-agentes
+  app.kubernetes.io/version: "6.0"
+  app.kubernetes.io/managed-by: kustomize
+
+# Anotacoes comuns
+commonAnnotations:
+  maintainer: "fabrica@belgo.com.br"
+
+# Recursos a serem aplicados (ordem importa)
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - storage/pvc.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/hpa.yaml
+  - workers/deployment.yaml
+  - workers/hpa.yaml
+  - ingress.yaml
+
+# ConfigMap Generator (alternativa ao configmap.yaml)
+# configMapGenerator:
+#   - name: fabrica-agentes-config
+#     envs:
+#       - .env.production
+
+# Secret Generator (alternativa ao secrets.yaml)
+# secretGenerator:
+#   - name: fabrica-agentes-secrets
+#     type: Opaque
+#     envs:
+#       - .env.secrets
+
+# Patches para customizacao
+# patches:
+#   - path: patches/api-replicas.yaml
+#   - path: patches/worker-resources.yaml
+
+# Images (substituir tags)
+images:
+  - name: fabrica-agentes-api
+    newTag: "6.0"
+  - name: fabrica-agentes-worker
+    newTag: "6.0"
+  - name: fabrica-agentes-watcher
+    newTag: "6.0"

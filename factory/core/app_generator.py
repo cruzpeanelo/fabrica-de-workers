@@ -116,6 +116,33 @@ class AppGenerator:
             else:
                 analysis["message"] = "Projeto em fase inicial de desenvolvimento."
 
+        # Analisar codigo Node.js (Issue #75)
+        elif self.project_type == "nodejs":
+            analysis["models"] = self.find_nodejs_models()
+            analysis["routes"] = self._find_nodejs_routes()
+
+            # Verificar arquivos de entrada Node.js
+            has_index = (self.project_path / "index.js").exists() or \
+                        (self.project_path / "app.js").exists() or \
+                        (self.project_path / "server.js").exists() or \
+                        (self.project_path / "src" / "index.js").exists() or \
+                        (self.project_path / "src" / "app.js").exists()
+            analysis["has_index"] = has_index
+
+            # Determinar se esta pronto para teste
+            if has_index and analysis["has_package_json"]:
+                analysis["ready_to_test"] = True
+                analysis["start_command"] = "npm start"
+                analysis["app_url"] = "http://localhost:3000"
+                analysis["message"] = "Aplicacao Node.js pronta para testar!"
+            elif len(analysis["models"]) > 0:
+                analysis["ready_to_test"] = False
+                analysis["can_generate_app"] = True
+                analysis["message"] = f"Encontrados {len(analysis['models'])} modelos Node.js. Posso gerar uma aplicacao Express automaticamente."
+            else:
+                analysis["can_generate_app"] = True
+                analysis["message"] = "Projeto Node.js detectado. Posso gerar uma aplicacao Express de exemplo."
+
         return analysis
 
     def _detect_project_type(self) -> str:
@@ -123,21 +150,72 @@ class AppGenerator:
         if not self.project_path:
             return "unknown"
 
+        # Verificar arquivos Node.js primeiro (package.json tem prioridade)
+        if self.detect_nodejs_project():
+            return "nodejs"
+
         # Verificar arquivos Python
         py_files = list(self.project_path.rglob("*.py"))
         if py_files:
             return "python"
 
-        # Verificar arquivos Node.js
-        if (self.project_path / "package.json").exists():
-            return "nodejs"
-
+        # Verificar arquivos Node.js sem package.json
         js_files = list(self.project_path.rglob("*.js"))
         ts_files = list(self.project_path.rglob("*.ts"))
         if js_files or ts_files:
             return "nodejs"
 
         return "unknown"
+
+    def detect_nodejs_project(self) -> bool:
+        """
+        Detecta se o projeto e Node.js baseado em arquivos caracteristicos.
+
+        Verifica:
+        - package.json
+        - node_modules/
+        - Arquivos .js ou .ts com imports de express, sequelize, typeorm, mongoose
+
+        Returns:
+            True se for um projeto Node.js, False caso contrario
+        """
+        if not self.project_path:
+            return False
+
+        # Verificar package.json
+        package_json = self.project_path / "package.json"
+        if package_json.exists():
+            try:
+                content = json.loads(package_json.read_text(encoding="utf-8"))
+                deps = {**content.get("dependencies", {}), **content.get("devDependencies", {})}
+                # Verificar dependencias tipicas de backend Node.js
+                node_deps = ["express", "fastify", "koa", "hapi", "sequelize", "typeorm", "mongoose", "prisma"]
+                if any(dep in deps for dep in node_deps):
+                    return True
+            except Exception:
+                pass
+            return True  # package.json existe, provavelmente e Node.js
+
+        # Verificar node_modules
+        if (self.project_path / "node_modules").exists():
+            return True
+
+        # Verificar arquivos JS/TS com imports caracteristicos
+        for pattern in ["*.js", "*.ts"]:
+            for file in self.project_path.rglob(pattern):
+                if "node_modules" in str(file):
+                    continue
+                try:
+                    content = file.read_text(encoding="utf-8", errors="ignore")
+                    if any(imp in content for imp in ["require('express')", "from 'express'",
+                                                       "require('sequelize')", "from 'sequelize'",
+                                                       "require('mongoose')", "from 'mongoose'",
+                                                       "require('typeorm')", "from 'typeorm'"]):
+                        return True
+                except Exception:
+                    pass
+
+        return False
 
     def _count_files(self) -> Dict[str, int]:
         """Conta arquivos por tipo."""
@@ -232,6 +310,241 @@ class AppGenerator:
 
             except Exception:
                 pass
+
+        return routes
+
+    # ============================================================
+    # NODE.JS/EXPRESS SUPPORT (Issue #75)
+    # ============================================================
+
+    def find_nodejs_models(self) -> List[Dict]:
+        """
+        Encontra modelos Node.js no codigo (Sequelize, TypeORM, Mongoose).
+
+        Detecta:
+        - Sequelize: Model.init(), sequelize.define(), extends Model
+        - TypeORM: @Entity(), extends BaseEntity
+        - Mongoose: mongoose.Schema, mongoose.model()
+
+        Returns:
+            Lista de modelos encontrados com nome, tipo, arquivo e campos
+        """
+        models = []
+        if not self.project_path:
+            return models
+
+        # Buscar em arquivos .js e .ts, ignorando node_modules
+        for pattern in ["**/*.js", "**/*.ts"]:
+            for file in self.project_path.glob(pattern):
+                if "node_modules" in str(file):
+                    continue
+                try:
+                    content = file.read_text(encoding="utf-8", errors="ignore")
+                    relative_path = str(file.relative_to(self.project_path))
+
+                    # Detectar modelos Sequelize
+                    sequelize_models = self._find_sequelize_models(content, relative_path)
+                    models.extend(sequelize_models)
+
+                    # Detectar modelos TypeORM
+                    typeorm_models = self._find_typeorm_models(content, relative_path)
+                    models.extend(typeorm_models)
+
+                    # Detectar modelos Mongoose
+                    mongoose_models = self._find_mongoose_models(content, relative_path)
+                    models.extend(mongoose_models)
+
+                except Exception:
+                    pass
+
+        return models
+
+    def _find_sequelize_models(self, content: str, file_path: str) -> List[Dict]:
+        """Encontra modelos Sequelize no codigo."""
+        models = []
+
+        # Padrao 1: class User extends Model
+        pattern1 = r"class\s+(\w+)\s+extends\s+(?:Model|Sequelize\.Model)"
+        for match in re.finditer(pattern1, content):
+            model_name = match.group(1)
+            fields = self._extract_sequelize_fields(content)
+            models.append({
+                "name": model_name,
+                "type": "sequelize",
+                "orm_type": "sequelize",
+                "file": file_path,
+                "fields": fields
+            })
+
+        # Padrao 2: sequelize.define('User', {...})
+        pattern2 = r"sequelize\.define\s*\(\s*['\"](\w+)['\"]"
+        for match in re.finditer(pattern2, content):
+            model_name = match.group(1)
+            fields = self._extract_sequelize_fields(content)
+            if not any(m["name"] == model_name for m in models):
+                models.append({
+                    "name": model_name,
+                    "type": "sequelize",
+                    "orm_type": "sequelize",
+                    "file": file_path,
+                    "fields": fields
+                })
+
+        # Padrao 3: ModelName.init({...}, {...})
+        pattern3 = r"(\w+)\.init\s*\(\s*\{"
+        for match in re.finditer(pattern3, content):
+            model_name = match.group(1)
+            if model_name not in ["Model", "Sequelize"] and not any(m["name"] == model_name for m in models):
+                fields = self._extract_sequelize_fields(content)
+                models.append({
+                    "name": model_name,
+                    "type": "sequelize",
+                    "orm_type": "sequelize",
+                    "file": file_path,
+                    "fields": fields
+                })
+
+        return models
+
+    def _extract_sequelize_fields(self, content: str) -> List[str]:
+        """Extrai campos de um modelo Sequelize."""
+        fields = []
+        # Buscar campos no formato: fieldName: { type: DataTypes.STRING }
+        pattern = r"(\w+)\s*:\s*\{\s*type\s*:"
+        for match in re.finditer(pattern, content):
+            field_name = match.group(1)
+            if field_name not in ["type", "Model", "Sequelize"] and not field_name.startswith("_"):
+                fields.append(field_name)
+        return fields[:10]
+
+    def _find_typeorm_models(self, content: str, file_path: str) -> List[Dict]:
+        """Encontra modelos TypeORM no codigo."""
+        models = []
+
+        # Padrao 1: @Entity() class User
+        pattern1 = r"@Entity\s*\([^)]*\)\s*(?:export\s+)?class\s+(\w+)"
+        for match in re.finditer(pattern1, content):
+            model_name = match.group(1)
+            fields = self._extract_typeorm_fields(content)
+            models.append({
+                "name": model_name,
+                "type": "typeorm",
+                "orm_type": "typeorm",
+                "file": file_path,
+                "fields": fields
+            })
+
+        # Padrao 2: class User extends BaseEntity
+        pattern2 = r"class\s+(\w+)\s+extends\s+BaseEntity"
+        for match in re.finditer(pattern2, content):
+            model_name = match.group(1)
+            if not any(m["name"] == model_name for m in models):
+                fields = self._extract_typeorm_fields(content)
+                models.append({
+                    "name": model_name,
+                    "type": "typeorm",
+                    "orm_type": "typeorm",
+                    "file": file_path,
+                    "fields": fields
+                })
+
+        return models
+
+    def _extract_typeorm_fields(self, content: str) -> List[str]:
+        """Extrai campos de um modelo TypeORM."""
+        fields = []
+        # Buscar campos com decorators @Column, @PrimaryColumn, @PrimaryGeneratedColumn
+        pattern = r"@(?:Column|PrimaryColumn|PrimaryGeneratedColumn)\s*\([^)]*\)\s*(\w+)\s*[:\!]"
+        for match in re.finditer(pattern, content):
+            field_name = match.group(1)
+            if not field_name.startswith("_"):
+                fields.append(field_name)
+        return fields[:10]
+
+    def _find_mongoose_models(self, content: str, file_path: str) -> List[Dict]:
+        """Encontra modelos Mongoose no codigo."""
+        models = []
+
+        # Padrao 1: mongoose.model('User', userSchema)
+        pattern1 = r"mongoose\.model\s*\(\s*['\"](\w+)['\"]"
+        for match in re.finditer(pattern1, content):
+            model_name = match.group(1)
+            fields = self._extract_mongoose_fields(content)
+            models.append({
+                "name": model_name,
+                "type": "mongoose",
+                "orm_type": "mongoose",
+                "file": file_path,
+                "fields": fields
+            })
+
+        # Padrao 2: const UserSchema = new Schema({...}) ou new mongoose.Schema({...})
+        pattern2 = r"const\s+(\w+)Schema\s*=\s*new\s+(?:mongoose\.)?Schema\s*\("
+        for match in re.finditer(pattern2, content):
+            schema_name = match.group(1)
+            model_name = schema_name.replace("Schema", "").replace("schema", "")
+            if model_name and not any(m["name"] == model_name for m in models):
+                fields = self._extract_mongoose_fields(content)
+                models.append({
+                    "name": model_name,
+                    "type": "mongoose",
+                    "orm_type": "mongoose",
+                    "file": file_path,
+                    "fields": fields
+                })
+
+        # Padrao 3: export const User = model('User', ...)
+        pattern3 = r"(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*model\s*\(\s*['\"](\w+)['\"]"
+        for match in re.finditer(pattern3, content):
+            model_name = match.group(2)
+            if not any(m["name"] == model_name for m in models):
+                fields = self._extract_mongoose_fields(content)
+                models.append({
+                    "name": model_name,
+                    "type": "mongoose",
+                    "orm_type": "mongoose",
+                    "file": file_path,
+                    "fields": fields
+                })
+
+        return models
+
+    def _extract_mongoose_fields(self, content: str) -> List[str]:
+        """Extrai campos de um modelo Mongoose."""
+        fields = []
+        # Buscar campos no formato do Schema: fieldName: { type: String }
+        pattern = r"(\w+)\s*:\s*(?:\{|String|Number|Boolean|Date|ObjectId|Array|Mixed)"
+        for match in re.finditer(pattern, content):
+            field_name = match.group(1)
+            if field_name not in ["type", "required", "default", "ref", "unique", "index"] and not field_name.startswith("_"):
+                fields.append(field_name)
+        return list(set(fields))[:10]
+
+    def _find_nodejs_routes(self) -> List[Dict]:
+        """Encontra rotas Express/Node.js no codigo."""
+        routes = []
+        if not self.project_path:
+            return routes
+
+        for pattern in ["**/*.js", "**/*.ts"]:
+            for file in self.project_path.glob(pattern):
+                if "node_modules" in str(file):
+                    continue
+                try:
+                    content = file.read_text(encoding="utf-8", errors="ignore")
+                    relative_path = str(file.relative_to(self.project_path))
+
+                    # Express routes: router.get('/path', ...) ou app.get('/path', ...)
+                    express_pattern = r"(?:router|app)\.(get|post|put|delete|patch)\s*\(\s*['\"]([^'\"]+)['\"]"
+                    for match in re.finditer(express_pattern, content):
+                        routes.append({
+                            "method": match.group(1).upper(),
+                            "path": match.group(2),
+                            "file": relative_path
+                        })
+
+                except Exception:
+                    pass
 
         return routes
 
