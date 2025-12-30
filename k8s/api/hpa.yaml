@@ -20,8 +20,8 @@ spec:
     kind: Deployment
     name: fabrica-api
 
-  # Limites de replicas
-  minReplicas: 2
+  # Limites de replicas - Issue #170: mínimo 3 para HA
+  minReplicas: 3
   maxReplicas: 10
 
   # Metricas para scaling
@@ -81,9 +81,9 @@ metadata:
     app.kubernetes.io/name: fabrica-agentes
     app.kubernetes.io/component: api
 spec:
-  # Manter sempre pelo menos 1 pod disponivel
-  minAvailable: 1
-  # Ou usar maxUnavailable: 1 para permitir apenas 1 pod indisponivel
+  # Issue #170: manter 2 pods disponíveis (de 3 total) para HA
+  minAvailable: 2
+  # Permite apenas 1 pod indisponível durante updates
   selector:
     matchLabels:
       app.kubernetes.io/name: fabrica-agentes

@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/version: "6.0"
 spec:
-  replicas: 2
+  replicas: 3  # Issue #170: mínimo 3 para HA
   selector:
     matchLabels:
       app.kubernetes.io/name: fabrica-agentes
