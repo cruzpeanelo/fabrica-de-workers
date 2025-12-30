@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Security Configuration - Issue #138
-====================================
+Security Configuration - Issue #138, #200
+==========================================
 
-Configurações de segurança para autenticação e validação de senhas.
-Bloqueia credenciais fracas em produção.
+Configurações de segurança para autenticação, validação de senhas,
+e criptografia de dados em repouso.
 """
 
 import os
 import re
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 
 
 def _is_production() -> bool:
@@ -149,7 +149,79 @@ def get_password_requirements() -> dict:
     }
 
 
+# =============================================================================
+# DATA ENCRYPTION - Issue #200
+# =============================================================================
+
+# Master encryption key (must be set in production)
+ENCRYPTION_MASTER_KEY = os.getenv("ENCRYPTION_MASTER_KEY")
+
+# Encryption salt (unique per deployment)
+ENCRYPTION_SALT = os.getenv("ENCRYPTION_SALT", "fabrica-agentes-v1")
+
+# Key rotation interval in days
+ENCRYPTION_KEY_ROTATION_DAYS = int(os.getenv("ENCRYPTION_KEY_ROTATION_DAYS", "90"))
+
+# Vault integration
+VAULT_ENABLED = os.getenv("VAULT_ENABLED", "false").lower() == "true"
+VAULT_ADDR = os.getenv("VAULT_ADDR", "")
+VAULT_TOKEN = os.getenv("VAULT_TOKEN", "")
+VAULT_PATH_PREFIX = os.getenv("VAULT_PATH_PREFIX", "secret/fabrica")
+
+# Fields that require encryption (by model)
+ENCRYPTED_FIELDS = {
+    "Integration": ["api_token", "webhook_secret", "oauth_refresh_token"],
+    "User": ["phone"],  # PII
+    "APIKey": ["key_hash"],
+    "WebhookConfig": ["secret"],
+}
+
+
+def is_encryption_configured() -> bool:
+    """
+    Issue #200: Check if encryption is properly configured.
+
+    Returns:
+        True if encryption can be used
+    """
+    if _is_production():
+        return bool(ENCRYPTION_MASTER_KEY)
+    return True  # Allow in dev without key
+
+
+def get_encryption_status() -> dict:
+    """
+    Issue #200: Get current encryption configuration status.
+
+    Returns:
+        Dict with encryption status info
+    """
+    return {
+        "encryption_configured": is_encryption_configured(),
+        "vault_enabled": VAULT_ENABLED,
+        "vault_connected": VAULT_ENABLED and bool(VAULT_ADDR) and bool(VAULT_TOKEN),
+        "key_rotation_days": ENCRYPTION_KEY_ROTATION_DAYS,
+        "encrypted_models": list(ENCRYPTED_FIELDS.keys()),
+        "is_production": _is_production()
+    }
+
+
+def generate_encryption_key() -> str:
+    """
+    Issue #200: Generate a new encryption master key.
+
+    Should be called once during initial setup.
+
+    Returns:
+        Base64-encoded key
+    """
+    import base64
+    import secrets
+    return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
+
+
 __all__ = [
+    # Password security
     "is_credential_blocked",
     "validate_password_strength",
     "get_password_requirements",
@@ -160,4 +232,15 @@ __all__ = [
     "PASSWORD_REQUIRE_LOWERCASE",
     "PASSWORD_REQUIRE_DIGIT",
     "PASSWORD_REQUIRE_SPECIAL",
+    # Encryption (Issue #200)
+    "ENCRYPTION_MASTER_KEY",
+    "ENCRYPTION_SALT",
+    "ENCRYPTION_KEY_ROTATION_DAYS",
+    "VAULT_ENABLED",
+    "VAULT_ADDR",
+    "VAULT_TOKEN",
+    "ENCRYPTED_FIELDS",
+    "is_encryption_configured",
+    "get_encryption_status",
+    "generate_encryption_key",
 ]
