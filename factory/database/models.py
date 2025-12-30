@@ -1418,6 +1418,13 @@ class Attachment(Base):
 # EPIC - Epicos (agrupamento de Stories)
 # =============================================================================
 
+class EpicStatus(str, Enum):
+    """Status de Epic - Issue #193"""
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+
+
 class Epic(Base):
     """
     Modelo para Epicos
@@ -1442,8 +1449,8 @@ class Epic(Base):
     description = Column(Text, nullable=True)
     color = Column(String(20), default="#003B4A")  # Cor para UI
 
-    # Status
-    status = Column(String(30), default="active")
+    # Status - Issue #193: usar Enum para validação
+    status = Column(String(30), default=EpicStatus.ACTIVE.value)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -1462,6 +1469,11 @@ class Epic(Base):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
+    @staticmethod
+    def validate_status(status: str) -> bool:
+        """Valida status - Issue #193"""
+        return status in [s.value for s in EpicStatus]
+
     def __repr__(self):
         return f"<Epic {self.epic_id}: {self.title[:30]}>"
 
@@ -1469,6 +1481,14 @@ class Epic(Base):
 # =============================================================================
 # SPRINT - Sprints (periodo de trabalho)
 # =============================================================================
+
+class SprintStatus(str, Enum):
+    """Status de Sprint - Issue #193"""
+    PLANNED = "planned"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
 
 class Sprint(Base):
     """
@@ -1497,8 +1517,8 @@ class Sprint(Base):
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
 
-    # Status
-    status = Column(String(30), default="planned")  # planned, active, completed
+    # Status - Issue #193: usar Enum para validação
+    status = Column(String(30), default=SprintStatus.PLANNED.value)
 
     # Metricas
     velocity = Column(Integer, default=0)  # story points completados
@@ -1523,6 +1543,11 @@ class Sprint(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
+    @staticmethod
+    def validate_status(status: str) -> bool:
+        """Valida status - Issue #193"""
+        return status in [s.value for s in SprintStatus]
 
     def __repr__(self):
         return f"<Sprint {self.sprint_id}: {self.name} [{self.status}]>"
