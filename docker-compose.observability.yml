@@ -1,0 +1,131 @@
+# =============================================================================
+# Fabrica de Agentes - Observability Stack
+# =============================================================================
+# Issue #378: Prometheus + Grafana para monitoramento
+#
+# Uso:
+#   docker-compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#
+# Ou adicione ao profile:
+#   docker-compose --profile observability up -d
+#
+# Acessos:
+#   - Prometheus: http://localhost:9090
+#   - Grafana:    http://localhost:3000 (admin/admin)
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # PROMETHEUS - Coleta de Métricas
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: fabrica-prometheus
+    ports:
+      - "9092:9090"  # Usando 9092 pois 9090 pode conflitar com MinIO console
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - fabrica-network
+    labels:
+      - "com.fabrica.service=prometheus"
+    profiles:
+      - observability
+
+  # ===========================================================================
+  # GRAFANA - Dashboards e Visualização
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: fabrica-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    networks:
+      - fabrica-network
+    depends_on:
+      - prometheus
+    labels:
+      - "com.fabrica.service=grafana"
+    profiles:
+      - observability
+
+  # ===========================================================================
+  # LOKI - Agregação de Logs (Opcional)
+  # ===========================================================================
+  # loki:
+  #   image: grafana/loki:2.9.0
+  #   container_name: fabrica-loki
+  #   ports:
+  #     - "3100:3100"
+  #   command: -config.file=/etc/loki/local-config.yaml
+  #   volumes:
+  #     - loki_data:/loki
+  #   restart: unless-stopped
+  #   networks:
+  #     - fabrica-network
+  #   labels:
+  #     - "com.fabrica.service=loki"
+  #   profiles:
+  #     - observability
+
+  # ===========================================================================
+  # PROMTAIL - Coleta de Logs (Opcional - usado com Loki)
+  # ===========================================================================
+  # promtail:
+  #   image: grafana/promtail:2.9.0
+  #   container_name: fabrica-promtail
+  #   volumes:
+  #     - ./config/promtail/promtail.yml:/etc/promtail/config.yml:ro
+  #     - /var/log:/var/log:ro
+  #   command: -config.file=/etc/promtail/config.yml
+  #   restart: unless-stopped
+  #   networks:
+  #     - fabrica-network
+  #   depends_on:
+  #     - loki
+  #   profiles:
+  #     - observability
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  prometheus_data:
+    driver: local
+    labels:
+      - "com.fabrica.volume=prometheus"
+  grafana_data:
+    driver: local
+    labels:
+      - "com.fabrica.volume=grafana"
+  # loki_data:
+  #   driver: local
+
+# =============================================================================
+# NETWORKS - Usa a mesma rede do docker-compose principal
+# =============================================================================
+networks:
+  fabrica-network:
+    external: true

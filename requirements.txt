@@ -55,6 +55,12 @@ python-multipart>=0.0.6  # For form data in FastAPI
 structlog>=24.1.0  # Logs estruturados (opcional mas recomendado)
 
 # =============================================================================
+# Observability (Issue #378)
+# =============================================================================
+prometheus-client>=0.19.0  # Métricas Prometheus
+prometheus-fastapi-instrumentator>=6.1.0  # Auto-instrumentação FastAPI
+
+# =============================================================================
 # Development & Testing
 # =============================================================================
 pytest>=7.0.0

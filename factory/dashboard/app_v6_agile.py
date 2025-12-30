@@ -183,6 +183,15 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Health checks router not available: {e}")
 
+# Issue #378: Prometheus Metrics and Observability
+try:
+    from factory.api.metrics import router as metrics_router, setup_metrics
+    app.include_router(metrics_router)
+    setup_metrics(app)
+    print("[Dashboard] Metrics router loaded (Prometheus)")
+except ImportError as e:
+    print(f"[Dashboard] Metrics router not available: {e}")
+
 # Project Preview API Router (Issue #73)
 try:
     from factory.api.project_preview import router as preview_router
@@ -12112,6 +12121,14 @@ HTML_TEMPLATE = """
                         timeAgo: {
                             now: 'agora mesmo', minutes: 'min', hours: 'h', days: 'dias'
                         }
+                    },
+                    // Issue #204: Glossary & Simplified Mode
+                    glossary: {
+                        title: 'Glossario',
+                        simplifiedMode: 'Modo Simplificado',
+                        advancedMode: 'Modo Avancado',
+                        simplifiedEnabled: 'Modo simplificado ativado',
+                        advancedEnabled: 'Modo avancado ativado'
                     }
                 },
                 en_US: {
@@ -12177,6 +12194,14 @@ HTML_TEMPLATE = """
                         timeAgo: {
                             now: 'just now', minutes: 'min ago', hours: 'h ago', days: 'days ago'
                         }
+                    },
+                    // Issue #204: Glossary & Simplified Mode
+                    glossary: {
+                        title: 'Glossary',
+                        simplifiedMode: 'Simplified Mode',
+                        advancedMode: 'Advanced Mode',
+                        simplifiedEnabled: 'Simplified mode enabled',
+                        advancedEnabled: 'Advanced mode enabled'
                     }
                 }
             };

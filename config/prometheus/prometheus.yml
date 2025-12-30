@@ -1,0 +1,103 @@
+# =============================================================================
+# Prometheus Configuration - Fabrica de Agentes
+# =============================================================================
+# Issue #378: Configuração do Prometheus para scraping de métricas
+
+global:
+  scrape_interval: 15s      # Intervalo padrão de scraping
+  evaluation_interval: 15s  # Intervalo de avaliação de regras
+  external_labels:
+    monitor: 'fabrica-agentes'
+
+# =============================================================================
+# Alertmanager (opcional)
+# =============================================================================
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# =============================================================================
+# Regras de Alertas (opcional)
+# =============================================================================
+# rule_files:
+#   - /etc/prometheus/rules/*.yml
+
+# =============================================================================
+# Scrape Configs
+# =============================================================================
+scrape_configs:
+  # -------------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # -------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # -------------------------------------------------------------------------
+  # Fabrica de Agentes - Dashboard API
+  # -------------------------------------------------------------------------
+  - job_name: 'fabrica-api'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['app:9001']
+        labels:
+          service: 'fabrica-api'
+          environment: 'development'
+    # Retry se target estiver down
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # -------------------------------------------------------------------------
+  # Fabrica de Agentes - HTTP Metrics (auto-instrumentação)
+  # -------------------------------------------------------------------------
+  - job_name: 'fabrica-http'
+    metrics_path: /metrics/http
+    static_configs:
+      - targets: ['app:9001']
+        labels:
+          service: 'fabrica-http'
+          environment: 'development'
+
+  # -------------------------------------------------------------------------
+  # Fabrica de Agentes - Workers
+  # -------------------------------------------------------------------------
+  - job_name: 'fabrica-workers'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['worker:9000']
+        labels:
+          service: 'fabrica-workers'
+          environment: 'development'
+    # Workers podem estar offline
+    honor_labels: true
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL Exporter (se disponível)
+  # -------------------------------------------------------------------------
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'
+
+  # -------------------------------------------------------------------------
+  # Redis Exporter (se disponível)
+  # -------------------------------------------------------------------------
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+  #       labels:
+  #         service: 'redis'
+
+  # -------------------------------------------------------------------------
+  # Node Exporter (métricas do host - se disponível)
+  # -------------------------------------------------------------------------
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']
+  #       labels:
+  #         service: 'node'

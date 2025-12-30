@@ -1,49 +1,16 @@
 # =============================================================================
-# Configuracao de Datasources do Grafana - Fabrica de Agentes
+# Grafana Datasources - Fabrica de Agentes
 # =============================================================================
-# Define as fontes de dados automaticamente ao iniciar o Grafana
-# =============================================================================
-
 apiVersion: 1
 
 datasources:
-  # Loki - Logs
-  - name: Loki
-    type: loki
+  - name: Prometheus
+    type: prometheus
     access: proxy
-    url: http://loki:3100
+    url: http://prometheus:9090
     isDefault: true
     editable: false
     jsonData:
-      timeout: 60
-      maxLines: 1000
-      derivedFields:
-        # Link para job_id
-        - name: job_id
-          matcherRegex: '"job_id":"([^"]+)"'
-          url: '/d/fabrica-jobs/jobs?var-job_id=$1'
-          datasourceUid: loki
-        # Link para worker_id
-        - name: worker_id
-          matcherRegex: '"worker_id":"([^"]+)"'
-          url: '/d/fabrica-workers/workers?var-worker_id=$1'
-          datasourceUid: loki
-        # Link para request_id
-        - name: request_id
-          matcherRegex: '"request_id":"([^"]+)"'
-          url: '/explore?left={"queries":[{"expr":"{request_id=\"$1\"}"}]}'
-          datasourceUid: loki
-
-  # Elasticsearch (opcional - se estiver usando ELK)
-  # - name: Elasticsearch
-  #   type: elasticsearch
-  #   access: proxy
-  #   url: http://elasticsearch:9200
-  #   database: "fabrica-logs-*"
-  #   isDefault: false
-  #   editable: false
-  #   jsonData:
-  #     esVersion: "8.0.0"
-  #     timeField: "@timestamp"
-  #     logMessageField: message
-  #     logLevelField: level
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"

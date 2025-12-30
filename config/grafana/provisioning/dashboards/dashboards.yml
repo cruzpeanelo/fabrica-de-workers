@@ -1,19 +1,15 @@
 # =============================================================================
-# Configuracao de Dashboards do Grafana - Fabrica de Agentes
+# Grafana Dashboard Provisioning - Fabrica de Agentes
 # =============================================================================
-# Define onde o Grafana deve procurar por dashboards para provisionar
-# =============================================================================
-
 apiVersion: 1
 
 providers:
   - name: 'Fabrica de Agentes'
     orgId: 1
     folder: 'Fabrica de Agentes'
-    folderUid: 'fabrica'
     type: file
     disableDeletion: false
-    editable: true
     updateIntervalSeconds: 30
+    allowUiUpdates: true
     options:
-      path: /var/lib/grafana/dashboards
+      path: /etc/grafana/dashboards
