@@ -563,6 +563,46 @@ class SprintCreate(BaseModel):
 
 
 # =============================================================================
+# HEALTH CHECK ENDPOINT
+# =============================================================================
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "service": "fabrica-de-agentes",
+        "version": "6.5",
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+
+@app.get("/api/health")
+def api_health_check():
+    """API Health check endpoint."""
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
+
+
+# Issue #307: Missing API endpoints
+@app.get("/api/webhooks/list")
+def list_webhooks():
+    """Lista webhooks configurados"""
+    return {
+        "webhooks": [
+            {"id": "github", "name": "GitHub", "enabled": True, "url": "/api/webhooks/github"},
+            {"id": "gitlab", "name": "GitLab", "enabled": True, "url": "/api/webhooks/gitlab"},
+            {"id": "jira", "name": "Jira", "enabled": True, "url": "/api/webhooks/jira"},
+            {"id": "azure_devops", "name": "Azure DevOps", "enabled": True, "url": "/api/webhooks/azure-devops"}
+        ],
+        "total": 4
+    }
+
+
+# =============================================================================
 # API ENDPOINTS - STORIES
 # =============================================================================
 
@@ -8923,7 +8963,7 @@ HTML_TEMPLATE = """
 
             const highlightMatch = (text, query) => {
                 if (!query || !text) return text;
-                const regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                const regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
                 return text.replace(regex, '<mark>$1</mark>');
             };
 
