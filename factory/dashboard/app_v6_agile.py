@@ -29,6 +29,13 @@ sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
 from dotenv import load_dotenv
 load_dotenv()
 
+# Issue #206: Setup structured logging for stateless deployment
+try:
+    from factory.logging_config import setup_logging
+    setup_logging()
+except ImportError:
+    pass
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect, Cookie, Response, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -4311,6 +4318,156 @@ HTML_TEMPLATE = """
             .story-card:hover {
                 transform: none;
             }
+        }
+
+        /* Issue #232: Onboarding Tour */
+        .tour-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            animation: overlayFadeIn 0.3s ease-out;
+        }
+        .tour-spotlight {
+            position: absolute;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            z-index: 9999;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        .tour-tooltip {
+            position: fixed;
+            background: white;
+            border-radius: 12px;
+            padding: 20px 24px;
+            max-width: 360px;
+            min-width: 280px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 10000;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        .dark .tour-tooltip {
+            background: #1F2937;
+        }
+        .tour-tooltip-arrow {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: white;
+            transform: rotate(45deg);
+        }
+        .dark .tour-tooltip-arrow {
+            background: #1F2937;
+        }
+        .tour-tooltip-arrow.top { top: -6px; left: 50%; margin-left: -6px; }
+        .tour-tooltip-arrow.bottom { bottom: -6px; left: 50%; margin-left: -6px; }
+        .tour-tooltip-arrow.left { left: -6px; top: 50%; margin-top: -6px; }
+        .tour-tooltip-arrow.right { right: -6px; top: 50%; margin-top: -6px; }
+        .tour-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .tour-icon {
+            font-size: 1.5rem;
+        }
+        .tour-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin: 0;
+        }
+        .dark .tour-title { color: #F3F4F6; }
+        .tour-content {
+            font-size: 0.95rem;
+            color: #4B5563;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .dark .tour-content { color: #D1D5DB; }
+        .tour-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .tour-progress {
+            display: flex;
+            gap: 4px;
+        }
+        .tour-progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #D1D5DB;
+            transition: all 0.2s;
+        }
+        .dark .tour-progress-dot { background: #4B5563; }
+        .tour-progress-dot.active {
+            background: #FF6C00;
+            transform: scale(1.2);
+        }
+        .tour-progress-dot.completed {
+            background: #10B981;
+        }
+        .tour-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .tour-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .tour-btn-primary {
+            background: #FF6C00;
+            color: white;
+        }
+        .tour-btn-primary:hover {
+            background: #E65100;
+        }
+        .tour-btn-secondary {
+            background: #E5E7EB;
+            color: #374151;
+        }
+        .dark .tour-btn-secondary {
+            background: #374151;
+            color: #D1D5DB;
+        }
+        .tour-btn-secondary:hover {
+            background: #D1D5DB;
+        }
+        .dark .tour-btn-secondary:hover {
+            background: #4B5563;
+        }
+        .tour-btn-skip {
+            background: transparent;
+            color: #6B7280;
+            padding: 8px 12px;
+        }
+        .tour-btn-skip:hover {
+            color: #374151;
+        }
+        .tour-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 4px;
+            line-height: 1;
+        }
+        .tour-close:hover {
+            color: #6B7280;
         }
 
         /* Search Box */
@@ -9493,6 +9650,13 @@ HTML_TEMPLATE = """
                             <span class="kbd">6</span>
                         </div>
                     </div>
+                    <!-- Issue #232: Restart Tour Button -->
+                    <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button @click="restartTour(); showShortcutsModal = false"
+                                class="w-full py-2 px-4 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600 transition flex items-center justify-center gap-2">
+                            <span>🎓</span> Refazer Tour de Boas-vindas
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -10093,6 +10257,42 @@ HTML_TEMPLATE = """
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue #232: Onboarding Tour -->
+        <div v-if="showTour" class="tour-overlay" @click="skipTour" data-testid="onboarding-tour">
+            <div class="tour-tooltip" :style="tourTooltipStyle" @click.stop>
+                <div :class="['tour-tooltip-arrow', tourArrowPosition]"></div>
+                <button @click="skipTour" class="tour-close">&times;</button>
+                <div class="tour-header">
+                    <span class="tour-icon">{{ tourSteps[tourCurrentStep].icon }}</span>
+                    <h3 class="tour-title">{{ tourSteps[tourCurrentStep].title }}</h3>
+                </div>
+                <div class="tour-content" v-html="tourSteps[tourCurrentStep].content"></div>
+                <div class="tour-footer">
+                    <div class="tour-progress">
+                        <div v-for="(step, idx) in tourSteps" :key="idx"
+                             :class="['tour-progress-dot',
+                                      idx === tourCurrentStep ? 'active' : '',
+                                      idx < tourCurrentStep ? 'completed' : '']">
+                        </div>
+                    </div>
+                    <div class="tour-buttons">
+                        <button v-if="tourCurrentStep === 0" @click="skipTour" class="tour-btn tour-btn-skip">
+                            Pular
+                        </button>
+                        <button v-if="tourCurrentStep > 0" @click="prevTourStep" class="tour-btn tour-btn-secondary">
+                            Anterior
+                        </button>
+                        <button v-if="tourCurrentStep < tourSteps.length - 1" @click="nextTourStep" class="tour-btn tour-btn-primary">
+                            Proximo
+                        </button>
+                        <button v-else @click="completeTour" class="tour-btn tour-btn-primary">
+                            Concluir
+                        </button>
                     </div>
                 </div>
             </div>
@@ -11496,6 +11696,50 @@ HTML_TEMPLATE = """
             // Toast Notifications
             const toasts = ref([]);
             let toastId = 0;
+
+            // Issue #232: Onboarding Tour State
+            const showTour = ref(false);
+            const tourCurrentStep = ref(0);
+            const tourArrowPosition = ref('bottom');
+            const tourTooltipStyle = ref({ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' });
+            const tourSteps = ref([
+                {
+                    icon: '👋',
+                    title: 'Bem-vindo a Fabrica de Agentes!',
+                    content: 'Vamos fazer um tour rapido pelas principais funcionalidades da plataforma. Este tour leva menos de 1 minuto.',
+                    target: null
+                },
+                {
+                    icon: '📋',
+                    title: 'Kanban Board',
+                    content: 'Organize suas <strong>User Stories</strong> arrastando entre as colunas. Cada coluna representa um status diferente no fluxo de trabalho.',
+                    target: '.kanban-container'
+                },
+                {
+                    icon: '➕',
+                    title: 'Criar Stories',
+                    content: 'Clique aqui para criar novas User Stories. Use o formato <em>"Como [usuario], quero [acao] para [beneficio]"</em>.',
+                    target: '[data-testid="btn-nova-story"]'
+                },
+                {
+                    icon: '🤖',
+                    title: 'Chat com IA',
+                    content: 'Converse com o assistente para gerar codigo, documentacao e testes automaticamente. Ele conhece todo o contexto do seu projeto!',
+                    target: '.chat-toggle-btn'
+                },
+                {
+                    icon: '📊',
+                    title: 'Analytics',
+                    content: 'Acompanhe metricas de velocidade, burndown e produtividade da equipe. Visualize graficos e insights em tempo real.',
+                    target: '[title="Analytics"]'
+                },
+                {
+                    icon: '🎉',
+                    title: 'Pronto para comecar!',
+                    content: 'Voce conhece o basico da Fabrica de Agentes. Pressione <kbd>?</kbd> a qualquer momento para ver todos os atalhos de teclado.',
+                    target: null
+                }
+            ]);
 
             // Issue #203: Progress Overlay State
             const showProgressOverlay = ref(false);
@@ -13377,6 +13621,116 @@ Data: ${new Date().toISOString()}`;
                 }
             };
 
+            // Issue #232: Onboarding Tour Functions
+            const startTour = () => {
+                tourCurrentStep.value = 0;
+                showTour.value = true;
+                updateTourPosition();
+            };
+
+            const nextTourStep = () => {
+                if (tourCurrentStep.value < tourSteps.value.length - 1) {
+                    tourCurrentStep.value++;
+                    updateTourPosition();
+                }
+            };
+
+            const prevTourStep = () => {
+                if (tourCurrentStep.value > 0) {
+                    tourCurrentStep.value--;
+                    updateTourPosition();
+                }
+            };
+
+            const skipTour = () => {
+                showTour.value = false;
+                localStorage.setItem('tour-skipped', 'true');
+            };
+
+            const completeTour = () => {
+                showTour.value = false;
+                localStorage.setItem('tour-completed', 'true');
+                localStorage.setItem('tour-completed-at', new Date().toISOString());
+                addToast('success', 'Tour concluido!', 'Voce esta pronto para usar a Fabrica de Agentes');
+            };
+
+            const restartTour = () => {
+                localStorage.removeItem('tour-completed');
+                localStorage.removeItem('tour-skipped');
+                startTour();
+            };
+
+            const updateTourPosition = () => {
+                const step = tourSteps.value[tourCurrentStep.value];
+                if (!step.target) {
+                    // Center tooltip for steps without target
+                    tourTooltipStyle.value = {
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)'
+                    };
+                    tourArrowPosition.value = '';
+                    return;
+                }
+
+                nextTick(() => {
+                    const el = document.querySelector(step.target);
+                    if (!el) {
+                        // Fallback to center if element not found
+                        tourTooltipStyle.value = {
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)'
+                        };
+                        tourArrowPosition.value = '';
+                        return;
+                    }
+
+                    const rect = el.getBoundingClientRect();
+                    const tooltipWidth = 340;
+                    const tooltipHeight = 200;
+                    const padding = 16;
+
+                    // Scroll element into view
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Calculate position (prefer bottom, fallback to top/sides)
+                    let top, left;
+                    let arrow = 'top';
+
+                    // Check if there's space below
+                    if (rect.bottom + tooltipHeight + padding < window.innerHeight) {
+                        top = rect.bottom + padding;
+                        arrow = 'top';
+                    } else if (rect.top - tooltipHeight - padding > 0) {
+                        top = rect.top - tooltipHeight - padding;
+                        arrow = 'bottom';
+                    } else {
+                        top = Math.max(padding, (window.innerHeight - tooltipHeight) / 2);
+                        arrow = rect.left > window.innerWidth / 2 ? 'right' : 'left';
+                    }
+
+                    // Horizontal centering with bounds check
+                    left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+                    left = Math.max(padding, Math.min(left, window.innerWidth - tooltipWidth - padding));
+
+                    tourTooltipStyle.value = {
+                        top: top + 'px',
+                        left: left + 'px'
+                    };
+                    tourArrowPosition.value = arrow;
+                });
+            };
+
+            const checkFirstVisit = () => {
+                const completed = localStorage.getItem('tour-completed');
+                const skipped = localStorage.getItem('tour-skipped');
+                if (!completed && !skipped && selectedProjectId.value) {
+                    // Wait for page to fully load
+                    setTimeout(() => startTour(), 1500);
+                }
+            };
+
             // WebSocket Functions
             const connectWebSocket = () => {
                 if (ws && ws.readyState === WebSocket.OPEN) return;
@@ -14308,6 +14662,9 @@ Process ${data.status}`);
                 showProgressOverlay, progressData, showProgress, updateProgress, hideProgress,
                 showErrorModal, errorModalData, showTechnicalDetails, showFriendlyError,
                 closeErrorModal, copyErrorDetails, retryErrorAction, withProgress,
+                // Issue #232: Onboarding Tour
+                showTour, tourCurrentStep, tourSteps, tourTooltipStyle, tourArrowPosition,
+                startTour, nextTourStep, prevTourStep, skipTour, completeTour, restartTour,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, availableTemplates, templatesLoading, showTemplateSelector, clearTemplate,
