@@ -4020,6 +4020,31 @@ HTML_TEMPLATE = """
             width: 24px;
             border-radius: 4px;
         }
+        /* Issue #238: Close button for onboarding */
+        .onboarding-close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10001;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .onboarding-close-btn:hover {
+            background: #F3F4F6;
+            transform: scale(1.05);
+        }
+        .onboarding-close-btn svg {
+            color: #374151;
+        }
         .onboarding-checklist {
             background: white;
             border-radius: 12px;
@@ -5881,23 +5906,29 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- ONBOARDING TOUR (Issue #132) -->
-        <div v-if="showOnboardingTour" class="onboarding-overlay" @click="skipOnboardingTour">
+        <!-- ONBOARDING TOUR (Issue #132, #238: Fixed overlay blocking) -->
+        <div v-if="showOnboardingTour" class="onboarding-overlay" @click.self="skipOnboardingTour">
             <div class="onboarding-spotlight" :style="onboardingSpotlightStyle"></div>
-            <div :class="['onboarding-tooltip', 'arrow-' + currentTourStep.arrow]" :style="onboardingTooltipStyle">
+            <!-- Issue #238: Close button clearly visible -->
+            <button class="onboarding-close-btn" @click.stop="skipOnboardingTour" aria-label="Fechar tour">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div :class="['onboarding-tooltip', 'arrow-' + currentTourStep.arrow]" :style="onboardingTooltipStyle" @click.stop>
                 <div class="onboarding-tooltip-step">Passo {{ currentTourStepIndex + 1 }} de {{ tourSteps.length }}</div>
                 <h3 class="onboarding-tooltip-title">{{ currentTourStep.title }}</h3>
                 <p class="onboarding-tooltip-content">{{ currentTourStep.content }}</p>
                 <div class="onboarding-tooltip-buttons">
-                    <button class="onboarding-skip" @click="skipOnboardingTour">Pular tour</button>
+                    <button class="onboarding-skip" @click.stop="skipOnboardingTour">Pular tour</button>
                     <div class="onboarding-nav">
-                        <button v-if="currentTourStepIndex > 0" class="onboarding-btn prev" @click="prevTourStep">
+                        <button v-if="currentTourStepIndex > 0" class="onboarding-btn prev" @click.stop="prevTourStep">
                             Anterior
                         </button>
-                        <button v-if="currentTourStepIndex < tourSteps.length - 1" class="onboarding-btn next" @click="nextTourStep">
+                        <button v-if="currentTourStepIndex < tourSteps.length - 1" class="onboarding-btn next" @click.stop="nextTourStep">
                             Proximo
                         </button>
-                        <button v-else class="onboarding-btn next" @click="finishOnboardingTour">
+                        <button v-else class="onboarding-btn next" @click.stop="finishOnboardingTour">
                             Concluir
                         </button>
                     </div>
@@ -6076,28 +6107,138 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
 
-                    <!-- Bulk Actions Toolbar -->
+                    <!-- Bulk Actions Toolbar - Enhanced -->
                     <div v-if="bulkSelectMode && selectedStories.length > 0"
                          class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50
-                                bg-[#003B4A] text-white px-6 py-3 rounded-full shadow-xl
-                                flex items-center gap-4 bulk-toolbar">
-                        <span class="text-sm font-medium">{{ selectedStories.length }} stories selecionadas</span>
-                        <div class="h-4 w-px bg-white/30"></div>
-                        <button @click="bulkMoveStories('ready')" class="bulk-action-btn" title="Mover para Ready">
-                            Ready
+                                bg-[#003B4A] text-white px-4 py-3 rounded-2xl shadow-xl
+                                flex items-center gap-3 bulk-toolbar animate-slide-up">
+                        <!-- Selection Info -->
+                        <div class="flex items-center gap-2">
+                            <span class="bg-white/20 px-2 py-1 rounded-lg text-sm font-bold">{{ selectedStories.length }}</span>
+                            <span class="text-sm">selecionadas</span>
+                        </div>
+                        <div class="h-6 w-px bg-white/30"></div>
+
+                        <!-- Select All -->
+                        <button @click="selectAllVisibleStories" class="bulk-action-btn" title="Selecionar todas visiveis">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                            Todas
                         </button>
-                        <button @click="bulkMoveStories('in_progress')" class="bulk-action-btn" title="Mover para In Progress">
-                            In Progress
+
+                        <div class="h-6 w-px bg-white/30"></div>
+
+                        <!-- Move Dropdown -->
+                        <div class="relative bulk-dropdown">
+                            <button @click="bulkDropdownOpen = bulkDropdownOpen === 'move' ? null : 'move'"
+                                    class="bulk-action-btn flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                </svg>
+                                Mover
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div v-if="bulkDropdownOpen === 'move'"
+                                 class="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl py-2 min-w-[160px] text-gray-700">
+                                <button @click="bulkMoveStories('backlog'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Backlog</button>
+                                <button @click="bulkMoveStories('ready'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Ready</button>
+                                <button @click="bulkMoveStories('in_progress'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">In Progress</button>
+                                <button @click="bulkMoveStories('review'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Review</button>
+                                <button @click="bulkMoveStories('testing'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Testing</button>
+                                <button @click="bulkMoveStories('done'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">Done</button>
+                            </div>
+                        </div>
+
+                        <!-- Priority Dropdown -->
+                        <div class="relative bulk-dropdown">
+                            <button @click="bulkDropdownOpen = bulkDropdownOpen === 'priority' ? null : 'priority'"
+                                    class="bulk-action-btn flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"/>
+                                </svg>
+                                Prioridade
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div v-if="bulkDropdownOpen === 'priority'"
+                                 class="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl py-2 min-w-[140px] text-gray-700">
+                                <button @click="bulkSetPriority('urgent'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-red-500"></span> Urgente
+                                </button>
+                                <button @click="bulkSetPriority('high'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> Alta
+                                </button>
+                                <button @click="bulkSetPriority('medium'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Media
+                                </button>
+                                <button @click="bulkSetPriority('low'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-green-500"></span> Baixa
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Assign Dropdown -->
+                        <div class="relative bulk-dropdown">
+                            <button @click="bulkDropdownOpen = bulkDropdownOpen === 'assign' ? null : 'assign'"
+                                    class="bulk-action-btn flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Atribuir
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div v-if="bulkDropdownOpen === 'assign'"
+                                 class="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl py-2 min-w-[160px] text-gray-700 max-h-48 overflow-y-auto">
+                                <button @click="bulkAssign(null); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-400">
+                                    Sem atribuicao
+                                </button>
+                                <button v-for="member in teamMembers" :key="member"
+                                        @click="bulkAssign(member); bulkDropdownOpen = null"
+                                        class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">
+                                        {{ member.charAt(0).toUpperCase() }}
+                                    </span>
+                                    {{ member }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="h-6 w-px bg-white/30"></div>
+
+                        <!-- Delete -->
+                        <button @click="bulkDeleteStories" class="bulk-action-btn text-red-400 hover:text-red-300 hover:bg-red-500/20" title="Excluir selecionadas">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
                         </button>
-                        <button @click="bulkMoveStories('done')" class="bulk-action-btn" title="Mover para Done">
-                            Done
+
+                        <!-- Cancel -->
+                        <button @click="cancelBulkSelect" class="bulk-action-btn opacity-70 hover:opacity-100" title="Cancelar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
                         </button>
-                        <div class="h-4 w-px bg-white/30"></div>
-                        <button @click="bulkDeleteStories" class="bulk-action-btn text-red-400 hover:text-red-300" title="Excluir selecionadas">
-                            🗑️ Excluir
+                    </div>
+
+                    <!-- Undo Toast -->
+                    <div v-if="undoAction"
+                         class="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50
+                                bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg
+                                flex items-center gap-3 animate-slide-up">
+                        <span class="text-sm">{{ undoAction.message }}</span>
+                        <button @click="performUndo" class="text-blue-400 hover:text-blue-300 font-medium text-sm">
+                            Desfazer
                         </button>
-                        <button @click="cancelBulkSelect" class="bulk-action-btn opacity-70" title="Cancelar">
-                            ✕
+                        <button @click="undoAction = null" class="text-gray-400 hover:text-gray-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
                         </button>
                     </div>
 
