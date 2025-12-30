@@ -186,15 +186,34 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 # ============================================
 
 def run_migrations():
-    """Executa migracoes pendentes - Issue #241"""
+    """Executa migracoes pendentes - Issue #241, #401"""
+    migrations_run = 0
+    errors = []
+
+    # Issue #241: Add tenant_id columns
     try:
         from .migrations.add_tenant_id_columns import upgrade as add_tenant_id
         add_tenant_id()
-        print("[Factory DB] Migracoes executadas com sucesso")
-        return True
+        migrations_run += 1
     except Exception as e:
-        print(f"[Factory DB] Aviso durante migracoes: {e}")
-        return False
+        errors.append(f"add_tenant_id: {e}")
+
+    # Issue #401: Add external_references column
+    try:
+        from .migrations.add_external_references import upgrade as add_external_refs
+        add_external_refs()
+        migrations_run += 1
+    except Exception as e:
+        errors.append(f"add_external_references: {e}")
+
+    if errors:
+        print(f"[Factory DB] Migracoes: {migrations_run} ok, {len(errors)} avisos")
+        for err in errors:
+            print(f"[Factory DB] Aviso: {err}")
+    else:
+        print(f"[Factory DB] {migrations_run} migracoes executadas com sucesso")
+
+    return len(errors) == 0
 
 
 def init_db():

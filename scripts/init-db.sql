@@ -52,7 +52,31 @@ CREATE TABLE IF NOT EXISTS audit.change_log (
 CREATE INDEX IF NOT EXISTS idx_change_log_table ON audit.change_log(table_name);
 CREATE INDEX IF NOT EXISTS idx_change_log_timestamp ON audit.change_log(changed_at);
 
+-- =============================================================================
+-- MIGRATIONS - Adição de colunas que podem estar faltando
+-- =============================================================================
+-- Issue #401: Adiciona external_references se não existir
+
+DO $$
+BEGIN
+    -- Verifica se a coluna existe antes de adicionar
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'stories' AND column_name = 'external_references'
+    ) THEN
+        -- Tenta adicionar a coluna (pode falhar se tabela não existir ainda)
+        BEGIN
+            ALTER TABLE stories ADD COLUMN external_references JSONB DEFAULT '{}'::jsonb;
+            RAISE NOTICE 'Coluna external_references adicionada à tabela stories';
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'Tabela stories ainda não existe ou coluna já existe';
+        END;
+    END IF;
+END $$;
+
+-- =============================================================================
 -- Success message
+-- =============================================================================
 DO $$
 BEGIN
     RAISE NOTICE 'Fabrica de Agentes database initialized successfully!';
