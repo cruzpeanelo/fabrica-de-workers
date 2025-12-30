@@ -16777,6 +16777,37 @@ def onboarding_page():
     return HTML_TEMPLATE
 
 
+# Issue #372: SPA routes for Agile pages - Terminal C
+@app.get("/kanban", response_class=HTMLResponse)
+def kanban_page():
+    """Kanban Board - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/stories", response_class=HTMLResponse)
+def stories_page():
+    """User Stories - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/backlog", response_class=HTMLResponse)
+def backlog_page():
+    """Product Backlog - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/board", response_class=HTMLResponse)
+def board_page():
+    """Board View - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/sprints", response_class=HTMLResponse)
+def sprints_page():
+    """Sprints Management - SPA route"""
+    return HTML_TEMPLATE
+
+
 @app.get("/api/integrations/all-status")
 async def get_all_integrations_status():
     """Retorna o status de todas as integracoes disponiveis"""
