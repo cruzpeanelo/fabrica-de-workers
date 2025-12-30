@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Security Headers Middleware - Issue #345
-========================================
+Security Headers Middleware - Issue #345, #396
+==============================================
 HTTP security headers for protection against common attacks.
 
 Features:
@@ -11,6 +11,7 @@ Features:
 - Content-Security-Policy (XSS protection)
 - Referrer-Policy
 - Permissions-Policy
+- Per-tenant configuration (Issue #396)
 """
 
 import os
@@ -23,13 +24,32 @@ from starlette.responses import Response
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Paths that should skip certain headers (e.g., API docs need frames)
+SKIP_FRAME_OPTIONS_PATHS = [
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+]
+
+# Paths that should skip all security headers
+SKIP_ALL_HEADERS_PATHS = [
+    "/health",
+    "/metrics",
+]
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Middleware to add security headers to all responses.
 
-    Headers are configured based on environment:
+    Headers are configured based on environment and tenant:
     - Development: Relaxed CSP for hot-reload
     - Production: Strict security headers
+    - Per-tenant: Custom configuration per tenant (Issue #396)
     """
 
     # Base security headers (all environments)
@@ -93,8 +113,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self.environment = environment or os.getenv("ENVIRONMENT", "development")
         self.report_uri = report_uri
         self.is_production = self.environment in ("production", "staging")
+        self.use_tenant_config = True  # Issue #396: Enable per-tenant config
 
-        # Build headers for this environment
+        # Build default headers for this environment
         self.headers = self._build_headers()
 
         logger.info(f"[Security] Headers middleware initialized for {self.environment}")
@@ -118,12 +139,64 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         return headers
 
+    def _should_skip_all(self, path: str) -> bool:
+        """Check if path should skip all security headers."""
+        for skip_path in SKIP_ALL_HEADERS_PATHS:
+            if path.startswith(skip_path):
+                return True
+        return False
+
+    def _should_skip_frame_options(self, path: str) -> bool:
+        """Check if path should skip frame options (for docs)."""
+        for skip_path in SKIP_FRAME_OPTIONS_PATHS:
+            if path.startswith(skip_path):
+                return True
+        return False
+
+    def _get_tenant_id(self, request: Request) -> Optional[str]:
+        """Extract tenant ID from request."""
+        if hasattr(request.state, "tenant_id"):
+            return request.state.tenant_id
+        return request.headers.get("X-Tenant-Id")
+
+    def _get_tenant_headers(self, tenant_id: str) -> Optional[Dict[str, str]]:
+        """Get tenant-specific headers if configured (Issue #396)."""
+        try:
+            from factory.security.security_headers import build_security_headers
+            return build_security_headers(tenant_id)
+        except ImportError:
+            return None
+
     async def dispatch(self, request: Request, call_next) -> Response:
         """Add security headers to response."""
+        path = request.url.path
+
+        # Skip completely for certain paths
+        if self._should_skip_all(path):
+            return await call_next(request)
+
         response = await call_next(request)
 
+        # Try tenant-specific headers first (Issue #396)
+        headers = self.headers
+        if self.use_tenant_config:
+            tenant_id = self._get_tenant_id(request)
+            if tenant_id:
+                tenant_headers = self._get_tenant_headers(tenant_id)
+                if tenant_headers:
+                    headers = tenant_headers
+
+        # Skip frame options for docs
+        if self._should_skip_frame_options(path):
+            headers = dict(headers)  # Copy to avoid modifying original
+            headers.pop("X-Frame-Options", None)
+            if "Content-Security-Policy" in headers:
+                csp = headers["Content-Security-Policy"]
+                csp = csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'")
+                headers["Content-Security-Policy"] = csp
+
         # Add security headers
-        for header, value in self.headers.items():
+        for header, value in headers.items():
             response.headers[header] = value
 
         return response
@@ -146,3 +219,34 @@ def get_security_headers_middleware(
             super().__init__(app, environment=environment, report_uri=report_uri)
 
     return ConfiguredSecurityHeadersMiddleware
+
+
+def add_security_headers_middleware(app):
+    """Add security headers middleware to FastAPI app."""
+    app.add_middleware(SecurityHeadersMiddleware)
+    logger.info("Security headers middleware enabled")
+
+
+def configure_security_headers(
+    app,
+    production: bool = False,
+    csp_report_uri: Optional[str] = None
+):
+    """
+    Configure and add security headers middleware.
+
+    Args:
+        app: FastAPI application
+        production: Use production-ready strict headers
+        csp_report_uri: URI for CSP violation reports
+    """
+    environment = "production" if production else "development"
+    middleware_class = get_security_headers_middleware(
+        environment=environment,
+        report_uri=csp_report_uri
+    )
+    app.add_middleware(middleware_class)
+
+    logger.info(
+        f"Security headers configured: mode={environment}, report_uri={csp_report_uri}"
+    )
