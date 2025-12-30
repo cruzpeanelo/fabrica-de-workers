@@ -15,15 +15,25 @@ Implementa:
 import uuid
 import asyncio
 from datetime import datetime
+from enum import Enum
 from functools import wraps
-from typing import Optional, List, Dict, Any, Callable
+from typing import Optional, List, Dict, Any, Callable, Union
 
-from fastapi import APIRouter, HTTPException, Depends, Request, Header
+from fastapi import APIRouter, HTTPException, Depends, Request, Header, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Database imports
 from factory.database.connection import SessionLocal
+
+# Permission Audit imports
+from factory.auth.permission_audit import (
+    PermissionAuditLogger,
+    PermissionAuditAction,
+    PermissionResourceType,
+    permission_audit_logger,
+    audit_action
+)
 
 
 # =============================================================================
@@ -673,52 +683,48 @@ def check_permission(resource: str, action: str, project_id: Optional[str] = Non
 
 def require_permission(resource: str, action: str):
     """
-    Decorator para requerer permissao em endpoint
+    Dependency para requerer permissao em endpoint (Issue #177: versao melhorada)
 
-    Uso:
+    Uso com FastAPI Depends:
         @app.post("/api/stories")
-        @require_permission("stories", "create")
-        def create_story(story: StoryCreate, user: UserContext = Depends(get_current_user)):
+        def create_story(
+            story: StoryCreate,
+            user: UserContext = Depends(require_permission("stories", "create"))
+        ):
             ...
+
+    Retorna o UserContext se autorizado, ou levanta HTTPException.
     """
-    def decorator(func: Callable):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Buscar user do kwargs
-            user = kwargs.get("user") or kwargs.get("current_user")
+    async def permission_checker(
+        user: UserContext = Depends(get_current_user)
+    ) -> UserContext:
+        if not user:
+            raise HTTPException(401, "Authentication required")
 
-            if not user or not isinstance(user, UserContext):
-                # Tentar buscar de args se nao estiver em kwargs
-                for arg in args:
-                    if isinstance(arg, UserContext):
-                        user = arg
-                        break
+        if not user.is_authenticated:
+            raise HTTPException(401, "Authentication required")
 
-            if not user:
-                raise HTTPException(401, "Authentication required")
+        permission_key = f"{resource}:{action}"
 
-            if not user.is_authenticated:
-                raise HTTPException(401, "Authentication required")
+        # Admin tem acesso total
+        if user.is_admin:
+            return user
 
-            # Verificar permissao
-            permission_key = f"{resource}:{action}"
+        # Verificar permissao especifica
+        if permission_key in user.permissions:
+            return user
 
-            if user.is_admin:
-                return await func(*args, **kwargs) if asyncio.iscoroutinefunction(func) else func(*args, **kwargs)
+        # Verificar wildcard de recurso
+        if f"{resource}:*" in user.permissions:
+            return user
 
-            if permission_key in user.permissions:
-                return await func(*args, **kwargs) if asyncio.iscoroutinefunction(func) else func(*args, **kwargs)
+        # Verificar manage
+        if f"{resource}:manage" in user.permissions:
+            return user
 
-            if f"{resource}:*" in user.permissions:
-                return await func(*args, **kwargs) if asyncio.iscoroutinefunction(func) else func(*args, **kwargs)
+        raise HTTPException(403, f"Permission denied: {permission_key}")
 
-            if f"{resource}:manage" in user.permissions:
-                return await func(*args, **kwargs) if asyncio.iscoroutinefunction(func) else func(*args, **kwargs)
-
-            raise HTTPException(403, f"Permission denied: {permission_key}")
-
-        return wrapper
-    return decorator
+    return permission_checker
 
 
 def require_role(role_name: str):
@@ -788,7 +794,7 @@ def get_role(role_id: str):
 
 
 @rbac_router.post("/roles")
-def create_role(data: RoleCreate, user: UserContext = Depends(get_current_user)):
+def create_role(data: RoleCreate, user: UserContext = Depends(get_current_user), request: Request = None):
     """Cria nova role (requer ADMIN)"""
     if not user.is_authenticated:
         raise HTTPException(401, "Authentication required")
@@ -798,13 +804,24 @@ def create_role(data: RoleCreate, user: UserContext = Depends(get_current_user))
     db = SessionLocal()
     try:
         rbac = RBACManager(db)
-        return rbac.create_role(data.dict())
+        result = rbac.create_role(data.dict())
+
+        # Audit logging
+        ip_address = request.client.host if request and request.client else None
+        permission_audit_logger.log_role_created(
+            actor_user_id=user.user_id,
+            actor_username=user.username,
+            role_data=result,
+            ip_address=ip_address
+        )
+
+        return result
     finally:
         db.close()
 
 
 @rbac_router.put("/roles/{role_id}")
-def update_role(role_id: str, data: RoleUpdate, user: UserContext = Depends(get_current_user)):
+def update_role(role_id: str, data: RoleUpdate, user: UserContext = Depends(get_current_user), request: Request = None):
     """Atualiza role (requer ADMIN)"""
     if not user.is_authenticated:
         raise HTTPException(401, "Authentication required")
@@ -814,16 +831,34 @@ def update_role(role_id: str, data: RoleUpdate, user: UserContext = Depends(get_
     db = SessionLocal()
     try:
         rbac = RBACManager(db)
-        role = rbac.update_role(role_id, data.dict(exclude_none=True))
-        if not role:
+
+        # Capturar valor antigo para audit
+        old_role = rbac.get_role(role_id)
+        if not old_role:
             raise HTTPException(404, "Role not found")
-        return role
+
+        new_role = rbac.update_role(role_id, data.dict(exclude_none=True))
+        if not new_role:
+            raise HTTPException(404, "Role not found")
+
+        # Audit logging
+        ip_address = request.client.host if request and request.client else None
+        permission_audit_logger.log_role_updated(
+            actor_user_id=user.user_id,
+            actor_username=user.username,
+            role_id=role_id,
+            old_data=old_role,
+            new_data=new_role,
+            ip_address=ip_address
+        )
+
+        return new_role
     finally:
         db.close()
 
 
 @rbac_router.delete("/roles/{role_id}")
-def delete_role(role_id: str, user: UserContext = Depends(get_current_user)):
+def delete_role(role_id: str, user: UserContext = Depends(get_current_user), request: Request = None):
     """Remove role (requer ADMIN)"""
     if not user.is_authenticated:
         raise HTTPException(401, "Authentication required")
@@ -833,7 +868,22 @@ def delete_role(role_id: str, user: UserContext = Depends(get_current_user)):
     db = SessionLocal()
     try:
         rbac = RBACManager(db)
+
+        # Capturar valor antigo para audit
+        old_role = rbac.get_role(role_id)
+        if not old_role:
+            raise HTTPException(404, "Role not found")
+
         if rbac.delete_role(role_id):
+            # Audit logging
+            ip_address = request.client.host if request and request.client else None
+            permission_audit_logger.log_role_deleted(
+                actor_user_id=user.user_id,
+                actor_username=user.username,
+                role_id=role_id,
+                role_data=old_role,
+                ip_address=ip_address
+            )
             return {"message": "Role deleted"}
         raise HTTPException(404, "Role not found")
     finally:
@@ -855,7 +905,8 @@ def get_user_roles(user_id: int, project_id: Optional[str] = None):
 def assign_role_to_user(
     user_id: int,
     data: UserRoleAssign,
-    user: UserContext = Depends(get_current_user)
+    user: UserContext = Depends(get_current_user),
+    request: Request = None
 ):
     """Atribui role a usuario (requer ADMIN ou MANAGER)"""
     if not user.is_authenticated:
@@ -870,7 +921,20 @@ def assign_role_to_user(
     db = SessionLocal()
     try:
         rbac = RBACManager(db)
-        return rbac.assign_role(data.dict(), assigned_by=user.username)
+        result = rbac.assign_role(data.dict(), assigned_by=user.username)
+
+        # Audit logging
+        ip_address = request.client.host if request and request.client else None
+        permission_audit_logger.log_role_assigned(
+            actor_user_id=user.user_id,
+            actor_username=user.username,
+            role_id=data.role_id,
+            affected_user_id=user_id,
+            assignment_data=result,
+            ip_address=ip_address
+        )
+
+        return result
     finally:
         db.close()
 
@@ -880,7 +944,8 @@ def revoke_role_from_user(
     user_id: int,
     role_id: str,
     project_id: Optional[str] = None,
-    user: UserContext = Depends(get_current_user)
+    user: UserContext = Depends(get_current_user),
+    request: Request = None
 ):
     """Remove role de usuario (requer ADMIN)"""
     if not user.is_authenticated:
@@ -891,7 +956,25 @@ def revoke_role_from_user(
     db = SessionLocal()
     try:
         rbac = RBACManager(db)
+
+        # Capturar dados para audit antes de revogar
+        user_roles = rbac.get_user_roles(user_id, project_id)
+        revoked_role_data = next(
+            (ur for ur in user_roles if ur.get("role", {}).get("role_id") == role_id),
+            None
+        )
+
         if rbac.revoke_role(user_id, role_id, project_id):
+            # Audit logging
+            ip_address = request.client.host if request and request.client else None
+            permission_audit_logger.log_role_revoked(
+                actor_user_id=user.user_id,
+                actor_username=user.username,
+                role_id=role_id,
+                affected_user_id=user_id,
+                revocation_data=revoked_role_data,
+                ip_address=ip_address
+            )
             return {"message": "Role revoked"}
         raise HTTPException(404, "User role not found")
     finally:
@@ -974,6 +1057,67 @@ def get_audit_logs(
         return rbac.get_audit_logs(user_id, resource, action, limit)
     finally:
         db.close()
+
+
+@rbac_router.get("/audit/permissions")
+def get_permission_audit_logs(
+    actor_user_id: Optional[int] = Query(None, description="Filtrar por quem fez a acao"),
+    affected_user_id: Optional[int] = Query(None, description="Filtrar por usuario afetado"),
+    resource_type: Optional[str] = Query(None, description="Tipo de recurso (role, permission, user_role)"),
+    action: Optional[str] = Query(None, description="Tipo de acao (CREATE, UPDATE, DELETE, ASSIGN, REVOKE)"),
+    start_date: Optional[str] = Query(None, description="Data inicial (ISO format)"),
+    end_date: Optional[str] = Query(None, description="Data final (ISO format)"),
+    limit: int = Query(100, ge=1, le=1000, description="Limite de resultados"),
+    offset: int = Query(0, ge=0, description="Offset para paginacao"),
+    user: UserContext = Depends(get_current_user)
+):
+    """
+    Lista logs de auditoria especificos de mudancas de permissoes/roles.
+
+    Retorna historico detalhado de:
+    - Criacao, atualizacao e delecao de roles
+    - Atribuicao e revogacao de roles a usuarios
+    - Quem fez cada mudanca, quando, e o que mudou
+
+    Requer: ADMIN ou permissao audit:read
+    """
+    if not user.is_authenticated:
+        raise HTTPException(401, "Authentication required")
+
+    if not user.is_admin and "audit:read" not in user.permissions:
+        raise HTTPException(403, "Permission denied: audit:read")
+
+    # Converter datas se fornecidas
+    parsed_start_date = None
+    parsed_end_date = None
+    if start_date:
+        try:
+            parsed_start_date = datetime.fromisoformat(start_date)
+        except ValueError:
+            raise HTTPException(400, "Invalid start_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
+    if end_date:
+        try:
+            parsed_end_date = datetime.fromisoformat(end_date)
+        except ValueError:
+            raise HTTPException(400, "Invalid end_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
+
+    logs = permission_audit_logger.get_permission_audit_logs(
+        actor_user_id=actor_user_id,
+        affected_user_id=affected_user_id,
+        resource_type=resource_type,
+        action=action,
+        start_date=parsed_start_date,
+        end_date=parsed_end_date,
+        limit=limit,
+        offset=offset
+    )
+
+    return {
+        "total": len(logs),
+        "limit": limit,
+        "offset": offset,
+        "logs": logs
+    }
 
 
 @rbac_router.post("/init")
