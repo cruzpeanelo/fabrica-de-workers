@@ -3723,6 +3723,258 @@ HTML_TEMPLATE = """
             font-weight: 600;
         }
         .toast-undo:hover { background: rgba(255,255,255,0.3); }
+
+        /* Issue #203: Enhanced Toast with suggestions */
+        .toast-expanded {
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 420px;
+        }
+        .toast-expanded .toast-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+        .toast-suggestions {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.8rem;
+            width: 100%;
+        }
+        .toast-suggestions-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .toast-suggestions ul {
+            margin: 0;
+            padding-left: 16px;
+        }
+        .toast-suggestions li {
+            margin: 2px 0;
+            opacity: 0.9;
+        }
+        .toast-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .toast-action-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+        .toast-action-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* Issue #203: Progress Indicators */
+        .progress-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        .progress-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px 32px;
+            text-align: center;
+            min-width: 280px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .dark .progress-modal { background: #1F2937; }
+        .progress-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #E5E7EB;
+            border-top-color: #003B4A;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        .dark .progress-spinner { border-color: #374151; border-top-color: #FF6C00; }
+        .progress-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 4px;
+        }
+        .dark .progress-title { color: #F3F4F6; }
+        .progress-message {
+            font-size: 0.875rem;
+            color: #6B7280;
+        }
+        .dark .progress-message { color: #9CA3AF; }
+        .progress-bar-container {
+            margin-top: 16px;
+            background: #E5E7EB;
+            border-radius: 8px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .dark .progress-bar-container { background: #374151; }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #003B4A, #FF6C00);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+        }
+        .progress-percent {
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #6B7280;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Issue #203: Error Detail Modal */
+        .error-detail-modal {
+            background: white;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .dark .error-detail-modal { background: #1F2937; }
+        .error-detail-header {
+            background: #EF4444;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .error-detail-icon {
+            font-size: 1.5rem;
+        }
+        .error-detail-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        .error-detail-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            opacity: 0.8;
+        }
+        .error-detail-close:hover { opacity: 1; }
+        .error-detail-body {
+            padding: 20px;
+        }
+        .error-detail-message {
+            color: #374151;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+        .dark .error-detail-message { color: #D1D5DB; }
+        .error-detail-suggestions {
+            background: #FEF3C7;
+            border: 1px solid #FCD34D;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+        .dark .error-detail-suggestions { background: #78350F; border-color: #B45309; }
+        .error-detail-suggestions-title {
+            font-weight: 600;
+            color: #92400E;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .dark .error-detail-suggestions-title { color: #FCD34D; }
+        .error-detail-suggestions ul {
+            margin: 0;
+            padding-left: 18px;
+            color: #78350F;
+            font-size: 0.875rem;
+        }
+        .dark .error-detail-suggestions ul { color: #FDE68A; }
+        .error-detail-suggestions li { margin: 4px 0; }
+        .error-detail-technical {
+            margin-top: 16px;
+        }
+        .error-detail-technical-toggle {
+            background: none;
+            border: 1px solid #E5E7EB;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6B7280;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .dark .error-detail-technical-toggle { border-color: #374151; color: #9CA3AF; }
+        .error-detail-technical-toggle:hover { background: #F3F4F6; }
+        .dark .error-detail-technical-toggle:hover { background: #374151; }
+        .error-detail-code {
+            margin-top: 12px;
+            background: #1F2937;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #E5E7EB;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .error-detail-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #E5E7EB;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .dark .error-detail-footer { border-color: #374151; }
+
+        /* Issue #203: Inline Loading States */
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -9437,17 +9689,93 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- Issue #203: Progress Overlay -->
+        <div v-if="showProgressOverlay" class="progress-overlay" data-testid="progress-overlay">
+            <div class="progress-modal">
+                <div class="progress-spinner"></div>
+                <div class="progress-title">{{ progressData.title }}</div>
+                <div class="progress-message">{{ progressData.message }}</div>
+                <div v-if="progressData.percent !== null" class="progress-bar-container">
+                    <div class="progress-bar" :style="{ width: progressData.percent + '%' }"></div>
+                </div>
+                <div v-if="progressData.percent !== null" class="progress-percent">{{ progressData.percent }}%</div>
+            </div>
+        </div>
+
+        <!-- Issue #203: Error Detail Modal -->
+        <div v-if="showErrorModal" class="progress-overlay" @click.self="closeErrorModal" data-testid="error-modal">
+            <div class="error-detail-modal">
+                <div class="error-detail-header">
+                    <span class="error-detail-icon">❌</span>
+                    <span class="error-detail-title">{{ errorModalData.title }}</span>
+                    <button @click="closeErrorModal" class="error-detail-close">&times;</button>
+                </div>
+                <div class="error-detail-body">
+                    <p class="error-detail-message">{{ errorModalData.message }}</p>
+                    <div v-if="errorModalData.suggestions && errorModalData.suggestions.length" class="error-detail-suggestions">
+                        <div class="error-detail-suggestions-title">
+                            <span>💡</span> {{ t('messages.possibleSolutions') || 'Possiveis solucoes' }}
+                        </div>
+                        <ul>
+                            <li v-for="(sug, idx) in errorModalData.suggestions" :key="idx">{{ sug }}</li>
+                        </ul>
+                    </div>
+                    <div v-if="errorModalData.technical" class="error-detail-technical">
+                        <button @click="showTechnicalDetails = !showTechnicalDetails" class="error-detail-technical-toggle">
+                            <span>🔧</span> {{ showTechnicalDetails ? 'Ocultar' : 'Ver' }} detalhes tecnicos
+                        </button>
+                        <div v-if="showTechnicalDetails" class="error-detail-code">{{ errorModalData.technical }}</div>
+                    </div>
+                </div>
+                <div class="error-detail-footer">
+                    <button @click="copyErrorDetails" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-500 text-sm flex items-center gap-2">
+                        <span>📋</span> Copiar detalhes
+                    </button>
+                    <button v-if="errorModalData.retryAction" @click="retryErrorAction" class="px-4 py-2 bg-[#FF6C00] text-white rounded hover:bg-orange-600 text-sm flex items-center gap-2">
+                        <span>🔄</span> Tentar novamente
+                    </button>
+                    <button @click="closeErrorModal" class="px-4 py-2 bg-[#003B4A] text-white rounded hover:bg-[#004d5c] text-sm">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- TOAST CONTAINER -->
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id"
-                 :class="['toast', 'toast-' + toast.type]">
-                <span class="toast-icon">{{ getToastIcon(toast.type) }}</span>
-                <div class="toast-content">
-                    <div class="toast-title">{{ toast.title }}</div>
-                    <div v-if="toast.message" class="toast-message">{{ toast.message }}</div>
-                </div>
-                <button v-if="toast.undoAction" @click="handleUndo(toast)" class="toast-undo">Desfazer</button>
-                <button @click="removeToast(toast.id)" class="toast-close">&times;</button>
+                 :class="['toast', 'toast-' + toast.type, { 'toast-expanded': toast.suggestions }]">
+                <template v-if="toast.suggestions">
+                    <div class="toast-header">
+                        <span class="toast-icon">{{ getToastIcon(toast.type) }}</span>
+                        <div class="toast-content">
+                            <div class="toast-title">{{ toast.title }}</div>
+                            <div v-if="toast.message" class="toast-message">{{ toast.message }}</div>
+                        </div>
+                        <button @click="removeToast(toast.id)" class="toast-close">&times;</button>
+                    </div>
+                    <div class="toast-suggestions">
+                        <div class="toast-suggestions-title"><span>💡</span> Sugestoes</div>
+                        <ul>
+                            <li v-for="(sug, idx) in toast.suggestions" :key="idx">{{ sug }}</li>
+                        </ul>
+                    </div>
+                    <div v-if="toast.actions" class="toast-actions">
+                        <button v-for="(action, idx) in toast.actions" :key="idx"
+                                @click="action.handler" class="toast-action-btn">
+                            <span>{{ action.icon }}</span> {{ action.label }}
+                        </button>
+                    </div>
+                </template>
+                <template v-else>
+                    <span class="toast-icon">{{ getToastIcon(toast.type) }}</span>
+                    <div class="toast-content">
+                        <div class="toast-title">{{ toast.title }}</div>
+                        <div v-if="toast.message" class="toast-message">{{ toast.message }}</div>
+                    </div>
+                    <button v-if="toast.undoAction" @click="handleUndo(toast)" class="toast-undo">Desfazer</button>
+                    <button @click="removeToast(toast.id)" class="toast-close">&times;</button>
+                </template>
             </div>
         </div>
 
@@ -9980,7 +10308,17 @@ HTML_TEMPLATE = """
                         storyMoved: 'Funcionalidade movida',
                         taskCompleted: 'Tarefa concluida',
                         errorOccurred: 'Ocorreu um erro',
-                        confirmDelete: 'Tem certeza que deseja excluir?'
+                        confirmDelete: 'Tem certeza que deseja excluir?',
+                        // Issue #203: Feedback messages
+                        possibleSolutions: 'Possiveis solucoes',
+                        tryAgain: 'Tentar novamente',
+                        copyDetails: 'Copiar detalhes',
+                        technicalDetails: 'Detalhes tecnicos',
+                        processing: 'Processando...',
+                        pleaseWait: 'Aguarde...',
+                        operationSuccess: 'Operacao concluida com sucesso',
+                        connectionError: 'Erro de conexao',
+                        networkError: 'Erro de rede'
                     }
                 },
                 en_US: {
@@ -10020,7 +10358,17 @@ HTML_TEMPLATE = """
                         storyMoved: 'Story moved',
                         taskCompleted: 'Task completed',
                         errorOccurred: 'An error occurred',
-                        confirmDelete: 'Are you sure you want to delete?'
+                        confirmDelete: 'Are you sure you want to delete?',
+                        // Issue #203: Feedback messages
+                        possibleSolutions: 'Possible solutions',
+                        tryAgain: 'Try again',
+                        copyDetails: 'Copy details',
+                        technicalDetails: 'Technical details',
+                        processing: 'Processing...',
+                        pleaseWait: 'Please wait...',
+                        operationSuccess: 'Operation completed successfully',
+                        connectionError: 'Connection error',
+                        networkError: 'Network error'
                     }
                 }
             };
@@ -10739,6 +11087,65 @@ HTML_TEMPLATE = """
             // Toast Notifications
             const toasts = ref([]);
             let toastId = 0;
+
+            // Issue #203: Progress Overlay State
+            const showProgressOverlay = ref(false);
+            const progressData = ref({ title: '', message: '', percent: null });
+
+            // Issue #203: Error Modal State
+            const showErrorModal = ref(false);
+            const showTechnicalDetails = ref(false);
+            const errorModalData = ref({
+                title: '',
+                message: '',
+                suggestions: [],
+                technical: '',
+                retryAction: null
+            });
+
+            // Issue #203: Error Message Mapping (technical -> user-friendly)
+            const errorMessages = {
+                'ConnectionError': {
+                    title: 'Erro de Conexao',
+                    message: 'Nao foi possivel conectar ao servidor',
+                    suggestions: ['Verifique sua conexao com a internet', 'Aguarde alguns segundos e tente novamente', 'Contate o suporte se o problema persistir']
+                },
+                'ECONNREFUSED': {
+                    title: 'Servico Indisponivel',
+                    message: 'O servico nao esta respondendo no momento',
+                    suggestions: ['Verifique se o servidor esta em execucao', 'Confirme as configuracoes de rede', 'Tente novamente em alguns minutos']
+                },
+                'ValidationError': {
+                    title: 'Dados Invalidos',
+                    message: 'Alguns campos precisam de correcao',
+                    suggestions: ['Verifique os campos obrigatorios', 'Confirme o formato dos dados']
+                },
+                'Unauthorized': {
+                    title: 'Acesso Negado',
+                    message: 'Voce nao tem permissao para esta acao',
+                    suggestions: ['Faca login novamente', 'Verifique suas credenciais', 'Contate o administrador']
+                },
+                'NotFound': {
+                    title: 'Nao Encontrado',
+                    message: 'O recurso solicitado nao existe',
+                    suggestions: ['Verifique se o item ainda existe', 'Atualize a pagina']
+                },
+                'Timeout': {
+                    title: 'Tempo Esgotado',
+                    message: 'A operacao demorou muito para responder',
+                    suggestions: ['Tente novamente', 'Verifique sua conexao', 'A operacao pode estar em andamento']
+                },
+                'NetworkError': {
+                    title: 'Erro de Rede',
+                    message: 'Falha na comunicacao com o servidor',
+                    suggestions: ['Verifique sua conexao', 'Desative VPN se estiver usando', 'Tente novamente']
+                },
+                'default': {
+                    title: 'Erro Inesperado',
+                    message: 'Ocorreu um erro ao processar sua solicitacao',
+                    suggestions: ['Tente novamente', 'Atualize a pagina', 'Contate o suporte se persistir']
+                }
+            };
 
             // WebSocket Connection
             const wsStatus = ref('disconnected');
@@ -12470,6 +12877,97 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Issue #203: Enhanced Toast with suggestions
+            const addToastWithSuggestions = (type, title, message, suggestions = [], actions = []) => {
+                const id = ++toastId;
+                toasts.value.push({ id, type, title, message, suggestions, actions });
+                setTimeout(() => removeToast(id), suggestions.length > 0 ? 10000 : 5000);
+                return id;
+            };
+
+            // Issue #203: Progress Overlay Functions
+            const showProgress = (title, message = '', percent = null) => {
+                progressData.value = { title, message, percent };
+                showProgressOverlay.value = true;
+            };
+
+            const updateProgress = (percent, message = null) => {
+                progressData.value.percent = percent;
+                if (message) progressData.value.message = message;
+            };
+
+            const hideProgress = () => {
+                showProgressOverlay.value = false;
+                progressData.value = { title: '', message: '', percent: null };
+            };
+
+            // Issue #203: Error Modal Functions
+            const showFriendlyError = (errorOrMessage, technicalDetails = '', retryAction = null) => {
+                let errorInfo = errorMessages.default;
+                const errorStr = typeof errorOrMessage === 'string' ? errorOrMessage : (errorOrMessage?.message || '');
+
+                // Match error to friendly message
+                for (const [key, value] of Object.entries(errorMessages)) {
+                    if (key !== 'default' && errorStr.includes(key)) {
+                        errorInfo = value;
+                        break;
+                    }
+                }
+
+                errorModalData.value = {
+                    title: errorInfo.title,
+                    message: errorInfo.message,
+                    suggestions: errorInfo.suggestions,
+                    technical: technicalDetails || errorStr,
+                    retryAction
+                };
+                showTechnicalDetails.value = false;
+                showErrorModal.value = true;
+            };
+
+            const closeErrorModal = () => {
+                showErrorModal.value = false;
+                showTechnicalDetails.value = false;
+            };
+
+            const copyErrorDetails = async () => {
+                const details = `Erro: ${errorModalData.value.title}
+Mensagem: ${errorModalData.value.message}
+Detalhes tecnicos: ${errorModalData.value.technical}
+Data: ${new Date().toISOString()}`;
+                try {
+                    await navigator.clipboard.writeText(details);
+                    addToast('success', 'Copiado', 'Detalhes do erro copiados para a area de transferencia');
+                } catch (e) {
+                    addToast('error', 'Erro ao copiar', 'Use Ctrl+C manualmente');
+                }
+            };
+
+            const retryErrorAction = async () => {
+                if (errorModalData.value.retryAction) {
+                    closeErrorModal();
+                    try {
+                        await errorModalData.value.retryAction();
+                    } catch (e) {
+                        showFriendlyError(e, e.stack);
+                    }
+                }
+            };
+
+            // Issue #203: Wrapper for API calls with progress
+            const withProgress = async (title, asyncFn, message = 'Aguarde...') => {
+                showProgress(title, message);
+                try {
+                    const result = await asyncFn();
+                    hideProgress();
+                    return result;
+                } catch (e) {
+                    hideProgress();
+                    showFriendlyError(e, e.stack || e.message, () => withProgress(title, asyncFn, message));
+                    throw e;
+                }
+            };
+
             // WebSocket Functions
             const connectWebSocket = () => {
                 if (ws && ws.readyState === WebSocket.OPEN) return;
@@ -13396,7 +13894,11 @@ Process ${data.status}`);
                 createEpic, createSprint, createDoc, editStory, uploadFile, filterByEpic,
                 sendMessage, getTaskStatusClass, getDocTypeClass,
                 formatTime, formatFileSize, renderMarkdown,
-                addToast, removeToast, getToastIcon, handleUndo,
+                addToast, removeToast, getToastIcon, handleUndo, addToastWithSuggestions,
+                // Issue #203: Progress & Error Feedback
+                showProgressOverlay, progressData, showProgress, updateProgress, hideProgress,
+                showErrorModal, errorModalData, showTechnicalDetails, showFriendlyError,
+                closeErrorModal, copyErrorDetails, retryErrorAction, withProgress,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, availableTemplates, templatesLoading, showTemplateSelector, clearTemplate,
