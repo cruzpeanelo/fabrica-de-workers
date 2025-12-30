@@ -2,7 +2,7 @@
 """
 Integration API Routes
 ======================
-Endpoints para gerenciar integracoes com Jira e Azure DevOps.
+Endpoints para gerenciar integracoes com Jira, Azure DevOps e Calendarios.
 
 Endpoints:
 - POST /api/integrations/jira/connect
@@ -16,6 +16,8 @@ Endpoints:
 - POST /api/integrations/azure-devops/sync
 - GET  /api/integrations/azure-devops/status
 - POST /api/integrations/azure-devops/webhook
+
+- GET  /api/integrations/calendar/* (Issue #264 - Google/Outlook Calendar)
 
 - GET  /api/integrations/status
 """
@@ -38,10 +40,14 @@ from .azure_devops import (
     get_azure_devops_integration
 )
 from .base import IntegrationStatus, SyncResult
+from .calendar.routes import router as calendar_router
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/integrations", tags=["Integrations"])
+
+# Include calendar routes (Issue #264)
+router.include_router(calendar_router)
 
 
 # =============================================================================
