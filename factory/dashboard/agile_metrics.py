@@ -29,40 +29,84 @@ async def get_velocity_metrics(
     project_id: str = Query(...),
     sprints: int = Query(6, ge=1, le=20)
 ):
-    """Retorna metricas de velocity por sprint."""
+    """Retorna metricas de velocity por sprint usando dados reais."""
     from factory.database.connection import SessionLocal
-    from factory.database.models import Story
+    from factory.database.models import Story, Sprint
 
     db = SessionLocal()
     try:
-        # Get stories by sprint (mock sprint data for now)
-        stories = db.query(Story).filter(Story.project_id == project_id).all()
+        # Issue #405: Get real sprints from database
+        sprint_records = db.query(Sprint).filter(
+            Sprint.project_id == project_id
+        ).order_by(Sprint.created_at.desc()).limit(sprints).all()
 
-        # Group by sprint and calculate points
+        # Reverse to show oldest first
+        sprint_records = list(reversed(sprint_records))
+
         velocity_data = []
-        for i in range(sprints):
-            sprint_name = f"Sprint {i + 1}"
-            # Mock data - in production, use actual sprint assignments
-            planned = 30 + (i * 2)
-            completed = planned - (i % 3) * 3
+        for sprint in sprint_records:
+            # Get stories for this sprint
+            sprint_stories = db.query(Story).filter(
+                Story.project_id == project_id,
+                Story.sprint_id == sprint.sprint_id
+            ).all()
+
+            # Calculate planned (all stories in sprint) and completed (done stories)
+            planned = sum(s.story_points or 0 for s in sprint_stories)
+            completed = sum(s.story_points or 0 for s in sprint_stories if s.status == 'done')
 
             velocity_data.append({
-                "sprint": sprint_name,
+                "sprint": sprint.name,
+                "sprint_id": sprint.sprint_id,
                 "planned": planned,
                 "completed": completed,
+                "stories_count": len(sprint_stories),
+                "stories_done": len([s for s in sprint_stories if s.status == 'done']),
                 "commitment_rate": round(completed / planned * 100, 1) if planned > 0 else 0
             })
+
+        # If no sprints found, get velocity from stories without sprint (grouped by month)
+        if not velocity_data:
+            stories = db.query(Story).filter(
+                Story.project_id == project_id,
+                Story.status == 'done'
+            ).order_by(Story.updated_at.desc()).limit(50).all()
+
+            # Group by month
+            monthly_data = defaultdict(lambda: {"planned": 0, "completed": 0})
+            for story in stories:
+                if story.updated_at:
+                    month_key = story.updated_at.strftime("%Y-%m")
+                    monthly_data[month_key]["completed"] += story.story_points or 0
+                    monthly_data[month_key]["planned"] += story.story_points or 0
+
+            for month, data in sorted(monthly_data.items())[-sprints:]:
+                velocity_data.append({
+                    "sprint": month,
+                    "planned": data["planned"],
+                    "completed": data["completed"],
+                    "commitment_rate": 100.0  # All shown are completed
+                })
 
         # Calculate averages
         avg_planned = sum(d["planned"] for d in velocity_data) / len(velocity_data) if velocity_data else 0
         avg_completed = sum(d["completed"] for d in velocity_data) / len(velocity_data) if velocity_data else 0
+
+        # Determine trend
+        trend = "stable"
+        if len(velocity_data) >= 2:
+            if velocity_data[-1]["completed"] > velocity_data[0]["completed"]:
+                trend = "up"
+            elif velocity_data[-1]["completed"] < velocity_data[0]["completed"]:
+                trend = "down"
 
         return {
             "velocity_data": velocity_data,
             "average_velocity": round(avg_completed, 1),
             "average_planned": round(avg_planned, 1),
             "commitment_rate": round(avg_completed / avg_planned * 100, 1) if avg_planned > 0 else 0,
-            "trend": "up" if velocity_data and velocity_data[-1]["completed"] > velocity_data[0]["completed"] else "stable"
+            "trend": trend,
+            "sprints_found": len(sprint_records)
         }
     finally:
         db.close()
@@ -73,41 +117,90 @@ async def get_burndown_chart(
     sprint_id: str = Query(...),
     project_id: str = Query(...)
 ):
-    """Retorna dados do burndown chart."""
-    # Generate burndown data
-    today = datetime.now()
-    sprint_start = today - timedelta(days=10)
-    sprint_end = today + timedelta(days=4)
-    total_days = (sprint_end - sprint_start).days
+    """Retorna dados do burndown chart usando dados reais."""
+    from factory.database.connection import SessionLocal
+    from factory.database.models import Sprint, Story
 
-    total_points = 34
-    burndown_data = []
+    db = SessionLocal()
+    try:
+        today = datetime.now()
 
-    for i in range(total_days + 1):
-        date = sprint_start + timedelta(days=i)
-        ideal = total_points * (1 - i / total_days)
+        # Issue #405: Get real sprint data
+        sprint = db.query(Sprint).filter(Sprint.sprint_id == sprint_id).first()
 
-        # Simulate actual progress (with some variance)
-        if date <= today:
-            actual = total_points - (i * 2.5) + (i % 3)
-            actual = max(0, actual)
+        if sprint and sprint.start_date and sprint.end_date:
+            sprint_start = sprint.start_date if isinstance(sprint.start_date, datetime) else datetime.combine(sprint.start_date, datetime.min.time())
+            sprint_end = sprint.end_date if isinstance(sprint.end_date, datetime) else datetime.combine(sprint.end_date, datetime.min.time())
         else:
-            actual = None
+            # Default to 2-week sprint ending in 4 days
+            sprint_start = today - timedelta(days=10)
+            sprint_end = today + timedelta(days=4)
 
-        burndown_data.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "ideal": round(ideal, 1),
-            "actual": round(actual, 1) if actual is not None else None
-        })
+        total_days = (sprint_end - sprint_start).days
+        if total_days <= 0:
+            total_days = 14
 
-    return {
-        "sprint_id": sprint_id,
-        "total_points": total_points,
-        "remaining_points": burndown_data[-1]["actual"] or burndown_data[-2]["actual"],
-        "days_remaining": (sprint_end - today).days,
-        "burndown_data": burndown_data,
-        "on_track": True  # Compare actual vs ideal
-    }
+        # Get stories for this sprint
+        sprint_stories = db.query(Story).filter(
+            Story.project_id == project_id,
+            Story.sprint_id == sprint_id
+        ).all()
+
+        total_points = sum(s.story_points or 0 for s in sprint_stories)
+
+        # Get completed stories with their completion dates
+        done_stories = [s for s in sprint_stories if s.status == 'done']
+
+        burndown_data = []
+        for i in range(total_days + 1):
+            date = sprint_start + timedelta(days=i)
+            ideal = total_points * (1 - i / total_days) if total_days > 0 else 0
+
+            if date <= today:
+                # Calculate actual remaining points based on stories completed by this date
+                completed_by_date = sum(
+                    s.story_points or 0 for s in done_stories
+                    if s.updated_at and s.updated_at.date() <= date.date()
+                )
+                actual = total_points - completed_by_date
+            else:
+                actual = None
+
+            burndown_data.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "ideal": round(ideal, 1),
+                "actual": round(actual, 1) if actual is not None else None
+            })
+
+        # Calculate remaining points
+        remaining = burndown_data[-1]["actual"] if burndown_data and burndown_data[-1]["actual"] is not None else None
+        if remaining is None and len(burndown_data) > 1:
+            for d in reversed(burndown_data):
+                if d["actual"] is not None:
+                    remaining = d["actual"]
+                    break
+
+        # Check if on track (actual <= ideal for today)
+        on_track = True
+        for d in burndown_data:
+            if d["actual"] is not None and d["ideal"] is not None:
+                if d["actual"] > d["ideal"] * 1.1:  # 10% tolerance
+                    on_track = False
+
+        return {
+            "sprint_id": sprint_id,
+            "sprint_name": sprint.name if sprint else "Sprint",
+            "total_points": total_points,
+            "completed_points": sum(s.story_points or 0 for s in done_stories),
+            "remaining_points": remaining or 0,
+            "days_remaining": max(0, (sprint_end - today).days),
+            "burndown_data": burndown_data,
+            "on_track": on_track,
+            "stories_count": len(sprint_stories),
+            "stories_done": len(done_stories)
+        }
+    finally:
+        db.close()
 
 
 @router.get("/burnup")
@@ -115,36 +208,82 @@ async def get_burnup_chart(
     sprint_id: str = Query(...),
     project_id: str = Query(...)
 ):
-    """Retorna dados do burnup chart."""
-    today = datetime.now()
-    sprint_start = today - timedelta(days=10)
-    sprint_end = today + timedelta(days=4)
-    total_days = (sprint_end - sprint_start).days
+    """Retorna dados do burnup chart usando dados reais."""
+    from factory.database.connection import SessionLocal
+    from factory.database.models import Sprint, Story
 
-    scope_total = 34
-    burnup_data = []
+    db = SessionLocal()
+    try:
+        today = datetime.now()
 
-    for i in range(total_days + 1):
-        date = sprint_start + timedelta(days=i)
+        # Issue #405: Get real sprint data
+        sprint = db.query(Sprint).filter(Sprint.sprint_id == sprint_id).first()
 
-        if date <= today:
-            completed = min(scope_total, i * 2.5)
-            scope = scope_total + (1 if i > 5 else 0)  # Scope change
+        if sprint and sprint.start_date and sprint.end_date:
+            sprint_start = sprint.start_date if isinstance(sprint.start_date, datetime) else datetime.combine(sprint.start_date, datetime.min.time())
+            sprint_end = sprint.end_date if isinstance(sprint.end_date, datetime) else datetime.combine(sprint.end_date, datetime.min.time())
         else:
-            completed = None
-            scope = scope_total + 1
+            sprint_start = today - timedelta(days=10)
+            sprint_end = today + timedelta(days=4)
 
-        burnup_data.append({
-            "date": date.strftime("%Y-%m-%d"),
-            "scope": scope,
-            "completed": round(completed, 1) if completed is not None else None
-        })
+        total_days = (sprint_end - sprint_start).days
+        if total_days <= 0:
+            total_days = 14
 
-    return {
-        "sprint_id": sprint_id,
-        "scope_changes": 1,
-        "burnup_data": burnup_data
-    }
+        # Get all stories for this sprint
+        sprint_stories = db.query(Story).filter(
+            Story.project_id == project_id,
+            Story.sprint_id == sprint_id
+        ).all()
+
+        # Track scope changes - stories added after sprint start
+        scope_changes = 0
+        initial_scope = 0
+        for story in sprint_stories:
+            if story.created_at and story.created_at > sprint_start:
+                scope_changes += 1
+            else:
+                initial_scope += story.story_points or 0
+
+        current_scope = sum(s.story_points or 0 for s in sprint_stories)
+        done_stories = [s for s in sprint_stories if s.status == 'done']
+
+        burnup_data = []
+        for i in range(total_days + 1):
+            date = sprint_start + timedelta(days=i)
+
+            # Calculate scope at this date (stories added by this date)
+            scope_at_date = sum(
+                s.story_points or 0 for s in sprint_stories
+                if not s.created_at or s.created_at.date() <= date.date()
+            )
+
+            if date <= today:
+                # Calculate completed points by this date
+                completed = sum(
+                    s.story_points or 0 for s in done_stories
+                    if s.updated_at and s.updated_at.date() <= date.date()
+                )
+            else:
+                completed = None
+
+            burnup_data.append({
+                "date": date.strftime("%Y-%m-%d"),
+                "scope": scope_at_date,
+                "completed": completed
+            })
+
+        return {
+            "sprint_id": sprint_id,
+            "sprint_name": sprint.name if sprint else "Sprint",
+            "initial_scope": initial_scope,
+            "current_scope": current_scope,
+            "scope_changes": scope_changes,
+            "completed_points": sum(s.story_points or 0 for s in done_stories),
+            "burnup_data": burnup_data
+        }
+    finally:
+        db.close()
 
 
 @router.get("/cycle-time")
@@ -221,25 +360,73 @@ async def get_lead_time_metrics(
     project_id: str = Query(...),
     days: int = Query(30)
 ):
-    """Retorna metricas de lead time (backlog to done)."""
-    # Similar to cycle time but from backlog creation
-    return {
-        "period_days": days,
-        "average_lead_time": 8.5,
-        "median_lead_time": 7,
-        "by_priority": {
-            "urgent": 3.2,
-            "high": 5.1,
-            "medium": 8.5,
-            "low": 12.3
-        },
-        "by_story_points": {
-            "1-2": 4.5,
-            "3-5": 7.2,
-            "8-13": 12.8,
-            "21+": 18.5
+    """Retorna metricas de lead time (backlog to done) usando dados reais."""
+    from factory.database.connection import SessionLocal
+    from factory.database.models import Story
+
+    db = SessionLocal()
+    try:
+        cutoff = datetime.now() - timedelta(days=days)
+
+        # Issue #405: Get real stories that were completed
+        stories = db.query(Story).filter(
+            Story.project_id == project_id,
+            Story.status == "done",
+            Story.updated_at >= cutoff
+        ).all()
+
+        # Calculate lead times
+        lead_times = []
+        by_priority = defaultdict(list)
+        by_points = defaultdict(list)
+
+        for story in stories:
+            if story.created_at and story.updated_at:
+                lt = (story.updated_at - story.created_at).days
+                lead_times.append(lt)
+
+                # Group by priority
+                priority = story.priority or "medium"
+                by_priority[priority].append(lt)
+
+                # Group by story points
+                points = story.story_points or 0
+                if points <= 2:
+                    by_points["1-2"].append(lt)
+                elif points <= 5:
+                    by_points["3-5"].append(lt)
+                elif points <= 13:
+                    by_points["8-13"].append(lt)
+                else:
+                    by_points["21+"].append(lt)
+
+        # Calculate averages
+        avg_lt = sum(lead_times) / len(lead_times) if lead_times else 0
+        sorted_lt = sorted(lead_times) if lead_times else [0]
+        median_lt = sorted_lt[len(sorted_lt) // 2] if sorted_lt else 0
+
+        # Average by priority
+        priority_avg = {}
+        for priority, times in by_priority.items():
+            priority_avg[priority] = round(sum(times) / len(times), 1) if times else 0
+
+        # Average by story points
+        points_avg = {}
+        for points_range, times in by_points.items():
+            points_avg[points_range] = round(sum(times) / len(times), 1) if times else 0
+
+        return {
+            "period_days": days,
+            "total_stories": len(stories),
+            "average_lead_time": round(avg_lt, 1),
+            "median_lead_time": median_lt,
+            "min_lead_time": min(lead_times) if lead_times else 0,
+            "max_lead_time": max(lead_times) if lead_times else 0,
+            "by_priority": priority_avg,
+            "by_story_points": points_avg
         }
-    }
+    finally:
+        db.close()
 
 
 @router.get("/throughput")
@@ -363,31 +550,64 @@ async def get_cumulative_flow(
     project_id: str = Query(...),
     days: int = Query(30)
 ):
-    """Retorna dados do Cumulative Flow Diagram (CFD)."""
-    statuses = ["backlog", "ready", "in_progress", "review", "testing", "done"]
-    today = datetime.now()
+    """Retorna dados do Cumulative Flow Diagram (CFD) usando dados reais."""
+    from factory.database.connection import SessionLocal
+    from factory.database.models import Story
 
-    cfd_data = []
-    for i in range(days):
-        date = today - timedelta(days=days - 1 - i)
+    db = SessionLocal()
+    try:
+        statuses = ["backlog", "ready", "in_progress", "review", "testing", "done"]
+        today = datetime.now()
 
-        # Simulate cumulative data
-        base = 50 + i * 2
-        data_point = {
-            "date": date.strftime("%Y-%m-%d"),
-            "backlog": max(0, base - i * 3),
-            "ready": 5 + (i % 3),
-            "in_progress": 8 + (i % 5),
-            "review": 3 + (i % 2),
-            "testing": 4 + (i % 3),
-            "done": i * 3
+        # Issue #405: Get all stories for the project
+        all_stories = db.query(Story).filter(
+            Story.project_id == project_id
+        ).all()
+
+        cfd_data = []
+        for i in range(days):
+            date = today - timedelta(days=days - 1 - i)
+            date_end = date.replace(hour=23, minute=59, second=59)
+
+            # Count stories by status at this point in time
+            # Stories that existed by this date (created_at <= date)
+            stories_at_date = [
+                s for s in all_stories
+                if s.created_at and s.created_at <= date_end
+            ]
+
+            # For cumulative flow, we approximate based on:
+            # - Stories created before date count towards their current status
+            # - Done stories that were updated after this date aren't counted as done yet
+            status_counts = defaultdict(int)
+            for story in stories_at_date:
+                if story.status == 'done' and story.updated_at and story.updated_at > date_end:
+                    # Story wasn't done yet at this date - put in previous state
+                    status_counts["in_progress"] += 1
+                else:
+                    status_counts[story.status or "backlog"] += 1
+
+            data_point = {
+                "date": date.strftime("%Y-%m-%d"),
+            }
+            for status in statuses:
+                data_point[status] = status_counts.get(status, 0)
+
+            cfd_data.append(data_point)
+
+        # Calculate current totals
+        current_totals = defaultdict(int)
+        for story in all_stories:
+            current_totals[story.status or "backlog"] += 1
+
+        return {
+            "cfd_data": cfd_data,
+            "statuses": statuses,
+            "current_totals": dict(current_totals),
+            "total_stories": len(all_stories)
         }
-        cfd_data.append(data_point)
-
-    return {
-        "cfd_data": cfd_data,
-        "statuses": statuses
-    }
+    finally:
+        db.close()
 
 
 @router.get("/sprint-report")
@@ -395,41 +615,83 @@ async def get_sprint_report(
     sprint_id: str = Query(...),
     project_id: str = Query(...)
 ):
-    """Retorna relatorio completo do sprint."""
-    velocity = await get_velocity_metrics(project_id, sprints=1)
-    burndown = await get_burndown_chart(sprint_id, project_id)
-    cycle_time = await get_cycle_time_metrics(project_id, days=14)
+    """Retorna relatorio completo do sprint usando dados reais."""
+    from factory.database.connection import SessionLocal
+    from factory.database.models import Sprint, Story
 
-    return {
-        "sprint_id": sprint_id,
-        "sprint_name": "Sprint 1",
-        "dates": {
-            "start": "2025-01-01",
-            "end": "2025-01-14"
-        },
-        "summary": {
-            "planned_points": 34,
-            "completed_points": 30,
-            "commitment_rate": 88.2,
-            "stories_completed": 8,
-            "stories_added": 1,
-            "stories_removed": 0
-        },
-        "velocity": velocity,
-        "burndown": burndown,
-        "cycle_time": cycle_time,
-        "highlights": [
-            "Completed authentication feature ahead of schedule",
-            "Fixed 5 critical bugs"
-        ],
-        "blockers": [
-            "Dependency on external API delayed 2 stories"
-        ],
-        "action_items": [
-            "Improve estimation for complex stories",
-            "Add more integration tests"
-        ]
-    }
+    db = SessionLocal()
+    try:
+        # Issue #405: Get real sprint data
+        sprint = db.query(Sprint).filter(Sprint.sprint_id == sprint_id).first()
+
+        # Get stories for this sprint
+        sprint_stories = db.query(Story).filter(
+            Story.project_id == project_id,
+            Story.sprint_id == sprint_id
+        ).all()
+
+        # Calculate summary
+        planned_points = sum(s.story_points or 0 for s in sprint_stories)
+        done_stories = [s for s in sprint_stories if s.status == 'done']
+        completed_points = sum(s.story_points or 0 for s in done_stories)
+
+        # Count stories added after sprint start
+        stories_added = 0
+        if sprint and sprint.start_date:
+            sprint_start = sprint.start_date if isinstance(sprint.start_date, datetime) else datetime.combine(sprint.start_date, datetime.min.time())
+            stories_added = sum(1 for s in sprint_stories if s.created_at and s.created_at > sprint_start)
+
+        # Get velocity, burndown, and cycle time using the other endpoints
+        velocity = await get_velocity_metrics(project_id, sprints=1)
+        burndown = await get_burndown_chart(sprint_id, project_id)
+        cycle_time = await get_cycle_time_metrics(project_id, days=14)
+
+        # Calculate commitment rate
+        commitment_rate = round(completed_points / planned_points * 100, 1) if planned_points > 0 else 0
+
+        # Sprint dates
+        start_date = None
+        end_date = None
+        if sprint:
+            if sprint.start_date:
+                start_date = sprint.start_date.strftime("%Y-%m-%d") if hasattr(sprint.start_date, 'strftime') else str(sprint.start_date)
+            if sprint.end_date:
+                end_date = sprint.end_date.strftime("%Y-%m-%d") if hasattr(sprint.end_date, 'strftime') else str(sprint.end_date)
+
+        return {
+            "sprint_id": sprint_id,
+            "sprint_name": sprint.name if sprint else "Sprint",
+            "goal": sprint.goal if sprint else None,
+            "dates": {
+                "start": start_date,
+                "end": end_date
+            },
+            "summary": {
+                "planned_points": planned_points,
+                "completed_points": completed_points,
+                "remaining_points": planned_points - completed_points,
+                "commitment_rate": commitment_rate,
+                "stories_total": len(sprint_stories),
+                "stories_completed": len(done_stories),
+                "stories_in_progress": len([s for s in sprint_stories if s.status == 'in_progress']),
+                "stories_added": stories_added
+            },
+            "velocity": velocity,
+            "burndown": burndown,
+            "cycle_time": cycle_time,
+            "stories": [
+                {
+                    "story_id": s.story_id,
+                    "title": s.title,
+                    "status": s.status,
+                    "story_points": s.story_points,
+                    "assignee": s.assignee
+                }
+                for s in sprint_stories
+            ]
+        }
+    finally:
+        db.close()
 
 
 def get_metrics_dashboard_html():
