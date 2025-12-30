@@ -155,6 +155,60 @@ AVAILABLE_SCOPES = {
     "admin": "Acesso administrativo completo"
 }
 
+# Issue #176: Mapeamento OAuth scopes -> RBAC permissions
+# OAuth usa formato action:resource, RBAC usa resource:action
+SCOPE_TO_PERMISSION = {
+    "read:stories": ["stories:read"],
+    "write:stories": ["stories:create", "stories:update"],
+    "read:tasks": ["tasks:read"],
+    "write:tasks": ["tasks:create", "tasks:update"],
+    "read:projects": ["projects:read"],
+    "write:projects": ["projects:create", "projects:update"],
+    "read:analytics": ["analytics:read"],
+    "read:users": ["users:read"],
+    "write:users": ["users:create", "users:update"],
+    "admin": ["*:*"]
+}
+
+# Mapeamento reverso: RBAC permission -> OAuth scope
+PERMISSION_TO_SCOPE = {
+    "stories:read": "read:stories",
+    "stories:create": "write:stories",
+    "stories:update": "write:stories",
+    "stories:delete": "write:stories",
+    "tasks:read": "read:tasks",
+    "tasks:create": "write:tasks",
+    "tasks:update": "write:tasks",
+    "tasks:delete": "write:tasks",
+    "projects:read": "read:projects",
+    "projects:create": "write:projects",
+    "projects:update": "write:projects",
+    "analytics:read": "read:analytics",
+    "users:read": "read:users",
+    "users:create": "write:users",
+    "users:update": "write:users",
+}
+
+
+def scopes_to_permissions(scopes: List[str]) -> List[str]:
+    """Converte OAuth scopes para RBAC permissions (Issue #176)"""
+    permissions = []
+    for scope in scopes:
+        if scope in SCOPE_TO_PERMISSION:
+            permissions.extend(SCOPE_TO_PERMISSION[scope])
+    return list(set(permissions))
+
+
+def permissions_to_scopes(permissions: List[str]) -> List[str]:
+    """Converte RBAC permissions para OAuth scopes (Issue #176)"""
+    scopes = set()
+    for perm in permissions:
+        if perm in PERMISSION_TO_SCOPE:
+            scopes.add(PERMISSION_TO_SCOPE[perm])
+        elif perm == "*:*":
+            scopes.add("admin")
+    return list(scopes)
+
 
 def validate_scopes(requested_scopes: str, allowed_scopes: List[str]) -> Set[str]:
     """Valida e retorna scopes permitidos"""
