@@ -11854,6 +11854,55 @@ def integrations_page():
     return HTML_TEMPLATE
 
 
+# Issue #283: Missing page routes - SPA routes that return the main HTML
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    """Admin Panel - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/security", response_class=HTMLResponse)
+def security_page():
+    """Security Settings - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/workers", response_class=HTMLResponse)
+def workers_page():
+    """Workers Monitor - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/projects", response_class=HTMLResponse)
+def projects_page():
+    """Projects List - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/docs", response_class=HTMLResponse)
+def docs_page():
+    """Documentation - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/analytics", response_class=HTMLResponse)
+def analytics_page():
+    """Analytics Dashboard - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/billing", response_class=HTMLResponse)
+def billing_page():
+    """Billing Dashboard - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/executive", response_class=HTMLResponse)
+def executive_page():
+    """Executive Dashboard - SPA route"""
+    return HTML_TEMPLATE
+
+
 @app.get("/api/integrations/all-status")
 async def get_all_integrations_status():
     """Retorna o status de todas as integracoes disponiveis"""
