@@ -231,3 +231,48 @@ if HAS_ABAC:
         'set_abac_engine',
         'abac_router'
     ])
+
+# =============================================================================
+# UNIFIED AUTH IMPORTS (Issue #146)
+# =============================================================================
+try:
+    from .unified_auth import (
+        UnifiedAuthEngine,
+        UnifiedUserContext,
+        UnifiedAuthResult,
+        AuthorizationDecision,
+        CombiningAlgorithm,
+        get_unified_engine,
+        set_unified_engine,
+        build_unified_context,
+        unified_check_permission,
+        require_unified_permission,
+        require_any_role,
+        require_feature,
+        get_unified_user,
+        unified_auth_router
+    )
+    HAS_UNIFIED_AUTH = True
+except ImportError as e:
+    print(f"[Auth] Unified Auth module not available: {e}")
+    HAS_UNIFIED_AUTH = False
+
+# Add Unified Auth exports if available (Issue #146)
+if HAS_UNIFIED_AUTH:
+    __all__.extend([
+        'HAS_UNIFIED_AUTH',
+        'UnifiedAuthEngine',
+        'UnifiedUserContext',
+        'UnifiedAuthResult',
+        'AuthorizationDecision',
+        'CombiningAlgorithm',
+        'get_unified_engine',
+        'set_unified_engine',
+        'build_unified_context',
+        'unified_check_permission',
+        'require_unified_permission',
+        'require_any_role',
+        'require_feature',
+        'get_unified_user',
+        'unified_auth_router'
+    ])
