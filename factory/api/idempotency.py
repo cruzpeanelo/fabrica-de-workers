@@ -241,7 +241,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
         store=None,
         redis_url: str = None,
         ttl_seconds: int = 86400,
-        require_key: bool = False
+        require_key: bool = True  # Issue #173: obrigatório por padrão
     ):
         """
         Inicializa middleware.
@@ -251,7 +251,7 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
             store: Store customizado (opcional)
             redis_url: URL do Redis (opcional)
             ttl_seconds: TTL dos registros (padrao 24h)
-            require_key: Se True, rejeita POST sem Idempotency-Key
+            require_key: Se True, rejeita POST sem Idempotency-Key (default: True)
         """
         super().__init__(app)
         self.ttl = ttl_seconds
