@@ -119,6 +119,20 @@ except ImportError as e:
 except Exception as e:
     print(f"[Security] Failed to load rate limiting: {e}")
 
+# Issue #209: Observability (Distributed Tracing + Error Tracking)
+try:
+    from factory.observability import setup_observability
+    observability_status = setup_observability(
+        app=app,
+        service_name="fabrica-de-agentes",
+        enable_console_tracing=os.getenv("ENVIRONMENT", "development") == "development"
+    )
+    print(f"[Observability] Setup complete: tracing={observability_status.get('tracing')}, sentry={observability_status.get('sentry')}")
+except ImportError as e:
+    print(f"[Observability] Observability module not available: {e}")
+except Exception as e:
+    print(f"[Observability] Failed to setup observability: {e}")
+
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
