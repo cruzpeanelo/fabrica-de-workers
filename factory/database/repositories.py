@@ -6,7 +6,7 @@ Arquitetura MVP Worker-based (Jobs + Workers + Claude Agent SDK)
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, or_
+from sqlalchemy import desc, and_, or_, func
 
 from .models import (
     Project, User, ActivityLog,
@@ -847,11 +847,25 @@ class StoryRepository:
         return story
 
     def update_progress(self, story_id: str) -> Optional[Story]:
-        """Atualiza progresso da story baseado nas tasks"""
+        """
+        Atualiza progresso da story baseado nas tasks.
+
+        Issue #151: Usa COUNT no banco para evitar N+1 queries.
+        Antes: carregava todas as tasks para contar.
+        Agora: usa COUNT diretamente no banco.
+        """
         story = self.get_by_id(story_id)
         if story:
-            total = len(story.story_tasks)
-            completed = sum(1 for t in story.story_tasks if t.status == StoryTaskStatus.COMPLETED.value)
+            # Issue #151: Usar COUNT no banco ao invés de carregar todas as tasks
+            total = self.db.query(func.count(StoryTask.id)).filter(
+                StoryTask.story_id == story_id
+            ).scalar() or 0
+
+            completed = self.db.query(func.count(StoryTask.id)).filter(
+                StoryTask.story_id == story_id,
+                StoryTask.status == StoryTaskStatus.COMPLETED.value
+            ).scalar() or 0
+
             story.tasks_total = total
             story.tasks_completed = completed
             story.progress = (completed / total * 100) if total > 0 else 0
@@ -1000,11 +1014,23 @@ class StoryTaskRepository:
         return False
 
     def _update_story_progress(self, story_id: str):
-        """Atualiza progresso da story pai"""
+        """
+        Atualiza progresso da story pai.
+
+        Issue #151: Usa COUNT no banco para evitar N+1 queries.
+        """
         story = self.db.query(Story).filter(Story.story_id == story_id).first()
         if story:
-            total = len(story.story_tasks)
-            completed = sum(1 for t in story.story_tasks if t.status == StoryTaskStatus.COMPLETED.value)
+            # Issue #151: Usar COUNT no banco ao invés de carregar todas as tasks
+            total = self.db.query(func.count(StoryTask.id)).filter(
+                StoryTask.story_id == story_id
+            ).scalar() or 0
+
+            completed = self.db.query(func.count(StoryTask.id)).filter(
+                StoryTask.story_id == story_id,
+                StoryTask.status == StoryTaskStatus.COMPLETED.value
+            ).scalar() or 0
+
             story.tasks_total = total
             story.tasks_completed = completed
             story.progress = (completed / total * 100) if total > 0 else 0
