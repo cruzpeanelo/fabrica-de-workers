@@ -126,6 +126,16 @@ except ImportError as e:
 except Exception as e:
     print(f"[Security] Failed to load rate limiting: {e}")
 
+# Issue #345: Security Headers Middleware
+try:
+    from factory.middleware.security_headers import SecurityHeadersMiddleware
+    app.add_middleware(SecurityHeadersMiddleware)
+    print("[Security] Security headers middleware enabled")
+except ImportError as e:
+    print(f"[Security] Security headers not available: {e}")
+except Exception as e:
+    print(f"[Security] Failed to load security headers: {e}")
+
 # Issue #209: Observability (Distributed Tracing + Error Tracking)
 try:
     from factory.observability import setup_observability
@@ -4477,6 +4487,244 @@ HTML_TEMPLATE = """
         }
         .tour-close:hover {
             color: #6B7280;
+        }
+
+        /* Issue #233: Activity Feed */
+        .activity-feed-toggle {
+            position: fixed;
+            bottom: 100px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #003B4A;
+            border: none;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 59, 74, 0.3);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .activity-feed-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 59, 74, 0.4);
+        }
+        .activity-feed-toggle .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #FF6C00;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+        .activity-feed-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.3s ease;
+        }
+        .activity-feed-panel.open {
+            right: 0;
+        }
+        .activity-feed-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #F9FAFB;
+        }
+        .activity-feed-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #003B4A;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .activity-feed-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6B7280;
+            padding: 4px;
+        }
+        .activity-feed-close:hover {
+            color: #374151;
+        }
+        .activity-feed-filters {
+            padding: 12px 20px;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            gap: 8px;
+        }
+        .activity-filter-btn {
+            padding: 6px 12px;
+            border-radius: 16px;
+            border: 1px solid #E5E7EB;
+            background: white;
+            color: #6B7280;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .activity-filter-btn:hover {
+            border-color: #003B4A;
+            color: #003B4A;
+        }
+        .activity-filter-btn.active {
+            background: #003B4A;
+            border-color: #003B4A;
+            color: white;
+        }
+        .activity-feed-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 0;
+        }
+        .activity-group {
+            margin-bottom: 16px;
+        }
+        .activity-group-header {
+            padding: 0 20px;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #9CA3AF;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .activity-item {
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .activity-item:hover {
+            background: #F3F4F6;
+        }
+        .activity-item.unread {
+            background: #EFF6FF;
+        }
+        .activity-item.unread:hover {
+            background: #DBEAFE;
+        }
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .activity-icon.story { background: #DBEAFE; }
+        .activity-icon.task { background: #D1FAE5; }
+        .activity-icon.worker { background: #FEF3C7; }
+        .activity-icon.sprint { background: #E0E7FF; }
+        .activity-icon.comment { background: #FCE7F3; }
+        .activity-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .activity-text {
+            font-size: 0.875rem;
+            color: #374151;
+            line-height: 1.4;
+        }
+        .activity-text strong {
+            color: #003B4A;
+            font-weight: 600;
+        }
+        .activity-text .target {
+            color: #FF6C00;
+            font-weight: 500;
+        }
+        .activity-meta {
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .activity-detail {
+            font-size: 0.8rem;
+            color: #6B7280;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: #F3F4F6;
+            border-radius: 6px;
+        }
+        .activity-load-more {
+            padding: 16px 20px;
+            text-align: center;
+        }
+        .activity-load-more button {
+            background: none;
+            border: 1px solid #E5E7EB;
+            color: #6B7280;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        .activity-load-more button:hover {
+            border-color: #003B4A;
+            color: #003B4A;
+        }
+        .activity-empty {
+            padding: 48px 20px;
+            text-align: center;
+            color: #9CA3AF;
+        }
+        .activity-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .activity-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .activity-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        @media (max-width: 480px) {
+            .activity-feed-panel {
+                width: 100%;
+                right: -100%;
+            }
+            .activity-feed-toggle {
+                bottom: 80px;
+                right: 16px;
+            }
         }
 
         /* Search Box */
@@ -10359,6 +10607,73 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- Issue #233: Activity Feed -->
+        <button @click="toggleActivityFeed" class="activity-feed-toggle" data-testid="activity-feed-toggle" :title="t('activity.title') || 'Atividades Recentes'">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span v-if="unreadActivities > 0" class="badge">{{ unreadActivities > 9 ? '9+' : unreadActivities }}</span>
+        </button>
+
+        <div :class="['activity-overlay', { 'open': showActivityFeed }]" @click="closeActivityFeed"></div>
+
+        <div :class="['activity-feed-panel', { 'open': showActivityFeed }]" data-testid="activity-feed-panel">
+            <div class="activity-feed-header">
+                <h3 class="activity-feed-title">
+                    <span>📜</span>
+                    {{ t('activity.title') || 'Atividades Recentes' }}
+                </h3>
+                <button @click="closeActivityFeed" class="activity-feed-close" aria-label="Fechar">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="activity-feed-filters">
+                <button v-for="filter in activityFilters" :key="filter.value"
+                        :class="['activity-filter-btn', { 'active': activityFilter === filter.value }]"
+                        @click="activityFilter = filter.value">
+                    {{ filter.label }}
+                </button>
+            </div>
+
+            <div class="activity-feed-content" @scroll="handleActivityScroll" ref="activityScrollRef">
+                <template v-if="filteredActivities.length > 0">
+                    <div v-for="(group, groupName) in groupedActivities" :key="groupName" class="activity-group">
+                        <div class="activity-group-header">{{ groupName }}</div>
+                        <div v-for="activity in group" :key="activity.id"
+                             :class="['activity-item', { 'unread': !activity.read }]"
+                             @click="handleActivityClick(activity)"
+                             :data-testid="'activity-item-' + activity.id">
+                            <div :class="['activity-icon', activity.targetType]">
+                                {{ getActivityIcon(activity.action) }}
+                            </div>
+                            <div class="activity-body">
+                                <div class="activity-text" v-html="formatActivityText(activity)"></div>
+                                <div class="activity-meta">
+                                    <span>{{ formatTimeAgo(activity.createdAt) }}</span>
+                                </div>
+                                <div v-if="activity.detail" class="activity-detail">
+                                    {{ activity.detail }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div v-else class="activity-empty">
+                    <div class="activity-empty-icon">📭</div>
+                    <p>{{ t('activity.empty') || 'Nenhuma atividade recente' }}</p>
+                </div>
+            </div>
+
+            <div v-if="hasMoreActivities" class="activity-load-more">
+                <button @click="loadMoreActivities" :disabled="loadingActivities">
+                    {{ loadingActivities ? 'Carregando...' : 'Carregar mais' }}
+                </button>
+            </div>
+        </div>
+
         <!-- TOAST CONTAINER -->
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id"
@@ -10987,6 +11302,21 @@ HTML_TEMPLATE = """
                         operationSuccess: 'Operation completed successfully',
                         connectionError: 'Connection error',
                         networkError: 'Network error'
+                    },
+                    // Issue #233: Activity Feed
+                    activity: {
+                        title: 'Recent Activities',
+                        empty: 'No recent activities',
+                        loadMore: 'Load more',
+                        all: 'All', stories: 'Stories', tasks: 'Tasks', workers: 'Workers',
+                        actions: {
+                            created: 'created', moved: 'moved to', assigned: 'was assigned to',
+                            completed: 'completed', commented: 'commented on', started: 'started',
+                            finished: 'finished', merged: 'merged'
+                        },
+                        timeAgo: {
+                            now: 'just now', minutes: 'min ago', hours: 'h ago', days: 'days ago'
+                        }
                     }
                 }
             };
@@ -11763,6 +12093,54 @@ HTML_TEMPLATE = """
                 suggestions: [],
                 technical: '',
                 retryAction: null
+            });
+
+            // Issue #233: Activity Feed State
+            const showActivityFeed = ref(false);
+            const activities = ref([]);
+            const activityFilter = ref('all');
+            const loadingActivities = ref(false);
+            const hasMoreActivities = ref(true);
+            const activityPage = ref(0);
+            const activityScrollRef = ref(null);
+            const unreadActivities = computed(() => activities.value.filter(a => !a.read).length);
+
+            const activityFilters = ref([
+                { value: 'all', label: 'Todas' },
+                { value: 'stories', label: 'Stories' },
+                { value: 'tasks', label: 'Tasks' },
+                { value: 'workers', label: 'Workers' }
+            ]);
+
+            const filteredActivities = computed(() => {
+                if (activityFilter.value === 'all') return activities.value;
+                return activities.value.filter(a => a.targetType === activityFilter.value.slice(0, -1));
+            });
+
+            const groupedActivities = computed(() => {
+                const groups = {};
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                filteredActivities.value.forEach(activity => {
+                    const actDate = new Date(activity.createdAt);
+                    let groupName;
+
+                    if (actDate >= today) {
+                        groupName = 'Hoje';
+                    } else if (actDate >= yesterday) {
+                        groupName = 'Ontem';
+                    } else {
+                        groupName = actDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+                    }
+
+                    if (!groups[groupName]) groups[groupName] = [];
+                    groups[groupName].push(activity);
+                });
+
+                return groups;
             });
 
             // Issue #203: Error Message Mapping (technical -> user-friendly)
@@ -13744,6 +14122,133 @@ Data: ${new Date().toISOString()}`;
                 }
             };
 
+            // Issue #233: Activity Feed Functions
+            const toggleActivityFeed = () => {
+                showActivityFeed.value = !showActivityFeed.value;
+                if (showActivityFeed.value && activities.value.length === 0) {
+                    loadActivities();
+                }
+            };
+
+            const closeActivityFeed = () => {
+                showActivityFeed.value = false;
+            };
+
+            const loadActivities = async () => {
+                if (loadingActivities.value || !selectedProjectId.value) return;
+                loadingActivities.value = true;
+                try {
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/activities?limit=20&offset=${activityPage.value * 20}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.length < 20) hasMoreActivities.value = false;
+                        activities.value = [...activities.value, ...data];
+                        activityPage.value++;
+                    }
+                } catch (err) {
+                    console.error('Error loading activities:', err);
+                    // Load demo data for preview
+                    if (activities.value.length === 0) {
+                        activities.value = generateDemoActivities();
+                    }
+                } finally {
+                    loadingActivities.value = false;
+                }
+            };
+
+            const generateDemoActivities = () => {
+                const now = new Date();
+                return [
+                    { id: 1, action: 'moved', targetType: 'story', targetId: 'STR-042', targetTitle: 'Implementar OAuth', actor: 'Joao', createdAt: new Date(now - 120000).toISOString(), read: false, metadata: { from: 'in_progress', to: 'testing' } },
+                    { id: 2, action: 'completed', targetType: 'task', targetId: 'TASK-089', targetTitle: 'Gerar endpoints API', actor: 'Worker IA', createdAt: new Date(now - 300000).toISOString(), read: false, detail: 'Gerou 3 arquivos, 245 linhas de codigo' },
+                    { id: 3, action: 'commented', targetType: 'story', targetId: 'STR-041', targetTitle: 'Melhorar performance', actor: 'Maria', createdAt: new Date(now - 900000).toISOString(), read: true, detail: 'Preciso de mais detalhes sobre...' },
+                    { id: 4, action: 'created', targetType: 'story', targetId: 'STR-050', targetTitle: 'Implementar cache de sessao', actor: 'Pedro', createdAt: new Date(now - 7200000).toISOString(), read: true },
+                    { id: 5, action: 'started', targetType: 'sprint', targetId: 'SPRINT-5', targetTitle: 'Sprint 5', actor: 'Sistema', createdAt: new Date(now - 14400000).toISOString(), read: true, detail: '13 stories, 89 story points' }
+                ];
+            };
+
+            const loadMoreActivities = () => {
+                loadActivities();
+            };
+
+            const handleActivityScroll = (e) => {
+                const el = e.target;
+                if (el.scrollHeight - el.scrollTop - el.clientHeight < 50 && hasMoreActivities.value && !loadingActivities.value) {
+                    loadMoreActivities();
+                }
+            };
+
+            const getActivityIcon = (action) => {
+                const icons = {
+                    'created': '➕',
+                    'moved': '🔄',
+                    'assigned': '👤',
+                    'completed': '✅',
+                    'commented': '💬',
+                    'started': '🏃',
+                    'finished': '🏁',
+                    'merged': '🔀',
+                    'default': '📌'
+                };
+                return icons[action] || icons['default'];
+            };
+
+            const formatActivityText = (activity) => {
+                const actions = {
+                    'created': 'criou',
+                    'moved': 'moveu',
+                    'assigned': 'foi atribuido a',
+                    'completed': 'completou',
+                    'commented': 'comentou em',
+                    'started': 'iniciou',
+                    'finished': 'finalizou',
+                    'merged': 'fez merge de'
+                };
+                const verb = actions[activity.action] || activity.action;
+                let text = `<strong>${activity.actor}</strong> ${verb} <span class="target">${activity.targetId}</span>`;
+
+                if (activity.metadata && activity.action === 'moved') {
+                    text += ` para ${activity.metadata.to}`;
+                }
+
+                return text;
+            };
+
+            const formatTimeAgo = (dateStr) => {
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diff = Math.floor((now - date) / 1000);
+
+                if (diff < 60) return 'agora mesmo';
+                if (diff < 3600) return `ha ${Math.floor(diff / 60)} min`;
+                if (diff < 86400) return `ha ${Math.floor(diff / 3600)}h`;
+                if (diff < 604800) return `ha ${Math.floor(diff / 86400)} dias`;
+                return date.toLocaleDateString('pt-BR');
+            };
+
+            const handleActivityClick = (activity) => {
+                activity.read = true;
+                // Navigate to the target
+                if (activity.targetType === 'story' && activity.targetId) {
+                    const story = stories.value.find(s => s.story_id === activity.targetId);
+                    if (story) {
+                        selectedStory.value = story;
+                        showStoryModal.value = true;
+                    }
+                }
+                closeActivityFeed();
+            };
+
+            const addActivity = (activityData) => {
+                const newActivity = {
+                    id: Date.now(),
+                    ...activityData,
+                    createdAt: new Date().toISOString(),
+                    read: false
+                };
+                activities.value.unshift(newActivity);
+            };
+
             // WebSocket Functions
             const connectWebSocket = () => {
                 if (ws && ws.readyState === WebSocket.OPEN) return;
@@ -14678,6 +15183,12 @@ Process ${data.status}`);
                 // Issue #232: Onboarding Tour
                 showTour, tourCurrentStep, tourSteps, tourTooltipStyle, tourArrowPosition,
                 startTour, nextTourStep, prevTourStep, skipTour, completeTour, restartTour,
+                // Issue #233: Activity Feed
+                showActivityFeed, activities, activityFilter, activityFilters, filteredActivities,
+                groupedActivities, loadingActivities, hasMoreActivities, unreadActivities, activityScrollRef,
+                toggleActivityFeed, closeActivityFeed, loadActivities, loadMoreActivities,
+                handleActivityScroll, getActivityIcon, formatActivityText, formatTimeAgo,
+                handleActivityClick, addActivity,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, availableTemplates, templatesLoading, showTemplateSelector, clearTemplate,
