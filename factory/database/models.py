@@ -850,12 +850,17 @@ class Story(Base):
 
     # Indices compostos para multi-tenancy (Issue #81)
     # Issue #184: CheckConstraint para story_points Fibonacci
+    # Issue #153: Indices adicionais para queries frequentes
     __table_args__ = (
         Index('ix_stories_tenant_status', 'tenant_id', 'status'),
         Index('ix_stories_tenant_project', 'tenant_id', 'project_id'),
         Index('ix_stories_tenant_sprint', 'tenant_id', 'sprint_id'),
         Index('ix_stories_tenant_epic', 'tenant_id', 'epic_id'),
         Index('ix_stories_tenant_assignee', 'tenant_id', 'assignee'),
+        # Issue #153: Indices para queries de kanban e projeto
+        Index('ix_stories_project_status', 'project_id', 'status'),
+        Index('ix_stories_project_order', 'project_id', 'kanban_order'),
+        Index('ix_stories_status_order', 'status', 'kanban_order'),
         CheckConstraint('story_points IN (0, 1, 2, 3, 5, 8, 13, 21)', name='ck_stories_fibonacci_points'),
     )
 
@@ -1097,6 +1102,14 @@ class StoryTask(Base):
     documentation = relationship("StoryDocumentation", back_populates="task", cascade="all, delete-orphan",
                                  foreign_keys="StoryDocumentation.task_id")
 
+    # Issue #153: Indices compostos para queries frequentes
+    __table_args__ = (
+        Index('ix_story_tasks_story_status', 'story_id', 'status'),
+        Index('ix_story_tasks_story_order', 'story_id', 'task_order'),
+        Index('ix_story_tasks_tenant_status', 'tenant_id', 'status'),
+        Index('ix_story_tasks_tenant_story', 'tenant_id', 'story_id'),
+    )
+
     def to_dict(self):
         return {
             "task_id": self.task_id,
@@ -1192,6 +1205,13 @@ class StoryDocumentation(Base):
 
     # Autor
     created_by = Column(String(100), default="system")
+
+    # Issue #153: Indices compostos para queries frequentes
+    __table_args__ = (
+        Index('ix_story_docs_story_type', 'story_id', 'doc_type'),
+        Index('ix_story_docs_tenant_story', 'tenant_id', 'story_id'),
+        Index('ix_story_docs_task', 'task_id'),
+    )
 
     def to_dict(self):
         return {
