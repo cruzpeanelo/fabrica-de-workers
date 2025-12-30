@@ -1,10 +1,47 @@
 # Disaster Recovery Plan - Fabrica de Agentes
 
-**Issue #98**: Plano de Disaster Recovery Documentado
+**Issue #98, #199**: Plano de Disaster Recovery Documentado
 
-**Versao:** 1.0
-**Ultima Atualizacao:** 2024-12-29
+**Versao:** 2.0
+**Ultima Atualizacao:** 2024-12-30
 **Responsavel:** DevOps Team
+
+---
+
+## Sistema de Backup Automatizado (Issue #199)
+
+### Scripts de Backup
+
+| Script | Descrição | Uso |
+|--------|-----------|-----|
+| `scripts/backup/backup_postgres.sh` | Backup PostgreSQL com compressão | `./backup_postgres.sh daily` |
+| `scripts/backup/restore_postgres.sh` | Restore com verificação | `./restore_postgres.sh backup.dump` |
+| `scripts/backup/verify_backup.sh` | Verificação de integridade | `./verify_backup.sh --all` |
+
+### Python Backup Manager
+
+```python
+from factory.core.backup_manager import get_backup_manager
+
+# Backup completo
+manager = get_backup_manager()
+result = await manager.full_backup("daily")
+
+# Restore
+await manager.restore_database(Path("/backups/daily/backup.dump"))
+
+# Verificar
+is_valid = await manager.verify_backup(backup_file)
+```
+
+### Agendamento (Cron)
+
+```bash
+# /etc/cron.d/fabrica-backup
+0 2 * * * root /app/scripts/backup/backup_postgres.sh daily
+0 3 * * 0 root /app/scripts/backup/backup_postgres.sh weekly
+0 4 1 * * root /app/scripts/backup/backup_postgres.sh monthly
+```
 
 ---
 
