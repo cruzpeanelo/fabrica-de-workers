@@ -1,633 +1,165 @@
-# Fabrica de Agentes
+# 🏭 Fábrica de Agentes
 
-**Plataforma de Desenvolvimento Autonomo com Inteligencia Artificial**
+**Plataforma de Desenvolvimento Autônomo com Inteligência Artificial**
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
-[![Claude AI](https://img.shields.io/badge/Claude-Sonnet%204-purple.svg)](https://anthropic.com)
+[![Claude AI](https://img.shields.io/badge/Claude-Opus%204.5-purple.svg)](https://anthropic.com)
 [![Vue.js 3](https://img.shields.io/badge/Vue.js-3.x-green.svg)](https://vuejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## Sumario
+## 📋 Sumário
 
-- [Visao Executiva](#visao-executiva)
-- [Enterprise Features v7.0](#enterprise-features-v70)
-- [Beneficios para o Negocio](#beneficios-para-o-negocio)
-- [Para Product Owners e Gestores](#para-product-owners-e-gestores)
-- [Como Funciona](#como-funciona)
-- [Casos de Uso](#casos-de-uso)
-- [ROI e Metricas](#roi-e-metricas)
-- [Funcionalidades do Dashboard v6.2](#funcionalidades-do-dashboard-v62)
-- [Instalacao Rapida](#instalacao-rapida)
-- [Documentacao Tecnica](#documentacao-tecnica)
-- [Changelog](#para-mais-detalhes)
+- [Visão Geral](#-visão-geral)
+- [Funcionalidades](#-funcionalidades)
+- [Quick Start](#-quick-start)
+- [Arquitetura](#-arquitetura)
+- [Integrações](#-integrações)
+- [Para Colaboradores](#-para-colaboradores)
+- [Documentação](#-documentação)
+- [Roadmap](#-roadmap)
+- [Licença](#-licença)
 
 ---
 
-## Enterprise Features v7.0
+## 🎯 Visão Geral
 
-A versao 7.0 traz funcionalidades enterprise-ready que transformam a Fabrica de Agentes em uma plataforma corporativa completa.
+A **Fábrica de Agentes** é uma plataforma enterprise que transforma a forma como software é desenvolvido, combinando:
 
-### Captura de Requisitos Multimodal
+- **Dashboard Agile v6.5**: Gestão completa de User Stories com Kanban
+- **Workers Claude AI**: Processamento autônomo de tarefas com auto-correção
+- **Multi-Tenant**: Isolamento total de dados entre organizações
+- **Integrações Corporativas**: SAP, Jira, Azure DevOps, GitHub, Slack e mais
 
-| Canal | Descricao | Tecnologia |
-|-------|-----------|------------|
-| **Voz** | Capture requisitos falando naturalmente | Whisper/Azure Speech |
-| **Office** | Importe de Word, Excel, PowerPoint | python-docx, openpyxl |
-| **WhatsApp** | Bot para captura via mensagens | WhatsApp Business API |
-| **Video** | Assistente virtual por video | WebRTC + Transcricao |
+### O Problema que Resolvemos
 
-### Seguranca Enterprise
+| Desafio | Impacto | Nossa Solução |
+|---------|---------|---------------|
+| **Falta de Visibilidade** | Gestores não sabem o status real | Dashboard Kanban em tempo real |
+| **Comunicação Fragmentada** | Informações perdidas entre equipes | Assistente IA centralizado |
+| **Documentação Deficiente** | Conhecimento não capturado | Documentação automática |
+| **Processos Manuais** | Tempo desperdiçado | Automação com Claude AI |
+| **Time-to-Market Lento** | Concorrentes lançam primeiro | Entregas até 3x mais rápidas |
 
-| Feature | Descricao |
+### ROI Esperado
+
+| Métrica | Antes | Depois | Melhoria |
+|---------|-------|--------|----------|
+| Tempo por User Story | 13.5 horas | 3 horas | **-78%** |
+| Bugs em produção | 15/mês | 4/mês | **-73%** |
+| Cobertura de testes | 30% | 85% | **+183%** |
+| Documentação atualizada | 20% | 100% | **+400%** |
+
+---
+
+## ✨ Funcionalidades
+
+### 🎛️ Dashboard Agile v6.5
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  🏭 Fábrica de Agentes       [Projeto ▼] [Sprint ▼] [🔍 Buscar...] [?]  │
+├────────────┬─────────────────────────────────────────────────────────────┤
+│            │                                                             │
+│  ÉPICOS    │  BACKLOG   READY    IN PROGRESS  REVIEW   TESTING   DONE   │
+│  + Epic 1  │ ┌───────┐ ┌───────┐ ┌──────────┐         ┌───────┐ ┌─────┐ │
+│  + Epic 2  │ │STR-001│ │STR-003│ │ STR-005  │         │STR-007│ │DONE │ │
+│            │ │  5pts │ │  8pts │ │  13pts   │         │  3pts │ │     │ │
+│  SPRINTS   │ │[████░]│ │[█████]│ │ [███░░░] │         │[█████]│ │[███]│ │
+│  + Sprint 1│ └───────┘ └───────┘ └──────────┘         └───────┘ └─────┘ │
+│            │                                                             │
+│  🤖 CHAT   │                                                             │
+└────────────┴─────────────────────────────────────────────────────────────┘
+```
+
+**Recursos Principais:**
+- ✅ Kanban com Drag & Drop
+- ✅ User Stories estruturadas (Persona, Ação, Benefício)
+- ✅ Story Points e Complexidade (Fibonacci)
+- ✅ Épicos e Sprints
+- ✅ Assistente IA integrado
+- ✅ Dark Mode persistente
+- ✅ Multi-idioma (PT-BR, EN-US)
+- ✅ Skeleton Loaders e animações
+- ✅ Responsivo (Mobile-first)
+- ✅ Atalhos de teclado
+
+### 🔐 Segurança Enterprise
+
+| Feature | Descrição |
 |---------|-----------|
-| **JWT Avancado** | Refresh tokens com rotacao, token families, blacklist |
-| **SAML 2.0** | SSO com Azure AD, Okta, OneLogin |
-| **ABAC** | Controle de acesso baseado em atributos |
-| **Vault** | Secrets management com HashiCorp Vault |
-| **WAF** | Web Application Firewall (OWASP Top 10) |
-| **Security Scanning** | SAST, DAST, SCA no CI/CD |
-| **Tenant Isolation** | Zero data leakage entre tenants |
+| **JWT Avançado** | Refresh tokens com rotação, blacklist |
+| **RBAC** | Roles: Admin, Manager, Developer, Analyst, Viewer |
+| **Multi-Tenant** | Isolamento completo de dados entre organizações |
+| **2FA/MFA** | Autenticação em duas etapas |
+| **Audit Log** | Trilha de auditoria completa |
+| **Rate Limiting** | Proteção contra abuso por IP/usuário |
+| **IP Whitelisting** | Geo-blocking por tenant |
+| **Encryption at Rest** | Dados sensíveis criptografados |
 
-### RBAC e Personas
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         SISTEMA DE RBAC                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ROLES                           PERSONAS                            │
-│  ├── Admin (Full access)         ├── Product Owner                  │
-│  ├── Manager (Team management)   ├── Scrum Master                   │
-│  ├── Developer (Code access)     ├── Dev Lead                       │
-│  ├── Analyst (Read-only)         ├── QA Lead                        │
-│  └── Viewer (Limited view)       └── Stakeholder                    │
-│                                                                      │
-│  PERMISSOES GRANULARES                                              │
-│  stories:read, stories:write, tasks:manage, projects:admin...       │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Integracoes Corporativas
+### 🔗 Integrações Corporativas
 
 | Sistema | Funcionalidades |
 |---------|-----------------|
-| **SAP S/4HANA** | OData v4, Business Graph, sincronizacao bidirecional |
-| **GitHub/GitLab** | Repos, PRs, Issues, Webhooks, CI/CD integration |
-| **Power BI** | Conector nativo para dashboards de metricas |
-| **Tableau** | Export de dados para visualizacoes |
-| **Excel** | Export/Import de stories e tasks |
+| **SAP S/4HANA** | OData v4, Business Graph, sincronização bidirecional |
+| **Jira** | Boards, Sprints, Issues, Webhooks |
+| **Azure DevOps** | Repos, Pipelines, Work Items |
+| **GitHub/GitLab** | PRs, Issues, CI/CD |
+| **Slack/Teams** | Notificações bidirecionais |
+| **Power BI/Tableau** | Conectores para dashboards |
+| **Microsoft Graph** | Calendar, SharePoint, OneDrive |
 
-### Infraestrutura Cloud
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    ARQUITETURA MULTI-AZ                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌──────────────────┐     ┌──────────────────┐                      │
-│  │   AZ-1 (Primary) │     │   AZ-2 (Standby) │                      │
-│  ├──────────────────┤     ├──────────────────┤                      │
-│  │ ┌──────────────┐ │     │ ┌──────────────┐ │                      │
-│  │ │  ECS Tasks   │ │◄───►│ │  ECS Tasks   │ │                      │
-│  │ └──────────────┘ │     │ └──────────────┘ │                      │
-│  │ ┌──────────────┐ │     │ ┌──────────────┐ │                      │
-│  │ │ RDS Primary  │ │────►│ │ RDS Replica  │ │                      │
-│  │ └──────────────┘ │     │ └──────────────┘ │                      │
-│  │ ┌──────────────┐ │     │ ┌──────────────┐ │                      │
-│  │ │ElastiCache   │ │◄───►│ │ElastiCache   │ │                      │
-│  │ │  Primary     │ │     │ │  Replica     │ │                      │
-│  │ └──────────────┘ │     │ └──────────────┘ │                      │
-│  └──────────────────┘     └──────────────────┘                      │
-│                    │                                                 │
-│              ┌─────▼─────┐                                          │
-│              │    ALB    │  (Cross-Zone Load Balancing)             │
-│              └───────────┘                                          │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Ambiente de Desenvolvimento
-
-```bash
-# Setup completo com Docker Compose
-docker-compose up -d
-
-# Servicos incluidos:
-# - factory-api (FastAPI)
-# - factory-dashboard (Vue.js)
-# - factory-workers (Claude AI)
-# - postgres (PostgreSQL 16)
-# - redis (Redis 7)
-# - minio (Object Storage)
-# - vault (Secrets Management)
-```
-
-### Feature Flags
-
-```python
-# Controle de features por ambiente/tenant
-from factory.core.feature_flags import FeatureFlags
-
-flags = FeatureFlags()
-
-if flags.is_enabled("new_dashboard", tenant_id="acme"):
-    # Mostra novo dashboard
-    pass
-
-# Flags por ambiente
-# DEV: all features enabled
-# STAGING: beta features enabled
-# PROD: stable features only
-```
-
-### Acessibilidade WCAG 2.1 AA
-
-- Navegacao por teclado completa
-- Leitor de tela compativel (ARIA labels)
-- Contraste de cores adequado (4.5:1 minimo)
-- Textos redimensionaveis ate 200%
-- Indicadores de foco visiveis
-
----
-
-## Visao Executiva
-
-### O Problema
-
-O desenvolvimento de software tradicional enfrenta desafios que impactam diretamente o negocio:
-
-| Desafio | Impacto |
-|---------|---------|
-| **Falta de Visibilidade** | Gestores nao sabem o real status dos projetos |
-| **Comunicacao Fragmentada** | Informacoes perdidas entre equipes tecnicas e de negocio |
-| **Documentacao Deficiente** | Conhecimento nao eh capturado, risco quando pessoas saem |
-| **Processos Manuais** | Tempo desperdicado em tarefas repetitivas |
-| **Time-to-Market Lento** | Concorrentes lancam primeiro |
-
-### Nossa Solucao
-
-A **Fabrica de Agentes** transforma a maneira como software e desenvolvido:
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                      │
-│   ┌──────────┐      ┌─────────────────┐      ┌─────────────────┐    │
-│   │  VOCE    │ ───> │   ASSISTENTE    │ ───> │    SOFTWARE     │    │
-│   │ (Ideias) │      │   INTELIGENTE   │      │    PRONTO       │    │
-│   └──────────┘      │   (Claude IA)   │      └─────────────────┘    │
-│                     └─────────────────┘                              │
-│                            │                                         │
-│              ┌─────────────┼─────────────┐                          │
-│              │             │             │                          │
-│              v             v             v                          │
-│         ┌────────┐   ┌────────┐   ┌────────┐                       │
-│         │ Codigo │   │ Testes │   │  Docs  │                       │
-│         └────────┘   └────────┘   └────────┘                       │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Converse naturalmente, receba software funcionando.**
-
----
-
-## Beneficios para o Negocio
-
-### Para Executivos (C-Level)
-
-| Beneficio | Valor Entregue |
-|-----------|----------------|
-| **Reducao de Custos** | Ate 40% menos horas de desenvolvimento |
-| **Time-to-Market** | Entregas ate 3x mais rapidas |
-| **Previsibilidade** | Visibilidade total do progresso em tempo real |
-| **Qualidade** | Menos bugs em producao (-70%) |
-| **Conhecimento** | Documentacao automatica preserva know-how |
-
-### Para Gestores de Projeto
-
-| Beneficio | Como Funciona |
-|-----------|---------------|
-| **Visibilidade Total** | Dashboard Kanban em tempo real |
-| **Metricas Automaticas** | Story points, velocidade, burndown |
-| **Rastreabilidade** | Historico completo de decisoes |
-| **Comunicacao** | Assistente responde duvidas instantaneamente |
-
-### Para Times de Produto
-
-| Beneficio | Como Funciona |
-|-----------|---------------|
-| **User Stories Estruturadas** | Formato Agile (Como um... Eu quero... Para que...) |
-| **Criterios Claros** | Acceptance criteria e Definition of Done |
-| **Priorizacao** | Story points e complexidade para planejamento |
-| **Feedback Rapido** | Prototipos funcionais em horas |
-
----
-
-## Para Product Owners e Gestores
-
-### Gestao Agile Completa
-
-O sistema implementa as melhores praticas de metodologias ageis:
-
-#### User Story Estruturada
+### 🤖 Processamento Autônomo
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  STR-0001: Autenticacao de Usuarios                   8 pts 🔴  │
+│                    AUTONOMOUS LOOP                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│  NARRATIVA                                                       │
-│  Como um VENDEDOR                                                │
-│  Eu quero FAZER LOGIN NO SISTEMA                                 │
-│  Para que EU POSSA ACESSAR MINHAS VENDAS                        │
-│                                                                  │
-│  CRITERIOS DE ACEITE                                             │
-│  ✓ Usuario pode fazer login com email e senha                   │
-│  ✓ Sistema valida credenciais no banco                          │
-│  ✓ Token JWT gerado apos autenticacao                           │
-│  ✓ Mensagem de erro clara se credenciais invalidas              │
-│                                                                  │
-│  DEFINITION OF DONE                                              │
-│  ✓ Codigo revisado por outro desenvolvedor                      │
-│  ✓ Testes unitarios com 80% cobertura                           │
-│  ✓ Documentacao da API atualizada                               │
-│                                                                  │
-│  TASKS (3/4 completas)                                          │
-│  ✅ Criar endpoint de login                                      │
-│  ✅ Implementar validacao JWT                                    │
-│  ✅ Criar testes unitarios                                       │
-│  🔄 Documentar API                                               │
+│   [GENERATE] ──► [LINT] ──► [TEST] ──► [COMPLETE]               │
+│       │            │           │                                 │
+│       │            │           │                                 │
+│       └────────────┴───────────┘                                │
+│                    │                                             │
+│                [FIX] ◄── (se erro, máx 5x)                      │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### Kanban Visual
-
-```
-┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
-│ BACKLOG  │  READY   │IN PROGRESS│  REVIEW  │ TESTING  │   DONE   │
-├──────────┼──────────┼──────────┼──────────┼──────────┼──────────┤
-│ ┌──────┐ │ ┌──────┐ │ ┌──────┐ │          │ ┌──────┐ │ ┌──────┐ │
-│ │STR-05│ │ │STR-03│ │ │STR-02│ │          │ │STR-04│ │ │STR-01│ │
-│ │ 8pts │ │ │ 5pts │ │ │ 3pts │ │          │ │ 5pts │ │ │ 5pts │ │
-│ │[████]│ │ │[██──]│ │ │[███─]│ │          │ │[████]│ │ │[████]│ │
-│ └──────┘ │ └──────┘ │ └──────┘ │          │ └──────┘ │ └──────┘ │
-│          │          │          │          │          │          │
-│ ┌──────┐ │          │          │          │          │ ┌──────┐ │
-│ │STR-06│ │          │          │          │          │ │STR-07│ │
-│ │13pts │ │          │          │          │          │ │ 3pts │ │
-│ └──────┘ │          │          │          │          │ └──────┘ │
-└──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
-```
-
-### Assistente Inteligente
-
-Converse naturalmente com o sistema:
-
-```
-Voce: "Qual o status do projeto de vendas?"
-
-Assistente: "O projeto de vendas tem 12 stories:
-- 5 concluidas (38 pontos)
-- 3 em progresso (21 pontos)
-- 4 no backlog (34 pontos)
-
-Velocidade atual: 38 pontos entregues.
-Proxima entrega prevista: STR-0008 (Relatorio de vendas)"
-```
-
-```
-Voce: "Criar uma story para notificacoes por email"
-
-Assistente: "Story criada: STR-0015 - Notificacoes por Email
-- Persona: Vendedor
-- Acao: Receber notificacoes de novas vendas
-- Beneficio: Acompanhar vendas em tempo real
-- Story Points: 5
-- Status: Backlog
-
-Deseja que eu mova para Ready para iniciar o desenvolvimento?"
-```
-
-```
-Voce: "Forcar execucao da story STR-0015"
-
-Assistente: "Story STR-0015 movida para processamento automatico.
-O sistema esta gerando o codigo. Acompanhe o progresso no Kanban.
-
-Status: 1/4 tasks concluidas
-- ✅ Criar servico de email
-- 🔄 Implementar templates
-- ⏳ Criar triggers
-- ⏳ Testes"
-```
+**Quando uma Story é movida para "Ready":**
+1. Sistema detecta automaticamente
+2. Workers Claude processam as tasks
+3. Código é gerado e validado
+4. Testes são executados
+5. Documentação é criada
+6. Story avança no Kanban
 
 ---
 
-## Como Funciona
+## 🚀 Quick Start
 
-### Fluxo Simplificado
-
-```
-1. VOCE DESCREVE      2. IA ESTRUTURA       3. SISTEMA DESENVOLVE
-   o que precisa         em User Stories        automaticamente
-        │                      │                      │
-        v                      v                      v
-   ┌─────────┐           ┌─────────┐           ┌─────────┐
-   │"Preciso │           │ STR-001 │           │ Codigo  │
-   │ de um   │    ───>   │ STR-002 │    ───>   │ Testes  │
-   │ login"  │           │ STR-003 │           │ Docs    │
-   └─────────┘           └─────────┘           └─────────┘
-
-4. VOCE VALIDA        5. ENTREGA PRONTA
-   e aprova              para producao
-        │                      │
-        v                      v
-   ┌─────────┐           ┌─────────┐
-   │ "Aprovado│           │ Deploy! │
-   │  funciona│           │         │
-   │  perfeito"           │         │
-   └─────────┘           └─────────┘
-```
-
-### Processamento Autonomo
-
-Quando uma story eh movida para "Ready":
-
-1. **Sistema detecta** a story pronta para desenvolvimento
-2. **Agentes iniciam** processamento das tasks
-3. **Codigo eh gerado** com Claude AI
-4. **Testes sao executados** automaticamente
-5. **Documentacao eh criada** sobre o que foi feito
-6. **Story avanca** no Kanban automaticamente
-
----
-
-## Casos de Uso
-
-### Caso 1: Nova Funcionalidade
-
-**Situacao**: PO precisa de uma nova tela de relatorios
-
-**Processo Tradicional**: 2-3 semanas
-- Reunioes de refinamento
-- Documentacao manual
-- Desenvolvimento
-- Revisao de codigo
-- Testes manuais
-- Documentacao tecnica
-
-**Com Fabrica de Agentes**: 2-3 dias
-```
-PO: "Criar tela de relatorios de vendas com filtros por data e vendedor"
-
-Assistente: Vou criar as stories necessarias:
-- STR-001: Backend API de relatorios (5 pts)
-- STR-002: Componente de filtros (3 pts)
-- STR-003: Visualizacao de dados (5 pts)
-- STR-004: Testes e documentacao (2 pts)
-
-[Executa automaticamente em 2-3 dias]
-```
-
-### Caso 2: Analise de Documentos
-
-**Situacao**: Cliente envia especificacao em PDF
-
-**Processo**:
-```
-1. Upload do PDF no sistema
-2. IA analisa e extrai requisitos
-3. Sistema sugere User Stories estruturadas
-4. PO aprova stories sugeridas
-5. Desenvolvimento inicia automaticamente
-```
-
-### Caso 3: Bug em Producao
-
-**Situacao**: Usuario reporta erro no login
-
-**Processo**:
-```
-Usuario: "Login nao funciona quando email tem acento"
-
-Assistente: Identifiquei o problema. Criando story de correcao:
-- STR-BUG-001: Corrigir encoding de email no login
-- Prioridade: Urgente
-- Estimativa: 2 pontos
-
-Iniciando correcao automatica...
-[30 minutos depois]
-Correcao implementada e testada. Pronta para deploy.
-```
-
----
-
-## ROI e Metricas
-
-### Comparativo de Tempo
-
-| Atividade | Tradicional | Com Fabrica | Economia |
-|-----------|-------------|-------------|----------|
-| Criar User Story | 30 min | 2 min | 93% |
-| Desenvolvimento | 8 horas | 3 horas | 62% |
-| Documentacao | 2 horas | Automatico | 100% |
-| Code Review | 1 hora | Automatico | 100% |
-| Testes | 2 horas | Automatico | 100% |
-| **Total** | **13.5 horas** | **3 horas** | **78%** |
-
-### Metricas de Qualidade
-
-| Metrica | Antes | Depois | Melhoria |
-|---------|-------|--------|----------|
-| Bugs em producao | 15/mes | 4/mes | -73% |
-| Cobertura de testes | 30% | 85% | +183% |
-| Documentacao atualizada | 20% | 100% | +400% |
-| Tempo de onboarding | 2 semanas | 2 dias | -86% |
-
-### Exemplo de ROI
-
-**Cenario**: Equipe de 5 desenvolvedores, custo medio R$ 15.000/mes
-
-| Item | Tradicional | Com Fabrica |
-|------|-------------|-------------|
-| Produtividade | 100% | 160% |
-| Custo equivalente | R$ 75.000 | R$ 46.875 |
-| **Economia mensal** | - | **R$ 28.125** |
-| **Economia anual** | - | **R$ 337.500** |
-
----
-
-## Funcionalidades do Dashboard v6.2
-
-O Dashboard Agile oferece uma experiencia completa de gestao de projetos com recursos avancados de usabilidade.
-
-### Visao Geral da Interface
-
-```
-+--------------------------------------------------------------------------------+
-|  FA  Fabrica de Agentes          [Projeto ▼] [Sprint ▼] [🔍 Buscar...] [?] [+] |
-+----------------+---------------------------------------------------------------+
-|                |                                                               |
-|   EPICS        |  [Prioridade ▼] [Assignee ▼] [Filtros ativos] 12 stories     |
-|   + Epic 1     |                                                               |
-|   + Epic 2     |  BACKLOG   READY    IN PROGRESS  REVIEW   TESTING   DONE     |
-|                | +--------+--------+------------+--------+---------+--------+ |
-|   SPRINTS      | |STR-001 |STR-003 | STR-005    |        |STR-007  |STR-009 | |
-|   + Sprint 1   | |  5pts  |  8pts  |   13pts    |        |  3pts   |  5pts  | |
-|   + Sprint 2   | |[████░░]|[██████]| [████░░░░] |        |[██████] |[██████]| |
-|                | +--------+--------+------------+--------+---------+--------+ |
-|   ASSISTENTE   |                                                               |
-|   🤖 Chat      |                                                               |
-+----------------+---------------------------------------------------------------+
-```
-
-### Busca e Filtros Avancados
-
-| Funcionalidade | Descricao | Atalho |
-|----------------|-----------|--------|
-| **Busca Global** | Filtra por titulo, ID, descricao, persona, acao | `/` |
-| **Filtro Prioridade** | Urgente, Alta, Media, Baixa | - |
-| **Filtro Assignee** | Todos, Sem assignee | - |
-| **Limpar Filtros** | Remove todos os filtros ativos | - |
-| **Contador** | Mostra quantidade de stories filtradas | - |
-
-### Acoes Rapidas nos Cards
-
-Ao passar o mouse sobre um card de story:
-
-```
-+---------------------------+
-|  [→] [🗑]    EPIC-01  5pts| <- Quick actions no hover
-|  Login de Usuarios        |
-|  ----------------------   |
-|  [████████░░] 80%         |
-|  4/5 tasks | @joao        |
-+---------------------------+
-```
-
-- **[→]** Mover para proxima coluna
-- **[🗑]** Excluir story (com confirmacao)
-
-### Menu de Contexto (Clique Direito)
-
-```
-+----------------------+
-| 📋 Abrir detalhes    |
-|----------------------|
-| 1️⃣ Mover p/ Backlog  |
-| 2️⃣ Mover p/ Ready    |
-| 3️⃣ Mover p/ Progress |
-| 4️⃣ Mover p/ Review   |
-| 5️⃣ Mover p/ Testing  |
-| 6️⃣ Mover p/ Done     |
-|----------------------|
-| 📄 Copiar ID         |
-| 🗑️ Excluir          |
-+----------------------+
-```
-
-### Atalhos de Teclado
-
-| Categoria | Atalho | Acao |
-|-----------|--------|------|
-| **Navegacao** | `/` | Focar na busca |
-| | `Esc` | Fechar modal/painel |
-| | `?` | Ver atalhos |
-| **Acoes** | `N` | Nova Story |
-| | `T` | Nova Task |
-| | `E` | Editar story |
-| | `Del` | Excluir story |
-| **Mover Story** | `1` | Mover para Backlog |
-| | `2` | Mover para Ready |
-| | `3` | Mover para In Progress |
-| | `4` | Mover para Review |
-| | `5` | Mover para Testing |
-| | `6` | Mover para Done |
-
-### Sistema de Notificacoes
-
-Feedback visual em tempo real para todas as acoes:
-
-| Tipo | Cor | Exemplo |
-|------|-----|---------|
-| **Sucesso** | Verde | "Story criada: STR-0001" |
-| **Erro** | Vermelho | "Erro ao salvar" |
-| **Info** | Azul | "Story movida para Done" |
-| **Alerta** | Amarelo | "Ja esta na ultima coluna" |
-
-### Confirmacao de Acoes Destrutivas
-
-Antes de excluir uma story ou task, o sistema exibe um dialogo de confirmacao:
-
-```
-+----------------------------------------+
-|  ⚠️  Excluir Story                      |
-|----------------------------------------|
-|  Tem certeza que deseja excluir?       |
-|  Todas as tasks serao perdidas.        |
-|                                        |
-|  [ STR-0001: Login de Usuarios ]       |
-|                                        |
-|  Esta acao nao pode ser desfeita.      |
-|                                        |
-|          [Cancelar]  [Excluir Story]   |
-+----------------------------------------+
-```
-
-### Onboarding para Novos Usuarios
-
-Ao acessar sem projeto selecionado:
-
-```
-+------------------------------------------+
-|          🚀 Bem-vindo a Fabrica!          |
-|                                          |
-|  1. Crie ou selecione um projeto         |
-|  2. Adicione User Stories                |
-|  3. Arraste stories pelo Kanban          |
-|  4. Use o chat para comandos             |
-|                                          |
-|  Dica: Pressione [?] para atalhos        |
-+------------------------------------------+
-```
-
-### Drag and Drop Melhorado
-
-- Arraste stories entre colunas
-- Feedback visual durante arraste (card elevado e rotacionado)
-- Toast de confirmacao ao soltar
-
-### Para Mais Detalhes
-
-Consulte o [CHANGELOG.md](CHANGELOG.md) para historico completo de versoes e funcionalidades.
-
----
-
-## Instalacao Rapida
-
-### Pre-requisitos
+### Pré-requisitos
 
 - Python 3.10+
+- Git
 - Chave API Anthropic (Claude)
+- Docker (opcional, para PostgreSQL + Redis)
 
-### Passos
+### Instalação
 
 ```bash
-# 1. Clone o repositorio
-git clone https://github.com/cruzpeanelo/fabrica-de-workers.git
-cd fabrica-de-workers
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/fabrica-de-agentes.git
+cd fabrica-de-agentes
 
 # 2. Crie ambiente virtual
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 venv\Scripts\activate     # Windows
 
-# 3. Instale dependencias
+# 3. Instale dependências
 pip install -r requirements.txt
 
 # 4. Configure ambiente
@@ -641,493 +173,278 @@ python factory/database/seed.py
 python factory/dashboard/app_v6_agile.py
 ```
 
-**Acesse**: http://localhost:9001
+**Acesse:** http://localhost:9001
 
-### Iniciar Processamento Automatico
+**Login padrão:** `admin` / `admin`
 
-```bash
-# Em outro terminal
-python run_story_watcher.py
-```
-
----
-
-## Documentacao Tecnica
-
-Para equipes de TI, arquitetos e desenvolvedores:
-
-**[Documentacao de Arquitetura Completa](docs/ARQUITETURA.md)**
-
-Conteudo:
-- Diagrama de arquitetura
-- Stack tecnologica detalhada
-- Modelos de dados e ER
-- APIs e endpoints
-- Integracao com Claude AI
-- Fluxos de processamento
-- Estrutura de arquivos
-- Configuracao e deploy
-- Seguranca
-- Monitoramento
-- Extensibilidade
-
----
-
-## Proposta de Valor Resumida
-
-| Para Quem | O Que Entregamos |
-|-----------|------------------|
-| **Executivos** | Reducao de custos, time-to-market, previsibilidade |
-| **Gestores** | Visibilidade total, metricas automaticas, comunicacao |
-| **Product Owners** | Gestao agil completa, stories estruturadas |
-| **Desenvolvedores** | Menos trabalho repetitivo, mais foco em inovacao |
-| **Empresa** | Conhecimento documentado, menos dependencia de pessoas |
-
----
-
-## Arquitetura v4.0
-
-```
-+------------------------------------------------------------------+
-|                     FABRICA DE WORKERS v4.0                       |
-+------------------------------------------------------------------+
-|                                                                    |
-|  +------------------+    +------------------+    +---------------+ |
-|  |   DASHBOARD      |    |   API REST       |    |   PostgreSQL  | |
-|  |   (Vue.js 3)     |<-->|   (FastAPI)      |<-->|   + Redis     | |
-|  +------------------+    +------------------+    +---------------+ |
-|         ^                        |                                 |
-|         |              +---------v----------+                      |
-|         |              |    REDIS QUEUE     |                      |
-|         |              |   (Job Manager)    |                      |
-|         |              +---------+----------+                      |
-|         |                        |                                 |
-|  +------+------------------------v-------------------------------+ |
-|  |                    WORKER POOL (2-5)                          | |
-|  |                                                                | |
-|  |  +-------------+  +-------------+  +-------------+            | |
-|  |  |  Worker 1   |  |  Worker 2   |  |  Worker N   |            | |
-|  |  | Claude API  |  | Claude API  |  | Claude API  |            | |
-|  |  +------+------+  +------+------+  +------+------+            | |
-|  |         |                |                |                    | |
-|  |         v                v                v                    | |
-|  |  +--------------------------------------------------+         | |
-|  |  |           AUTONOMOUS LOOP (por job)              |         | |
-|  |  |                                                  |         | |
-|  |  |   +----------+    +------+    +------+          |         | |
-|  |  |   | Generate |--->| Lint |--->| Test |          |         | |
-|  |  |   +----------+    +------+    +--+---+          |         | |
-|  |  |        ^                         |              |         | |
-|  |  |        |     +-------+           |              |         | |
-|  |  |        +-----| Fix   |<----------+              |         | |
-|  |  |              +-------+   (max 5x)               |         | |
-|  |  +--------------------------------------------------+         | |
-|  +---------------------------------------------------------------+ |
-|                                |                                   |
-|                   +------------v-------------+                     |
-|                   |      projects/ folder    |                     |
-|                   |   (Codigo Gerado)        |                     |
-|                   +--------------------------+                     |
-+------------------------------------------------------------------+
-```
-
----
-
-## Componentes
-
-### 1. API REST (`factory/api/`)
-
-| Componente | Arquivo | Responsabilidade |
-|------------|---------|------------------|
-| **Routes** | `routes.py` | Endpoints REST para jobs, workers e queue |
-| **Auth** | `auth.py` | Autenticacao JWT com chave persistente |
-| **Rate Limit** | `rate_limit.py` | Limitacao de requisicoes via Redis |
-
-**Endpoints Principais:**
-```
-POST   /api/v1/jobs           - Criar job de desenvolvimento
-GET    /api/v1/jobs/{id}      - Status do job
-GET    /api/v1/jobs           - Listar jobs
-DELETE /api/v1/jobs/{id}      - Cancelar job
-GET    /api/v1/queue/stats    - Estatisticas da fila
-GET    /api/v1/workers        - Listar workers ativos
-POST   /api/v1/auth/login     - Autenticacao
-GET    /api/v1/health         - Health check
-```
-
-### 2. Core (`factory/core/`)
-
-| Componente | Arquivo | Responsabilidade |
-|------------|---------|------------------|
-| **Job Queue** | `job_queue.py` | Fila Redis FIFO para jobs |
-| **Worker** | `worker.py` | Claude Worker que processa jobs |
-| **Autonomous Loop** | `autonomous_loop.py` | Loop Generate->Lint->Test->Fix |
-
-**Job Queue:**
-- Fila FIFO para jobs pendentes
-- Pub/Sub para eventos em tempo real
-- Fallback para SQLite se Redis indisponivel
-
-**Worker:**
-- Consome jobs da fila Redis
-- Executa autonomous loop com Claude API
-- Heartbeat para monitoramento de saude
-- Retries automaticos em caso de falha
-
-**Autonomous Loop:**
-```
-1. SETUP    - Prepara ambiente do projeto
-2. GENERATE - Gera codigo via Claude API
-3. LINT     - Executa linter (ruff/eslint)
-4. TEST     - Executa testes (pytest/jest)
-5. FIX      - Se erro, Claude corrige (max 5x)
-6. COMPLETE - Projeto pronto em projects/
-```
-
-### 3. Database (`factory/database/`)
-
-| Componente | Arquivo | Responsabilidade |
-|------------|---------|------------------|
-| **Connection** | `connection.py` | PostgreSQL + Redis + SQLite fallback |
-| **Models** | `models.py` | SQLAlchemy models (6 tabelas) |
-| **Repositories** | `repositories.py` | Camada de acesso a dados |
-
-**Modelos:**
-| Tabela | Descricao |
-|--------|-----------|
-| `projects` | Metadados de projetos |
-| `jobs` | Fila de trabalho (unidade principal) |
-| `workers` | Registro de workers ativos |
-| `failure_history` | Historico de falhas para analise |
-| `users` | Autenticacao de usuarios |
-| `activity_logs` | Logs de auditoria |
-
-### 4. Dashboard (`factory/dashboard/`)
-
-| Componente | Arquivo | Responsabilidade |
-|------------|---------|------------------|
-| **App** | `app_v4.py` | Dashboard Vue.js 3 worker-centric |
-
-**Funcionalidades:**
-- Visao geral da fila (pendentes, processando, completos)
-- Painel de workers (status, job atual, metricas)
-- Lista de jobs com filtros e progresso
-- Criacao de jobs via interface
-- Atualizacao automatica a cada 5 segundos
-
-### 5. Config (`factory/config.py`)
-
-Configuracoes centralizadas:
-- Paths do projeto
-- Conexoes de banco (PostgreSQL, Redis, SQLite)
-- Workers (min, max, timeouts)
-- Claude API (modelo, tokens)
-- Rate limiting
-- MCP tools
-
-### 6. Scripts (`factory/scripts/`)
-
-| Script | Comando | Descricao |
-|--------|---------|-----------|
-| `start_workers.py` | `python factory/scripts/start_workers.py -w 3` | Inicia pool de workers |
-| `start_all.py` | `python factory/scripts/start_all.py` | Inicia dashboard + workers |
-| `init_db.py` | `python factory/scripts/init_db.py --seed` | Inicializa banco de dados |
-
----
-
-## Instalacao
-
-### Pre-requisitos
-
-- Python 3.10+
-- Docker (para PostgreSQL + Redis)
-- Chave API Anthropic
-
-### Instalacao Rapida
+### Com Docker (Produção)
 
 ```bash
-# Clone o repositorio
-git clone https://github.com/cruzpeanelo/fabrica-de-workers.git
-cd fabrica-de-workers
-
-# Ambiente virtual
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-
-# Dependencias
-pip install -r requirements.txt
-
-# Configurar ambiente
-cp .env.example .env
-# Edite .env e adicione sua ANTHROPIC_API_KEY
-
-# Iniciar infraestrutura (PostgreSQL + Redis)
+# Infraestrutura completa
 docker-compose up -d
 
-# Inicializar banco de dados
-python factory/scripts/init_db.py --seed
-
-# Iniciar tudo (Dashboard + Workers)
-python factory/scripts/start_all.py --workers 2
-```
-
-**Acesse:** http://localhost:9000
-
-### Sem Docker (SQLite + Redis local)
-
-```bash
-# Se Redis instalado localmente
-redis-server &
-
-# Ou use apenas SQLite (sem Redis)
-# O sistema faz fallback automaticamente
-
-python factory/scripts/start_all.py
+# Serviços incluídos:
+# - factory-api (FastAPI)
+# - factory-dashboard (Vue.js)
+# - postgres (PostgreSQL 16)
+# - redis (Redis 7)
 ```
 
 ---
 
-## Uso
-
-### Via Dashboard (Recomendado)
-
-1. Acesse http://localhost:9000
-2. Clique em "Novo Job"
-3. Preencha descricao e stack tecnologica
-4. Acompanhe o progresso em tempo real
-5. Projeto gerado em `projects/`
-
-### Via API
-
-```bash
-# Autenticar
-TOKEN=$(curl -s -X POST http://localhost:9000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin123"}' | jq -r '.access_token')
-
-# Criar job
-curl -X POST http://localhost:9000/api/v1/jobs \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "API REST para gerenciamento de tarefas com autenticacao JWT",
-    "tech_stack": "python,fastapi,postgresql",
-    "features": ["CRUD de tarefas", "Autenticacao JWT", "Rate limiting"]
-  }'
-
-# Verificar status
-curl http://localhost:9000/api/v1/jobs/{job_id} \
-  -H "Authorization: Bearer $TOKEN"
-
-# Ver estatisticas da fila
-curl http://localhost:9000/api/v1/queue/stats \
-  -H "Authorization: Bearer $TOKEN"
-
-# Listar workers
-curl http://localhost:9000/api/v1/workers \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Via Python
-
-```python
-import asyncio
-from factory.core.job_queue import get_queue
-
-async def create_job():
-    queue = await get_queue()
-
-    job = await queue.enqueue({
-        "description": "Sistema de blog com posts e comentarios",
-        "tech_stack": "python,fastapi,react",
-        "features": ["CRUD posts", "Comentarios", "Busca"]
-    })
-
-    print(f"Job criado: {job['job_id']}")
-
-    # Acompanhar status
-    while True:
-        status = await queue.get_job(job['job_id'])
-        print(f"Status: {status['status']} - {status['current_step']}")
-
-        if status['status'] in ['completed', 'failed']:
-            break
-
-        await asyncio.sleep(5)
-
-asyncio.run(create_job())
-```
-
----
-
-## Estrutura do Projeto
+## 🏗️ Arquitetura
 
 ```
-Fabrica de Workers/
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        FÁBRICA DE AGENTES v7.0                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────────┐  │
+│  │   DASHBOARD     │    │   API REST      │    │  PostgreSQL + Redis │  │
+│  │   (Vue.js 3)    │◄──►│   (FastAPI)     │◄──►│   (Persistência)    │  │
+│  └─────────────────┘    └────────┬────────┘    └─────────────────────┘  │
+│                                  │                                       │
+│                         ┌────────▼────────┐                              │
+│                         │  WORKER POOL    │                              │
+│                         │  (Claude AI)    │                              │
+│                         └────────┬────────┘                              │
+│                                  │                                       │
+│          ┌───────────────────────┼───────────────────────┐              │
+│          │                       │                       │              │
+│          ▼                       ▼                       ▼              │
+│  ┌───────────────┐    ┌──────────────────┐    ┌───────────────────┐    │
+│  │  Integrações  │    │  Autonomous Loop │    │    Projetos       │    │
+│  │  SAP, Jira... │    │  Generate→Test   │    │    Gerados        │    │
+│  └───────────────┘    └──────────────────┘    └───────────────────┘    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Estrutura de Diretórios
+
+```
+Fábrica de Agentes/
 ├── factory/
-│   ├── api/                    # API REST
-│   │   ├── routes.py           # Endpoints de jobs/workers
-│   │   ├── auth.py             # JWT authentication
-│   │   └── rate_limit.py       # Redis rate limiting
+│   ├── api/                    # API REST FastAPI
+│   │   ├── routes.py           # Endpoints principais
+│   │   ├── auth.py             # Autenticação JWT
+│   │   └── middleware/         # Middlewares de segurança
 │   ├── core/                   # Core do sistema
+│   │   ├── autonomous_loop.py  # Loop Generate→Lint→Test→Fix
 │   │   ├── job_queue.py        # Redis job queue
-│   │   ├── worker.py           # Claude workers
-│   │   └── autonomous_loop.py  # Loop de desenvolvimento
+│   │   └── worker.py           # Claude workers
 │   ├── database/               # Banco de dados
-│   │   ├── connection.py       # PostgreSQL + Redis + SQLite
-│   │   ├── models.py           # SQLAlchemy models
-│   │   └── repositories.py     # Data access layer
-│   ├── dashboard/              # Dashboard web
-│   │   └── app_v4.py           # FastAPI + Vue.js
-│   ├── scripts/                # Scripts de inicializacao
-│   │   ├── start_workers.py    # Launcher de workers
-│   │   ├── start_all.py        # Launcher completo
-│   │   └── init_db.py          # Inicializacao do banco
-│   └── config.py               # Configuracoes centralizadas
+│   │   ├── connection.py       # PostgreSQL + SQLite fallback
+│   │   ├── models.py           # SQLAlchemy models (21 tabelas)
+│   │   └── repositories.py     # Camada de acesso a dados
+│   ├── dashboard/              # Dashboards web
+│   │   ├── app_v6_agile.py     # Dashboard Agile principal
+│   │   ├── static/             # CSS, JS, imagens
+│   │   └── templates/          # Templates HTML
+│   ├── integrations/           # Integrações corporativas
+│   │   ├── jira/               # Jira Agile API
+│   │   ├── azure_devops/       # Azure DevOps
+│   │   ├── sap_s4/             # SAP S/4HANA
+│   │   └── ...                 # Outras integrações
+│   └── config.py               # Configurações centralizadas
 ├── projects/                   # Projetos gerados
-├── docker-compose.yml          # PostgreSQL + Redis
-├── .env.example                # Template de variaveis
-├── requirements.txt            # Dependencias Python
-└── README.md
+├── docs/                       # Documentação completa
+├── tests/                      # Testes automatizados
+└── docker-compose.yml          # Infraestrutura Docker
 ```
+
+### Stack Tecnológico
+
+| Camada | Tecnologias |
+|--------|-------------|
+| **Frontend** | Vue.js 3, CSS3, JavaScript ES6+ |
+| **Backend** | Python 3.10+, FastAPI, SQLAlchemy |
+| **Banco de Dados** | PostgreSQL 16, SQLite (dev), Redis 7 |
+| **IA** | Claude API (Anthropic), Opus 4.5 |
+| **Infraestrutura** | Docker, Docker Compose |
+| **Monitoramento** | Prometheus, Grafana, Loki |
 
 ---
 
-## Configuracao
+## 🔗 Integrações
 
-### Variaveis de Ambiente
+### Configuração de Integrações
 
-| Variavel | Descricao | Padrao |
-|----------|-----------|--------|
-| `ANTHROPIC_API_KEY` | Chave API Claude **(obrigatorio)** | - |
-| `DATABASE_URL` | PostgreSQL connection string | SQLite local |
-| `REDIS_URL` | Redis connection string | redis://localhost:6379 |
-| `DEFAULT_WORKERS` | Workers iniciais | 2 |
-| `MAX_WORKERS` | Maximo de workers | 5 |
-| `CLAUDE_MODEL` | Modelo Claude | claude-sonnet-4-20250514 |
-| `RATE_LIMIT_REQUESTS` | Requisicoes por janela | 100 |
-| `RATE_LIMIT_WINDOW` | Janela em segundos | 60 |
-| `JWT_SECRET_KEY` | Chave JWT (gerada automaticamente) | - |
+Todas as integrações são configuradas via variáveis de ambiente ou painel admin:
 
-### docker-compose.yml
+```bash
+# SAP S/4HANA
+SAP_S4_BASE_URL=https://seu-servidor.sap.com
+SAP_S4_CLIENT_ID=seu_client_id
+SAP_S4_CLIENT_SECRET=seu_client_secret
 
-```yaml
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: fabrica
-      POSTGRES_PASSWORD: fabrica_secret
-      POSTGRES_DB: fabrica_db
-    ports:
-      - "5432:5432"
+# Jira
+JIRA_BASE_URL=https://sua-empresa.atlassian.net
+JIRA_EMAIL=usuario@empresa.com
+JIRA_API_TOKEN=seu_token
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+# Azure DevOps
+AZURE_DEVOPS_ORG=sua-organizacao
+AZURE_DEVOPS_PAT=seu_pat
+
+# GitHub
+GITHUB_TOKEN=ghp_seu_token
 ```
+
+### APIs de Integração
+
+| Endpoint | Descrição |
+|----------|-----------|
+| `GET /api/integrations/jira/boards` | Lista boards do Jira |
+| `GET /api/integrations/azure/repos` | Lista repositórios Azure |
+| `POST /api/integrations/sap/sync` | Sincroniza com SAP |
+| `GET /api/integrations/health` | Status das integrações |
 
 ---
 
-## Fluxo de Trabalho
+## 👥 Para Colaboradores
 
+Queremos sua contribuição! Veja como participar:
+
+### Fork e Clone
+
+```bash
+# 1. Faça fork no GitHub
+
+# 2. Clone seu fork
+git clone https://github.com/SEU-USUARIO/fabrica-de-agentes.git
+cd fabrica-de-agentes
+
+# 3. Adicione upstream
+git remote add upstream https://github.com/cruzpeanelo/fabrica-de-agentes.git
+
+# 4. Crie branch para sua feature
+git checkout -b feature/minha-feature
 ```
-1. Usuario cria JOB via API/Dashboard
-       |
-       v
-2. Job entra na REDIS QUEUE (FIFO)
-       |
-       v
-3. WORKER disponivel pega o job
-       |
-       v
-4. AUTONOMOUS LOOP executa:
 
-   [GENERATE] --> Claude gera codigo
-        |
-        v
-   [LINT] --> ruff/eslint valida
-        |
-        +---> Erro? --> [FIX] --> Claude corrige --> volta para LINT
-        |
-        v
-   [TEST] --> pytest/jest executa
-        |
-        +---> Erro? --> [FIX] --> Claude corrige --> volta para LINT
-        |
-        v
-   [COMPLETE] --> Projeto salvo em projects/
+### Setup de Desenvolvimento
 
-5. Status atualizado em tempo real via Redis Pub/Sub
+```bash
+# Ambiente virtual
+python -m venv venv
+source venv/bin/activate
+
+# Dependências de desenvolvimento
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+
+# Pre-commit hooks
+pre-commit install
+
+# Executar testes
+python -m pytest tests/ -v
 ```
+
+### Padrões de Código
+
+- **Python**: PEP 8, type hints obrigatórios
+- **Docstrings**: Em português (pt-BR)
+- **Commits**: [Conventional Commits](https://conventionalcommits.org/)
+  - `feat:` nova funcionalidade
+  - `fix:` correção de bug
+  - `docs:` documentação
+  - `refactor:` refatoração
+  - `test:` testes
+
+### Enviando Pull Request
+
+```bash
+# 1. Atualize sua branch
+git fetch upstream
+git rebase upstream/main
+
+# 2. Commit suas mudanças
+git add .
+git commit -m "feat(modulo): descrição da feature"
+
+# 3. Push para seu fork
+git push origin feature/minha-feature
+
+# 4. Abra PR no GitHub
+```
+
+📖 **Veja o guia completo:** [CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 ---
 
-## Comparacao: v3.0 vs v4.0
+## 📚 Documentação
 
-| Aspecto | v3.0 (Agentes) | v4.0 (Workers) |
-|---------|----------------|----------------|
-| Unidade de trabalho | 19 agentes especializados | 2-5 workers genericos |
-| Coordenacao | Complexa entre agentes | Fila simples Redis |
-| Escalabilidade | Dificil | Horizontal (mais workers) |
-| Banco | SQLite apenas | PostgreSQL + Redis |
-| API | 80+ endpoints | ~15 endpoints |
-| Dashboard | 5000+ linhas | ~800 linhas |
-| Auto-correcao | Limitada | Loop ate 5 tentativas |
+| Documento | Descrição |
+|-----------|-----------|
+| [ARQUITETURA.md](docs/ARQUITETURA.md) | Arquitetura técnica detalhada |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) | Referência completa da API |
+| [GUIA_USUARIO.md](docs/GUIA_USUARIO.md) | Manual do usuário |
+| [DOCUMENTACAO_NEGOCIOS.md](docs/DOCUMENTACAO_NEGOCIOS.md) | Visão de negócio |
+| [DOCUMENTACAO_TECNICA.md](docs/DOCUMENTACAO_TECNICA.md) | Detalhes técnicos |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Guia para contribuidores |
+| [SECURITY_HARDENING.md](docs/SECURITY_HARDENING.md) | Segurança e hardening |
+| [DISASTER_RECOVERY.md](docs/DISASTER_RECOVERY.md) | Recuperação de desastres |
+
+### Documentação de Integrações
+
+| Integração | Documentação |
+|------------|--------------|
+| Jira | [docs/integrations/jira.md](docs/integrations/) |
+| Azure DevOps | [docs/integrations/azure-devops.md](docs/integrations/) |
+| SAP S/4HANA | [docs/integrations/sap.md](docs/integrations/) |
+| Microsoft Graph | [MICROSOFT_GRAPH_INTEGRATION.md](docs/MICROSOFT_GRAPH_INTEGRATION.md) |
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
-### v4.0 (Atual)
-- [x] Workers Claude com pool configuravel
-- [x] Redis Queue para jobs
-- [x] PostgreSQL + Redis infrastructure
-- [x] Autonomous loop (Generate -> Lint -> Test -> Fix)
-- [x] JWT authentication persistente
-- [x] Rate limiting via Redis
-- [x] Dashboard worker-centric
-- [x] API simplificada
+### ✅ v7.0 (Atual)
 
-### v4.1 (Planejado)
-- [ ] WebSocket para atualizacoes em tempo real
-- [ ] Multiplos modelos Claude (Opus, Haiku)
-- [ ] MCP tools integration
-- [ ] Logs estruturados (ELK stack)
+- [x] Dashboard Agile v6.5 completo
+- [x] Multi-tenant com isolamento total
+- [x] RBAC e permissões granulares
+- [x] Integrações SAP, Jira, Azure DevOps
+- [x] 2FA/MFA e segurança enterprise
+- [x] Dark Mode e i18n
+- [x] WebSocket para tempo real
+- [x] Audit Log detalhado
 
-### v5.0 (Futuro)
-- [ ] Multi-tenant (SaaS)
-- [ ] Kubernetes deployment
-- [ ] CI/CD integrado
+### 🔄 v7.1 (Em Desenvolvimento)
+
+- [ ] App Mobile React Native
+- [ ] Planning Poker integrado
+- [ ] Estimativas com ML
+- [ ] Time Tracking
+- [ ] Dependency Graph visual
+
+### 📋 v8.0 (Planejado)
+
 - [ ] Marketplace de templates
+- [ ] Kubernetes deployment
+- [ ] Multi-cloud (AWS, Azure, GCP)
+- [ ] IA generativa para PRDs
 
 ---
 
-## Contribuindo
+## 📄 Licença
 
-1. Fork o repositorio
-2. Crie uma branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudancas (`git commit -m 'Add nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
+Este projeto está sob a licença MIT - veja [LICENSE](LICENSE) para detalhes.
 
 ---
 
-## Licenca
-
-MIT License - Veja [LICENSE](LICENSE) para detalhes.
-
----
-
-## Contato
+## 🤝 Contato
 
 - **Autor**: Luis Cruz
-- **GitHub**: [cruzpeanelo](https://github.com/cruzpeanelo)
+- **GitHub**: [@cruzpeanelo](https://github.com/cruzpeanelo)
+- **Issues**: [Reportar Bug / Sugerir Feature](https://github.com/cruzpeanelo/fabrica-de-agentes/issues)
 
 ---
 
 <p align="center">
-  <strong>Fabrica de Workers</strong> - Desenvolvimento autonomo com Claude AI
+  <strong>🏭 Fábrica de Agentes</strong><br>
+  Desenvolvimento autônomo com Claude AI
+</p>
+
+<p align="center">
+  <sub>Feito com ❤️ no Brasil</sub>
 </p>
