@@ -2331,6 +2331,25 @@ def clear_chat_history(
         db.close()
 
 
+# Issue #280: API endpoint for contextual quick actions
+@app.get("/api/chat/quick-actions")
+def get_chat_quick_actions(
+    page_context: str = "kanban",
+    story_id: Optional[str] = None,
+    task_id: Optional[str] = None
+):
+    """
+    Issue #280: Returns contextual quick action suggestions for the AI assistant
+    based on the current page view
+    """
+    actions = _get_quick_actions_for_context(page_context, story_id, task_id)
+    return {
+        "page_context": page_context,
+        "quick_actions": actions,
+        "suggestions": _build_contextual_suggestions(page_context, story_id, task_id, None, None).split("\n")
+    }
+
+
 # =============================================================================
 # API ENDPOINTS - ATTACHMENTS
 # =============================================================================
@@ -6805,8 +6824,8 @@ HTML_TEMPLATE = """
 
                     <!-- Kanban View Toggle: Normal vs Swimlanes -->
                     <div v-if="!groupBy" class="flex gap-4 overflow-x-auto kanban-container">
-                        <!-- Colunas do Kanban (Vista Normal) -->
-                        <div v-for="(column, status) in filteredStoryBoard" :key="status"
+                        <!-- Colunas do Kanban (Vista Normal) - Issue #294: Use explicit status order -->
+                        <div v-for="status in kanbanStatuses" :key="status"
                              class="flex-shrink-0 w-80 bg-gray-100 rounded-lg kanban-column-container">
                         <!-- Header da Coluna -->
                         <div class="p-3 border-b border-gray-200 bg-white rounded-t-lg">
@@ -6814,10 +6833,10 @@ HTML_TEMPLATE = """
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-gray-700">{{ getColumnTitle(status) }}</span>
                                     <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                                        {{ column.length }}
+                                        {{ (filteredStoryBoard[status] || []).length }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-gray-500">{{ getColumnPoints(column) }} pts</span>
+                                <span class="text-xs text-gray-500">{{ getColumnPoints(filteredStoryBoard[status] || []) }} pts</span>
                             </div>
                         </div>
 
@@ -6825,8 +6844,8 @@ HTML_TEMPLATE = """
                         <div :id="'column-' + status"
                              class="kanban-column p-2 space-y-2 overflow-y-auto"
                              style="max-height: calc(100vh - 200px);">
-                            <!-- Story Card -->
-                            <div v-for="story in column" :key="story.story_id"
+                            <!-- Story Card - Issue #294: Access stories from filteredStoryBoard[status] -->
+                            <div v-for="story in (filteredStoryBoard[status] || [])" :key="story.story_id"
                                  @click="bulkSelectMode ? toggleBulkSelect(story) : openStoryDetail(story)"
                                  @contextmenu.prevent="showContextMenu($event, story)"
                                  :data-id="story.story_id"
@@ -6997,17 +7016,56 @@ HTML_TEMPLATE = """
                 </div>
             </main>
 
-            <!-- CHAT PANEL -->
+            <!-- CHAT PANEL - Issue #280: Enhanced Contextual AI Assistant -->
             <aside class="w-80 bg-white border-l border-gray-200 flex flex-col chat-panel-desktop hide-on-mobile" :class="{ 'open': mobileChatOpen }">
+                <!-- Header with context indicator -->
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🤖</span>
-                        <span class="font-semibold">Assistente</span>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <div>
+                                <span class="font-semibold">Assistente IA</span>
+                                <div class="text-xs opacity-70">{{ chatContextLabel }}</div>
+                            </div>
+                        </div>
+                        <button @click="clearChatHistory" class="text-white/70 hover:text-white" title="Limpar historico">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Bar - Issue #280 -->
+                <div class="p-2 border-b border-gray-200 bg-gray-50">
+                    <div class="flex flex-wrap gap-1">
+                        <button v-for="action in chatQuickActions" :key="action.label"
+                                @click="executeQuickAction(action)"
+                                class="px-2 py-1 text-xs bg-white border border-gray-200 rounded-full hover:bg-[#003B4A] hover:text-white hover:border-[#003B4A] transition flex items-center gap-1">
+                            <span>{{ action.icon }}</span>
+                            <span>{{ action.label }}</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Mensagens -->
                 <div class="flex-1 overflow-y-auto p-4 chat-messages" ref="chatMessages">
+                    <!-- Welcome message if no history -->
+                    <div v-if="chatHistory.length === 0" class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-3">🤖</div>
+                        <p class="font-medium text-gray-700 mb-2">Ola! Sou seu assistente Agile.</p>
+                        <p class="text-sm mb-4">{{ chatWelcomeMessage }}</p>
+                        <div class="space-y-2">
+                            <p class="text-xs text-gray-400">Experimente perguntar:</p>
+                            <button v-for="suggestion in chatSuggestions" :key="suggestion"
+                                    @click="chatInput = suggestion; sendMessage()"
+                                    class="block w-full text-left px-3 py-2 text-xs bg-gray-100 rounded-lg hover:bg-[#003B4A] hover:text-white transition">
+                                {{ suggestion }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat messages -->
                     <div v-for="msg in chatHistory" :key="msg.message_id"
                          :class="['mb-4', msg.role === 'user' ? 'text-right' : 'text-left']">
                         <div :class="['inline-block max-w-[90%] p-3 rounded-lg text-sm',
@@ -7021,21 +7079,38 @@ HTML_TEMPLATE = """
                             {{ formatTime(msg.created_at) }}
                         </div>
                     </div>
+
+                    <!-- Typing indicator -->
+                    <div v-if="chatLoading" class="mb-4 text-left">
+                        <div class="inline-block p-3 rounded-lg text-sm bg-gray-100 text-gray-800 rounded-bl-none">
+                            <div class="flex items-center gap-1">
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                                <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Input -->
+                <!-- Input with context-aware placeholder -->
                 <div class="p-4 border-t border-gray-200">
                     <div class="flex gap-2">
                         <input v-model="chatInput"
                                @keyup.enter="sendMessage"
                                type="text"
-                               placeholder="Digite sua mensagem..."
-                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A]">
+                               :placeholder="chatPlaceholder"
+                               :disabled="chatLoading"
+                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#003B4A] disabled:bg-gray-100">
                         <button @click="sendMessage"
-                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                :disabled="chatLoading || !chatInput.trim()"
+                                class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg v-if="!chatLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                             </svg>
                         </button>
                     </div>
@@ -9940,6 +10015,42 @@ HTML_TEMPLATE = """
             const chatInput = ref('');
             const chatMessages = ref(null);
 
+            // Issue #280: Enhanced contextual AI chat
+            const chatLoading = ref(false);
+            const chatPageContext = ref('kanban');
+            const chatQuickActions = ref([
+                { label: 'Nova Story', action: 'criar nova story', icon: '+' },
+                { label: 'Status', action: 'status do projeto', icon: 'i' },
+                { label: 'Ajuda', action: 'o que voce pode fazer', icon: '?' }
+            ]);
+            const chatSuggestions = ref([
+                'Listar todas as stories',
+                'Criar uma nova story',
+                'Qual o status do projeto?'
+            ]);
+
+            // Computed properties for contextual chat - Issue #280
+            const chatContextLabel = computed(() => {
+                if (selectedStory.value) {
+                    return `Story: ${selectedStory.value.story_id}`;
+                }
+                return 'Kanban Board';
+            });
+
+            const chatWelcomeMessage = computed(() => {
+                if (selectedStory.value) {
+                    return `Posso ajudar com a story ${selectedStory.value.story_id}`;
+                }
+                return 'Posso ajudar a gerenciar suas stories e tarefas';
+            });
+
+            const chatPlaceholder = computed(() => {
+                if (selectedStory.value) {
+                    return `Pergunte sobre ${selectedStory.value.story_id}...`;
+                }
+                return 'Digite sua mensagem...';
+            });
+
             // Search & Filters
             const searchQuery = ref('');
             const searchInput = ref(null);
@@ -12384,7 +12495,7 @@ Process ${data.status}`);
                 handleOnboardingStep, startOnboardingTour, nextTourStep, prevTourStep,
                 skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState, closeAllOverlays,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
-                storyBoard, epics, sprints, selectedStory, activeTab,
+                storyBoard, kanbanStatuses, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 openNewStoryModal, // Issue #308: method for better Vue reactivity
