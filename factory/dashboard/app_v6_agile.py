@@ -149,6 +149,14 @@ if PROJECTS_DIR.exists():
     app.mount("/project-files", StaticFiles(directory=str(PROJECTS_DIR), html=True), name="project-files")
     print(f"[Dashboard] Projects files mounted from {PROJECTS_DIR}")
 
+# Issue #205: Detailed Health Checks for Kubernetes
+try:
+    from factory.api.health_detailed import router as health_router
+    app.include_router(health_router)
+    print("[Dashboard] Health checks router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Health checks router not available: {e}")
+
 # Project Preview API Router (Issue #73)
 try:
     from factory.api.project_preview import router as preview_router
@@ -3998,6 +4006,109 @@ HTML_TEMPLATE = """
             to { opacity: 0; }
         }
 
+        /* Issue #219: Empty States */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            text-align: center;
+            min-height: 300px;
+            animation: fadeInUp 0.4s ease-out;
+        }
+        .empty-state-compact {
+            min-height: 200px;
+            padding: 24px 16px;
+        }
+        .empty-state-illustration {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 24px;
+            opacity: 0.8;
+        }
+        .empty-state-compact .empty-state-illustration {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+        }
+        .empty-state-illustration svg {
+            width: 100%;
+            height: 100%;
+        }
+        .empty-state-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 8px;
+        }
+        .dark .empty-state-title { color: #F3F4F6; }
+        .empty-state-compact .empty-state-title {
+            font-size: 1rem;
+        }
+        .empty-state-description {
+            font-size: 0.95rem;
+            color: #6B7280;
+            max-width: 360px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .dark .empty-state-description { color: #9CA3AF; }
+        .empty-state-compact .empty-state-description {
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+        .empty-state-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .empty-state-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        .empty-state-btn-primary {
+            background: #FF6C00;
+            color: white;
+        }
+        .empty-state-btn-primary:hover {
+            background: #E65100;
+            transform: translateY(-1px);
+        }
+        .empty-state-btn-secondary {
+            background: #E5E7EB;
+            color: #374151;
+        }
+        .dark .empty-state-btn-secondary {
+            background: #374151;
+            color: #D1D5DB;
+        }
+        .empty-state-btn-secondary:hover {
+            background: #D1D5DB;
+        }
+        .dark .empty-state-btn-secondary:hover {
+            background: #4B5563;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Search Box */
         .search-box {
             position: relative;
@@ -6310,11 +6421,23 @@ HTML_TEMPLATE = """
                                     </div>
                                 </div>
 
-                                <!-- Empty State (with query) -->
-                                <div v-else-if="globalSearchQuery.length >= 2" class="search-empty">
-                                    <div class="search-empty-icon">🔍</div>
-                                    <div class="search-empty-text">Nenhum resultado encontrado</div>
-                                    <div class="search-empty-hint">Tente outros termos de busca</div>
+                                <!-- Issue #219: Empty State (with query - no results) -->
+                                <div v-else-if="globalSearchQuery.length >= 2" class="empty-state empty-state-compact" data-testid="empty-state-search">
+                                    <div class="empty-state-illustration" style="width: 64px; height: 64px;">
+                                        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="28" cy="28" r="18" stroke="#9CA3AF" stroke-width="3" fill="none"/>
+                                            <path d="M42 42L54 54" stroke="#9CA3AF" stroke-width="3" stroke-linecap="round"/>
+                                            <path d="M22 22L34 34M34 22L22 34" stroke="#EF4444" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <p class="empty-state-title" style="font-size: 0.9rem;">Nenhum resultado para "{{ globalSearchQuery }}"</p>
+                                    <p class="empty-state-description" style="font-size: 0.8rem; margin-bottom: 12px;">
+                                        Tente ajustar os filtros ou usar termos diferentes
+                                    </p>
+                                    <button @click="globalSearchQuery = ''"
+                                            class="empty-state-btn empty-state-btn-secondary text-xs px-3 py-1.5">
+                                        Limpar busca
+                                    </button>
                                 </div>
 
                                 <!-- Initial State (no query) -->
@@ -7229,31 +7352,45 @@ HTML_TEMPLATE = """
 
             <!-- MAIN CONTENT - KANBAN -->
             <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
-                <div v-if="!selectedProjectId" class="flex items-center justify-center h-full text-gray-500">
-                    <div class="text-center max-w-md">
-                        <div class="text-6xl mb-4">🚀</div>
-                        <h2 class="text-xl font-semibold text-gray-700 mb-2">Bem-vindo a Fabrica de Agentes!</h2>
-                        <p class="text-gray-500 mb-6">Selecione um projeto na barra lateral ou crie um novo para comecar.</p>
-                        <div class="space-y-3 text-left bg-white p-4 rounded-lg shadow-sm">
-                            <div class="flex items-center gap-3 text-sm">
-                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">1</span>
-                                <span>Crie ou selecione um projeto</span>
-                            </div>
-                            <div class="flex items-center gap-3 text-sm">
-                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">2</span>
-                                <span>Adicione User Stories com narrativa Agile</span>
-                            </div>
-                            <div class="flex items-center gap-3 text-sm">
-                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">3</span>
-                                <span>Arraste stories pelo Kanban</span>
-                            </div>
-                            <div class="flex items-center gap-3 text-sm">
-                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">4</span>
-                                <span>Use o chat para comandos rapidos</span>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-4">Dica: Pressione <span class="kbd">?</span> para ver atalhos de teclado</p>
+                <!-- Issue #219: Empty State - No Project Selected -->
+                <div v-if="!selectedProjectId" class="empty-state" data-testid="empty-state-no-project">
+                    <div class="empty-state-illustration">
+                        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="60" cy="60" r="50" fill="#E5E7EB" class="dark:fill-gray-700"/>
+                            <path d="M40 75V45c0-2.76 2.24-5 5-5h30c2.76 0 5 2.24 5 5v30c0 2.76-2.24 5-5 5H45c-2.76 0-5-2.24-5-5z" fill="#003B4A"/>
+                            <path d="M50 55h20M50 62h20M50 69h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="85" cy="35" r="12" fill="#FF6C00"/>
+                            <path d="M85 30v10M80 35h10" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
                     </div>
+                    <h3 class="empty-state-title">Bem-vindo a Fabrica de Agentes!</h3>
+                    <p class="empty-state-description">
+                        Selecione um projeto na barra lateral ou crie um novo para comecar a gerenciar suas User Stories.
+                    </p>
+                    <div class="space-y-3 text-left bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm max-w-md mb-6">
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="w-6 h-6 rounded-full bg-[#003B4A] text-white flex items-center justify-center font-semibold text-xs">1</span>
+                            <span class="text-gray-700 dark:text-gray-300">Crie ou selecione um projeto</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="w-6 h-6 rounded-full bg-[#003B4A] text-white flex items-center justify-center font-semibold text-xs">2</span>
+                            <span class="text-gray-700 dark:text-gray-300">Adicione User Stories com narrativa Agile</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="w-6 h-6 rounded-full bg-[#003B4A] text-white flex items-center justify-center font-semibold text-xs">3</span>
+                            <span class="text-gray-700 dark:text-gray-300">Arraste stories pelo Kanban</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm">
+                            <span class="w-6 h-6 rounded-full bg-[#003B4A] text-white flex items-center justify-center font-semibold text-xs">4</span>
+                            <span class="text-gray-700 dark:text-gray-300">Use o chat para comandos rapidos</span>
+                        </div>
+                    </div>
+                    <div class="empty-state-actions">
+                        <button @click="openProjectWizard" class="empty-state-btn empty-state-btn-primary">
+                            <span>+</span> Novo Projeto
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4">Dica: Pressione <span class="kbd">?</span> para ver atalhos de teclado</p>
                 </div>
 
                 <!-- EXECUTIVE DASHBOARD VIEW (Issue #135) -->
@@ -7641,8 +7778,62 @@ HTML_TEMPLATE = """
                                     </span>
                                 </div>
                             </div>
+                            <!-- Issue #219: Empty State for empty column -->
+                            <div v-if="!(filteredStoryBoard[status] || []).length && status === 'backlog'"
+                                 class="empty-state empty-state-compact" data-testid="empty-state-kanban">
+                                <div class="empty-state-illustration" style="width: 60px; height: 60px;">
+                                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="10" y="15" width="40" height="30" rx="3" fill="#E5E7EB"/>
+                                        <rect x="15" y="20" width="30" height="3" rx="1" fill="#9CA3AF"/>
+                                        <rect x="15" y="26" width="25" height="3" rx="1" fill="#9CA3AF"/>
+                                        <rect x="15" y="32" width="20" height="3" rx="1" fill="#9CA3AF"/>
+                                    </svg>
+                                </div>
+                                <p class="empty-state-title" style="font-size: 0.875rem;">Coluna vazia</p>
+                                <p class="empty-state-description" style="font-size: 0.75rem; margin-bottom: 12px;">
+                                    Adicione sua primeira story
+                                </p>
+                                <button @click="openNewStoryModal()"
+                                        class="empty-state-btn empty-state-btn-primary text-xs px-3 py-1.5">
+                                    + Nova Story
+                                </button>
+                            </div>
+                            <div v-else-if="!(filteredStoryBoard[status] || []).length"
+                                 class="text-center py-8 text-gray-400 text-sm">
+                                <div class="mb-2 opacity-50">📋</div>
+                                Nenhuma story
+                            </div>
                         </div>
                     </div>
+                    </div>
+
+                    <!-- Issue #219: Empty State - No stories at all -->
+                    <div v-if="filteredStoriesCount === 0 && !groupBy && selectedProjectId"
+                         class="empty-state mt-8" data-testid="empty-state-no-stories">
+                        <div class="empty-state-illustration">
+                            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="60" cy="60" r="50" fill="#E5E7EB" class="dark:fill-gray-700"/>
+                                <rect x="25" y="35" width="70" height="50" rx="5" fill="white" stroke="#D1D5DB" stroke-width="2"/>
+                                <rect x="35" y="50" width="30" height="4" rx="2" fill="#9CA3AF"/>
+                                <rect x="35" y="58" width="50" height="3" rx="1.5" fill="#D1D5DB"/>
+                                <rect x="35" y="65" width="45" height="3" rx="1.5" fill="#D1D5DB"/>
+                                <rect x="35" y="72" width="35" height="3" rx="1.5" fill="#D1D5DB"/>
+                                <circle cx="85" cy="35" r="15" fill="#FF6C00"/>
+                                <path d="M85 28v14M78 35h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <h3 class="empty-state-title">Seu quadro Kanban esta vazio</h3>
+                        <p class="empty-state-description">
+                            Crie sua primeira User Story para comecar a organizar o trabalho do projeto.
+                        </p>
+                        <div class="empty-state-actions">
+                            <button @click="openNewStoryModal()" class="empty-state-btn empty-state-btn-primary">
+                                <span>+</span> Criar primeira Story
+                            </button>
+                            <button @click="showShortcuts = true" class="empty-state-btn empty-state-btn-secondary">
+                                Ver atalhos
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Swimlanes View -->

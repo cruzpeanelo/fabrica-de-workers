@@ -1,0 +1,105 @@
+# Kubernetes Deployment - API Service
+# Issue #205 - Auto-scaling horizontal
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factory-api
+  namespace: fabrica-de-agentes
+  labels:
+    app: factory
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: factory
+      component: api
+  template:
+    metadata:
+      labels:
+        app: factory
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: fabrica-de-agentes/api:latest
+        ports:
+        - containerPort: 9001
+          name: http
+        env:
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: factory-config
+              key: ENVIRONMENT
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: factory-secrets
+              key: DATABASE_URL
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: factory-secrets
+              key: ANTHROPIC_API_KEY
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: factory-config
+              key: REDIS_URL
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: factory-secrets
+              key: SENTRY_DSN
+              optional: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 9001
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 9001
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 9001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 30
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: factory-api
+  namespace: fabrica-de-agentes
+  labels:
+    app: factory
+    component: api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9001
+    targetPort: 9001
+    protocol: TCP
+    name: http
+  selector:
+    app: factory
+    component: api
