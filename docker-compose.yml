@@ -37,10 +37,10 @@ services:
       # Redis - Issue #165: com autenticação
       - REDIS_URL=redis://:${REDIS_PASSWORD:-fabrica_redis_secret}@redis:6379
 
-      # MinIO (S3)
+      # MinIO (S3) - Issue #164: credenciais configuráveis
       - S3_ENDPOINT=http://minio:9000
-      - S3_ACCESS_KEY=minioadmin
-      - S3_SECRET_KEY=minioadmin123
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-fabrica_minio_admin}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-fabrica_minio_secret_2024}
       - S3_BUCKET=fabrica-uploads
       - S3_USE_SSL=false
 
@@ -193,8 +193,9 @@ services:
       - "9000:9000"  # API
       - "9090:9090"  # Console
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
+      # Issue #164: Credenciais seguras via env vars
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-fabrica_minio_admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-fabrica_minio_secret_2024}
       MINIO_BROWSER_REDIRECT_URL: http://localhost:9090
     volumes:
       - minio_data:/data
@@ -217,12 +218,16 @@ services:
   minio-init:
     image: minio/mc:latest
     container_name: fabrica-minio-init
+    environment:
+      # Issue #164: Usar mesmas credenciais do MinIO
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-fabrica_minio_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-fabrica_minio_secret_2024}
     depends_on:
       minio:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-        mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+        mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
         mc mb myminio/fabrica-uploads --ignore-existing;
         mc mb myminio/fabrica-backups --ignore-existing;
         mc mb myminio/fabrica-exports --ignore-existing;
