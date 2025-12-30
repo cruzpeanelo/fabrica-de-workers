@@ -24,6 +24,9 @@ from sqlalchemy.orm import Session
 
 from ..database.connection import get_db
 from ..billing.middleware import get_current_tenant_id, get_tenant_dependency
+
+# Import authentication for admin endpoints (Issue #136)
+from .auth import get_current_user, TokenData
 from ..billing.models import (
     Tenant, Invoice, UsageAggregate, PricingTier,
     InvoiceStatus, UsageEvent
@@ -491,14 +494,17 @@ async def get_billing_summary(
 @admin_router.post("/generate-invoice", response_model=GenerateInvoiceResponse)
 async def admin_generate_invoice(
     request: GenerateInvoiceRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Gera fatura para um tenant especifico.
 
-    Endpoint administrativo - requer autorizacao especial.
+    Endpoint administrativo - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -532,14 +538,17 @@ async def admin_generate_invoice(
 async def admin_generate_monthly_invoices(
     period: Optional[str] = Query(None, description="Periodo YYYY-MM"),
     auto_finalize: bool = Query(True),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Gera faturas para todos os tenants ativos.
 
-    Endpoint administrativo para processamento em lote.
+    Endpoint administrativo para processamento em lote - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -553,14 +562,17 @@ async def admin_generate_monthly_invoices(
 
 @admin_router.post("/process-overdue")
 async def admin_process_overdue(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Processa faturas vencidas.
 
-    Suspende tenants com faturas vencidas ha mais de 30 dias.
+    Suspende tenants com faturas vencidas ha mais de 30 dias - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -572,12 +584,15 @@ async def admin_process_overdue(
 @admin_router.post("/invoices/{invoice_id}/finalize")
 async def admin_finalize_invoice(
     invoice_id: str = Path(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
-    Finaliza uma fatura (draft -> pending).
+    Finaliza uma fatura (draft -> pending) - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -594,12 +609,15 @@ async def admin_mark_invoice_paid(
     invoice_id: str = Path(...),
     payment_id: Optional[str] = Query(None),
     payment_method: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
-    Marca uma fatura como paga.
+    Marca uma fatura como paga - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -619,12 +637,15 @@ async def admin_mark_invoice_paid(
 async def admin_void_invoice(
     invoice_id: str = Path(...),
     reason: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
-    Anula uma fatura.
+    Anula uma fatura - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     invoice_service = InvoiceService(db)
 
@@ -643,12 +664,15 @@ async def admin_void_invoice(
 async def admin_get_tenant_usage(
     tenant_id: str = Path(...),
     month: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
-    Obtem uso detalhado de um tenant especifico.
+    Obtem uso detalhado de um tenant especifico - requer role ADMIN.
     """
-    # TODO: Adicionar verificacao de permissao de admin
+    # Issue #136: Verificar permissao de admin
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Acesso negado. Requer role ADMIN.")
 
     usage_service = UsageService(db)
 
