@@ -4109,6 +4109,210 @@ HTML_TEMPLATE = """
             }
         }
 
+        /* Issue #234: Animations and Micro-interactions */
+
+        /* Card Hover Effects */
+        .story-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .story-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+        .story-card:active {
+            transform: translateY(-1px);
+        }
+
+        /* Button Micro-interactions */
+        .btn-animate {
+            transition: transform 0.1s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-animate:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-animate:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Modal Animations */
+        .modal-animate-overlay {
+            animation: overlayFadeIn 0.2s ease-out;
+        }
+        .modal-animate-content {
+            animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes overlayFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Kanban Drag Feedback */
+        .story-card.dragging {
+            opacity: 0.85;
+            transform: rotate(2deg) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            cursor: grabbing;
+            z-index: 1000;
+        }
+        .kanban-column.drag-over {
+            background: rgba(255, 108, 0, 0.08);
+            border: 2px dashed #FF6C00;
+            transition: all 0.2s ease;
+        }
+        .story-card-placeholder {
+            border: 2px dashed #FF6C00;
+            background: rgba(255, 108, 0, 0.05);
+            border-radius: 8px;
+            min-height: 80px;
+            animation: pulseBorder 1.5s infinite;
+        }
+        @keyframes pulseBorder {
+            0%, 100% { border-color: #FF6C00; opacity: 1; }
+            50% { border-color: #FFA500; opacity: 0.6; }
+        }
+
+        /* Progress Animations */
+        .progress-bar {
+            transition: width 0.5s ease-out;
+        }
+        .progress-bar.complete {
+            animation: progressComplete 0.6s ease;
+        }
+        @keyframes progressComplete {
+            0% { background: #FF6C00; }
+            50% { background: #10B981; transform: scaleY(1.3); }
+            100% { background: #10B981; transform: scaleY(1); }
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        .ripple::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            opacity: 0;
+            transform: scale(0);
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            pointer-events: none;
+        }
+        .ripple:active::after {
+            transform: scale(2.5);
+            opacity: 1;
+            transition: 0s;
+        }
+
+        /* Slide animations */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideLeft {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideRight {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        .animate-slide-down { animation: slideDown 0.3s ease-out; }
+        .animate-slide-left { animation: slideLeft 0.3s ease-out; }
+        .animate-slide-right { animation: slideRight 0.3s ease-out; }
+
+        /* Pulse animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse { animation: pulse 2s infinite; }
+
+        /* Bounce animation */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .animate-bounce { animation: bounce 0.5s ease; }
+
+        /* Scale animation */
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+
+        /* Shake animation (for errors) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.5s ease; }
+
+        /* Success checkmark animation */
+        @keyframes checkmark {
+            0% { stroke-dashoffset: 100; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .checkmark-animate {
+            stroke-dasharray: 100;
+            animation: checkmark 0.5s ease-out forwards;
+        }
+
+        /* Notification badge bounce */
+        @keyframes badgeBounce {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .badge-animate { animation: badgeBounce 0.3s ease-out; }
+
+        /* Stagger animation for lists */
+        .stagger-item {
+            opacity: 0;
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+        .stagger-item:nth-child(1) { animation-delay: 0.05s; }
+        .stagger-item:nth-child(2) { animation-delay: 0.1s; }
+        .stagger-item:nth-child(3) { animation-delay: 0.15s; }
+        .stagger-item:nth-child(4) { animation-delay: 0.2s; }
+        .stagger-item:nth-child(5) { animation-delay: 0.25s; }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .story-card:hover {
+                transform: none;
+            }
+        }
+
         /* Search Box */
         .search-box {
             position: relative;
