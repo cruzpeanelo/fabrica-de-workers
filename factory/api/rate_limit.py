@@ -1,10 +1,15 @@
 """
-Rate Limiting Module v4.0 - Redis-based rate limiting
+Rate Limiting Module v4.1 - Redis-based rate limiting with in-memory fallback
 Fabrica de Agentes - Nova Arquitetura MVP
+
+Issue #141: Implementa fallback in-memory quando Redis não está disponível.
 """
 import os
+import time
+import threading
+from collections import defaultdict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, List
 
 from fastapi import HTTPException, Request, status
 from dotenv import load_dotenv
@@ -15,6 +20,105 @@ load_dotenv()
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", 100))
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", 60))  # segundos
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+
+# =============================================================================
+# Issue #141: In-Memory Rate Limiter Fallback
+# =============================================================================
+
+class InMemoryRateLimiter:
+    """
+    Rate limiter em memória para usar quando Redis não está disponível.
+
+    Issue #141: Previne DoS quando Redis cai.
+    Implementa sliding window usando timestamps.
+    """
+
+    def __init__(self, cleanup_interval: int = 60):
+        self._requests: Dict[str, List[float]] = defaultdict(list)
+        self._lock = threading.Lock()
+        self._cleanup_interval = cleanup_interval
+        self._last_cleanup = time.time()
+
+    def check_rate_limit(
+        self,
+        key: str,
+        limit: int,
+        window: int
+    ) -> tuple:
+        """
+        Verifica rate limit usando sliding window em memória.
+
+        Args:
+            key: Identificador da requisição
+            limit: Máximo de requisições
+            window: Janela em segundos
+
+        Returns:
+            tuple: (allowed, info_dict)
+        """
+        current_time = time.time()
+
+        with self._lock:
+            # Limpar requests antigos periodicamente
+            if current_time - self._last_cleanup > self._cleanup_interval:
+                self._cleanup_old_entries(window)
+                self._last_cleanup = current_time
+
+            # Limpar requests fora da janela para esta key
+            cutoff = current_time - window
+            self._requests[key] = [
+                ts for ts in self._requests[key] if ts > cutoff
+            ]
+
+            current_count = len(self._requests[key])
+
+            # Calcular reset time
+            if self._requests[key]:
+                oldest = min(self._requests[key])
+                reset = int(oldest + window - current_time)
+            else:
+                reset = window
+
+            info = {
+                "limit": limit,
+                "remaining": max(0, limit - current_count - 1),
+                "reset": max(0, reset),
+                "current": current_count + 1,
+                "backend": "memory"  # Indicar que está usando fallback
+            }
+
+            if current_count >= limit:
+                return False, info
+
+            # Registrar nova requisição
+            self._requests[key].append(current_time)
+            return True, info
+
+    def _cleanup_old_entries(self, window: int):
+        """Remove entradas antigas de todas as keys"""
+        cutoff = time.time() - window
+        keys_to_remove = []
+
+        for key in self._requests:
+            self._requests[key] = [
+                ts for ts in self._requests[key] if ts > cutoff
+            ]
+            if not self._requests[key]:
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            del self._requests[key]
+
+    def reset(self, key: str):
+        """Remove limite para uma chave"""
+        with self._lock:
+            if key in self._requests:
+                del self._requests[key]
+
+
+# Instância global do fallback
+_memory_limiter = InMemoryRateLimiter()
 
 
 class RateLimiter:
@@ -67,8 +171,8 @@ class RateLimiter:
 
         redis = await self._get_redis()
         if redis is None:
-            # Se Redis nao disponivel, permitir (fail open)
-            return True, {"limit": limit, "remaining": limit, "reset": 0}
+            # Issue #141: Usar fallback em memória quando Redis não disponível
+            return _memory_limiter.check_rate_limit(key, limit, window)
 
         redis_key = f"{self.KEY_PREFIX}{key}"
 
@@ -87,7 +191,8 @@ class RateLimiter:
                 "limit": limit,
                 "remaining": max(0, limit - current),
                 "reset": ttl,
-                "current": current
+                "current": current,
+                "backend": "redis"
             }
 
             if current > limit:
@@ -96,15 +201,21 @@ class RateLimiter:
             return True, info
 
         except Exception as e:
-            print(f"[RateLimit] Erro: {e}")
-            # Fail open em caso de erro
-            return True, {"limit": limit, "remaining": limit, "reset": 0}
+            print(f"[RateLimit] Redis erro, usando fallback em memória: {e}")
+            # Issue #141: Usar fallback em memória em caso de erro
+            return _memory_limiter.check_rate_limit(key, limit, window)
 
     async def reset(self, key: str):
         """Remove limite para uma chave"""
+        # Issue #141: Reset em ambos backends
+        _memory_limiter.reset(key)
+
         redis = await self._get_redis()
         if redis:
-            await redis.delete(f"{self.KEY_PREFIX}{key}")
+            try:
+                await redis.delete(f"{self.KEY_PREFIX}{key}")
+            except Exception as e:
+                print(f"[RateLimit] Erro ao resetar no Redis: {e}")
 
 
 # Instancia global
