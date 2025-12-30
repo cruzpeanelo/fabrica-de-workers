@@ -4259,11 +4259,11 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- MODAL: Analytics Dashboard (Issue #65) -->
+        <!-- MODAL: Analytics Dashboard (Issue #65 + Issue #157) -->
         <div v-if="showAnalyticsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showAnalyticsModal = false">
             <div class="bg-white rounded-lg w-[95vw] max-w-[1200px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
                 <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
-                    <div><h2 class="text-lg font-semibold">Analytics de Produtividade</h2><p class="text-sm text-blue-200">Metricas do time e insights</p></div>
+                    <div><h2 class="text-lg font-semibold">Analytics de Produtividade</h2><p class="text-sm text-blue-200">Metricas do time e insights com graficos</p></div>
                     <div class="flex items-center gap-4">
                         <select v-model="analyticsDays" @change="loadAnalytics" class="bg-white/10 text-white border border-white/20 rounded px-3 py-1 text-sm"><option value="7" class="text-gray-800">7 dias</option><option value="30" class="text-gray-800">30 dias</option><option value="90" class="text-gray-800">90 dias</option></select>
                         <button @click="showAnalyticsModal = false" class="text-white/70 hover:text-white text-xl">X</button>
@@ -4272,7 +4272,10 @@ HTML_TEMPLATE = """
                 <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);">
                     <div v-if="analyticsLoading" class="flex items-center justify-center py-12"><div class="spinner"></div><span class="ml-3">Carregando...</span></div>
                     <div v-else-if="analyticsData">
+                        <!-- Alerts -->
                         <div v-if="analyticsData.alerts?.length" class="mb-6"><div v-for="(alert, i) in analyticsData.alerts" :key="i" :class="['p-4 rounded-lg mb-2', alert.type === 'danger' ? 'bg-red-50' : alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50']"><h4 class="font-semibold">{{ alert.title }}</h4><p class="text-sm">{{ alert.message }}</p></div></div>
+
+                        <!-- KPI Cards -->
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                             <div class="bg-blue-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.total_stories || 0 }}</div><div class="text-xs opacity-80">Total Stories</div></div>
                             <div class="bg-green-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ analyticsData.team_metrics?.stories_completed || 0 }}</div><div class="text-xs opacity-80">Concluidas</div></div>
@@ -4281,8 +4284,77 @@ HTML_TEMPLATE = """
                             <div class="bg-cyan-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.avg_cycle_time_days || 0).toFixed(1) }}d</div><div class="text-xs opacity-80">Cycle Time</div></div>
                             <div class="bg-pink-500 rounded-xl p-4 text-white"><div class="text-2xl font-bold">{{ (analyticsData.team_metrics?.predictability_score || 0).toFixed(0) }}%</div><div class="text-xs opacity-80">Predictability</div></div>
                         </div>
-                        <div class="mb-6" v-if="analyticsData.top_contributors?.length"><h3 class="font-semibold mb-4">Top Contribuidores</h3><div class="space-y-2"><div v-for="(dev, i) in analyticsData.top_contributors" :key="dev.assignee" class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"><div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">{{ i + 1 }}</div><div class="flex-1"><div class="font-medium">{{ dev.assignee }}</div><div class="text-sm text-gray-500">{{ dev.stories_completed }}/{{ dev.stories_total }} stories</div></div><div class="text-green-600 font-bold">{{ dev.completion_rate }}%</div></div></div></div>
-                        <div v-if="analyticsInsights" class="bg-purple-50 rounded-lg p-6 border border-purple-200"><h3 class="font-semibold mb-2">AI Insights</h3><p class="text-gray-700 mb-4">{{ analyticsInsights.summary }}</p><div v-if="analyticsInsights.insights?.length" class="space-y-2"><div v-for="insight in analyticsInsights.insights" :key="insight.title" class="p-3 bg-white rounded-lg"><div class="font-medium">{{ insight.title }}</div><div class="text-sm text-gray-600">{{ insight.description }}</div></div></div></div>
+
+                        <!-- Charts Grid (Issue #157) -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <!-- Velocity History Chart -->
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <h3 class="font-semibold mb-4 text-gray-800">Velocity por Sprint</h3>
+                                <div class="h-[250px]">
+                                    <canvas id="velocity-chart"></canvas>
+                                </div>
+                                <div v-if="velocityHistory" class="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
+                                    <span>Media: <strong>{{ velocityHistory.avg_velocity }}</strong> pts/sprint</span>
+                                    <span :class="velocityHistory.trend === 'increasing' ? 'text-green-600' : velocityHistory.trend === 'decreasing' ? 'text-red-600' : 'text-gray-600'">
+                                        Tendencia: {{ velocityHistory.trend === 'increasing' ? '↑ Crescente' : velocityHistory.trend === 'decreasing' ? '↓ Decrescente' : '→ Estavel' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Status Distribution Chart -->
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <h3 class="font-semibold mb-4 text-gray-800">Distribuicao por Status</h3>
+                                <div class="h-[250px]">
+                                    <canvas id="status-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Developer Points Chart -->
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <h3 class="font-semibold mb-4 text-gray-800">Pontos por Desenvolvedor</h3>
+                                <div class="h-[250px]">
+                                    <canvas id="developer-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Completion Time Chart -->
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <h3 class="font-semibold mb-4 text-gray-800">Tempo Medio de Conclusao (dias)</h3>
+                                <div class="h-[250px]">
+                                    <canvas id="cycletime-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Contributors -->
+                        <div class="mb-6" v-if="analyticsData.top_contributors?.length">
+                            <h3 class="font-semibold mb-4">Top Contribuidores</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div v-for="(dev, i) in analyticsData.top_contributors" :key="dev.assignee" class="flex items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div :class="['w-10 h-10 rounded-full flex items-center justify-center text-white font-bold', i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-600' : 'bg-blue-500']">{{ i + 1 }}</div>
+                                    <div class="flex-1">
+                                        <div class="font-medium">{{ dev.assignee }}</div>
+                                        <div class="text-sm text-gray-500">{{ dev.stories_completed }}/{{ dev.stories_total }} stories | {{ dev.points_delivered }} pts</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-green-600 font-bold">{{ dev.completion_rate }}%</div>
+                                        <div class="text-xs text-gray-500">{{ dev.avg_time_days || 0 }}d avg</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Insights -->
+                        <div v-if="analyticsInsights" class="bg-purple-50 rounded-lg p-6 border border-purple-200">
+                            <h3 class="font-semibold mb-2">AI Insights</h3>
+                            <p class="text-gray-700 mb-4">{{ analyticsInsights.summary }}</p>
+                            <div v-if="analyticsInsights.insights?.length" class="space-y-2">
+                                <div v-for="insight in analyticsInsights.insights" :key="insight.title" class="p-3 bg-white rounded-lg">
+                                    <div class="font-medium">{{ insight.title }}</div>
+                                    <div class="text-sm text-gray-600">{{ insight.description }}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div v-else class="text-center py-12 text-gray-500">Selecione um projeto para ver as metricas.</div>
                 </div>
@@ -6648,6 +6720,13 @@ HTML_TEMPLATE = """
             const analyticsInsights = ref(null);
             const analyticsLoading = ref(false);
             const analyticsDays = ref(30);
+
+            // Issue #157: Analytics Charts
+            const velocityHistory = ref(null);
+            let velocityChart = null;
+            let statusChart = null;
+            let developerChart = null;
+            let cycletimeChart = null;
 
             // ========== TENANT SELECTOR (Multi-Tenancy) ==========
             const userTenants = ref([]);
@@ -9270,25 +9349,155 @@ Process ${data.status}`);
             };
             // ==================== END PROJECT PREVIEW DASHBOARD ====================
 
-            // Load Analytics (Issue #65)
+            // Load Analytics (Issue #65 + Issue #157)
             const loadAnalytics = async () => {
                 if (!selectedProjectId.value) return;
                 analyticsLoading.value = true;
                 analyticsInsights.value = null;
+                velocityHistory.value = null;
                 try {
-                    const [prodRes, insightsRes] = await Promise.all([
+                    const [prodRes, insightsRes, velocityRes] = await Promise.all([
                         fetch(`/api/analytics/productivity?project_id=${selectedProjectId.value}&days=${analyticsDays.value}`),
-                        fetch(`/api/analytics/insights?project_id=${selectedProjectId.value}`)
+                        fetch(`/api/analytics/insights?project_id=${selectedProjectId.value}`),
+                        fetch(`/api/analytics/velocity-history?project_id=${selectedProjectId.value}`)
                     ]);
                     if (prodRes.ok) analyticsData.value = await prodRes.json();
                     if (insightsRes.ok) analyticsInsights.value = await insightsRes.json();
+                    if (velocityRes.ok) velocityHistory.value = await velocityRes.json();
+
+                    // Issue #157: Render charts after data loads
+                    nextTick(() => renderAnalyticsCharts());
                 } catch (e) { console.error('Analytics error:', e); }
                 finally { analyticsLoading.value = false; }
             };
 
+            // Issue #157: Render Analytics Charts
+            const renderAnalyticsCharts = () => {
+                if (!analyticsData.value) return;
+
+                // Destroy existing charts
+                if (velocityChart) velocityChart.destroy();
+                if (statusChart) statusChart.destroy();
+                if (developerChart) developerChart.destroy();
+                if (cycletimeChart) cycletimeChart.destroy();
+
+                // 1. Velocity History Chart (Line/Bar)
+                const velCanvas = document.getElementById('velocity-chart');
+                if (velCanvas && velocityHistory.value?.history?.length) {
+                    velocityChart = new Chart(velCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: velocityHistory.value.history.map(h => h.sprint_name || 'Sprint'),
+                            datasets: [{
+                                label: 'Velocity (pts)',
+                                data: velocityHistory.value.history.map(h => h.velocity || 0),
+                                backgroundColor: 'rgba(255, 108, 0, 0.7)',
+                                borderColor: '#FF6C00',
+                                borderWidth: 2
+                            }, {
+                                label: 'Capacidade',
+                                data: velocityHistory.value.history.map(h => h.capacity || 0),
+                                backgroundColor: 'rgba(0, 59, 74, 0.3)',
+                                borderColor: '#003B4A',
+                                borderWidth: 2,
+                                type: 'line'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+
+                // 2. Status Distribution Chart (Doughnut)
+                const statusCanvas = document.getElementById('status-chart');
+                const statusDist = analyticsData.value.team_metrics?.status_distribution || {};
+                if (statusCanvas && Object.keys(statusDist).length) {
+                    const statusLabels = { backlog: 'Backlog', ready: 'Ready', in_progress: 'Em Progresso', review: 'Review', testing: 'Testes', done: 'Concluido' };
+                    const statusColors = { backlog: '#6B7280', ready: '#3B82F6', in_progress: '#F59E0B', review: '#8B5CF6', testing: '#EC4899', done: '#10B981' };
+                    statusChart = new Chart(statusCanvas, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(statusDist).map(k => statusLabels[k] || k),
+                            datasets: [{
+                                data: Object.values(statusDist),
+                                backgroundColor: Object.keys(statusDist).map(k => statusColors[k] || '#6B7280')
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { position: 'right' } }
+                        }
+                    });
+                }
+
+                // 3. Developer Points Chart (Horizontal Bar)
+                const devCanvas = document.getElementById('developer-chart');
+                const devMetrics = analyticsData.value.developer_metrics || [];
+                if (devCanvas && devMetrics.length) {
+                    developerChart = new Chart(devCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: devMetrics.slice(0, 8).map(d => d.assignee),
+                            datasets: [{
+                                label: 'Pontos Entregues',
+                                data: devMetrics.slice(0, 8).map(d => d.points_delivered || 0),
+                                backgroundColor: '#10B981'
+                            }, {
+                                label: 'Pontos Pendentes',
+                                data: devMetrics.slice(0, 8).map(d => (d.points_total || 0) - (d.points_delivered || 0)),
+                                backgroundColor: '#E5E7EB'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: { x: { stacked: true, beginAtZero: true }, y: { stacked: true } }
+                        }
+                    });
+                }
+
+                // 4. Cycle Time Chart (Bar)
+                const cycleCanvas = document.getElementById('cycletime-chart');
+                if (cycleCanvas && devMetrics.length) {
+                    cycletimeChart = new Chart(cycleCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: devMetrics.filter(d => d.avg_time_days > 0).slice(0, 8).map(d => d.assignee),
+                            datasets: [{
+                                label: 'Tempo Medio (dias)',
+                                data: devMetrics.filter(d => d.avg_time_days > 0).slice(0, 8).map(d => d.avg_time_days || 0),
+                                backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                                borderColor: '#06B6D4',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            };
+
+            // Watch analytics modal to render charts
+            watch(showAnalyticsModal, (newVal) => {
+                if (newVal && analyticsData.value) {
+                    nextTick(() => renderAnalyticsCharts());
+                }
+            });
+
             return {
-                // Analytics (Issue #65)
-                showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics,
+                // Analytics (Issue #65 + Issue #157 Charts)
+                showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics, velocityHistory,
                 // Project Preview Dashboard (Issue #73)
                 showProjectPreview, previewData, previewActiveTab, previewViewportMode,
                 previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
