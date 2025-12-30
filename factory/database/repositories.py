@@ -2,6 +2,41 @@
 """
 Repositorios para acesso ao banco de dados - Fabrica de Agentes v4.0
 Arquitetura MVP Worker-based (Jobs + Workers + Claude Agent SDK)
+
+Issue #183 - Async-safe usage:
+===============================
+Os repositórios são síncronos e NÃO devem ser chamados diretamente
+de contextos async sem proteção, pois bloqueiam o event loop.
+
+Use `run_sync` ou `run_in_transaction` de `factory.database.connection`:
+
+    from factory.database.connection import run_in_transaction, SessionLocal
+    from factory.database.repositories import ProjectRepository
+
+    # Padrão 1: run_in_transaction (recomendado)
+    async def create_project_async(data: dict):
+        def _create(db):
+            repo = ProjectRepository(db)
+            return repo.create(data)
+        return await run_in_transaction(_create)
+
+    # Padrão 2: run_sync manual
+    async def get_project_async(project_id: str):
+        def _get():
+            db = SessionLocal()
+            try:
+                repo = ProjectRepository(db)
+                return repo.get_by_id(project_id)
+            finally:
+                db.close()
+        return await run_sync(_get)
+
+    # Padrão 3: Dependency Injection (para FastAPI endpoints)
+    # Use get_db() que é síncrono - OK em endpoints com Depends()
+    @app.get("/projects/{project_id}")
+    def get_project(project_id: str, db: Session = Depends(get_db)):
+        repo = ProjectRepository(db)
+        return repo.get_by_id(project_id)
 """
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any

@@ -256,6 +256,99 @@ async def check_db_health() -> dict:
     return health
 
 # ============================================
+# Async-safe sync operations - Issue #183
+# ============================================
+
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+from typing import TypeVar, Callable
+
+T = TypeVar('T')
+
+# Thread pool para operações síncronas
+_db_executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="db_sync_")
+
+
+async def run_sync(func: Callable[..., T], *args, **kwargs) -> T:
+    """
+    Issue #183: Executa função síncrona em thread pool para não bloquear event loop.
+
+    Use quando precisar chamar repositórios síncronos de contexto async.
+
+    Exemplo:
+        from factory.database.connection import run_sync, SessionLocal
+        from factory.database.repositories import ProjectRepository
+
+        async def get_project_async(project_id: str):
+            def _get():
+                db = SessionLocal()
+                try:
+                    repo = ProjectRepository(db)
+                    return repo.get_by_id(project_id)
+                finally:
+                    db.close()
+
+            return await run_sync(_get)
+
+    Args:
+        func: Função síncrona a executar
+        *args, **kwargs: Argumentos para a função
+
+    Returns:
+        Resultado da função
+    """
+    loop = asyncio.get_running_loop()
+    if args or kwargs:
+        func = partial(func, *args, **kwargs)
+    return await loop.run_in_executor(_db_executor, func)
+
+
+async def run_in_transaction(func: Callable[[Session], T]) -> T:
+    """
+    Issue #183: Executa função com sessão em transação, de forma async-safe.
+
+    A sessão é passada como primeiro argumento da função.
+    Commit automático no sucesso, rollback em exceção.
+
+    Exemplo:
+        from factory.database.connection import run_in_transaction
+        from factory.database.repositories import ProjectRepository
+
+        async def create_project_async(data: dict):
+            def _create(db: Session):
+                repo = ProjectRepository(db)
+                return repo.create(data)
+
+            return await run_in_transaction(_create)
+
+    Args:
+        func: Função que recebe Session como primeiro argumento
+
+    Returns:
+        Resultado da função
+    """
+    def _execute():
+        db = SessionLocal()
+        try:
+            result = func(db)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    return await run_sync(_execute)
+
+
+def shutdown_db_executor():
+    """Encerra o executor de threads do banco de dados"""
+    _db_executor.shutdown(wait=True)
+
+
+# ============================================
 # Aliases para compatibilidade
 # ============================================
 
