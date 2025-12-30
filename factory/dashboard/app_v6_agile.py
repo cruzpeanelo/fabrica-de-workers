@@ -9930,6 +9930,8 @@ HTML_TEMPLATE = """
             const selectedSprintId = ref('');
             const selectedEpicId = ref('');
             const storyBoard = ref({});
+            // Issue #294: Define explicit column order for Kanban board
+            const kanbanStatuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
             const epics = ref([]);
             const sprints = ref([]);
             const selectedStory = ref(null);
