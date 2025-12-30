@@ -12,6 +12,7 @@ Bem-vindo à documentação completa da **Fábrica de Agentes v7.0**!
 |-----------|-----------|---------|
 | [VISAO_NEGOCIOS.md](VISAO_NEGOCIOS.md) | **Visão para Negócios** - ROI, benefícios, casos de sucesso | Executivos, Clientes |
 | [TECHNICAL_OVERVIEW.md](TECHNICAL_OVERVIEW.md) | **Visão Técnica Completa** - Arquitetura, módulos, APIs | TI, Desenvolvedores |
+| [FUNCIONALIDADES_POR_PERFIL.md](FUNCIONALIDADES_POR_PERFIL.md) | **Por Perfil** - 9 personas com dashboards e permissões distintas | Todos |
 | [FEATURES.md](FEATURES.md) | **Funcionalidades** - Catálogo completo de features | Todos |
 | [ROADMAP.md](ROADMAP.md) | **Roadmap** - Planejamento futuro (Negócio + Técnico) | Todos |
 
