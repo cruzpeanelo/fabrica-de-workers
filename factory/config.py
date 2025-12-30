@@ -439,3 +439,129 @@ def get_database_url() -> str:
     if "postgresql" not in DATABASE_URL and not os.getenv("DATABASE_URL"):
         return f"sqlite:///{FACTORY_DB}"
     return DATABASE_URL
+
+
+# =============================================================================
+# ENVIRONMENT VALIDATION - Issue #171
+# =============================================================================
+
+class ConfigValidationError(Exception):
+    """Erro de validação de configuração"""
+    pass
+
+
+# Variáveis obrigatórias por ambiente
+REQUIRED_ENV_VARS = {
+    "production": [
+        ("ANTHROPIC_API_KEY", "Chave de API da Anthropic"),
+        ("JWT_SECRET_KEY", "Chave secreta para JWT (gerar com: python -c \"import secrets; print(secrets.token_urlsafe(32))\")"),
+        ("DATABASE_URL", "URL de conexão PostgreSQL"),
+    ],
+    "development": [
+        # Em desenvolvimento, apenas API key é obrigatória se usar Claude
+    ]
+}
+
+# Variáveis recomendadas (warning se ausentes)
+RECOMMENDED_ENV_VARS = [
+    ("REDIS_URL", "URL do Redis para filas e cache"),
+    ("JWT_SECRET_KEY", "Chave secreta para JWT"),
+]
+
+
+def validate_environment(raise_on_error: bool = False) -> dict:
+    """
+    Valida variáveis de ambiente no startup - Issue #171
+
+    Args:
+        raise_on_error: Se True, levanta exceção em caso de erro
+
+    Returns:
+        Dict com status da validação:
+        {
+            "valid": bool,
+            "errors": list[str],
+            "warnings": list[str],
+            "environment": str
+        }
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    result = {
+        "valid": True,
+        "errors": [],
+        "warnings": [],
+        "environment": "production" if is_production() else "development"
+    }
+
+    env = result["environment"]
+
+    # Validar variáveis obrigatórias
+    for var_name, description in REQUIRED_ENV_VARS.get(env, []):
+        value = os.getenv(var_name, "")
+        if not value:
+            error_msg = f"Variável obrigatória ausente: {var_name} - {description}"
+            result["errors"].append(error_msg)
+            result["valid"] = False
+            logger.error(f"[CONFIG] {error_msg}")
+
+    # Validar variáveis recomendadas
+    for var_name, description in RECOMMENDED_ENV_VARS:
+        value = os.getenv(var_name, "")
+        if not value:
+            warning_msg = f"Variável recomendada ausente: {var_name} - {description}"
+            result["warnings"].append(warning_msg)
+            logger.warning(f"[CONFIG] {warning_msg}")
+
+    # Validações específicas
+    if ANTHROPIC_API_KEY and not ANTHROPIC_API_KEY.startswith("sk-ant-"):
+        warning_msg = "ANTHROPIC_API_KEY não parece ser uma chave válida (deve começar com 'sk-ant-')"
+        result["warnings"].append(warning_msg)
+        logger.warning(f"[CONFIG] {warning_msg}")
+
+    if JWT_SECRET_KEY and len(JWT_SECRET_KEY) < 32:
+        warning_msg = "JWT_SECRET_KEY é muito curta (recomendado: 32+ caracteres)"
+        result["warnings"].append(warning_msg)
+        logger.warning(f"[CONFIG] {warning_msg}")
+
+    # Log resultado
+    if result["valid"]:
+        logger.info(f"[CONFIG] Validação concluída: ambiente={env}, warnings={len(result['warnings'])}")
+    else:
+        logger.error(f"[CONFIG] Validação falhou: {len(result['errors'])} erros, {len(result['warnings'])} warnings")
+
+    if raise_on_error and not result["valid"]:
+        raise ConfigValidationError(
+            f"Configuração inválida: {', '.join(result['errors'])}"
+        )
+
+    return result
+
+
+def print_config_status():
+    """Imprime status da configuração para debug"""
+    result = validate_environment()
+    env = result["environment"]
+
+    print(f"\n{'='*60}")
+    print(f"FÁBRICA DE AGENTES - Configuração ({env.upper()})")
+    print(f"{'='*60}")
+
+    print(f"\n📦 Database: {'PostgreSQL' if 'postgresql' in DATABASE_URL else 'SQLite'}")
+    print(f"🔧 Redis: {REDIS_URL}")
+    print(f"🤖 LLM Provider: {LLM_PROVIDER}")
+    print(f"🔐 JWT Configured: {'✓' if JWT_SECRET_KEY else '✗'}")
+    print(f"🔑 API Key Configured: {'✓' if ANTHROPIC_API_KEY else '✗'}")
+
+    if result["warnings"]:
+        print(f"\n⚠️  Warnings ({len(result['warnings'])}):")
+        for w in result["warnings"]:
+            print(f"   - {w}")
+
+    if result["errors"]:
+        print(f"\n❌ Errors ({len(result['errors'])}):")
+        for e in result["errors"]:
+            print(f"   - {e}")
+
+    print(f"\n{'='*60}\n")
