@@ -168,6 +168,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
     """
 
     # Paths that skip authorization (public + auth)
+    # Issue #371: Added login/register/forgot-password to prevent auth loop
     SKIP_PATHS = [
         "/health",
         "/docs",
@@ -182,6 +183,14 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         "/ws",
         "/api/personas",  # Personas info is public
         "/",  # Root dashboard
+        # Issue #371: Public auth pages
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/verify-email",
+        "/mfa",
+        "/api/docs",
     ]
 
     def __init__(

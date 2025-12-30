@@ -142,6 +142,7 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
     """
 
     # Paths that don't require tenant/authentication
+    # Issue #371: Added HTML auth pages to prevent auth loop
     PUBLIC_PATHS = [
         "/health",
         "/docs",
@@ -151,10 +152,21 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/login",
         "/api/v1/auth/register",
         "/api/v1/auth/forgot-password",
+        "/api/auth/login",
+        "/api/auth/register",
         "/api/webhooks",
         "/static",
         "/favicon.ico",
         "/ws",
+        # Issue #371: HTML auth pages
+        "/",
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/verify-email",
+        "/mfa",
+        "/api/docs",
     ]
 
     # Admin roles that can switch tenants

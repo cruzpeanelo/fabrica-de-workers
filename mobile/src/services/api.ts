@@ -52,8 +52,18 @@ export interface Story {
   priority: string;
   story_points: number;
   progress: number;
-  tasks_count?: number;
+  // Campos adicionais para fidelidade com dashboard web
+  tasks_total?: number;
   tasks_completed?: number;
+  epic_id?: string;
+  epic_name?: string;
+  sprint_id?: string;
+  assignee?: string;
+  complexity?: string;
+  acceptance_criteria?: string[];
+  definition_of_done?: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const storiesApi = {
@@ -170,6 +180,55 @@ export const chatApi = {
     const params = storyId ? `?story_id=${storyId}` : '';
     const response = await api.get(`/api/chat/history${params}`);
     return response.data.messages || response.data;
+  },
+};
+
+// =============================================================================
+// EPICS API
+// =============================================================================
+
+export interface Epic {
+  epic_id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  stories_count?: number;
+}
+
+export const epicsApi = {
+  list: async (projectId: string = 'default'): Promise<Epic[]> => {
+    const response = await api.get(`/api/projects/${projectId}/epics`);
+    return response.data.epics || response.data;
+  },
+
+  get: async (epicId: string): Promise<Epic> => {
+    const response = await api.get(`/api/epics/${epicId}`);
+    return response.data;
+  },
+};
+
+// =============================================================================
+// SPRINTS API
+// =============================================================================
+
+export interface Sprint {
+  sprint_id: string;
+  name: string;
+  start_date?: string;
+  end_date?: string;
+  status?: string;
+  goal?: string;
+}
+
+export const sprintsApi = {
+  list: async (projectId: string = 'default'): Promise<Sprint[]> => {
+    const response = await api.get(`/api/projects/${projectId}/sprints`);
+    return response.data.sprints || response.data;
+  },
+
+  get: async (sprintId: string): Promise<Sprint> => {
+    const response = await api.get(`/api/sprints/${sprintId}`);
+    return response.data;
   },
 };
 
