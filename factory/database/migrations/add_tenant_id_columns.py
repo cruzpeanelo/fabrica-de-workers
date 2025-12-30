@@ -35,7 +35,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from sqlalchemy import text, inspect
-from factory.database.connection import get_engine
+from factory.database.connection import sync_engine
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -154,8 +154,7 @@ def add_tenant_id_index(conn, table_name: str, db_type: str) -> bool:
 
 def check_only():
     """Apenas verifica o estado atual sem fazer alteracoes"""
-    engine = get_engine()
-    db_type = get_database_type(engine)
+    db_type = get_database_type(sync_engine)
 
     logger.info(f"Database type: {db_type}")
     logger.info("Verificando tabelas...")
@@ -163,7 +162,7 @@ def check_only():
     missing = []
     existing = []
 
-    with engine.connect() as conn:
+    with sync_engine.connect() as conn:
         for table in TABLES_WITH_TENANT_ID:
             if not table_exists(conn, table, db_type):
                 logger.info(f"  {table}: TABELA NAO EXISTE")
@@ -186,8 +185,7 @@ def check_only():
 
 def upgrade():
     """Adiciona tenant_id em todas as tabelas necessarias"""
-    engine = get_engine()
-    db_type = get_database_type(engine)
+    db_type = get_database_type(sync_engine)
 
     logger.info(f"Database type: {db_type}")
     logger.info("Iniciando migracao para adicionar tenant_id...")
@@ -196,7 +194,7 @@ def upgrade():
     skipped = 0
     errors = 0
 
-    with engine.connect() as conn:
+    with sync_engine.connect() as conn:
         for table in TABLES_WITH_TENANT_ID:
             if not table_exists(conn, table, db_type):
                 logger.info(f"Tabela {table} nao existe, pulando...")
