@@ -18,6 +18,8 @@ from .base import IntegrationBase, IntegrationStatus, SyncResult
 # Project Management
 from .jira_integration import JiraIntegration
 from .jira.config import JiraConfig
+
+# Azure DevOps - importa do diretorio que re-exporta do arquivo principal
 from .azure_devops import AzureDevOpsIntegration, AzureDevOpsConfig
 
 # Version Control

@@ -60,10 +60,12 @@ class SyncResult:
 @dataclass
 class IntegrationConfig:
     """Configuracao base para integracoes"""
+    tenant_id: str = ""  # ID do tenant para isolamento multi-tenant
     enabled: bool = False
     last_sync: Optional[datetime] = None
     sync_interval_minutes: int = 30
     auto_sync: bool = False
+    api_version: str = ""  # Versao da API (quando aplicavel)
 
 
 class IntegrationBase(ABC):

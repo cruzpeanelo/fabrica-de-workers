@@ -24,13 +24,11 @@ class TestSalesforceConfig:
 
     def test_config_creation(self, salesforce_config, tenant_id):
         """Testa criação de configuração"""
-        from factory.integrations.salesforce_connector import SalesforceConfig
+        from factory.integrations.salesforce import SalesforceConfig
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
             password=salesforce_config["password"]
         )
@@ -40,13 +38,11 @@ class TestSalesforceConfig:
 
     def test_config_with_security_token(self, salesforce_config, tenant_id):
         """Testa configuração com security token"""
-        from factory.integrations.salesforce_connector import SalesforceConfig
+        from factory.integrations.salesforce import SalesforceConfig
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
             password=salesforce_config["password"],
             security_token=salesforce_config["security_token"]
@@ -61,15 +57,15 @@ class TestSalesforceConnector:
     @pytest.fixture
     def sf_instance(self, salesforce_config, tenant_id):
         """Cria instância de SalesforceConnector"""
-        from factory.integrations.salesforce_connector import SalesforceConfig, SalesforceConnector
+        from factory.integrations.salesforce import SalesforceConfig
+        from factory.integrations.salesforce_connector import SalesforceConnector
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
-            password=salesforce_config["password"]
+            password=salesforce_config["password"],
+            security_token=salesforce_config["security_token"]
         )
         return SalesforceConnector(config)
 
@@ -110,15 +106,15 @@ class TestSalesforceObjects:
     @pytest.fixture
     def sf_instance(self, salesforce_config, tenant_id):
         """Cria instância de SalesforceConnector"""
-        from factory.integrations.salesforce_connector import SalesforceConfig, SalesforceConnector
+        from factory.integrations.salesforce import SalesforceConfig
+        from factory.integrations.salesforce_connector import SalesforceConnector
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
-            password=salesforce_config["password"]
+            password=salesforce_config["password"],
+            security_token=salesforce_config["security_token"]
         )
         connector = SalesforceConnector(config)
         connector._access_token = "mock-token"  # Simula autenticação
@@ -178,15 +174,15 @@ class TestSalesforceSOQL:
     @pytest.fixture
     def sf_instance(self, salesforce_config, tenant_id):
         """Cria instância de SalesforceConnector"""
-        from factory.integrations.salesforce_connector import SalesforceConfig, SalesforceConnector
+        from factory.integrations.salesforce import SalesforceConfig
+        from factory.integrations.salesforce_connector import SalesforceConnector
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
-            password=salesforce_config["password"]
+            password=salesforce_config["password"],
+            security_token=salesforce_config["security_token"]
         )
         connector = SalesforceConnector(config)
         connector._access_token = "mock-token"
@@ -239,15 +235,15 @@ class TestSalesforceBulkAPI:
     @pytest.fixture
     def sf_instance(self, salesforce_config, tenant_id):
         """Cria instância de SalesforceConnector"""
-        from factory.integrations.salesforce_connector import SalesforceConfig, SalesforceConnector
+        from factory.integrations.salesforce import SalesforceConfig
+        from factory.integrations.salesforce_connector import SalesforceConnector
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
-            password=salesforce_config["password"]
+            password=salesforce_config["password"],
+            security_token=salesforce_config["security_token"]
         )
         connector = SalesforceConnector(config)
         connector._access_token = "mock-token"
@@ -294,15 +290,15 @@ class TestSalesforceAudit:
     @pytest.fixture
     def sf_instance(self, salesforce_config, tenant_id):
         """Cria instância de SalesforceConnector"""
-        from factory.integrations.salesforce_connector import SalesforceConfig, SalesforceConnector
+        from factory.integrations.salesforce import SalesforceConfig
+        from factory.integrations.salesforce_connector import SalesforceConnector
 
         config = SalesforceConfig(
             tenant_id=tenant_id,
             instance_url=salesforce_config["instance_url"],
-            client_id=salesforce_config["client_id"],
-            client_secret=salesforce_config["client_secret"],
             username=salesforce_config["username"],
-            password=salesforce_config["password"]
+            password=salesforce_config["password"],
+            security_token=salesforce_config["security_token"]
         )
         return SalesforceConnector(config)
 
