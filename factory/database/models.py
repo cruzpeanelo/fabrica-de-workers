@@ -981,11 +981,17 @@ class StoryTask(Base):
     """
     Modelo para Tarefas de uma Story
     Subtarefas que compoem o trabalho da Story
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "story_tasks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com story
     story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
@@ -1039,6 +1045,7 @@ class StoryTask(Base):
     def to_dict(self):
         return {
             "task_id": self.task_id,
+            "tenant_id": self.tenant_id,
             "story_id": self.story_id,
             "title": self.title,
             "description": self.description,
@@ -1084,11 +1091,17 @@ class StoryDocumentation(Base):
     """
     Modelo para Documentacao de Stories/Tasks
     Armazena o que foi feito, como testar, documentacao para usuario
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "story_documentation"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     doc_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamentos
     story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=False, index=True)
@@ -1128,6 +1141,7 @@ class StoryDocumentation(Base):
     def to_dict(self):
         return {
             "doc_id": self.doc_id,
+            "tenant_id": self.tenant_id,
             "story_id": self.story_id,
             "task_id": self.task_id,
             "doc_type": self.doc_type,
@@ -1167,11 +1181,17 @@ class StoryDesign(Base):
     """
     Modelo para Designs de Stories
     Armazena mockups, wireframes, diagramas de arquitetura (Draw.io)
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "story_designs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     design_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamentos
     story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=True, index=True)
@@ -1208,6 +1228,7 @@ class StoryDesign(Base):
     def to_dict(self):
         return {
             "design_id": self.design_id,
+            "tenant_id": self.tenant_id,
             "story_id": self.story_id,
             "project_id": self.project_id,
             "design_type": self.design_type,
@@ -1243,11 +1264,17 @@ class ChatMessage(Base):
     """
     Modelo para Mensagens do Chat do Assistente
     Permite interacao com IA para editar stories, tirar duvidas, etc.
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     message_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Contexto (opcional)
     project_id = Column(String(50), nullable=True, index=True)
@@ -1272,6 +1299,7 @@ class ChatMessage(Base):
     def to_dict(self):
         return {
             "message_id": self.message_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "story_id": self.story_id,
             "role": self.role,
@@ -1294,11 +1322,17 @@ class Attachment(Base):
     """
     Modelo para Arquivos Anexados
     Pode ser anexado a stories, tasks ou mensagens de chat
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "attachments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     attachment_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamentos (um dos tres)
     story_id = Column(String(50), ForeignKey("stories.story_id"), nullable=True, index=True)
@@ -1325,6 +1359,7 @@ class Attachment(Base):
     def to_dict(self):
         return {
             "attachment_id": self.attachment_id,
+            "tenant_id": self.tenant_id,
             "story_id": self.story_id,
             "task_id": self.task_id,
             "chat_message_id": self.chat_message_id,
@@ -1350,11 +1385,17 @@ class Epic(Base):
     """
     Modelo para Epicos
     Agrupamento de Stories relacionadas
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "epics"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     epic_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
@@ -1374,6 +1415,7 @@ class Epic(Base):
     def to_dict(self):
         return {
             "epic_id": self.epic_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "title": self.title,
             "description": self.description,
@@ -1395,11 +1437,17 @@ class Sprint(Base):
     """
     Modelo para Sprints
     Periodo de trabalho com stories atribuidas
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "sprints"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sprint_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Relacionamento com projeto
     project_id = Column(String(50), ForeignKey("projects.project_id"), nullable=False, index=True)
@@ -1426,6 +1474,7 @@ class Sprint(Base):
     def to_dict(self):
         return {
             "sprint_id": self.sprint_id,
+            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "name": self.name,
             "goal": self.goal,
@@ -1457,11 +1506,18 @@ class ExecutionStatus(str, Enum):
 class ExecutionLog(Base):
     """
     Modelo para Logs de Execucao - Permite replay e debug de tarefas executadas
+
+    Multi-Tenancy (Issue #149):
+    - tenant_id para isolamento de dados
     """
     __tablename__ = "execution_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     execution_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #149)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
     task_id = Column(String(50), ForeignKey("story_tasks.task_id"), nullable=True, index=True)
     story_id = Column(String(50), nullable=True, index=True)
     project_id = Column(String(50), nullable=True, index=True)
@@ -1490,7 +1546,7 @@ class ExecutionLog(Base):
 
     def to_dict(self):
         return {
-            "execution_id": self.execution_id, "task_id": self.task_id,
+            "execution_id": self.execution_id, "tenant_id": self.tenant_id, "task_id": self.task_id,
             "story_id": self.story_id, "project_id": self.project_id,
             "job_id": self.job_id, "status": self.status,
             "started_at": self.started_at.isoformat() if self.started_at else None,
