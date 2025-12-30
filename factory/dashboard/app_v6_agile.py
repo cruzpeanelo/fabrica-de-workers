@@ -306,6 +306,27 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Lazy Loading not available: {e}")
 
+# GraphQL API (Issue #268)
+try:
+    from factory.dashboard.graphql_api import register_graphql_api
+    register_graphql_api(app)
+except ImportError as e:
+    print(f"[Dashboard] GraphQL API not available: {e}")
+
+# Agile Metrics Dashboard (Issue #258)
+try:
+    from factory.dashboard.agile_metrics import register_agile_metrics
+    register_agile_metrics(app)
+except ImportError as e:
+    print(f"[Dashboard] Agile Metrics not available: {e}")
+
+# Story Templates (Issue #254)
+try:
+    from factory.dashboard.story_templates import register_story_templates
+    register_story_templates(app)
+except ImportError as e:
+    print(f"[Dashboard] Story Templates not available: {e}")
+
 # =============================================================================
 # MULTI-TENANT PLATFORM ROUTES (Issues #286-#293 - Terminal 4)
 # =============================================================================
@@ -341,6 +362,22 @@ try:
     print("[Dashboard] Personas API loaded: /api/personas")
 except ImportError as e:
     print(f"[Dashboard] Personas API not available: {e}")
+
+# Platform Portal Pages (Issue #287 - Super Admin UI)
+try:
+    from factory.dashboard.platform_portal import register_platform_portal
+    register_platform_portal(app)
+    print("[Dashboard] Platform Portal pages loaded: /platform/*")
+except ImportError as e:
+    print(f"[Dashboard] Platform Portal pages not available: {e}")
+
+# Tenant Admin Portal Pages (Issue #288 - Tenant Admin UI)
+try:
+    from factory.dashboard.tenant_admin_portal import register_tenant_admin_portal
+    register_tenant_admin_portal(app)
+    print("[Dashboard] Tenant Admin Portal pages loaded: /tenant-admin/*")
+except ImportError as e:
+    print(f"[Dashboard] Tenant Admin Portal pages not available: {e}")
 
 
 # =============================================================================
@@ -10000,6 +10037,10 @@ HTML_TEMPLATE = """
             const loadProjects = async () => {
                 const res = await fetch('/api/projects');
                 projects.value = await res.json();
+                // Issue #294: Auto-select first project if none selected
+                if (!selectedProjectId.value && projects.value.length > 0) {
+                    selectedProjectId.value = projects.value[0].project_id;
+                }
             };
 
             const loadProjectData = async () => {
@@ -11520,6 +11561,8 @@ Process ${data.status}`);
             };
 
             watch(selectedProjectId, () => {
+                // Issue #294: Load project data when project changes
+                loadProjectData();
                 loadChatHistory();
                 // Issue #132 - Mark onboarding step done
                 if (selectedProjectId.value) {
