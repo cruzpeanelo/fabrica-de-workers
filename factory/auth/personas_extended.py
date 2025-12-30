@@ -7,6 +7,22 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from enum import Enum
 
+# Issue #178: Valid permission resources and actions
+VALID_RESOURCES = [
+    "projects", "stories", "tasks", "epics", "sprints",
+    "documentation", "designs", "users", "roles", "workers",
+    "jobs", "chat", "settings", "audit",
+    # Extended resources for custom personas
+    "code", "reports", "metrics", "analytics", "billing",
+    "tenants", "integrations", "webhooks", "api_keys",
+    "*"  # Wildcard for all resources
+]
+
+VALID_ACTIONS = [
+    "create", "read", "update", "delete", "manage",
+    "execute", "assign", "*"
+]
+
 
 class PermissionScope(str, Enum):
     GLOBAL = "global"
@@ -60,17 +76,61 @@ class CustomPersona:
 
 
 class PersonaBuilder:
+    """Builder para criação de personas customizadas"""
+
     def __init__(self, id: str, name: str):
         self._persona = CustomPersona(id=id, name=name, description="")
 
-    def with_description(self, desc: str): self._persona.description = desc; return self
-    def with_level(self, level: int): self._persona.level = level; return self
-    def with_dashboard(self, dash: str): self._persona.dashboard_type = dash; return self
-    def with_parent(self, parent_id: str): self._persona.parent_persona_id = parent_id; return self
-    def with_permission(self, resource: str, action: str): self._persona.add_permission(resource, action); return self
-    def with_feature(self, feature: str): self._persona.features.append(feature); return self
-    def for_tenant(self, tenant_id: str): self._persona.tenant_id = tenant_id; return self
-    def build(self) -> CustomPersona: return self._persona
+    def with_description(self, desc: str):
+        self._persona.description = desc
+        return self
+
+    def with_level(self, level: int):
+        self._persona.level = level
+        return self
+
+    def with_dashboard(self, dash: str):
+        self._persona.dashboard_type = dash
+        return self
+
+    def with_parent(self, parent_id: str):
+        self._persona.parent_persona_id = parent_id
+        return self
+
+    def with_permission(self, resource: str, action: str):
+        """
+        Adiciona permissão validando formato - Issue #178
+
+        Args:
+            resource: recurso (projects, stories, tasks, etc. ou *)
+            action: ação (create, read, update, delete, manage, execute, assign ou *)
+
+        Raises:
+            ValueError: se resource ou action for inválido
+        """
+        if resource not in VALID_RESOURCES:
+            raise ValueError(
+                f"Invalid resource: '{resource}'. "
+                f"Valid resources: {', '.join(VALID_RESOURCES)}"
+            )
+        if action not in VALID_ACTIONS:
+            raise ValueError(
+                f"Invalid action: '{action}'. "
+                f"Valid actions: {', '.join(VALID_ACTIONS)}"
+            )
+        self._persona.add_permission(resource, action)
+        return self
+
+    def with_feature(self, feature: str):
+        self._persona.features.append(feature)
+        return self
+
+    def for_tenant(self, tenant_id: str):
+        self._persona.tenant_id = tenant_id
+        return self
+
+    def build(self) -> CustomPersona:
+        return self._persona
 
 
 class PermissionInheritanceResolver:
