@@ -49,7 +49,8 @@ from factory.database.models import (
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
     TaskPriority,
-    Tenant, TenantMember
+    Tenant, TenantMember,
+    KanbanPolicy, WipPolicyType  # Issue #237 - WIP Limits
 )
 from factory.database.repositories import (
     ProjectRepository, ActivityLogRepository,
@@ -176,6 +177,14 @@ try:
     print("[Dashboard] Portal API routers loaded")
 except ImportError as e:
     print(f"[Dashboard] Portal API routers not available: {e}")
+
+# Kanban WIP Limits Routes (Issue #237)
+try:
+    from factory.api.kanban_routes import router as kanban_router
+    app.include_router(kanban_router)
+    print("[Dashboard] Kanban WIP Limits router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Kanban WIP Limits router not available: {e}")
 
 # Worker Monitoring Dashboard (Issue #88)
 try:
@@ -846,16 +855,96 @@ def delete_story(story_id: str):
         db.close()
 
 
+def validate_wip_limit(db, story: Story, to_status: str) -> dict:
+    """
+    Valida WIP limit antes de mover story - Issue #237
+
+    Returns:
+        dict com keys: allowed, warning, message
+    """
+    # Limites padrao
+    default_limits = {
+        "ready": 10,
+        "in_progress": 5,
+        "review": 3,
+        "testing": 5
+    }
+
+    # Buscar politica do projeto
+    policy = db.query(KanbanPolicy).filter(
+        KanbanPolicy.project_id == story.project_id
+    ).first()
+
+    wip_limits = policy.wip_limits if policy else default_limits
+    wip_policy = policy.wip_policy if policy else "soft"
+
+    limit = wip_limits.get(to_status) if wip_limits else default_limits.get(to_status)
+
+    # Sem limite definido
+    if not limit:
+        return {"allowed": True, "warning": False, "message": None}
+
+    # Contar stories no status de destino (excluindo a atual se ja estiver la)
+    count = db.query(Story).filter(
+        Story.project_id == story.project_id,
+        Story.status == to_status,
+        Story.is_deleted == False,
+        Story.story_id != story.story_id
+    ).count()
+
+    # Verificar limite
+    if count >= limit:
+        if wip_policy == WipPolicyType.HARD.value:
+            return {
+                "allowed": False,
+                "warning": True,
+                "message": f"Coluna {to_status} esta no limite ({count}/{limit}). Finalize items antes de adicionar mais."
+            }
+        else:
+            return {
+                "allowed": True,
+                "warning": True,
+                "message": f"WIP limit excedido em {to_status} ({count}/{limit})"
+            }
+
+    return {"allowed": True, "warning": False, "message": None}
+
+
 @app.patch("/api/stories/{story_id}/move")
-def move_story(story_id: str, move: StoryMove):
-    """Move story no Kanban"""
+def move_story(story_id: str, move: StoryMove, force: bool = Query(False, description="Forcar movimentacao mesmo com WIP excedido")):
+    """Move story no Kanban com validacao de WIP - Issue #237"""
     db = SessionLocal()
     try:
         repo = StoryRepository(db)
+
+        # Buscar story atual
+        story = db.query(Story).filter(Story.story_id == story_id).first()
+        if not story:
+            raise HTTPException(404, "Story not found")
+
+        # Validar WIP limit (Issue #237)
+        wip_result = validate_wip_limit(db, story, move.status)
+        if not wip_result["allowed"] and not force:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "wip_limit_exceeded",
+                    "message": wip_result["message"],
+                    "can_force": True
+                }
+            )
+
+        # Mover a story
         story = repo.move_story(story_id, move.status, move.order)
         if not story:
             raise HTTPException(404, "Story not found")
+
         result = story.to_dict()
+
+        # Adicionar warning se aplicavel
+        if wip_result["warning"]:
+            result["wip_warning"] = wip_result["message"]
+
         notify("story_moved", {"story_id": result.get("story_id"), "title": result.get("title"), "to": move.status})
         return result
     finally:
@@ -5899,9 +5988,10 @@ HTML_TEMPLATE = """
                             </button>
                         </div>
 
-                        <!-- Nova Story (Issue #308: use method for better Vue reactivity) -->
-                        <button @click="openNewStoryModal"
-                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition">
+                        <!-- Nova Story (Issue #308: Fixed - explicit function call with parentheses) -->
+                        <button @click="openNewStoryModal()"
+                                class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition"
+                                data-testid="btn-nova-story">
                             + Nova {{ translateTerm('story') }}
                         </button>
                     </div>
@@ -7026,16 +7116,41 @@ HTML_TEMPLATE = """
                         <!-- Colunas do Kanban (Vista Normal) - Issue #294: Use explicit status order -->
                         <div v-for="status in kanbanStatuses" :key="status"
                              class="flex-shrink-0 w-80 bg-gray-100 rounded-lg kanban-column-container">
-                        <!-- Header da Coluna -->
-                        <div class="p-3 border-b border-gray-200 bg-white rounded-t-lg">
+                        <!-- Header da Coluna - Issue #237: WIP Limits -->
+                        <div class="p-3 border-b border-gray-200 bg-white rounded-t-lg"
+                             :class="{'wip-warning': getWipState(status) === 'warning', 'wip-exceeded': getWipState(status) === 'exceeded'}">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <span class="font-semibold text-gray-700">{{ getColumnTitle(status) }}</span>
-                                    <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                                    <!-- WIP Indicator (Issue #237) -->
+                                    <span v-if="wipLimits[status]"
+                                          :class="['wip-indicator text-xs px-2 py-0.5 rounded-full',
+                                                   getWipState(status) === 'exceeded' ? 'bg-red-100 text-red-700' :
+                                                   getWipState(status) === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                                                   'bg-gray-200 text-gray-600']">
+                                        {{ (filteredStoryBoard[status] || []).length }}/{{ wipLimits[status] }}
+                                    </span>
+                                    <span v-else class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
                                         {{ (filteredStoryBoard[status] || []).length }}
                                     </span>
                                 </div>
-                                <span class="text-xs text-gray-500">{{ getColumnPoints(filteredStoryBoard[status] || []) }} pts</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">{{ getColumnPoints(filteredStoryBoard[status] || []) }} pts</span>
+                                    <!-- WIP Config Button (Issue #237) -->
+                                    <button @click.stop="openWipConfig" class="text-gray-400 hover:text-gray-600" title="Configurar WIP Limits">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- WIP Progress Bar (Issue #237) -->
+                            <div v-if="wipLimits[status]" class="wip-progress mt-2">
+                                <div class="wip-progress-bar"
+                                     :class="{'exceeded': getWipState(status) === 'exceeded', 'warning': getWipState(status) === 'warning'}"
+                                     :style="{width: Math.min(getWipPercentage(status), 120) + '%'}">
+                                </div>
                             </div>
                         </div>
 
@@ -7858,12 +7973,19 @@ HTML_TEMPLATE = """
         </div>
 
 
-        <!-- MODAL: Nova Story -->
-        <div v-if="showNewStoryModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-            <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800">
+        <!-- MODAL: Nova Story (Issue #308: Added data-testid for Playwright) -->
+        <div v-if="showNewStoryModal"
+             class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+             data-testid="modal-nova-story-overlay"
+             @click.self="showNewStoryModal = false">
+            <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800"
+                 data-testid="modal-nova-story-content"
+                 @click.stop>
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
-                    <h2 class="text-lg font-semibold">Nova User Story</h2>
-                    <button @click="showNewStoryModal = false" class="text-white/80 hover:text-white">
+                    <h2 class="text-lg font-semibold" data-testid="modal-nova-story-title">Nova User Story</h2>
+                    <button @click="showNewStoryModal = false"
+                            class="text-white/80 hover:text-white"
+                            data-testid="modal-nova-story-close">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -9095,7 +9217,7 @@ HTML_TEMPLATE = """
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <span>Menu</span>
                 </div>
-                <div class="mobile-nav-item" @click="openNewStoryModal">
+                <div class="mobile-nav-item" @click="openNewStoryModal()" data-testid="mobile-btn-nova-story">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>Nova Story</span>
                 </div>
@@ -10312,10 +10434,8 @@ HTML_TEMPLATE = """
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
 
-            // Issue #308: Modal open methods for better Vue reactivity
-            const openNewStoryModal = () => {
-                showNewStoryModal.value = true;
-            };
+            // Issue #308: Modal open method - will be properly initialized after all refs are defined
+            let openNewStoryModal = null;
 
             // Issue #155: Voice Input for Story Creation
             const voiceRecording = ref(false);
@@ -10459,6 +10579,23 @@ HTML_TEMPLATE = """
             const availableTemplates = ref([]);
             const templatesLoading = ref(false);
             const showTemplateSelector = ref(true);
+
+            // Issue #308: Initialize modal open function after all refs are defined
+            openNewStoryModal = () => {
+                // Reset form state
+                showTemplateSelector.value = true;
+                selectedTemplate.value = null;
+                newStory.value = {
+                    title: '', description: '', persona: '', action: '', benefit: '',
+                    story_points: 3, priority: 'medium', complexity: 'medium', category: 'feature',
+                    epic_id: '', sprint_id: ''
+                };
+                newStoryCriteria.value = '';
+                inputMethod.value = 'text';
+                // Open modal
+                showNewStoryModal.value = true;
+                console.log('[Issue #308] Modal opened successfully');
+            };
 
             // Load templates from API
             const loadTemplates = async () => {
