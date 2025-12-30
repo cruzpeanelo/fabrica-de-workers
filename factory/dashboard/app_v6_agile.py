@@ -201,6 +201,48 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Security Settings not available: {e}")
 
+# Bulk Actions (Issue #278)
+try:
+    from factory.dashboard.bulk_actions import register_bulk_actions
+    register_bulk_actions(app)
+except ImportError as e:
+    print(f"[Dashboard] Bulk Actions not available: {e}")
+
+# Global Search (Issue #271)
+try:
+    from factory.dashboard.global_search import register_global_search
+    register_global_search(app)
+except ImportError as e:
+    print(f"[Dashboard] Global Search not available: {e}")
+
+# Focus Mode / Pomodoro (Issue #265)
+try:
+    from factory.dashboard.focus_mode import register_focus_mode
+    register_focus_mode(app)
+except ImportError as e:
+    print(f"[Dashboard] Focus Mode not available: {e}")
+
+# Calendar View (Issue #267)
+try:
+    from factory.dashboard.calendar_view import register_calendar_view
+    register_calendar_view(app)
+except ImportError as e:
+    print(f"[Dashboard] Calendar View not available: {e}")
+
+# Gamification (Issue #266)
+try:
+    from factory.dashboard.gamification import register_gamification
+    register_gamification(app)
+except ImportError as e:
+    print(f"[Dashboard] Gamification not available: {e}")
+
+# My Work Dashboard (Issue #272)
+try:
+    from factory.dashboard.my_work import register_my_work
+    register_my_work(app)
+except ImportError as e:
+    print(f"[Dashboard] My Work not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
@@ -4935,8 +4977,8 @@ HTML_TEMPLATE = """
                             </option>
                         </select>
 
-                        <!-- ISSUE #221 - Global Search -->
-                        <div class="global-search-container" v-click-outside="closeGlobalSearch">
+                        <!-- ISSUE #221, #284 - Global Search (added compatibility classes) -->
+                        <div class="global-search-container search" v-click-outside="closeGlobalSearch">
                             <div class="global-search-input-wrapper" @click="openGlobalSearch">
                                 <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -4946,9 +4988,9 @@ HTML_TEMPLATE = """
                                        @focus="openGlobalSearch"
                                        @keydown="handleGlobalSearchKey"
                                        type="text"
-                                       placeholder="Buscar tudo..."
+                                       placeholder="Search / Buscar..."
                                        ref="globalSearchInput"
-                                       class="global-search-input"
+                                       class="global-search-input search-input"
                                        aria-label="Busca global"
                                        :aria-expanded="showGlobalSearch"
                                        aria-controls="global-search-results">
@@ -5130,8 +5172,8 @@ HTML_TEMPLATE = """
             </div>
         </header>
 
-        <!-- ISSUE #220 - BREADCRUMB NAVIGATION -->
-        <nav class="breadcrumb-nav" aria-label="Navegacao" v-if="breadcrumbItems.length > 1">
+        <!-- ISSUE #220, #284 - BREADCRUMB NAVIGATION (added compatibility classes) -->
+        <nav class="breadcrumb-nav breadcrumb" aria-label="breadcrumb" role="navigation" v-if="breadcrumbItems.length > 1">
             <ol class="breadcrumb-list">
                 <!-- Home sempre visivel -->
                 <li class="breadcrumb-item">
@@ -7949,10 +7991,10 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <!-- ISSUE #222 - QUICK CREATE FAB -->
+        <!-- ISSUE #222, #284 - QUICK CREATE FAB (added compatibility classes) -->
         <div class="fab-backdrop" :class="{ 'open': fabMenuOpen }" @click="fabMenuOpen = false"></div>
-        <div class="fab-container" v-click-outside="closeFabMenu">
-            <button class="fab-main"
+        <div class="fab-container fab floating-button" v-click-outside="closeFabMenu">
+            <button class="fab-main fab-button"
                     :class="{ 'open': fabMenuOpen }"
                     @click="toggleFabMenu"
                     :aria-expanded="fabMenuOpen"
