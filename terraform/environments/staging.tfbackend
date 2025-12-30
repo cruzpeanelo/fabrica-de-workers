@@ -1,14 +1,14 @@
 # =============================================================================
-# Fabrica de Agentes - Staging Environment Backend Config
+# Fabrica de Agentes - Staging Backend Configuration
 # =============================================================================
-# Issue #95: Terraform Remote State com Locking
+# Issue #169: Remote state com encryption
 #
 # Uso:
 #   terraform init -backend-config=environments/staging.tfbackend
 # =============================================================================
 
 bucket         = "fabrica-agentes-terraform-state"
-key            = "terraform/staging/terraform.tfstate"
+key            = "environments/staging/terraform.tfstate"
 region         = "us-east-1"
 encrypt        = true
 dynamodb_table = "fabrica-agentes-terraform-locks"

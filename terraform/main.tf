@@ -2,6 +2,24 @@
 # Fabrica de Agentes - Infrastructure as Code
 # Main Terraform Configuration
 # =============================================================================
+# Issue #169: Remote State com S3 + DynamoDB + KMS Encryption
+#
+# IMPORTANTE - REMOTE STATE:
+# ==========================
+# Para usar remote state (recomendado para ambientes compartilhados):
+#
+#   1. Execute primeiro o bootstrap:
+#      cd terraform/bootstrap && terraform init && terraform apply
+#
+#   2. Inicialize com backend config:
+#      terraform init -backend-config=environments/dev.tfbackend
+#      terraform init -backend-config=environments/staging.tfbackend
+#      terraform init -backend-config=environments/prod.tfbackend
+#
+# Para desenvolvimento local (não recomendado para prod):
+#   terraform init  # Usa backend local por padrão
+#
+# =============================================================================
 
 terraform {
   required_version = ">= 1.0.0"
@@ -25,14 +43,10 @@ terraform {
     }
   }
 
-  # Backend configuration - uncomment and configure for remote state
-  # backend "s3" {
-  #   bucket         = "fabrica-agentes-terraform-state"
-  #   key            = "terraform.tfstate"
-  #   region         = "us-east-1"
-  #   encrypt        = true
-  #   dynamodb_table = "terraform-state-lock"
-  # }
+  # Issue #169: S3 Backend configuration
+  # Valores são injetados via -backend-config=environments/*.tfbackend
+  # Isso permite separação de state por ambiente (dev/staging/prod)
+  backend "s3" {}
 }
 
 # =============================================================================

@@ -1,14 +1,19 @@
 # =============================================================================
-# Fabrica de Agentes - Development Environment Backend Config
+# Fabrica de Agentes - Development Backend Configuration
 # =============================================================================
-# Issue #95: Terraform Remote State com Locking
+# Issue #169: Remote state com encryption
 #
 # Uso:
 #   terraform init -backend-config=environments/dev.tfbackend
+#   terraform init -reconfigure -backend-config=environments/dev.tfbackend
+#
+# Pre-requisitos:
+#   - Executar terraform apply em terraform/bootstrap/ primeiro
+#   - AWS credentials configuradas
 # =============================================================================
 
 bucket         = "fabrica-agentes-terraform-state"
-key            = "terraform/dev/terraform.tfstate"
+key            = "environments/dev/terraform.tfstate"
 region         = "us-east-1"
 encrypt        = true
 dynamodb_table = "fabrica-agentes-terraform-locks"
