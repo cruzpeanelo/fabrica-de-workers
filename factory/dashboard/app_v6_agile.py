@@ -17101,59 +17101,164 @@ def security_page():
 # =============================================================================
 
 @app.get("/api/security/data")
-def get_security_data():
+def get_security_data(request: Request):
     """Get security settings data - MFA, API Keys, Sessions"""
-    # Return mock data for now - in production this would query the database
-    return {
-        "mfa": None,  # No MFA configured by default
-        "apiKeys": [],
-        "sessions": [
-            {
-                "session_id": "current",
-                "device": "Current Browser",
-                "location": "Local",
-                "last_active": datetime.now().isoformat(),
-                "is_current": True
-            }
-        ]
-    }
+    # Issue #403: Fixed - Use real MFA service instead of mock data
+    try:
+        from factory.auth.mfa import MFAService
+        from factory.database.connection import SessionLocal
+
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.headers.get("X-User-Id")
+
+        mfa_data = None
+        if user_id:
+            db = SessionLocal()
+            try:
+                from factory.database.models import User
+                user = db.query(User).filter(User.id == int(user_id)).first()
+                if user and user.quotas:
+                    mfa_info = user.quotas.get("_mfa")
+                    if mfa_info and mfa_info.get("status") == "enabled":
+                        mfa_data = {
+                            "enabled": True,
+                            "enabled_at": mfa_info.get("enabled_at"),
+                            "backup_codes_remaining": mfa_info.get("backup_codes_remaining", 0)
+                        }
+            except Exception as e:
+                logger.warning(f"Error getting MFA data: {e}")
+            finally:
+                db.close()
+
+        return {
+            "mfa": mfa_data,
+            "apiKeys": [],
+            "sessions": [
+                {
+                    "session_id": "current",
+                    "device": "Current Browser",
+                    "location": "Local",
+                    "last_active": datetime.now().isoformat(),
+                    "is_current": True
+                }
+            ]
+        }
+    except ImportError:
+        return {"mfa": None, "apiKeys": [], "sessions": []}
 
 
 @app.post("/api/security/mfa/setup")
-def setup_mfa(data: dict = Body(...)):
+def setup_mfa(request: Request, data: dict = Body(...)):
     """Initialize MFA setup - returns QR code and secret"""
-    # Generate mock MFA setup data
-    secret_key = "JBSWY3DPEHPK3PXP"  # Mock secret
-    # In production, generate real TOTP secret and QR code
-    return {
-        "qr_code_base64": "",  # Would be actual QR code
-        "secret_key": secret_key,
-        "backup_codes": ["12345678", "23456789", "34567890", "45678901", "56789012"]
-    }
+    # Issue #403: Fixed - Use real MFA service with unique secrets per user
+    try:
+        from factory.auth.mfa import MFAService
+
+        user_id = data.get("user_id")
+        if not user_id:
+            user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.headers.get("X-User-Id")
+
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required for MFA setup")
+
+        mfa_service = MFAService()
+        setup_response = mfa_service.start_setup(user_id=int(user_id))
+
+        return {
+            "qr_code_base64": setup_response.qr_code_base64,
+            "secret_key": setup_response.secret_key,
+            "backup_codes": setup_response.backup_codes
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ImportError:
+        raise HTTPException(status_code=500, detail="MFA service not available")
 
 
 @app.post("/api/security/mfa/verify")
-def verify_mfa(data: dict = Body(...)):
+def verify_mfa(request: Request, data: dict = Body(...)):
     """Verify MFA code and enable 2FA"""
-    code = data.get("code", "")
-    # In production, verify the TOTP code
-    if len(code) == 6 and code.isdigit():
-        return {"success": True, "message": "MFA enabled successfully"}
-    return {"success": False, "message": "Invalid code"}
+    # Issue #403: Fixed - Use real TOTP verification
+    try:
+        from factory.auth.mfa import MFAService
+
+        code = data.get("code", "")
+        user_id = data.get("user_id")
+        if not user_id:
+            user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.headers.get("X-User-Id")
+
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+
+        if not code or len(code) != 6:
+            return {"success": False, "message": "Invalid code format - must be 6 digits"}
+
+        mfa_service = MFAService()
+        result = mfa_service.complete_setup(user_id=int(user_id), code=code)
+
+        return {
+            "success": result.success,
+            "message": result.message,
+            "remaining_attempts": result.remaining_attempts
+        }
+    except ImportError:
+        raise HTTPException(status_code=500, detail="MFA service not available")
 
 
 @app.post("/api/security/mfa/disable")
-def disable_mfa(data: dict = Body(...)):
+def disable_mfa(request: Request, data: dict = Body(...)):
     """Disable MFA for user"""
-    return {"success": True, "message": "MFA disabled"}
+    # Issue #403: Fixed - Use real MFA disable with verification
+    try:
+        from factory.auth.mfa import MFAService
+
+        code = data.get("code", "")
+        user_id = data.get("user_id")
+        if not user_id:
+            user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.headers.get("X-User-Id")
+
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+
+        mfa_service = MFAService()
+        result = mfa_service.disable(user_id=int(user_id), verification_code=code if code else None)
+
+        return {"success": result.success, "message": result.message}
+    except ImportError:
+        raise HTTPException(status_code=500, detail="MFA service not available")
 
 
 @app.post("/api/security/mfa/backup-codes/regenerate")
-def regenerate_backup_codes(data: dict = Body(...)):
+def regenerate_backup_codes(request: Request, data: dict = Body(...)):
     """Regenerate MFA backup codes"""
-    return {
-        "backup_codes": ["11111111", "22222222", "33333333", "44444444", "55555555"]
-    }
+    # Issue #403: Fixed - Use real backup code regeneration
+    try:
+        from factory.auth.mfa import MFAService
+
+        user_id = data.get("user_id")
+        if not user_id:
+            user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            user_id = request.headers.get("X-User-Id")
+
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID required")
+
+        mfa_service = MFAService()
+        if hasattr(mfa_service, 'regenerate_backup_codes'):
+            result = mfa_service.regenerate_backup_codes(user_id=int(user_id))
+            return {"backup_codes": result.backup_codes if hasattr(result, 'backup_codes') else []}
+        else:
+            raise HTTPException(status_code=501, detail="Backup code regeneration not yet implemented")
+    except ImportError:
+        raise HTTPException(status_code=500, detail="MFA service not available")
 
 
 @app.post("/api/security/api-keys")
