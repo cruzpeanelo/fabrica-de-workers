@@ -185,12 +185,26 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 # Inicializacao e Reset
 # ============================================
 
+def run_migrations():
+    """Executa migracoes pendentes - Issue #241"""
+    try:
+        from .migrations.add_tenant_id_columns import upgrade as add_tenant_id
+        add_tenant_id()
+        print("[Factory DB] Migracoes executadas com sucesso")
+        return True
+    except Exception as e:
+        print(f"[Factory DB] Aviso durante migracoes: {e}")
+        return False
+
+
 def init_db():
     """Inicializa o banco de dados criando todas as tabelas"""
     from . import models  # noqa: F401
     Base.metadata.create_all(bind=sync_engine)
     db_type = "PostgreSQL" if IS_POSTGRES else "SQLite"
     print(f"[Factory DB] Banco de dados {db_type} inicializado")
+    # Issue #241: Executa migracoes para adicionar colunas faltantes
+    run_migrations()
     return True
 
 async def init_db_async():
@@ -200,6 +214,8 @@ async def init_db_async():
         await conn.run_sync(Base.metadata.create_all)
     db_type = "PostgreSQL" if IS_POSTGRES else "SQLite"
     print(f"[Factory DB] Banco de dados {db_type} inicializado (async)")
+    # Issue #241: Executa migracoes para adicionar colunas faltantes
+    run_migrations()
     return True
 
 def reset_db():
