@@ -77,6 +77,7 @@ class UsageMetric(str, Enum):
 class InvoiceStatus(str, Enum):
     """Status da Fatura"""
     DRAFT = "draft"
+    PENDING = "pending"  # Awaiting payment
     OPEN = "open"
     PAID = "paid"
     VOID = "void"
@@ -235,6 +236,11 @@ class Plan(Base):
     def has_feature(self, feature_name: str) -> bool:
         """Verifica se o plano inclui uma feature"""
         return feature_name in (self.features or [])
+
+    @property
+    def price_monthly_cents(self) -> int:
+        """Alias for price_monthly for backwards compatibility"""
+        return self.price_monthly or 0
 
     def __repr__(self):
         return f"<Plan {self.plan_id}: {self.name} R${self.price_monthly/100:.2f}/mes>"
@@ -499,6 +505,7 @@ class Invoice(Base):
     """
 
     # Periodo de referencia
+    period = Column(String(20), nullable=True, index=True)  # YYYY-MM format
     period_start = Column(DateTime, nullable=True)
     period_end = Column(DateTime, nullable=True)
 

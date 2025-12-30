@@ -496,7 +496,7 @@ class TestBillingSummary:
             period="2024-01",
             status=InvoiceStatus.PENDING.value,
             due_date=date.today() - timedelta(days=10),
-            total_cents=9900
+            total=9900  # em centavos
         )
         session.add(invoice)
         session.commit()

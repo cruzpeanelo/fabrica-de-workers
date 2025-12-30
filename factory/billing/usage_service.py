@@ -1061,7 +1061,23 @@ class UsageService:
                 aggregate_id=self._generate_id("AGG"),
                 tenant_id=event.tenant_id,
                 period=today,
-                period_type="daily"
+                period_type="daily",
+                # Initialize all counters to avoid None += int errors
+                api_calls=0,
+                llm_tokens_input=0,
+                llm_tokens_output=0,
+                storage_bytes=0,
+                compute_seconds=0,
+                active_users=0,
+                active_sessions=0,
+                logins_count=0,
+                file_uploads=0,
+                file_downloads=0,
+                cost_api_cents=0,
+                cost_llm_cents=0,
+                cost_storage_cents=0,
+                cost_compute_cents=0,
+                cost_total_cents=0
             )
             self.db.add(aggregate)
 

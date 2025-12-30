@@ -1,0 +1,136 @@
+================================================================================
+                         PROMPTS PARA COPIAR E COLAR
+================================================================================
+
+Abra 5 terminais com Claude Code e cole o prompt correspondente em cada um.
+
+================================================================================
+TERMINAL 0 - COORDENADOR (Cole este bloco PRIMEIRO)
+================================================================================
+
+Leia o arquivo prompt_terminal_0.txt neste diretório e execute as instruções.
+
+Você é o TERMINAL 0 - COORDENADOR CENTRAL.
+
+SUA MISSÃO:
+1. TESTAR TODAS AS TELAS com MCP Playwright (browser real)
+2. GARANTIR DADOS REAIS (zero mocks)
+3. CRIAR E DISTRIBUIR ISSUES para os outros terminais
+4. COORDENAR os 4 terminais de desenvolvimento
+
+TERMINAIS SOB SUA COORDENAÇÃO:
+- Terminal A [TA]: factory/integrations/ (SAP, Jira, Azure)
+- Terminal B [TB]: factory/api/auth.py, factory/middleware/ (Segurança)
+- Terminal C [TC]: factory/dashboard/static/, templates (UI/UX)
+- Terminal D [TD]: factory/core/, tests/ (Features Agile)
+
+FERRAMENTAS MCP PLAYWRIGHT:
+- mcp__playwright__browser_navigate  -> Navegar para URL
+- mcp__playwright__browser_screenshot -> Capturar tela
+- mcp__playwright__browser_click     -> Clicar em elemento
+- mcp__playwright__browser_type      -> Digitar texto
+
+EXECUTE AGORA:
+1. cat prompt_terminal_0.txt
+2. Iniciar dashboard: python factory/dashboard/app_v6_agile.py
+3. Usar Playwright para testar TODAS as telas
+4. Detectar mocks e criar issues
+
+================================================================================
+TERMINAL A - INTEGRACOES (Cole este bloco)
+================================================================================
+
+Leia o arquivo prompt_terminal_a.txt neste diretório e execute as instruções.
+
+Você é o TERMINAL A - INTEGRACOES CORPORATIVAS.
+SEUS ISSUES: prefixo [TA] no título
+
+O TERMINAL 0 E SEU COORDENADOR!
+- Ele testa com Playwright (browser real)
+- Faca commits frequentes para ele testar
+- Issues [TA] criados por ele tem PRIORIDADE
+
+EXECUTE AGORA:
+1. cat prompt_terminal_a.txt
+2. git pull --rebase origin main
+3. gh issue list --search "[TA] in:title" --state open
+4. Comece pelo primeiro issue da lista
+
+================================================================================
+TERMINAL B - SEGURANCA (Cole este bloco)
+================================================================================
+
+Leia o arquivo prompt_terminal_b.txt neste diretório e execute as instruções.
+
+Você é o TERMINAL B - MULTI-TENANT E SEGURANCA.
+SEUS ISSUES: prefixo [TB] no título
+
+O TERMINAL 0 E SEU COORDENADOR!
+- Ele testa login com Playwright
+- Ele valida tenant isolation
+- Issues [TB] de seguranca tem PRIORIDADE MAXIMA
+
+EXECUTE AGORA:
+1. cat prompt_terminal_b.txt
+2. git pull --rebase origin main
+3. gh issue list --search "[TB] in:title" --state open
+4. Comece pelo #290 (Enforcement de Permissoes)
+
+================================================================================
+TERMINAL C - UI/UX (Cole este bloco)
+================================================================================
+
+Leia o arquivo prompt_terminal_c.txt neste diretório e execute as instruções.
+
+Você é o TERMINAL C - UI/UX E VISUAL.
+SEUS ISSUES: prefixo [TC] no título
+
+O TERMINAL 0 E SEU COORDENADOR!
+- Ele testa TODAS as telas com Playwright
+- Ele clica em botoes, testa modais, tira screenshots
+- Ele vai testar o BUG #308 do modal - PRIORIDADE!
+
+EXECUTE AGORA:
+1. cat prompt_terminal_c.txt
+2. git pull --rebase origin main
+3. gh issue view 308 (Bug do modal - CORRIGIR PRIMEIRO!)
+4. gh issue list --search "[TC] in:title" --state open
+
+================================================================================
+TERMINAL D - FEATURES (Cole este bloco)
+================================================================================
+
+Leia o arquivo prompt_terminal_d.txt neste diretório e execute as instruções.
+
+Você é o TERMINAL D - FEATURES AGILE E AI.
+SEUS ISSUES: prefixo [TD] no título
+
+O TERMINAL 0 E SEU COORDENADOR!
+- Ele executa pytest automaticamente
+- Ele detecta dados mockados
+- Ele valida que dados vem do banco
+- Escreva testes - ele vai executar!
+
+EXECUTE AGORA:
+1. cat prompt_terminal_d.txt
+2. git pull --rebase origin main
+3. gh issue list --search "[TD] in:title" --state open
+4. Comece pelo #237 (WIP Limits)
+
+================================================================================
+                         HIERARQUIA DOS TERMINAIS
+================================================================================
+
+                    TERMINAL 0 - COORDENADOR
+                    Testa com Playwright
+                    Cria e distribui issues
+                            |
+        +-------------------+-------------------+
+        |                   |                   |
+   TERMINAL A          TERMINAL B          TERMINAL C/D
+   Integracoes         Seguranca           UI / Features
+   [TA]                [TB]                [TC] [TD]
+
+================================================================================
+                              FIM DOS PROMPTS
+================================================================================

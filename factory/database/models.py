@@ -2702,6 +2702,7 @@ class Tenant(Base):
     # Metadados
     tenant_metadata = Column(JSON, default=dict)
     tags = Column(JSON, default=list)
+    extra_data = Column(JSON, default=dict)  # Additional data for billing/credits
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
