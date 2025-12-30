@@ -1,6 +1,6 @@
 /**
  * Settings Screen - Configuracoes do app
- * Tema, notificacoes, biometria e logout
+ * Issue #368: Multi-Tenant, White Label, User Mode
  */
 
 import React, { useState } from 'react';
@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -24,16 +26,23 @@ import {
   ChevronRight,
   Shield,
   Info,
+  Building2,
+  Layers,
+  BookOpen,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useUserMode } from '../context/UserModeContext';
 
 export function SettingsScreen() {
-  const { colors, isDark, toggleTheme } = useTheme();
-  const { user, signOut, biometricAvailable, enableBiometric } = useAuth();
+  const { colors, isDark, toggleTheme, branding } = useTheme();
+  const { user, signOut, biometricAvailable, enableBiometric, currentTenant, availableTenants, switchTenant } = useAuth();
+  const { mode, setMode, resetTour } = useUserMode();
 
   const [notifications, setNotifications] = useState(true);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [showTenantModal, setShowTenantModal] = useState(false);
 
   async function handleBiometricToggle() {
     if (!biometricEnabled) {
@@ -71,7 +80,7 @@ export function SettingsScreen() {
           <Text style={styles.title}>Ajustes</Text>
         </View>
 
-        {/* User Info */}
+        {/* User Info with Tenant */}
         <View style={styles.userCard}>
           <View style={styles.userAvatar}>
             <Text style={styles.userInitial}>
@@ -81,7 +90,73 @@ export function SettingsScreen() {
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{user?.username || 'Usuario'}</Text>
             <Text style={styles.userEmail}>{user?.email || ''}</Text>
+            {currentTenant && (
+              <View style={styles.tenantBadge}>
+                <Building2 color={colors.primary} size={12} />
+                <Text style={styles.tenantText}>{currentTenant.name}</Text>
+              </View>
+            )}
           </View>
+        </View>
+
+        {/* Tenant Selector - Multi-Tenant */}
+        {availableTenants.length > 1 && (
+          <>
+            <Text style={styles.sectionTitle}>Organizacao</Text>
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => setShowTenantModal(true)}
+              >
+                <View style={styles.settingLeft}>
+                  <Building2 color={colors.text} size={22} />
+                  <Text style={styles.settingLabel}>Trocar Organizacao</Text>
+                </View>
+                <View style={styles.settingRight}>
+                  <Text style={styles.settingValue}>
+                    {currentTenant?.name || 'Selecionar'}
+                  </Text>
+                  <ChevronRight color={colors.textSecondary} size={20} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        {/* User Mode - Basico/Avancado */}
+        <Text style={styles.sectionTitle}>Modo de Uso</Text>
+        <View style={styles.section}>
+          <View style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Layers color={colors.text} size={22} />
+              <View>
+                <Text style={styles.settingLabel}>Modo Avancado</Text>
+                <Text style={styles.settingHint}>
+                  {mode === 'basic' ? 'Termos simplificados' : 'Termos tecnicos'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={mode === 'advanced'}
+              onValueChange={(value) => setMode(value ? 'advanced' : 'basic')}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFF"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => {
+              resetTour();
+              Alert.alert('Tour Reiniciado', 'O tour de introducao sera exibido novamente.');
+            }}
+          >
+            <View style={styles.settingLeft}>
+              <BookOpen color={colors.text} size={22} />
+              <Text style={styles.settingLabel}>Reiniciar Tour</Text>
+            </View>
+            <ChevronRight color={colors.textSecondary} size={20} />
+          </TouchableOpacity>
         </View>
 
         {/* Aparencia */}
@@ -187,16 +262,83 @@ export function SettingsScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Footer */}
+        {/* Footer - White Label */}
         <View style={styles.footer}>
+          {branding.logoUrl && (
+            <Image
+              source={{ uri: branding.logoUrl }}
+              style={styles.footerLogo}
+              resizeMode="contain"
+            />
+          )}
           <Text style={styles.footerText}>
-            Fabrica de Agentes v1.0.0
+            {branding.companyName} v1.0.0
           </Text>
           <Text style={styles.footerText}>
-            Belgo Arames - 2024
+            {new Date().getFullYear()}
           </Text>
         </View>
       </ScrollView>
+
+      {/* Tenant Selection Modal */}
+      <Modal
+        visible={showTenantModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowTenantModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Organizacao</Text>
+              <TouchableOpacity onPress={() => setShowTenantModal(false)}>
+                <X color={colors.text} size={24} />
+              </TouchableOpacity>
+            </View>
+
+            {availableTenants.map((tenant) => (
+              <TouchableOpacity
+                key={tenant.tenant_id}
+                style={[
+                  styles.tenantOption,
+                  currentTenant?.tenant_id === tenant.tenant_id && styles.tenantOptionActive,
+                ]}
+                onPress={async () => {
+                  await switchTenant(tenant.tenant_id);
+                  setShowTenantModal(false);
+                }}
+              >
+                <Building2
+                  color={
+                    currentTenant?.tenant_id === tenant.tenant_id
+                      ? colors.primary
+                      : colors.textSecondary
+                  }
+                  size={20}
+                />
+                <View style={styles.tenantOptionInfo}>
+                  <Text
+                    style={[
+                      styles.tenantOptionName,
+                      currentTenant?.tenant_id === tenant.tenant_id && {
+                        color: colors.primary,
+                      },
+                    ]}
+                  >
+                    {tenant.name}
+                  </Text>
+                  <Text style={styles.tenantOptionSlug}>{tenant.slug}</Text>
+                </View>
+                {currentTenant?.tenant_id === tenant.tenant_id && (
+                  <View style={styles.tenantCheck}>
+                    <Text style={{ color: '#FFF' }}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -251,6 +393,22 @@ const createStyles = (colors: any) =>
       color: colors.textSecondary,
       marginTop: 2,
     },
+    tenantBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 6,
+      backgroundColor: colors.primary + '15',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      gap: 4,
+      alignSelf: 'flex-start',
+    },
+    tenantText: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: '500',
+    },
     sectionTitle: {
       fontSize: 13,
       fontWeight: '600',
@@ -288,6 +446,11 @@ const createStyles = (colors: any) =>
       fontSize: 15,
       color: colors.text,
     },
+    settingHint: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
     settingValue: {
       fontSize: 14,
       color: colors.textSecondary,
@@ -313,5 +476,67 @@ const createStyles = (colors: any) =>
     footerText: {
       fontSize: 12,
       color: colors.textSecondary,
+    },
+    footerLogo: {
+      width: 120,
+      height: 40,
+      marginBottom: 8,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: 24,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    tenantOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 8,
+      backgroundColor: colors.background,
+      gap: 12,
+    },
+    tenantOptionActive: {
+      backgroundColor: colors.primary + '15',
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    tenantOptionInfo: {
+      flex: 1,
+    },
+    tenantOptionName: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: colors.text,
+    },
+    tenantOptionSlug: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    tenantCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
   });
