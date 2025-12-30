@@ -16,7 +16,8 @@ Incluido:
 from .base import IntegrationBase, IntegrationStatus, SyncResult
 
 # Project Management
-from .jira import JiraIntegration, JiraConfig
+from .jira_integration import JiraIntegration
+from .jira.config import JiraConfig
 from .azure_devops import AzureDevOpsIntegration, AzureDevOpsConfig
 
 # Version Control

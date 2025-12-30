@@ -47,7 +47,7 @@ class S4CDSSkill:
 
     Exemplo de uso:
     ```python
-    skill = S4CDSSkill(odata_client)
+    skill = S4CDSSkill(odata_client, tenant_id="tenant-001")
 
     # Analisar view existente
     result = await skill.analyze_view("I_SalesOrder")
@@ -69,15 +69,20 @@ class S4CDSSkill:
     ```
     """
 
-    def __init__(self, odata_client=None):
+    def __init__(self, odata_client=None, tenant_id: str = ""):
         """
         Inicializa skill
 
         Args:
             odata_client: Cliente OData V4 opcional
+            tenant_id: ID do tenant para isolamento multi-tenant
         """
         self.analyzer = CDSAnalyzer(odata_client)
         self.generator = CDSGenerator()
+        self.tenant_id = tenant_id
+
+        if not tenant_id:
+            logger.warning("tenant_id nao configurado para S4CDSSkill")
 
     async def analyze_view(self, view_name: str) -> CDSSkillResult:
         """

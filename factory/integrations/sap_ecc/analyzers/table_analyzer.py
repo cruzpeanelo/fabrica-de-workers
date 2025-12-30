@@ -610,3 +610,519 @@ class TableAnalyzer:
             Descricao do tipo
         """
         return self.DATA_TYPES.get(data_type.upper(), "Unknown")
+
+    async def get_foreign_key_relationships(
+        self,
+        table_name: str
+    ) -> List[TableRelation]:
+        """
+        Obtem relacionamentos de foreign key de uma tabela.
+
+        Args:
+            table_name: Nome da tabela
+
+        Returns:
+            Lista de relacionamentos (foreign keys)
+        """
+        table_name = table_name.upper()
+        relations = []
+
+        try:
+            # Buscar foreign keys na DD05S (tabela de foreign keys)
+            fk_data = await self.rfc_client.read_table(
+                "DD05S",
+                fields=["TABNAME", "FIELDNAME", "FORTABLE", "FORKEY", "CHECKTABLE",
+                        "CHECKFIELD", "PRIMPOS", "FRKART"],
+                options=[{"TEXT": f"TABNAME = '{table_name}'"}],
+                max_rows=200
+            )
+
+            # Agrupar por tabela estrangeira
+            fk_by_table: Dict[str, Dict[str, str]] = {}
+            for fk in fk_data:
+                check_table = fk.get("CHECKTABLE", "") or fk.get("FORTABLE", "")
+                if not check_table:
+                    continue
+
+                if check_table not in fk_by_table:
+                    fk_by_table[check_table] = {}
+
+                local_field = fk.get("FIELDNAME", "")
+                foreign_field = fk.get("CHECKFIELD", "") or fk.get("FORKEY", "")
+
+                if local_field and foreign_field:
+                    fk_by_table[check_table][local_field] = foreign_field
+
+            # Criar objetos TableRelation
+            for foreign_table, field_mapping in fk_by_table.items():
+                relations.append(TableRelation(
+                    foreign_table=foreign_table,
+                    fields_mapping=field_mapping,
+                    cardinality="N:1"  # Foreign key tipicamente e N:1
+                ))
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter foreign keys de {table_name}: {e}")
+
+        return relations
+
+    async def get_data_element_info(
+        self,
+        data_element: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem informacoes detalhadas de um data element.
+
+        Args:
+            data_element: Nome do data element
+
+        Returns:
+            Dicionario com informacoes do data element
+        """
+        data_element = data_element.upper()
+        result = {
+            "name": data_element,
+            "description": "",
+            "domain": "",
+            "data_type": "",
+            "length": 0,
+            "decimals": 0,
+            "labels": {}
+        }
+
+        try:
+            # Buscar definicao do data element na DD04L
+            de_data = await self.rfc_client.read_table(
+                "DD04L",
+                fields=["ROLLNAME", "DOMNAME", "DATATYPE", "LENG", "DECIMALS",
+                        "HEADLEN", "SCRLEN1", "SCRLEN2", "SCRLEN3"],
+                options=[{"TEXT": f"ROLLNAME = '{data_element}'"}],
+                max_rows=1
+            )
+
+            if de_data:
+                de = de_data[0]
+                result["domain"] = de.get("DOMNAME", "")
+                result["data_type"] = de.get("DATATYPE", "")
+                result["length"] = int(de.get("LENG", 0) or 0)
+                result["decimals"] = int(de.get("DECIMALS", 0) or 0)
+                result["labels"] = {
+                    "header": int(de.get("HEADLEN", 0) or 0),
+                    "short": int(de.get("SCRLEN1", 0) or 0),
+                    "medium": int(de.get("SCRLEN2", 0) or 0),
+                    "long": int(de.get("SCRLEN3", 0) or 0)
+                }
+
+            # Buscar textos (descricoes) na DD04T
+            texts = await self.rfc_client.read_table(
+                "DD04T",
+                fields=["ROLLNAME", "DDLANGUAGE", "DDTEXT", "REPTEXT", "SCRTEXT_S",
+                        "SCRTEXT_M", "SCRTEXT_L"],
+                options=[{"TEXT": f"ROLLNAME = '{data_element}' AND DDLANGUAGE IN ('P', 'E')"}],
+                max_rows=2
+            )
+
+            for text in texts:
+                lang = text.get("DDLANGUAGE", "")
+                if lang == "P" or (lang == "E" and not result["description"]):
+                    result["description"] = text.get("DDTEXT", "")
+                    result["labels"]["header_text"] = text.get("REPTEXT", "")
+                    result["labels"]["short_text"] = text.get("SCRTEXT_S", "")
+                    result["labels"]["medium_text"] = text.get("SCRTEXT_M", "")
+                    result["labels"]["long_text"] = text.get("SCRTEXT_L", "")
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter info do data element {data_element}: {e}")
+
+        return result
+
+    async def get_domain_info(
+        self,
+        domain: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem informacoes detalhadas de um domain.
+
+        Args:
+            domain: Nome do domain
+
+        Returns:
+            Dicionario com informacoes do domain incluindo valores fixos
+        """
+        domain = domain.upper()
+        result = {
+            "name": domain,
+            "description": "",
+            "data_type": "",
+            "length": 0,
+            "decimals": 0,
+            "output_length": 0,
+            "conversion_exit": "",
+            "value_table": "",
+            "fixed_values": []
+        }
+
+        try:
+            # Buscar definicao do domain na DD01L
+            dom_data = await self.rfc_client.read_table(
+                "DD01L",
+                fields=["DOMNAME", "DATATYPE", "LENG", "DECIMALS", "OUTPUTLEN",
+                        "CONVEXIT", "VALEXI", "ENTITYTAB"],
+                options=[{"TEXT": f"DOMNAME = '{domain}'"}],
+                max_rows=1
+            )
+
+            if dom_data:
+                dom = dom_data[0]
+                result["data_type"] = dom.get("DATATYPE", "")
+                result["length"] = int(dom.get("LENG", 0) or 0)
+                result["decimals"] = int(dom.get("DECIMALS", 0) or 0)
+                result["output_length"] = int(dom.get("OUTPUTLEN", 0) or 0)
+                result["conversion_exit"] = dom.get("CONVEXIT", "")
+                result["value_table"] = dom.get("ENTITYTAB", "")
+
+                # Verificar se tem valores fixos
+                has_fixed_values = dom.get("VALEXI", "") == "X"
+
+                if has_fixed_values:
+                    # Buscar valores fixos na DD07L
+                    values = await self.rfc_client.read_table(
+                        "DD07L",
+                        fields=["DOMNAME", "VALPOS", "DDLANGUAGE", "DOMVALUE_L", "DOMVALUE_H"],
+                        options=[{"TEXT": f"DOMNAME = '{domain}'"}],
+                        max_rows=100
+                    )
+
+                    # Buscar textos dos valores
+                    value_texts = await self.rfc_client.read_table(
+                        "DD07T",
+                        fields=["DOMNAME", "VALPOS", "DDLANGUAGE", "DDTEXT"],
+                        options=[{"TEXT": f"DOMNAME = '{domain}' AND DDLANGUAGE IN ('P', 'E')"}],
+                        max_rows=200
+                    )
+
+                    # Montar mapa de textos
+                    text_map: Dict[str, str] = {}
+                    for vt in value_texts:
+                        key = f"{vt.get('VALPOS', '')}"
+                        lang = vt.get("DDLANGUAGE", "")
+                        if lang == "P" or key not in text_map:
+                            text_map[key] = vt.get("DDTEXT", "")
+
+                    # Processar valores
+                    for val in values:
+                        val_pos = val.get("VALPOS", "")
+                        result["fixed_values"].append({
+                            "position": val_pos,
+                            "low_value": val.get("DOMVALUE_L", ""),
+                            "high_value": val.get("DOMVALUE_H", ""),
+                            "description": text_map.get(val_pos, "")
+                        })
+
+            # Buscar descricao na DD01T
+            texts = await self.rfc_client.read_table(
+                "DD01T",
+                fields=["DOMNAME", "DDLANGUAGE", "DDTEXT"],
+                options=[{"TEXT": f"DOMNAME = '{domain}' AND DDLANGUAGE IN ('P', 'E')"}],
+                max_rows=2
+            )
+
+            for text in texts:
+                if text.get("DDLANGUAGE", "") == "P" or not result["description"]:
+                    result["description"] = text.get("DDTEXT", "")
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter info do domain {domain}: {e}")
+
+        return result
+
+    async def analyze_table_complete(
+        self,
+        table_name: str
+    ) -> Dict[str, Any]:
+        """
+        Analise completa de uma tabela incluindo:
+        - Estrutura basica
+        - Campos com data elements e domains
+        - Foreign keys
+        - Indices
+        - Estatisticas
+
+        Args:
+            table_name: Nome da tabela
+
+        Returns:
+            Dicionario com analise completa
+        """
+        table_name = table_name.upper()
+
+        # Obter estrutura basica
+        structure = await self.analyze_table(table_name)
+
+        # Obter foreign keys
+        relations = await self.get_foreign_key_relationships(table_name)
+        structure.relations = relations
+
+        # Enriquecer campos com info de data element e domain
+        enriched_fields = []
+        for field in structure.fields:
+            field_info = field.to_dict()
+
+            # Obter info do data element
+            if field.data_element:
+                de_info = await self.get_data_element_info(field.data_element)
+                field_info["data_element_info"] = de_info
+
+                # Obter info do domain
+                if de_info.get("domain"):
+                    dom_info = await self.get_domain_info(de_info["domain"])
+                    field_info["domain_info"] = dom_info
+
+            enriched_fields.append(field_info)
+
+        # Montar resultado completo
+        result = structure.to_dict()
+        result["fields"] = enriched_fields
+        result["relations"] = [
+            {
+                "foreign_table": r.foreign_table,
+                "fields_mapping": r.fields_mapping,
+                "cardinality": r.cardinality
+            }
+            for r in relations
+        ]
+
+        return result
+
+    async def get_table_technical_settings(
+        self,
+        table_name: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem configuracoes tecnicas da tabela.
+
+        Args:
+            table_name: Nome da tabela
+
+        Returns:
+            Dicionario com configuracoes tecnicas
+        """
+        table_name = table_name.upper()
+        result = {
+            "name": table_name,
+            "data_class": "",
+            "size_category": "",
+            "buffering_type": "",
+            "buffering_allowed": False,
+            "logging_enabled": False,
+            "change_document": False
+        }
+
+        try:
+            # Buscar na DD09L (configuracoes tecnicas)
+            tech_data = await self.rfc_client.read_table(
+                "DD09L",
+                fields=["TABNAME", "TABKAT", "TABART", "PUFFERUNG", "PROTOKOLL",
+                        "UEBESSION", "BUFALLOW"],
+                options=[{"TEXT": f"TABNAME = '{table_name}'"}],
+                max_rows=1
+            )
+
+            if tech_data:
+                tech = tech_data[0]
+                result["data_class"] = tech.get("TABKAT", "")
+                result["size_category"] = tech.get("TABART", "")
+                result["buffering_type"] = tech.get("PUFFERUNG", "")
+                result["buffering_allowed"] = tech.get("BUFALLOW", "") == "X"
+                result["logging_enabled"] = tech.get("PROTOKOLL", "") == "X"
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter settings de {table_name}: {e}")
+
+        return result
+
+    async def search_tables_by_content(
+        self,
+        search_term: str,
+        area: Optional[str] = None,
+        max_results: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        Busca tabelas por termo na descricao ou nome.
+
+        Args:
+            search_term: Termo de busca
+            area: Area/Modulo SAP (MM, SD, FI, etc.)
+            max_results: Maximo de resultados
+
+        Returns:
+            Lista de tabelas encontradas
+        """
+        results = []
+        search_term = search_term.upper()
+
+        try:
+            # Buscar por nome da tabela
+            by_name = await self.rfc_client.read_table(
+                "DD02L",
+                fields=["TABNAME", "TABCLASS", "CONTFLAG"],
+                options=[{"TEXT": f"TABNAME LIKE '%{search_term}%'"}],
+                max_rows=max_results
+            )
+
+            table_names = [t["TABNAME"] for t in by_name]
+
+            # Buscar por descricao
+            by_desc = await self.rfc_client.read_table(
+                "DD02T",
+                fields=["TABNAME", "DDTEXT"],
+                options=[{"TEXT": f"DDTEXT LIKE '%{search_term}%' AND DDLANGUAGE = 'P'"}],
+                max_rows=max_results
+            )
+
+            # Adicionar tabelas encontradas por descricao
+            for t in by_desc:
+                if t["TABNAME"] not in table_names:
+                    table_names.append(t["TABNAME"])
+
+            # Obter descricoes
+            descriptions = await self._get_table_descriptions(table_names[:max_results])
+
+            # Montar resultado
+            for t in by_name[:max_results]:
+                tab_name = t["TABNAME"]
+                results.append({
+                    "name": tab_name,
+                    "description": descriptions.get(tab_name, ""),
+                    "category": t.get("TABCLASS", ""),
+                    "delivery_class": t.get("CONTFLAG", ""),
+                    "match_type": "name"
+                })
+
+            for t in by_desc:
+                tab_name = t["TABNAME"]
+                if not any(r["name"] == tab_name for r in results):
+                    results.append({
+                        "name": tab_name,
+                        "description": t.get("DDTEXT", ""),
+                        "match_type": "description"
+                    })
+
+        except Exception as e:
+            logger.warning(f"Erro ao buscar tabelas por conteudo: {e}")
+
+        return results[:max_results]
+
+    async def get_table_dependencies(
+        self,
+        table_name: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem todas as dependencias de uma tabela.
+
+        Args:
+            table_name: Nome da tabela
+
+        Returns:
+            Dicionario com dependencias (views, includes, programs, etc.)
+        """
+        table_name = table_name.upper()
+        result = {
+            "table": table_name,
+            "views_using": [],
+            "programs_using": [],
+            "function_modules_using": [],
+            "includes_from": [],
+            "check_tables": [],
+            "dependent_tables": []
+        }
+
+        try:
+            # Buscar views que usam a tabela
+            views = await self.rfc_client.read_table(
+                "DD26S",
+                fields=["VIEWNAME", "TABNAME", "TABPOS"],
+                options=[{"TEXT": f"TABNAME = '{table_name}'"}],
+                max_rows=50
+            )
+            result["views_using"] = list(set([v["VIEWNAME"] for v in views]))
+
+            # Buscar includes (estruturas usadas pela tabela)
+            includes = await self.rfc_client.read_table(
+                "DD03L",
+                fields=["TABNAME", "FIELDNAME", "PRECFIELD"],
+                options=[{"TEXT": f"TABNAME = '{table_name}' AND FIELDNAME LIKE '.INCLUDE%'"}],
+                max_rows=20
+            )
+            result["includes_from"] = [i.get("PRECFIELD", "") for i in includes if i.get("PRECFIELD")]
+
+            # Obter tabelas relacionadas
+            related = await self.get_related_tables(table_name)
+            result["check_tables"] = related.get("check_tables", [])
+            result["dependent_tables"] = related.get("dependent_tables", [])
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter dependencias de {table_name}: {e}")
+
+        return result
+
+    async def compare_table_structures(
+        self,
+        table1: str,
+        table2: str
+    ) -> Dict[str, Any]:
+        """
+        Compara estrutura de duas tabelas.
+
+        Args:
+            table1: Nome da primeira tabela
+            table2: Nome da segunda tabela
+
+        Returns:
+            Dicionario com diferencas encontradas
+        """
+        struct1 = await self.analyze_table(table1)
+        struct2 = await self.analyze_table(table2)
+
+        fields1 = {f.name: f for f in struct1.fields}
+        fields2 = {f.name: f for f in struct2.fields}
+
+        result = {
+            "table1": table1,
+            "table2": table2,
+            "fields_only_in_table1": [],
+            "fields_only_in_table2": [],
+            "fields_with_differences": [],
+            "common_fields": []
+        }
+
+        # Campos apenas na tabela 1
+        for name, field in fields1.items():
+            if name not in fields2:
+                result["fields_only_in_table1"].append(field.to_dict())
+            else:
+                # Comparar campos em comum
+                field2 = fields2[name]
+                differences = []
+
+                if field.data_type != field2.data_type:
+                    differences.append(f"data_type: {field.data_type} vs {field2.data_type}")
+                if field.length != field2.length:
+                    differences.append(f"length: {field.length} vs {field2.length}")
+                if field.is_key != field2.is_key:
+                    differences.append(f"is_key: {field.is_key} vs {field2.is_key}")
+
+                if differences:
+                    result["fields_with_differences"].append({
+                        "field": name,
+                        "differences": differences
+                    })
+                else:
+                    result["common_fields"].append(name)
+
+        # Campos apenas na tabela 2
+        for name, field in fields2.items():
+            if name not in fields1:
+                result["fields_only_in_table2"].append(field.to_dict())
+
+        return result

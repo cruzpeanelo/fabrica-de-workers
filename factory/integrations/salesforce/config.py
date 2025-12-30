@@ -14,12 +14,22 @@ Exemplo de configuracao via variaveis de ambiente:
     SALESFORCE_SECURITY_TOKEN=token_seguranca
     SALESFORCE_DOMAIN=login  # ou "test" para sandbox
     SALESFORCE_API_VERSION=59.0
+
+Tenant Isolation (Issue #314):
+    Cada configuracao agora requer um tenant_id para isolamento multi-tenant.
+    Credenciais sao recuperadas do SecretsManager com isolamento por tenant.
 """
 
 import os
+import logging
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from enum import Enum
+
+if TYPE_CHECKING:
+    from ..secrets.secrets_manager import SecretsManager
+
+logger = logging.getLogger(__name__)
 
 
 class SalesforceEnvironment(str, Enum):
@@ -117,6 +127,7 @@ class SalesforceConfig:
     Configuracao principal para conexao com Salesforce
 
     Attributes:
+        tenant_id: ID do tenant para isolamento multi-tenant (obrigatorio)
         username: Nome de usuario Salesforce
         password: Senha do usuario
         security_token: Token de seguranca (obtido em Configuracoes do usuario)
@@ -128,11 +139,21 @@ class SalesforceConfig:
 
     Exemplo:
         config = SalesforceConfig(
+            tenant_id="TENANT-001",
             username="user@empresa.com",
             password="senha123",
             security_token="abc123def456"
         )
+
+    Exemplo com SecretsManager:
+        config = await SalesforceConfig.from_secrets_manager(
+            tenant_id="TENANT-001",
+            secrets_manager=secrets_manager
+        )
     """
+    # Tenant isolation (Issue #314)
+    tenant_id: str = ""  # Required - identifies the client/org
+
     # Autenticacao Username/Password
     username: Optional[str] = None
     password: Optional[str] = None
@@ -164,11 +185,15 @@ class SalesforceConfig:
     custom_headers: Dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_env(cls) -> "SalesforceConfig":
+    def from_env(cls, tenant_id: Optional[str] = None) -> "SalesforceConfig":
         """
         Cria configuracao a partir de variaveis de ambiente
 
+        Args:
+            tenant_id: ID do tenant (obrigatorio, pode vir de SALESFORCE_TENANT_ID)
+
         Variaveis suportadas:
+            SALESFORCE_TENANT_ID
             SALESFORCE_USERNAME
             SALESFORCE_PASSWORD
             SALESFORCE_SECURITY_TOKEN
@@ -194,7 +219,11 @@ class SalesforceConfig:
             if os.getenv("SALESFORCE_DOMAIN", "login") == "test":
                 oauth_config.set_sandbox()
 
+        # Obter tenant_id do parametro ou variavel de ambiente
+        resolved_tenant_id = tenant_id or os.getenv("SALESFORCE_TENANT_ID", "")
+
         return cls(
+            tenant_id=resolved_tenant_id,
             username=os.getenv("SALESFORCE_USERNAME"),
             password=os.getenv("SALESFORCE_PASSWORD"),
             security_token=os.getenv("SALESFORCE_SECURITY_TOKEN"),
@@ -205,6 +234,104 @@ class SalesforceConfig:
             timeout=int(os.getenv("SALESFORCE_TIMEOUT", "30")),
             max_retries=int(os.getenv("SALESFORCE_MAX_RETRIES", "3"))
         )
+
+    @classmethod
+    async def from_secrets_manager(
+        cls,
+        tenant_id: str,
+        secrets_manager: "SecretsManager",
+        domain: str = "login",
+        api_version: str = "59.0"
+    ) -> "SalesforceConfig":
+        """
+        Cria configuracao a partir do SecretsManager com isolamento por tenant.
+
+        Args:
+            tenant_id: ID do tenant (obrigatorio)
+            secrets_manager: Instancia do SecretsManager
+            domain: Dominio de login
+            api_version: Versao da API
+
+        Returns:
+            SalesforceConfig com credenciais do tenant
+
+        Exemplo:
+            from factory.integrations.secrets import SecretsManager, SecretsManagerConfig
+
+            secrets_manager = SecretsManager(SecretsManagerConfig())
+            config = await SalesforceConfig.from_secrets_manager(
+                tenant_id="TENANT-001",
+                secrets_manager=secrets_manager
+            )
+        """
+        # Recuperar credenciais do SecretsManager
+        credentials = await secrets_manager.get_salesforce_credentials(tenant_id)
+
+        if not credentials:
+            logger.warning(f"Nenhuma credencial Salesforce encontrada para tenant {tenant_id}")
+            return cls(
+                tenant_id=tenant_id,
+                domain=domain,
+                api_version=api_version
+            )
+
+        # Verificar se tem OAuth ou Username/Password
+        oauth_config = None
+        if credentials.get("client_id") and credentials.get("client_secret"):
+            oauth_config = SalesforceOAuthConfig(
+                client_id=credentials.get("client_id", ""),
+                client_secret=credentials.get("client_secret", "")
+            )
+            if domain == "test":
+                oauth_config.set_sandbox()
+
+        return cls(
+            tenant_id=tenant_id,
+            username=credentials.get("username"),
+            password=credentials.get("password"),
+            security_token=credentials.get("security_token"),
+            domain=domain,
+            api_version=api_version,
+            oauth_config=oauth_config
+        )
+
+    def get_secret_key(self, key: str) -> str:
+        """
+        Gera chave de secret com isolamento por tenant.
+
+        Args:
+            key: Nome base da chave
+
+        Returns:
+            Chave formatada com tenant_id
+
+        Exemplo:
+            config = SalesforceConfig(tenant_id="TENANT-001", ...)
+            secret_key = config.get_secret_key("access_token")
+            # Retorna: "TENANT-001:access_token"
+        """
+        if not self.tenant_id:
+            raise ValueError("tenant_id e obrigatorio para gerar secret_key")
+        return f"{self.tenant_id}:{key}"
+
+    def get_cache_key(self, key: str) -> str:
+        """
+        Gera chave de cache com isolamento por tenant.
+
+        Args:
+            key: Nome base da chave
+
+        Returns:
+            Chave formatada para cache
+
+        Exemplo:
+            config = SalesforceConfig(tenant_id="TENANT-001", ...)
+            cache_key = config.get_cache_key("token")
+            # Retorna: "salesforce:TENANT-001:token"
+        """
+        if not self.tenant_id:
+            raise ValueError("tenant_id e obrigatorio para gerar cache_key")
+        return f"salesforce:{self.tenant_id}:{key}"
 
     @property
     def login_url(self) -> str:
@@ -274,6 +401,10 @@ class SalesforceConfig:
         Raises:
             ValueError: Se a configuracao e invalida
         """
+        # Verificar tenant_id (obrigatorio para isolamento)
+        if not self.tenant_id:
+            raise ValueError("tenant_id e obrigatorio para isolamento multi-tenant")
+
         # Verificar OAuth
         if self.oauth_config:
             if not self.oauth_config.client_id:
@@ -295,6 +426,7 @@ class SalesforceConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Converte configuracao para dicionario (sem dados sensiveis)"""
         return {
+            "tenant_id": self.tenant_id,
             "username": self.username,
             "domain": self.domain,
             "api_version": self.api_version,
@@ -309,7 +441,7 @@ class SalesforceConfig:
 
     def __repr__(self) -> str:
         return (
-            f"SalesforceConfig(username={self.username}, "
+            f"SalesforceConfig(tenant_id={self.tenant_id}, username={self.username}, "
             f"domain={self.domain}, api_version={self.api_version})"
         )
 

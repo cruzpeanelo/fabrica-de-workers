@@ -11,8 +11,20 @@ Funcionalidades:
 - Analise de flows
 - Geracao de documentacao
 
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
+
 Uso pelos agentes:
+    from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
     from factory.integrations.salesforce.skills import SalesforceReadSkill
+
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
+    sf_client = SalesforceClient(config)
+    await sf_client.connect()
 
     skill = SalesforceReadSkill(sf_client)
 
@@ -26,7 +38,10 @@ Uso pelos agentes:
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 
@@ -54,20 +69,27 @@ class SalesforceReadSkill:
 
     Fornece funcionalidades de leitura e analise
     para agentes especializados Salesforce.
+
+    Herda o contexto de tenant do SalesforceClient para isolamento multi-tenant.
     """
 
-    def __init__(self, sf_client):
+    def __init__(self, sf_client: "SalesforceClient"):
         """
         Inicializa a skill
 
         Args:
-            sf_client: SalesforceClient autenticado
+            sf_client: SalesforceClient autenticado (deve ter tenant_id configurado)
         """
         self.sf = sf_client
         self._object_analyzer = None
         self._apex_analyzer = None
         self._flow_analyzer = None
         self._lwc_analyzer = None
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento (herdado do SalesforceClient)"""
+        return self.sf.tenant_id
 
     @property
     def object_analyzer(self):

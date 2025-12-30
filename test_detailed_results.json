@@ -1,0 +1,178 @@
+[
+  {
+    "page": "/",
+    "tests": [
+      {
+        "name": "Kanban Columns",
+        "count": 4,
+        "ok": true
+      },
+      {
+        "name": "Story Cards",
+        "count": 0,
+        "ok": true
+      },
+      {
+        "name": "Filters",
+        "count": 23,
+        "ok": true
+      },
+      {
+        "name": "Sidebar",
+        "found": true,
+        "ok": true
+      },
+      {
+        "name": "Header",
+        "found": true,
+        "ok": true
+      },
+      {
+        "name": "API Stories",
+        "status": 200,
+        "count": 50,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/executive",
+    "tests": [
+      {
+        "name": "KPI Cards",
+        "count": 19,
+        "ok": true
+      },
+      {
+        "name": "Charts",
+        "count": 13,
+        "ok": true
+      },
+      {
+        "name": "API KPIs",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "API Metrics",
+        "status": 200,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/analytics",
+    "tests": [
+      {
+        "name": "Charts",
+        "count": 14,
+        "ok": true
+      },
+      {
+        "name": "API Productivity",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "API Insights",
+        "status": 200,
+        "ok": true
+      },
+      {
+        "name": "Filters",
+        "count": 2,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/billing",
+    "tests": [
+      {
+        "name": "Plan Cards",
+        "count": 0,
+        "ok": true
+      },
+      {
+        "name": "Usage Section",
+        "count": 29,
+        "ok": true
+      },
+      {
+        "name": "History",
+        "count": 1,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/integrations",
+    "tests": [
+      {
+        "name": "Integration Cards",
+        "count": 22,
+        "ok": true
+      },
+      {
+        "name": "Status Badges",
+        "count": 16,
+        "ok": true
+      },
+      {
+        "name": "Config Buttons",
+        "count": 7,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/admin/users",
+    "tests": [
+      {
+        "name": "Users Table",
+        "found": true,
+        "ok": true
+      },
+      {
+        "name": "Add Button",
+        "found": false,
+        "ok": true
+      },
+      {
+        "name": "Search",
+        "found": false,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/admin/portal",
+    "tests": [
+      {
+        "name": "Config Sections",
+        "count": 0,
+        "ok": true
+      },
+      {
+        "name": "Forms",
+        "count": 0,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "page": "/docs",
+    "tests": [
+      {
+        "name": "Content",
+        "found": true,
+        "ok": true
+      },
+      {
+        "name": "Navigation",
+        "found": false,
+        "ok": true
+      }
+    ]
+  }
+]

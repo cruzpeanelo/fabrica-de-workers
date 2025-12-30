@@ -118,7 +118,7 @@ class SAPAuthenticator:
     """
     Autenticador SAP S/4HANA
 
-    Suporta OAuth2 e autenticacao basica com cache de tokens.
+    Suporta OAuth2 e autenticacao basica com cache de tokens por tenant.
 
     Exemplo de uso:
     ```python
@@ -128,15 +128,19 @@ class SAPAuthenticator:
         client_id="MY_CLIENT_ID",
         client_secret="MY_CLIENT_SECRET"
     )
-    auth = SAPAuthenticator(oauth_config=oauth_config)
+    auth = SAPAuthenticator(tenant_id="tenant-001", oauth_config=oauth_config)
 
     # Obter headers de autenticacao
     headers = await auth.get_auth_headers()
     ```
     """
 
+    # Cache de tokens por tenant (compartilhado entre instancias)
+    _tenant_token_cache: Dict[str, "TokenInfo"] = {}
+
     def __init__(
         self,
+        tenant_id: str = "",
         oauth_config: Optional[SAPOAuthConfig] = None,
         basic_config: Optional[SAPBasicAuthConfig] = None,
         verify_ssl: bool = True,
@@ -146,22 +150,27 @@ class SAPAuthenticator:
         Inicializa autenticador
 
         Args:
+            tenant_id: ID do tenant para isolamento multi-tenant
             oauth_config: Configuracao OAuth2 (preferencial)
             basic_config: Configuracao de autenticacao basica
             verify_ssl: Verificar certificado SSL
             timeout: Timeout para requisicoes de token
         """
+        self.tenant_id = tenant_id
         self.oauth_config = oauth_config
         self.basic_config = basic_config
         self.verify_ssl = verify_ssl
         self.timeout = timeout
 
-        # Cache de token
+        # Cache de token legado (mantido para compatibilidade)
         self._token_cache: Optional[TokenInfo] = None
         self._token_lock = None  # Para uso async
 
         if not oauth_config and not basic_config:
             logger.warning("Nenhuma configuracao de autenticacao fornecida")
+
+        if not tenant_id:
+            logger.warning("tenant_id nao configurado para autenticador SAP")
 
     @property
     def auth_method(self) -> str:
@@ -223,6 +232,24 @@ class SAPAuthenticator:
 
         return headers
 
+    def _get_tenant_cache_key(self) -> str:
+        """Gera chave de cache para o tenant atual"""
+        return f"{self.tenant_id}:oauth_token"
+
+    def _get_cached_token(self) -> Optional[TokenInfo]:
+        """Obtem token do cache do tenant"""
+        cache_key = self._get_tenant_cache_key()
+        token = SAPAuthenticator._tenant_token_cache.get(cache_key)
+        if token and not token.is_expired:
+            return token
+        return None
+
+    def _set_cached_token(self, token: TokenInfo):
+        """Armazena token no cache do tenant"""
+        cache_key = self._get_tenant_cache_key()
+        SAPAuthenticator._tenant_token_cache[cache_key] = token
+        self._token_cache = token  # Manter compatibilidade
+
     def _get_oauth_headers_sync(self) -> Dict[str, str]:
         """
         Obtem headers OAuth2 (sincrono)
@@ -236,13 +263,17 @@ class SAPAuthenticator:
                 "Instale com: pip install requests"
             )
 
-        # Verificar cache
-        if self._token_cache and not self._token_cache.is_expired:
-            return {"Authorization": self._token_cache.authorization_header}
+        # Verificar cache do tenant
+        cached_token = self._get_cached_token()
+        if cached_token:
+            logger.debug(f"[Tenant:{self.tenant_id}] Usando token do cache")
+            return {"Authorization": cached_token.authorization_header}
 
         # Obter novo token
+        logger.info(f"[Tenant:{self.tenant_id}] Obtendo novo token OAuth")
         token = self._fetch_token_sync()
-        self._token_cache = token
+        self._set_cached_token(token)
+        self._audit_log("token_obtained", "Novo token OAuth obtido")
 
         return {"Authorization": token.authorization_header}
 
@@ -253,13 +284,17 @@ class SAPAuthenticator:
         Returns:
             Dict com header Authorization Bearer
         """
-        # Verificar cache
-        if self._token_cache and not self._token_cache.is_expired:
-            return {"Authorization": self._token_cache.authorization_header}
+        # Verificar cache do tenant
+        cached_token = self._get_cached_token()
+        if cached_token:
+            logger.debug(f"[Tenant:{self.tenant_id}] Usando token do cache (async)")
+            return {"Authorization": cached_token.authorization_header}
 
         # Obter novo token
+        logger.info(f"[Tenant:{self.tenant_id}] Obtendo novo token OAuth (async)")
         token = await self._fetch_token_async()
-        self._token_cache = token
+        self._set_cached_token(token)
+        self._audit_log("token_obtained", "Novo token OAuth obtido (async)")
 
         return {"Authorization": token.authorization_header}
 
@@ -421,10 +456,38 @@ class SAPAuthenticator:
                 f"Erro de conexao com servidor OAuth: {str(e)}"
             )
 
+    def _audit_log(self, action: str, details: str):
+        """
+        Registra operacao de token para auditoria
+
+        Args:
+            action: Tipo de acao (token_obtained, token_refreshed, token_cleared)
+            details: Detalhes adicionais
+        """
+        log_entry = {
+            "tenant_id": self.tenant_id,
+            "action": action,
+            "details": details,
+            "timestamp": datetime.now().isoformat(),
+            "auth_method": self.auth_method
+        }
+        logger.info(f"[AUDIT] Tenant:{self.tenant_id} Action:{action} - {details}")
+        # Pode ser estendido para gravar em banco de dados ou sistema de auditoria externo
+
     def clear_token_cache(self):
-        """Limpa cache de token"""
+        """Limpa cache de token do tenant atual"""
+        cache_key = self._get_tenant_cache_key()
+        if cache_key in SAPAuthenticator._tenant_token_cache:
+            del SAPAuthenticator._tenant_token_cache[cache_key]
         self._token_cache = None
-        logger.debug("Cache de token OAuth limpo")
+        self._audit_log("token_cleared", "Cache de token OAuth limpo")
+        logger.debug(f"[Tenant:{self.tenant_id}] Cache de token OAuth limpo")
+
+    @classmethod
+    def clear_all_tenant_caches(cls):
+        """Limpa cache de tokens de todos os tenants"""
+        cls._tenant_token_cache.clear()
+        logger.info("[AUDIT] Cache de tokens de todos os tenants limpo")
 
     def get_token_info(self) -> Optional[Dict]:
         """
@@ -433,14 +496,16 @@ class SAPAuthenticator:
         Returns:
             Dict com informacoes ou None se nao houver token
         """
-        if not self._token_cache:
+        cached_token = self._get_cached_token()
+        if not cached_token:
             return None
 
         return {
-            "token_type": self._token_cache.token_type,
-            "expires_at": self._token_cache.expires_at.isoformat(),
-            "is_expired": self._token_cache.is_expired,
-            "scope": self._token_cache.scope
+            "tenant_id": self.tenant_id,
+            "token_type": cached_token.token_type,
+            "expires_at": cached_token.expires_at.isoformat(),
+            "is_expired": cached_token.is_expired,
+            "scope": cached_token.scope
         }
 
     async def validate_credentials(self) -> Tuple[bool, str]:
@@ -500,6 +565,7 @@ def create_authenticator_from_config(config) -> SAPAuthenticator:
         )
 
     return SAPAuthenticator(
+        tenant_id=config.tenant_id,
         oauth_config=oauth_config,
         basic_config=basic_config,
         verify_ssl=config.verify_ssl,

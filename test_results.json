@@ -1,0 +1,218 @@
+{
+  "pages": [
+    {
+      "path": "/",
+      "name": "Home/Dashboard",
+      "status": "ERROR",
+      "error": "Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n"
+    },
+    {
+      "path": "/executive",
+      "name": "Executive Dashboard",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "path": "/analytics",
+      "name": "Analytics Page",
+      "status": "ERROR",
+      "error": "Page.goto: Navigation to \"http://localhost:9001/analytics\" is interrupted by ano"
+    },
+    {
+      "path": "/billing",
+      "name": "Billing Page",
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Billing e Usage - Fabrica de Agentes"
+    },
+    {
+      "path": "/admin",
+      "name": "Admin Panel",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "path": "/admin/users",
+      "name": "Admin Users",
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Administracao de Usuarios - Fabrica de Agentes"
+    },
+    {
+      "path": "/admin/portal",
+      "name": "Admin Portal",
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Portal de Administracao - Fabrica de Agentes"
+    },
+    {
+      "path": "/security",
+      "name": "Security Settings",
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Fabrica de Agentes - Dashboard Agile"
+    },
+    {
+      "path": "/integrations",
+      "name": "Integrations Panel",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "path": "/workers",
+      "name": "Workers Monitor",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "path": "/projects",
+      "name": "Projects List",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "path": "/docs",
+      "name": "Documentation",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    }
+  ],
+  "apis": [
+    {
+      "path": "/api/stories",
+      "name": "Stories API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "[{\"story_id\":\"STR-0001\",\"tenant_id\":null,\"project_id\":\"belgo-bpm-platform\",\"title\":\"Modelagem do Ban"
+    },
+    {
+      "path": "/api/projects",
+      "name": "Projects API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "[{\"project_id\":\"checklist-dti\",\"tenant_id\":null,\"name\":\"ChecklistDTI - Issue Tracking\",\"description\""
+    },
+    {
+      "path": "/api/jobs",
+      "name": "Jobs API",
+      "status": 404,
+      "ok": false,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "path": "/api/executive/kpis",
+      "name": "Executive KPIs API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"kpis\":{\"completion_rate\":54.0,\"avg_velocity\":0.0,\"avg_lead_time\":0,\"avg_cycle_time\":0,\"throughput\""
+    },
+    {
+      "path": "/api/executive/metrics",
+      "name": "Executive Metrics API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"summary\":{\"total_stories\":50,\"done_stories\":27,\"in_progress_stories\":20,\"total_points\":334,\"comple"
+    },
+    {
+      "path": "/api/analytics/productivity",
+      "name": "Analytics Productivity API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"period\":{\"start_date\":\"2025-11-30T17:29:16.798098\",\"end_date\":\"2025-12-30T17:29:16.798098\",\"days\":"
+    },
+    {
+      "path": "/api/analytics/insights",
+      "name": "Analytics Insights API",
+      "status": 200,
+      "ok": true,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"summary\":\"O projeto apresenta s\u00e9rios problemas organizacionais com 54% das stories n\u00e3o atribu\u00eddas "
+    },
+    {
+      "path": "/api/workers/status",
+      "name": "Workers Status API",
+      "status": 404,
+      "ok": false,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "path": "/api/integrations",
+      "name": "Integrations API",
+      "status": 404,
+      "ok": false,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "path": "/health",
+      "name": "Health Check",
+      "status": 404,
+      "ok": false,
+      "hasData": true,
+      "isJson": true,
+      "preview": "{\"detail\":\"Not Found\"}"
+    }
+  ],
+  "issues": [
+    {
+      "type": "page",
+      "path": "/",
+      "error": "Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n"
+    },
+    {
+      "type": "page",
+      "path": "/executive",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "type": "page",
+      "path": "/analytics",
+      "error": "Page.goto: Navigation to \"http://localhost:9001/analytics\" is interrupted by ano"
+    },
+    {
+      "type": "page",
+      "path": "/admin",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "type": "page",
+      "path": "/integrations",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "type": "page",
+      "path": "/workers",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "type": "page",
+      "path": "/projects",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    },
+    {
+      "type": "page",
+      "path": "/docs",
+      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+    }
+  ]
+}

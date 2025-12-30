@@ -492,7 +492,7 @@ class ODataV4Client:
         service_path="/sap/opu/odata4/sap/api_business_partner/srvd_a2x/sap/a_businesspartner/0001/"
     )
 
-    client = ODataV4Client(config, authenticator)
+    client = ODataV4Client(config, authenticator, tenant_id="tenant-001")
 
     # Query simples
     bp_list = await client.get("A_BusinessPartner", top=10)
@@ -525,7 +525,8 @@ class ODataV4Client:
     def __init__(
         self,
         config: ODataConfig,
-        authenticator: SAPAuthenticator
+        authenticator: SAPAuthenticator,
+        tenant_id: str = ""
     ):
         """
         Inicializa cliente OData
@@ -533,9 +534,11 @@ class ODataV4Client:
         Args:
             config: Configuracao do servico OData
             authenticator: Autenticador SAP
+            tenant_id: ID do tenant para isolamento multi-tenant
         """
         self.config = config
         self.authenticator = authenticator
+        self.tenant_id = tenant_id
         self._csrf_token: Optional[str] = None
         self._session_cookies: Dict = {}
 
@@ -545,19 +548,28 @@ class ODataV4Client:
                 "Use: pip install requests"
             )
 
+        if not tenant_id:
+            logger.warning("tenant_id nao configurado para cliente OData")
+
     @property
     def base_url(self) -> str:
         """Retorna URL base do servico"""
         return self.config.full_url
 
     def _get_default_headers(self) -> Dict[str, str]:
-        """Retorna headers padrao"""
-        return {
+        """Retorna headers padrao incluindo X-Tenant-ID"""
+        headers = {
             "Accept": "application/json",
             "Accept-Language": self.config.language,
             "Content-Type": "application/json",
             "sap-cancel-on-close": "true"
         }
+
+        # Adicionar header de tenant para isolamento
+        if self.tenant_id:
+            headers["X-Tenant-ID"] = self.tenant_id
+
+        return headers
 
     async def _get_headers(self, include_csrf: bool = False) -> Dict[str, str]:
         """

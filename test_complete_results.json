@@ -1,0 +1,558 @@
+{
+  "pages": [
+    {
+      "path": "/",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "path": "/admin",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "path": "/admin/users/",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/admin/portal/",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/admin/portal/platform",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/analytics",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/billing",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/executive",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/integrations",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "path": "/security",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "path": "/workers",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/projects",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/docs",
+      "status": 200,
+      "has_content": true,
+      "ok": true
+    },
+    {
+      "path": "/login",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/register",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/forgot-password",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/settings",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/profile",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/notifications",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/help",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "path": "/onboarding",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    }
+  ],
+  "apis": [
+    {
+      "path": "/api/stories",
+      "name": "List Stories",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/projects",
+      "name": "List Projects",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/tenants",
+      "name": "List Tenants",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/tenant/current",
+      "name": "Current Tenant",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/executive/kpis",
+      "name": "Executive KPIs",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/executive/metrics",
+      "name": "Executive Metrics",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/analytics/productivity",
+      "name": "Analytics Productivity",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/analytics/insights",
+      "name": "Analytics Insights",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/analytics/velocity-history",
+      "name": "Velocity History",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/chat/history",
+      "name": "Chat History",
+      "status": 500,
+      "ok": false,
+      "hasData": false
+    },
+    {
+      "path": "/api/search?q=test",
+      "name": "Global Search",
+      "status": 500,
+      "ok": false,
+      "hasData": false
+    },
+    {
+      "path": "/api/templates",
+      "name": "Story Templates",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/gamification/leaderboard",
+      "name": "Leaderboard",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/gamification/badges",
+      "name": "Badges",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/gamification/levels",
+      "name": "Levels",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/gamification/points",
+      "name": "Points",
+      "status": 405,
+      "ok": false,
+      "hasData": true
+    },
+    {
+      "path": "/api/focus/history",
+      "name": "Focus History",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/focus/stats",
+      "name": "Focus Stats",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/my-work/summary",
+      "name": "My Work Summary",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/my-work/deadlines",
+      "name": "Deadlines",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/my-work/activity",
+      "name": "Activity",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/my-work/metrics",
+      "name": "My Metrics",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/calendar/stories",
+      "name": "Calendar Stories",
+      "status": 422,
+      "ok": false,
+      "hasData": true
+    },
+    {
+      "path": "/api/calendar/sprints",
+      "name": "Calendar Sprints",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/monitoring/dashboard",
+      "name": "Monitoring Dashboard",
+      "status": 200,
+      "ok": true,
+      "hasData": false
+    },
+    {
+      "path": "/api/monitoring/workers",
+      "name": "Workers Status",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/monitoring/stats",
+      "name": "Monitoring Stats",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/monitoring/logs",
+      "name": "Monitoring Logs",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/monitoring/timeline",
+      "name": "Timeline",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/integrations/status",
+      "name": "Integrations Status",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/integrations/all-status",
+      "name": "All Integrations Status",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/integrations/config",
+      "name": "Integrations Config",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/audit/logs",
+      "name": "Audit Logs",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/audit/summary",
+      "name": "Audit Summary",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/audit/alerts",
+      "name": "Audit Alerts",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/help/articles",
+      "name": "Help Articles",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/help/faq",
+      "name": "FAQ",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/help/search?q=como",
+      "name": "Help Search",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/themes",
+      "name": "Themes",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/api/webhooks/list",
+      "name": "Webhooks List",
+      "status": 404,
+      "ok": false,
+      "hasData": true
+    },
+    {
+      "path": "/api/export/stories/csv",
+      "name": "Export Stories CSV",
+      "status": 200,
+      "ok": true,
+      "hasData": false
+    },
+    {
+      "path": "/api/status",
+      "name": "System Status",
+      "status": 200,
+      "ok": true,
+      "hasData": true
+    },
+    {
+      "path": "/health",
+      "name": "Health Check",
+      "status": 404,
+      "ok": false,
+      "hasData": true
+    },
+    {
+      "path": "/api/epics",
+      "name": "Epics",
+      "status": 405,
+      "ok": false,
+      "hasData": true
+    }
+  ],
+  "issues": [
+    {
+      "type": "page",
+      "path": "/",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/admin",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/integrations",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/security",
+      "status": "ERROR",
+      "error": "Page.goto: Timeout 10000ms exceeded.\nCall log:\n  -",
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/login",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/register",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/forgot-password",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/settings",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/profile",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/notifications",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/help",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "page",
+      "path": "/onboarding",
+      "status": 404,
+      "has_content": false,
+      "ok": false
+    },
+    {
+      "type": "api",
+      "path": "/api/chat/history",
+      "name": "Chat History",
+      "status": 500,
+      "ok": false,
+      "hasData": false
+    },
+    {
+      "type": "api",
+      "path": "/api/search?q=test",
+      "name": "Global Search",
+      "status": 500,
+      "ok": false,
+      "hasData": false
+    },
+    {
+      "type": "api",
+      "path": "/api/webhooks/list",
+      "name": "Webhooks List",
+      "status": 404,
+      "ok": false,
+      "hasData": true
+    },
+    {
+      "type": "api",
+      "path": "/health",
+      "name": "Health Check",
+      "status": 404,
+      "ok": false,
+      "hasData": true
+    }
+  ]
+}

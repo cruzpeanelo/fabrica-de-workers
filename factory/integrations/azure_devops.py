@@ -862,6 +862,561 @@ class AzureDevOpsIntegration(IntegrationBase):
         })
         return status
 
+    # =========================================================================
+    # Git Repositories API
+    # =========================================================================
+
+    async def get_repositories(self, project: str = None) -> List[Dict]:
+        """
+        Lista repositorios Git do projeto.
+
+        Args:
+            project: Nome do projeto (opcional, usa projeto padrao se nao informado)
+
+        Returns:
+            List[Dict]: Lista de repositorios
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            proj = project or self.config.project
+            url = f"{self.base_url}/{proj}/_apis/git/repositories"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar repositorios: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar repositorios: {e}")
+
+        return []
+
+    async def get_repository(self, repo_id: str) -> Dict:
+        """
+        Busca informacoes de um repositorio especifico.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+
+        Returns:
+            Dict: Dados do repositorio ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Repositorio nao encontrado: {repo_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar repositorio {repo_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar repositorio {repo_id}: {e}")
+
+        return {}
+
+    async def get_branches(self, repo_id: str) -> List[Dict]:
+        """
+        Lista branches de um repositorio.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+
+        Returns:
+            List[Dict]: Lista de branches
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/refs"
+            params = {
+                "api-version": self.API_VERSION,
+                "filter": "heads/"
+            }
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar branches do repo {repo_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar branches do repo {repo_id}: {e}")
+
+        return []
+
+    async def get_commits(self, repo_id: str, branch: str = "main", top: int = 50) -> List[Dict]:
+        """
+        Lista commits de um repositorio.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+            branch: Nome da branch (padrao: main)
+            top: Numero maximo de commits a retornar (padrao: 50)
+
+        Returns:
+            List[Dict]: Lista de commits
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/commits"
+            params = {
+                "api-version": self.API_VERSION,
+                "searchCriteria.itemVersion.version": branch,
+                "searchCriteria.itemVersion.versionType": "branch",
+                "$top": top
+            }
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar commits do repo {repo_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar commits do repo {repo_id}: {e}")
+
+        return []
+
+    async def get_commit(self, repo_id: str, commit_id: str) -> Dict:
+        """
+        Busca informacoes de um commit especifico.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+            commit_id: SHA do commit
+
+        Returns:
+            Dict: Dados do commit ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/commits/{commit_id}"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Commit nao encontrado: {commit_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar commit {commit_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar commit {commit_id}: {e}")
+
+        return {}
+
+    # =========================================================================
+    # Pull Requests API
+    # =========================================================================
+
+    async def get_pull_requests(self, repo_id: str, status: str = "active") -> List[Dict]:
+        """
+        Lista pull requests de um repositorio.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+            status: Status dos PRs (active, abandoned, completed, all)
+
+        Returns:
+            List[Dict]: Lista de pull requests
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/pullrequests"
+            params = {
+                "api-version": self.API_VERSION,
+                "searchCriteria.status": status
+            }
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar pull requests do repo {repo_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar pull requests do repo {repo_id}: {e}")
+
+        return []
+
+    async def get_pull_request(self, repo_id: str, pr_id: int) -> Dict:
+        """
+        Busca informacoes de um pull request especifico.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+            pr_id: ID do pull request
+
+        Returns:
+            Dict: Dados do pull request ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/pullrequests/{pr_id}"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Pull request nao encontrado: {pr_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar pull request {pr_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar pull request {pr_id}: {e}")
+
+        return {}
+
+    async def create_pull_request(
+        self,
+        repo_id: str,
+        source_branch: str,
+        target_branch: str,
+        title: str,
+        description: str = ""
+    ) -> Dict:
+        """
+        Cria um novo pull request.
+
+        Args:
+            repo_id: ID ou nome do repositorio
+            source_branch: Branch de origem (ex: feature/my-feature)
+            target_branch: Branch de destino (ex: main)
+            title: Titulo do pull request
+            description: Descricao do pull request (opcional)
+
+        Returns:
+            Dict: Dados do pull request criado ou dict vazio em caso de erro
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/git/repositories/{repo_id}/pullrequests"
+            params = {"api-version": self.API_VERSION}
+
+            # Formata refs das branches
+            source_ref = source_branch if source_branch.startswith("refs/") else f"refs/heads/{source_branch}"
+            target_ref = target_branch if target_branch.startswith("refs/") else f"refs/heads/{target_branch}"
+
+            body = {
+                "sourceRefName": source_ref,
+                "targetRefName": target_ref,
+                "title": title,
+                "description": description
+            }
+
+            async with session.post(url, params=params, json=body) as response:
+                if response.status in (200, 201):
+                    return await response.json()
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao criar pull request: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao criar pull request: {e}")
+
+        return {}
+
+    # =========================================================================
+    # Pipelines API
+    # =========================================================================
+
+    async def get_pipelines(self, project: str = None) -> List[Dict]:
+        """
+        Lista pipelines do projeto.
+
+        Args:
+            project: Nome do projeto (opcional, usa projeto padrao se nao informado)
+
+        Returns:
+            List[Dict]: Lista de pipelines
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            proj = project or self.config.project
+            url = f"{self.base_url}/{proj}/_apis/pipelines"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar pipelines: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar pipelines: {e}")
+
+        return []
+
+    async def get_pipeline(self, pipeline_id: int) -> Dict:
+        """
+        Busca informacoes de um pipeline especifico.
+
+        Args:
+            pipeline_id: ID do pipeline
+
+        Returns:
+            Dict: Dados do pipeline ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/pipelines/{pipeline_id}"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Pipeline nao encontrado: {pipeline_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar pipeline {pipeline_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar pipeline {pipeline_id}: {e}")
+
+        return {}
+
+    async def trigger_pipeline(
+        self,
+        pipeline_id: int,
+        branch: str = "main",
+        variables: Dict = None
+    ) -> Dict:
+        """
+        Dispara execucao de um pipeline.
+
+        Args:
+            pipeline_id: ID do pipeline
+            branch: Branch para executar (padrao: main)
+            variables: Variaveis para passar ao pipeline (opcional)
+
+        Returns:
+            Dict: Dados da execucao criada ou dict vazio em caso de erro
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/pipelines/{pipeline_id}/runs"
+            params = {"api-version": self.API_VERSION}
+
+            body = {
+                "resources": {
+                    "repositories": {
+                        "self": {
+                            "refName": f"refs/heads/{branch}"
+                        }
+                    }
+                }
+            }
+
+            # Adiciona variaveis se fornecidas
+            if variables:
+                body["variables"] = {
+                    key: {"value": str(value)} for key, value in variables.items()
+                }
+
+            async with session.post(url, params=params, json=body) as response:
+                if response.status in (200, 201):
+                    return await response.json()
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao disparar pipeline {pipeline_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao disparar pipeline {pipeline_id}: {e}")
+
+        return {}
+
+    # =========================================================================
+    # Builds API
+    # =========================================================================
+
+    async def get_builds(self, project: str = None, top: int = 50) -> List[Dict]:
+        """
+        Lista builds do projeto.
+
+        Args:
+            project: Nome do projeto (opcional, usa projeto padrao se nao informado)
+            top: Numero maximo de builds a retornar (padrao: 50)
+
+        Returns:
+            List[Dict]: Lista de builds
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            proj = project or self.config.project
+            url = f"{self.base_url}/{proj}/_apis/build/builds"
+            params = {
+                "api-version": self.API_VERSION,
+                "$top": top
+            }
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("value", [])
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar builds: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao listar builds: {e}")
+
+        return []
+
+    async def get_build(self, build_id: int) -> Dict:
+        """
+        Busca informacoes de um build especifico.
+
+        Args:
+            build_id: ID do build
+
+        Returns:
+            Dict: Dados do build ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/build/builds/{build_id}"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Build nao encontrado: {build_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar build {build_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar build {build_id}: {e}")
+
+        return {}
+
+    async def get_build_logs(self, build_id: int) -> str:
+        """
+        Busca logs de um build.
+
+        Args:
+            build_id: ID do build
+
+        Returns:
+            str: Logs do build concatenados ou string vazia em caso de erro
+        """
+        if not self.is_connected:
+            return ""
+
+        try:
+            session = await self._ensure_session()
+
+            # Primeiro, lista os logs disponiveis
+            url = f"{self.project_url}/_apis/build/builds/{build_id}/logs"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status != 200:
+                    error = await response.text()
+                    logger.error(f"Erro ao listar logs do build {build_id}: {error}")
+                    return ""
+
+                logs_data = await response.json()
+                log_entries = logs_data.get("value", [])
+
+            # Busca o conteudo de cada log
+            all_logs = []
+            for log_entry in log_entries:
+                log_id = log_entry.get("id")
+                if log_id:
+                    log_url = f"{self.project_url}/_apis/build/builds/{build_id}/logs/{log_id}"
+                    async with session.get(log_url, params=params) as log_response:
+                        if log_response.status == 200:
+                            log_content = await log_response.text()
+                            all_logs.append(f"=== Log {log_id} ===\n{log_content}")
+
+            return "\n\n".join(all_logs)
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar logs do build {build_id}: {e}")
+
+        return ""
+
+    async def get_build_timeline(self, build_id: int) -> Dict:
+        """
+        Busca timeline de um build (etapas, jobs, tasks).
+
+        Args:
+            build_id: ID do build
+
+        Returns:
+            Dict: Timeline do build ou dict vazio se nao encontrado
+        """
+        if not self.is_connected:
+            return {}
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.project_url}/_apis/build/builds/{build_id}/timeline"
+            params = {"api-version": self.API_VERSION}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    logger.warning(f"Timeline nao encontrada para build: {build_id}")
+                else:
+                    error = await response.text()
+                    logger.error(f"Erro ao buscar timeline do build {build_id}: {error}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar timeline do build {build_id}: {e}")
+
+        return {}
+
 
 # Instancia global (singleton)
 _azure_instance: Optional[AzureDevOpsIntegration] = None

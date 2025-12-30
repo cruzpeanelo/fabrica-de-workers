@@ -9,10 +9,18 @@ A Bulk API 2.0 e otimizada para:
 - Consultas SOQL em datasets grandes
 - Processamento assincrono com monitoramento
 
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
+
 Exemplo de uso:
-    from factory.integrations.salesforce import SalesforceClient
+    from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
     from factory.integrations.salesforce.bulk_client import BulkClient
 
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
     sf_client = SalesforceClient(config)
     await sf_client.connect()
 
@@ -40,7 +48,10 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 
@@ -131,19 +142,26 @@ class BulkClient:
 
     Permite operacoes em massa com alta performance
     para grandes volumes de dados.
+
+    Herda o contexto de tenant do SalesforceClient para isolamento multi-tenant.
     """
 
-    def __init__(self, sf_client, batch_size: int = 10000):
+    def __init__(self, sf_client: "SalesforceClient", batch_size: int = 10000):
         """
         Inicializa o cliente Bulk
 
         Args:
-            sf_client: SalesforceClient autenticado
+            sf_client: SalesforceClient autenticado (deve ter tenant_id configurado)
             batch_size: Tamanho maximo de cada batch
         """
         self.sf = sf_client
         self.batch_size = batch_size
         self._max_csv_file_size = 100 * 1024 * 1024  # 100MB
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento (herdado do SalesforceClient)"""
+        return self.sf.tenant_id
 
     @property
     def bulk_url(self) -> str:

@@ -322,6 +322,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Lazy Loading not available: {e}")
 
+# Skeleton Loaders (Issue #218)
+try:
+    from factory.dashboard.skeleton_loaders import register_skeleton_endpoints
+    register_skeleton_endpoints(app)
+    print("[Dashboard] Skeleton Loaders loaded: /skeleton-demo")
+except ImportError as e:
+    print(f"[Dashboard] Skeleton Loaders not available: {e}")
+
 # GraphQL API (Issue #268)
 try:
     from factory.dashboard.graphql_api import register_graphql_api

@@ -12,10 +12,18 @@ A Tooling API permite:
 - Gerenciar debug logs
 - Executar codigo Apex anonimo
 
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
+
 Exemplo de uso:
-    from factory.integrations.salesforce import SalesforceClient
+    from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
     from factory.integrations.salesforce.tooling_client import ToolingClient
 
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
     sf_client = SalesforceClient(config)
     await sf_client.connect()
 
@@ -40,7 +48,10 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 
@@ -155,16 +166,23 @@ class ToolingClient:
 
     Fornece acesso a recursos de desenvolvimento como
     classes Apex, triggers, logs e execucao de testes.
+
+    Herda o contexto de tenant do SalesforceClient para isolamento multi-tenant.
     """
 
-    def __init__(self, sf_client):
+    def __init__(self, sf_client: "SalesforceClient"):
         """
         Inicializa o cliente Tooling
 
         Args:
-            sf_client: SalesforceClient autenticado
+            sf_client: SalesforceClient autenticado (deve ter tenant_id configurado)
         """
         self.sf = sf_client
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento (herdado do SalesforceClient)"""
+        return self.sf.tenant_id
 
     @property
     def tooling_url(self) -> str:

@@ -12,8 +12,20 @@ Funcionalidades:
 - Deploy de flows
 - Validacao
 
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
+
 Uso pelos agentes:
+    from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
     from factory.integrations.salesforce.skills import SalesforceDeploySkill
+
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
+    sf_client = SalesforceClient(config)
+    await sf_client.connect()
 
     skill = SalesforceDeploySkill(sf_client)
 
@@ -27,7 +39,10 @@ Uso pelos agentes:
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 

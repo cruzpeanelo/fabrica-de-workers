@@ -10,8 +10,20 @@ Funcionalidades:
 - Execucao de testes
 - Analise de codigo
 
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
+
 Uso pelos agentes:
+    from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
     from factory.integrations.salesforce.skills import SalesforceApexSkill
+
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
+    sf_client = SalesforceClient(config)
+    await sf_client.connect()
 
     skill = SalesforceApexSkill(sf_client)
 
@@ -25,7 +37,10 @@ Uso pelos agentes:
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 
@@ -53,18 +68,25 @@ class SalesforceApexSkill:
 
     Fornece funcionalidades de geracao e execucao
     de codigo Apex para agentes especializados.
+
+    Herda o contexto de tenant do SalesforceClient para isolamento multi-tenant.
     """
 
-    def __init__(self, sf_client):
+    def __init__(self, sf_client: "SalesforceClient"):
         """
         Inicializa a skill
 
         Args:
-            sf_client: SalesforceClient autenticado
+            sf_client: SalesforceClient autenticado (deve ter tenant_id configurado)
         """
         self.sf = sf_client
         self._tooling = None
         self._apex_generator = None
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento (herdado do SalesforceClient)"""
+        return self.sf.tenant_id
 
     @property
     def tooling(self):

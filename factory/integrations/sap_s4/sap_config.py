@@ -32,6 +32,7 @@ class SAPS4Config:
     Configuracao completa para SAP S/4HANA
 
     Attributes:
+        tenant_id: ID do tenant para isolamento multi-tenant (obrigatorio)
         system_url: URL base do sistema SAP (ex: https://my-s4.s4hana.ondemand.com)
         environment: Tipo de ambiente (cloud, private, on_premise)
         client: Mandante SAP (ex: "100")
@@ -49,6 +50,9 @@ class SAPS4Config:
         communication_arrangement: Nome do Communication Arrangement
         communication_system: Nome do Communication System
     """
+    # Tenant isolation
+    tenant_id: str = ""
+
     # Conexao basica
     system_url: str = ""
     environment: SAPS4Environment = SAPS4Environment.CLOUD
@@ -139,6 +143,18 @@ class SAPS4Config:
         endpoint = self.api_endpoints.get(endpoint_key, "")
         return f"{self.system_url.rstrip('/')}{endpoint}"
 
+    def get_secret_key(self, key: str) -> str:
+        """
+        Retorna chave secreta prefixada com tenant_id para isolamento
+
+        Args:
+            key: Chave do segredo (ex: "oauth_token", "api_key")
+
+        Returns:
+            Chave formatada como "{tenant_id}:{key}"
+        """
+        return f"{self.tenant_id}:{key}"
+
     def is_oauth_configured(self) -> bool:
         """Verifica se OAuth esta configurado"""
         return bool(
@@ -160,6 +176,9 @@ class SAPS4Config:
         """
         errors = []
 
+        if not self.tenant_id:
+            errors.append("ID do tenant nao configurado (tenant_id)")
+
         if not self.system_url:
             errors.append("URL do sistema SAP nao configurada (system_url)")
 
@@ -180,6 +199,7 @@ class SAPS4Config:
     def to_dict(self) -> Dict:
         """Converte configuracao para dicionario (sem dados sensiveis)"""
         return {
+            "tenant_id": self.tenant_id,
             "system_url": self.system_url,
             "environment": self.environment.value,
             "client": self.client,
@@ -208,6 +228,7 @@ def load_config_from_env() -> SAPS4Config:
     Carrega configuracao a partir de variaveis de ambiente
 
     Variaveis de ambiente suportadas:
+    - SAP_S4_TENANT_ID: ID do tenant para isolamento multi-tenant (obrigatorio)
     - SAP_S4_SYSTEM_URL: URL base do sistema
     - SAP_S4_ENVIRONMENT: cloud, private ou on_premise
     - SAP_S4_CLIENT: Mandante SAP
@@ -248,6 +269,7 @@ def load_config_from_env() -> SAPS4Config:
             proxy["https"] = proxy_https
 
     config = SAPS4Config(
+        tenant_id=os.getenv("SAP_S4_TENANT_ID", ""),
         system_url=os.getenv("SAP_S4_SYSTEM_URL", ""),
         environment=environment,
         client=os.getenv("SAP_S4_CLIENT", "100"),
@@ -278,6 +300,7 @@ EXAMPLE_CONFIGS = {
     "cloud": {
         "description": "SAP S/4HANA Cloud Public Edition",
         "config": {
+            "tenant_id": "tenant-001",
             "system_url": "https://my-api.s4hana.ondemand.com",
             "environment": "cloud",
             "oauth_token_url": "https://my-api.s4hana.ondemand.com/sap/bc/sec/oauth2/token",
@@ -289,6 +312,7 @@ EXAMPLE_CONFIGS = {
     "cloud_private": {
         "description": "SAP S/4HANA Cloud Private Edition",
         "config": {
+            "tenant_id": "tenant-002",
             "system_url": "https://my-private.s4hana.cloud",
             "environment": "private",
             "username": "COMM_USER",
@@ -299,6 +323,7 @@ EXAMPLE_CONFIGS = {
     "on_premise": {
         "description": "SAP S/4HANA On-Premise",
         "config": {
+            "tenant_id": "tenant-003",
             "system_url": "https://sap-server.mycompany.local:443",
             "environment": "on_premise",
             "username": "TECHNICAL_USER",

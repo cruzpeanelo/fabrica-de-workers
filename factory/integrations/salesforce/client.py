@@ -10,11 +10,17 @@ Funcionalidades:
 - Consultas SOQL
 - Busca SOSL
 - Gerenciamento de sessao com refresh automatico
+- Isolamento multi-tenant com cache por tenant (Issue #314)
 
 Exemplo de uso:
     from factory.integrations.salesforce import SalesforceClient, SalesforceConfig
 
-    config = SalesforceConfig.from_env()
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
     client = SalesforceClient(config)
 
     await client.connect()
@@ -39,13 +45,231 @@ import logging
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union, ClassVar
 from urllib.parse import urlencode, quote
 
 from .config import SalesforceConfig, SalesforceOAuthConfig, AuthenticationType
 
 logger = logging.getLogger(__name__)
+
+
+# ==================== PER-TENANT TOKEN CACHE ====================
+
+@dataclass
+class CachedToken:
+    """Token em cache com metadata de expiracao"""
+    access_token: str
+    instance_url: str
+    user_id: Optional[str]
+    organization_id: Optional[str]
+    cached_at: datetime
+    expires_at: datetime
+
+    @property
+    def is_expired(self) -> bool:
+        """Verifica se o token expirou"""
+        return datetime.utcnow() >= self.expires_at
+
+
+class TenantTokenCache:
+    """
+    Cache de tokens por tenant para isolamento multi-tenant.
+
+    Garante que cada tenant tenha seu proprio token em cache,
+    evitando vazamento de credenciais entre tenants.
+    """
+    _instance: ClassVar[Optional["TenantTokenCache"]] = None
+    _cache: ClassVar[Dict[str, CachedToken]] = {}
+    _default_ttl_seconds: ClassVar[int] = 7200  # 2 horas
+
+    @classmethod
+    def get_instance(cls) -> "TenantTokenCache":
+        """Singleton para compartilhar cache entre instancias"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def get_token(self, tenant_id: str) -> Optional[CachedToken]:
+        """
+        Recupera token do cache para um tenant.
+
+        Args:
+            tenant_id: ID do tenant
+
+        Returns:
+            CachedToken ou None se nao encontrado/expirado
+        """
+        cached = self._cache.get(tenant_id)
+        if cached and not cached.is_expired:
+            return cached
+        elif cached:
+            # Remove token expirado
+            del self._cache[tenant_id]
+        return None
+
+    def set_token(
+        self,
+        tenant_id: str,
+        access_token: str,
+        instance_url: str,
+        user_id: Optional[str] = None,
+        organization_id: Optional[str] = None,
+        ttl_seconds: Optional[int] = None
+    ):
+        """
+        Armazena token no cache para um tenant.
+
+        Args:
+            tenant_id: ID do tenant
+            access_token: Token de acesso
+            instance_url: URL da instancia Salesforce
+            user_id: ID do usuario
+            organization_id: ID da organizacao
+            ttl_seconds: Tempo de vida em segundos
+        """
+        ttl = ttl_seconds or self._default_ttl_seconds
+        self._cache[tenant_id] = CachedToken(
+            access_token=access_token,
+            instance_url=instance_url,
+            user_id=user_id,
+            organization_id=organization_id,
+            cached_at=datetime.utcnow(),
+            expires_at=datetime.utcnow() + timedelta(seconds=ttl)
+        )
+        logger.debug(f"Token cacheado para tenant {tenant_id}")
+
+    def invalidate_token(self, tenant_id: str):
+        """
+        Remove token do cache para um tenant.
+
+        Args:
+            tenant_id: ID do tenant
+        """
+        if tenant_id in self._cache:
+            del self._cache[tenant_id]
+            logger.debug(f"Token invalidado para tenant {tenant_id}")
+
+    def clear_all(self):
+        """Remove todos os tokens do cache"""
+        self._cache.clear()
+        logger.info("Cache de tokens limpo")
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Retorna estatisticas do cache"""
+        active_tokens = sum(1 for t in self._cache.values() if not t.is_expired)
+        return {
+            "total_cached": len(self._cache),
+            "active_tokens": active_tokens,
+            "expired_tokens": len(self._cache) - active_tokens,
+            "tenants": list(self._cache.keys())
+        }
+
+
+# ==================== AUDIT LOGGING ====================
+
+class AuditLogger:
+    """
+    Logger de auditoria para operacoes Salesforce por tenant.
+
+    Registra todas as operacoes com contexto de tenant para
+    rastreabilidade e compliance.
+    """
+    _instance: ClassVar[Optional["AuditLogger"]] = None
+    _logs: ClassVar[List[Dict[str, Any]]] = []
+    _max_logs: ClassVar[int] = 10000
+
+    @classmethod
+    def get_instance(cls) -> "AuditLogger":
+        """Singleton para compartilhar logs entre instancias"""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def log_operation(
+        self,
+        tenant_id: str,
+        operation: str,
+        resource: str,
+        success: bool,
+        details: Optional[Dict[str, Any]] = None,
+        error: Optional[str] = None,
+        user_id: Optional[str] = None,
+        duration_ms: Optional[int] = None
+    ):
+        """
+        Registra uma operacao para auditoria.
+
+        Args:
+            tenant_id: ID do tenant
+            operation: Tipo de operacao (QUERY, CREATE, UPDATE, DELETE, etc)
+            resource: Recurso acessado (objeto, endpoint)
+            success: Se a operacao foi bem sucedida
+            details: Detalhes adicionais
+            error: Mensagem de erro se houver
+            user_id: ID do usuario Salesforce
+            duration_ms: Duracao da operacao em milissegundos
+        """
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "tenant_id": tenant_id,
+            "operation": operation,
+            "resource": resource,
+            "success": success,
+            "user_id": user_id,
+            "duration_ms": duration_ms,
+            "details": details,
+            "error": error
+        }
+
+        self._logs.append(log_entry)
+
+        # Manter apenas os ultimos N registros
+        if len(self._logs) > self._max_logs:
+            self._logs = self._logs[-self._max_logs:]
+
+        # Log tambem no logger padrao
+        if success:
+            logger.info(
+                f"[AUDIT] tenant={tenant_id} op={operation} resource={resource}"
+            )
+        else:
+            logger.warning(
+                f"[AUDIT] tenant={tenant_id} op={operation} resource={resource} error={error}"
+            )
+
+    def get_logs(
+        self,
+        tenant_id: Optional[str] = None,
+        operation: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """
+        Recupera logs de auditoria.
+
+        Args:
+            tenant_id: Filtrar por tenant
+            operation: Filtrar por operacao
+            limit: Limite de registros
+
+        Returns:
+            Lista de logs
+        """
+        logs = self._logs
+
+        if tenant_id:
+            logs = [l for l in logs if l.get("tenant_id") == tenant_id]
+        if operation:
+            logs = [l for l in logs if l.get("operation") == operation]
+
+        return logs[-limit:]
+
+    def clear_logs(self, tenant_id: Optional[str] = None):
+        """Limpa logs de auditoria"""
+        if tenant_id:
+            self._logs = [l for l in self._logs if l.get("tenant_id") != tenant_id]
+        else:
+            self._logs.clear()
 
 
 class SalesforceError(Exception):
@@ -148,6 +372,9 @@ class SalesforceClient:
 
     Fornece interface completa para interacao com Salesforce REST API,
     incluindo autenticacao, CRUD, consultas SOQL e muito mais.
+
+    Suporta isolamento multi-tenant com cache de tokens por tenant
+    e audit logging de todas as operacoes.
     """
 
     def __init__(self, config: SalesforceConfig):
@@ -155,12 +382,21 @@ class SalesforceClient:
         Inicializa o cliente Salesforce
 
         Args:
-            config: Configuracao de conexao
+            config: Configuracao de conexao (deve incluir tenant_id)
         """
         self.config = config
         self._session: Optional[aiohttp.ClientSession] = None
         self._connected = False
         self._limits: Dict[str, Any] = {}
+
+        # Tenant isolation (Issue #314)
+        self._token_cache = TenantTokenCache.get_instance()
+        self._audit_logger = AuditLogger.get_instance()
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento"""
+        return self.config.tenant_id
 
     @property
     def is_connected(self) -> bool:
@@ -218,27 +454,83 @@ class SalesforceClient:
         Tenta autenticar usando o metodo configurado
         (Username/Password ou OAuth).
 
+        Utiliza cache de token por tenant para evitar autenticacoes
+        desnecessarias e melhorar performance.
+
         Returns:
             True se conectou com sucesso
 
         Raises:
             AuthenticationError: Se falhar na autenticacao
         """
+        start_time = time.time()
+
         try:
             self.config.validate()
 
+            # Verificar se existe token em cache para este tenant
+            cached_token = self._token_cache.get_token(self.tenant_id)
+            if cached_token:
+                self.config.access_token = cached_token.access_token
+                self.config.instance_url = cached_token.instance_url
+                self.config.user_id = cached_token.user_id
+                self.config.organization_id = cached_token.organization_id
+                self._connected = True
+
+                self._audit_logger.log_operation(
+                    tenant_id=self.tenant_id,
+                    operation="CONNECT_CACHED",
+                    resource="session",
+                    success=True,
+                    user_id=self.config.user_id,
+                    duration_ms=int((time.time() - start_time) * 1000)
+                )
+
+                logger.info(f"Usando token em cache para tenant {self.tenant_id}")
+                return True
+
+            # Autenticar com Salesforce
             if self.config.auth_type == AuthenticationType.OAUTH_WEB_SERVER:
                 await self._authenticate_oauth()
             else:
                 await self._authenticate_soap()
 
+            # Armazenar token no cache por tenant
+            self._token_cache.set_token(
+                tenant_id=self.tenant_id,
+                access_token=self.config.access_token,
+                instance_url=self.config.instance_url,
+                user_id=self.config.user_id,
+                organization_id=self.config.organization_id
+            )
+
             self._connected = True
-            logger.info(f"Conectado ao Salesforce: {self.config.instance_url}")
+
+            self._audit_logger.log_operation(
+                tenant_id=self.tenant_id,
+                operation="CONNECT",
+                resource="session",
+                success=True,
+                user_id=self.config.user_id,
+                duration_ms=int((time.time() - start_time) * 1000)
+            )
+
+            logger.info(f"Conectado ao Salesforce para tenant {self.tenant_id}: {self.config.instance_url}")
             return True
 
         except Exception as e:
-            logger.error(f"Falha na autenticacao: {e}")
+            logger.error(f"Falha na autenticacao para tenant {self.tenant_id}: {e}")
             self._connected = False
+
+            self._audit_logger.log_operation(
+                tenant_id=self.tenant_id,
+                operation="CONNECT",
+                resource="session",
+                success=False,
+                error=str(e),
+                duration_ms=int((time.time() - start_time) * 1000)
+            )
+
             raise AuthenticationError(str(e))
 
     async def _authenticate_soap(self):
@@ -451,7 +743,9 @@ class SalesforceClient:
         endpoint: str,
         data: Optional[Dict] = None,
         params: Optional[Dict] = None,
-        headers: Optional[Dict] = None
+        headers: Optional[Dict] = None,
+        audit_operation: Optional[str] = None,
+        audit_resource: Optional[str] = None
     ) -> Any:
         """
         Faz requisicao para a API REST
@@ -462,6 +756,8 @@ class SalesforceClient:
             data: Dados para enviar no body
             params: Parametros de query string
             headers: Headers adicionais
+            audit_operation: Tipo de operacao para auditoria
+            audit_resource: Recurso para auditoria
 
         Returns:
             Resposta da API (JSON)
@@ -472,6 +768,7 @@ class SalesforceClient:
         if not self.is_connected:
             raise SalesforceError("Nao conectado. Chame connect() primeiro.")
 
+        start_time = time.time()
         url = f"{self.config.rest_url}{endpoint}"
         request_headers = self.headers
         if headers:
@@ -498,8 +795,9 @@ class SalesforceClient:
                             f"Rate limit excedido. Aguarde {retry_after}s"
                         )
 
-                    # Sessao expirada
+                    # Sessao expirada - invalidar cache e reconectar
                     if response.status == 401:
+                        self._token_cache.invalidate_token(self.tenant_id)
                         await self.connect()  # Reconectar
                         continue
 
@@ -507,6 +805,17 @@ class SalesforceClient:
 
                     if response.status >= 400:
                         self._handle_error_response(response.status, response_text)
+
+                    # Log de auditoria para operacao bem sucedida
+                    if audit_operation:
+                        self._audit_logger.log_operation(
+                            tenant_id=self.tenant_id,
+                            operation=audit_operation,
+                            resource=audit_resource or endpoint,
+                            success=True,
+                            user_id=self.config.user_id,
+                            duration_ms=int((time.time() - start_time) * 1000)
+                        )
 
                     # Resposta vazia (ex: DELETE bem sucedido)
                     if not response_text:
@@ -518,6 +827,19 @@ class SalesforceClient:
                 if attempt < self.config.max_retries - 1:
                     await asyncio.sleep(2 ** attempt)
                     continue
+
+                # Log de auditoria para falha
+                if audit_operation:
+                    self._audit_logger.log_operation(
+                        tenant_id=self.tenant_id,
+                        operation=audit_operation,
+                        resource=audit_resource or endpoint,
+                        success=False,
+                        error=str(e),
+                        user_id=self.config.user_id,
+                        duration_ms=int((time.time() - start_time) * 1000)
+                    )
+
                 raise SalesforceError(f"Erro de conexao: {e}")
 
         raise SalesforceError("Maximo de tentativas excedido")
@@ -580,7 +902,11 @@ class SalesforceClient:
         params = {"q": soql}
 
         try:
-            data = await self._request("GET", endpoint, params=params)
+            data = await self._request(
+                "GET", endpoint, params=params,
+                audit_operation="QUERY",
+                audit_resource=soql[:100]  # Primeiros 100 chars da query
+            )
             return QueryResult.from_response(data)
         except Exception as e:
             raise QueryError(str(e))
@@ -657,7 +983,11 @@ class SalesforceClient:
             print(f"Criado: {result['id']}")
         """
         endpoint = f"/sobjects/{sobject}"
-        result = await self._request("POST", endpoint, data=data)
+        result = await self._request(
+            "POST", endpoint, data=data,
+            audit_operation="CREATE",
+            audit_resource=sobject
+        )
         return result
 
     async def get(
@@ -701,7 +1031,11 @@ class SalesforceClient:
             True se sucesso
         """
         endpoint = f"/sobjects/{sobject}/{record_id}"
-        await self._request("PATCH", endpoint, data=data)
+        await self._request(
+            "PATCH", endpoint, data=data,
+            audit_operation="UPDATE",
+            audit_resource=f"{sobject}/{record_id}"
+        )
         return True
 
     async def upsert(
@@ -739,7 +1073,11 @@ class SalesforceClient:
             True se sucesso
         """
         endpoint = f"/sobjects/{sobject}/{record_id}"
-        await self._request("DELETE", endpoint)
+        await self._request(
+            "DELETE", endpoint,
+            audit_operation="DELETE",
+            audit_resource=f"{sobject}/{record_id}"
+        )
         return True
 
     # ==================== SOBJECT METADATA ====================
@@ -970,3 +1308,53 @@ class SalesforceClient:
 
         result = await self.query(soql)
         return result.total_size
+
+    # ==================== TENANT ISOLATION (Issue #314) ====================
+
+    def get_audit_logs(
+        self,
+        operation: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """
+        Recupera logs de auditoria para este tenant.
+
+        Args:
+            operation: Filtrar por tipo de operacao
+            limit: Numero maximo de registros
+
+        Returns:
+            Lista de logs de auditoria
+        """
+        return self._audit_logger.get_logs(
+            tenant_id=self.tenant_id,
+            operation=operation,
+            limit=limit
+        )
+
+    def get_token_cache_stats(self) -> Dict[str, Any]:
+        """
+        Retorna estatisticas do cache de tokens.
+
+        Returns:
+            Estatisticas do cache
+        """
+        return self._token_cache.get_stats()
+
+    def invalidate_cached_token(self):
+        """
+        Invalida o token em cache para este tenant.
+
+        Util quando as credenciais foram alteradas ou o token
+        precisa ser renovado.
+        """
+        self._token_cache.invalidate_token(self.tenant_id)
+        self._connected = False
+        logger.info(f"Token invalidado para tenant {self.tenant_id}")
+
+    def clear_audit_logs(self):
+        """
+        Limpa logs de auditoria para este tenant.
+        """
+        self._audit_logger.clear_logs(self.tenant_id)
+        logger.info(f"Logs de auditoria limpos para tenant {self.tenant_id}")

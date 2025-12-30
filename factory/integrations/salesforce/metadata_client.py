@@ -11,9 +11,17 @@ A Metadata API permite:
 - Gerenciar profiles e permission sets
 - Deploy de componentes (classes, triggers, pages, etc.)
 
-Exemplo de uso:
-    from factory.integrations.salesforce import SalesforceClient, MetadataClient
+Suporta isolamento multi-tenant atraves do tenant_id do SalesforceClient (Issue #314).
 
+Exemplo de uso:
+    from factory.integrations.salesforce import SalesforceClient, MetadataClient, SalesforceConfig
+
+    config = SalesforceConfig(
+        tenant_id="TENANT-001",
+        username="user@empresa.com",
+        password="senha123",
+        security_token="token"
+    )
     sf_client = SalesforceClient(config)
     await sf_client.connect()
 
@@ -44,8 +52,11 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 import xml.etree.ElementTree as ET
+
+if TYPE_CHECKING:
+    from .client import SalesforceClient
 
 logger = logging.getLogger(__name__)
 
@@ -123,17 +134,24 @@ class MetadataClient:
 
     Permite gerenciar configuracoes, objetos customizados,
     campos, classes Apex e outros componentes.
+
+    Herda o contexto de tenant do SalesforceClient para isolamento multi-tenant.
     """
 
-    def __init__(self, sf_client):
+    def __init__(self, sf_client: "SalesforceClient"):
         """
         Inicializa o cliente de Metadata
 
         Args:
-            sf_client: SalesforceClient autenticado
+            sf_client: SalesforceClient autenticado (deve ter tenant_id configurado)
         """
         self.sf = sf_client
         self._session_id = None
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant para isolamento (herdado do SalesforceClient)"""
+        return self.sf.tenant_id
 
     @property
     def metadata_url(self) -> str:

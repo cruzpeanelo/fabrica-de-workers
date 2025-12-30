@@ -55,26 +55,39 @@ def register_security_endpoints(app: FastAPI):
     """Register security settings API endpoints"""
 
     # -------------------------------------------------------------------------
-    # Security Data Endpoint
+    # Security Data Endpoint - Issue #309 fix: Added error handling
     # -------------------------------------------------------------------------
     @app.get("/api/security/data")
     def get_security_data(user_id: int = 1):
-        """Get all security data for user"""
-        from factory.auth.mfa import MFAService
-        from factory.api.api_key_auth import list_api_keys
+        """Get all security data for user - Issue #309 fix: Added error handling"""
+        # Initialize with safe defaults to prevent timeout
+        mfa_status = None
+        api_keys = []
+        sessions = []
 
-        mfa_service = MFAService()
-        mfa_status = mfa_service.get_status(user_id)
-
-        # Get API keys
+        # Get MFA status with error handling (Issue #309 fix)
         try:
+            from factory.auth.mfa import MFAService
+            mfa_service = MFAService()
+            mfa_status = mfa_service.get_status(user_id)
+        except Exception as e:
+            print(f"[Security] Error loading MFA status: {e}")
+            mfa_status = {"enabled": False, "status": "error", "error": str(e)}
+
+        # Get API keys with error handling
+        try:
+            from factory.api.api_key_auth import list_api_keys
             api_keys = list_api_keys(user_id=user_id)
         except Exception as e:
             print(f"[Security] Error loading API keys: {e}")
             api_keys = []
 
-        # Get sessions (mock for now - will be implemented with session management)
-        sessions = _get_user_sessions(user_id)
+        # Get sessions with error handling
+        try:
+            sessions = _get_user_sessions(user_id)
+        except Exception as e:
+            print(f"[Security] Error loading sessions: {e}")
+            sessions = []
 
         return {
             "mfa": mfa_status,

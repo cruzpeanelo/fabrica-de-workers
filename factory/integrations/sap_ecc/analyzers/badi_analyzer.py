@@ -632,3 +632,610 @@ class BADIAnalyzer:
             Lista de nomes de BADIs
         """
         return self.COMMON_BADIS.get(area.upper(), [])
+
+    async def get_badi_filter_values(
+        self,
+        badi_name: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Obtem os valores de filtro de uma BADI filter-dependent.
+
+        Args:
+            badi_name: Nome da BADI
+
+        Returns:
+            Lista de valores de filtro configurados
+        """
+        badi_name = badi_name.upper()
+        filter_values = []
+
+        try:
+            # Buscar definicao de filtros na SXS_ATTRT (tabela de tipos de filtro)
+            filter_def = await self.rfc_client.read_table(
+                "SXS_ATTRT",
+                fields=["EXIT_NAME", "FILTER_FIELD", "FILTER_TYPE", "FILTER_TAB"],
+                options=[{"TEXT": f"EXIT_NAME = '{badi_name}'"}],
+                max_rows=10
+            )
+
+            if not filter_def:
+                # Tentar tabela alternativa
+                filter_def = await self.rfc_client.read_table(
+                    "SXS_ATTR",
+                    fields=["EXIT_NAME", "FILTER_DEPEND", "FILTER_TAB"],
+                    options=[{"TEXT": f"EXIT_NAME = '{badi_name}'"}],
+                    max_rows=1
+                )
+
+            # Buscar valores de filtro das implementacoes na SXC_FILTER
+            impl_filters = await self.rfc_client.read_table(
+                "SXC_FILTER",
+                fields=["EXIT_NAME", "IMP_NAME", "FILT_NAME", "FILT_VAL"],
+                options=[{"TEXT": f"EXIT_NAME = '{badi_name}'"}],
+                max_rows=100
+            )
+
+            # Agrupar por implementacao
+            by_impl: Dict[str, List[Dict]] = {}
+            for fv in impl_filters:
+                impl_name = fv.get("IMP_NAME", "")
+                if impl_name not in by_impl:
+                    by_impl[impl_name] = []
+
+                by_impl[impl_name].append({
+                    "filter_name": fv.get("FILT_NAME", ""),
+                    "filter_value": fv.get("FILT_VAL", "")
+                })
+
+            for impl_name, filters in by_impl.items():
+                filter_values.append({
+                    "implementation": impl_name,
+                    "filters": filters
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter filter values de {badi_name}: {e}")
+
+        return filter_values
+
+    async def get_enhancement_spot_details(
+        self,
+        spot_name: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem detalhes completos de um Enhancement Spot.
+
+        Args:
+            spot_name: Nome do enhancement spot
+
+        Returns:
+            Dicionario com detalhes do spot
+        """
+        spot_name = spot_name.upper()
+        result = {
+            "name": spot_name,
+            "description": "",
+            "package": "",
+            "badis": [],
+            "enhancement_points": [],
+            "enhancement_sections": [],
+            "composite_spots": [],
+            "implementations": []
+        }
+
+        try:
+            # Buscar info basica do spot
+            spot_info = await self.rfc_client.read_table(
+                "ENHSPOTOBJ",
+                fields=["ENHSPOT", "ENHSPOTCLASS", "DEVCLASS", "VERSION"],
+                options=[{"TEXT": f"ENHSPOT = '{spot_name}'"}],
+                max_rows=1
+            )
+
+            if spot_info:
+                result["package"] = spot_info[0].get("DEVCLASS", "")
+
+            # Buscar BADIs do spot
+            badis = await self.rfc_client.read_table(
+                "ENHSPOTOBJ_B",
+                fields=["ENHSPOT", "BADI_NAME"],
+                options=[{"TEXT": f"ENHSPOT = '{spot_name}'"}],
+                max_rows=50
+            )
+
+            result["badis"] = [b.get("BADI_NAME", "") for b in badis]
+
+            # Buscar enhancement points
+            points = await self.rfc_client.read_table(
+                "ENHSPOTOBJ_P",
+                fields=["ENHSPOT", "ENHPOINT_NAME", "MAINTYPE"],
+                options=[{"TEXT": f"ENHSPOT = '{spot_name}'"}],
+                max_rows=50
+            )
+
+            for point in points:
+                result["enhancement_points"].append({
+                    "name": point.get("ENHPOINT_NAME", ""),
+                    "type": point.get("MAINTYPE", "")
+                })
+
+            # Buscar enhancement sections
+            sections = await self.rfc_client.read_table(
+                "ENHSPOTOBJ_S",
+                fields=["ENHSPOT", "ENHSECTION_NAME"],
+                options=[{"TEXT": f"ENHSPOT = '{spot_name}'"}],
+                max_rows=50
+            )
+
+            result["enhancement_sections"] = [s.get("ENHSECTION_NAME", "") for s in sections]
+
+            # Buscar implementacoes do spot
+            impls = await self.rfc_client.read_table(
+                "ENHIMPL",
+                fields=["ENHNAME", "ENHSPOT", "DEVCLASS", "VERSION"],
+                options=[{"TEXT": f"ENHSPOT = '{spot_name}'"}],
+                max_rows=50
+            )
+
+            for impl in impls:
+                result["implementations"].append({
+                    "name": impl.get("ENHNAME", ""),
+                    "package": impl.get("DEVCLASS", "")
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter detalhes do spot {spot_name}: {e}")
+
+        return result
+
+    async def get_badi_active_status(
+        self,
+        badi_name: str
+    ) -> Dict[str, Any]:
+        """
+        Verifica status de ativacao de uma BADI e suas implementacoes.
+
+        Args:
+            badi_name: Nome da BADI
+
+        Returns:
+            Dicionario com status de ativacao
+        """
+        badi_name = badi_name.upper()
+        result = {
+            "badi": badi_name,
+            "is_active": False,
+            "implementations": []
+        }
+
+        try:
+            # Verificar se BADI esta ativa
+            badi_attr = await self.rfc_client.read_table(
+                "SXS_ATTR",
+                fields=["EXIT_NAME", "ACTIVE", "SWITCHABLE"],
+                options=[{"TEXT": f"EXIT_NAME = '{badi_name}'"}],
+                max_rows=1
+            )
+
+            if badi_attr:
+                result["is_active"] = badi_attr[0].get("ACTIVE", "") == "X"
+                result["is_switchable"] = badi_attr[0].get("SWITCHABLE", "") == "X"
+
+            # Buscar implementacoes e status
+            impls = await self.rfc_client.read_table(
+                "SXC_ATTR",
+                fields=["EXIT_NAME", "IMP_NAME", "IMP_CLASS", "ACTIVE", "RUNTIME"],
+                options=[{"TEXT": f"EXIT_NAME = '{badi_name}'"}],
+                max_rows=50
+            )
+
+            for impl in impls:
+                result["implementations"].append({
+                    "name": impl.get("IMP_NAME", ""),
+                    "class": impl.get("IMP_CLASS", ""),
+                    "is_active": impl.get("ACTIVE", "") == "X",
+                    "runtime": impl.get("RUNTIME", "")
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao verificar status de {badi_name}: {e}")
+
+        return result
+
+    async def analyze_badi_complete(
+        self,
+        badi_name: str
+    ) -> Dict[str, Any]:
+        """
+        Analise completa de uma BADI incluindo:
+        - Informacoes basicas
+        - Metodos da interface
+        - Implementacoes
+        - Filtros
+        - Status de ativacao
+
+        Args:
+            badi_name: Nome da BADI
+
+        Returns:
+            Dicionario com analise completa
+        """
+        badi_name = badi_name.upper()
+
+        # Obter informacoes basicas
+        badi_info = await self.analyze_badi(badi_name)
+
+        # Obter status de ativacao
+        status = await self.get_badi_active_status(badi_name)
+
+        # Obter filtros se for filter-dependent
+        filter_values = []
+        if badi_info.is_filter_dependent:
+            filter_values = await self.get_badi_filter_values(badi_name)
+
+        # Montar resultado completo
+        result = badi_info.to_dict()
+        result["is_active"] = status.get("is_active", False)
+        result["is_switchable"] = status.get("is_switchable", False)
+        result["filter_values"] = filter_values
+        result["implementations_detail"] = status.get("implementations", [])
+
+        return result
+
+    async def get_interface_parameters(
+        self,
+        interface_name: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem parametros detalhados dos metodos de uma interface BADI.
+
+        Args:
+            interface_name: Nome da interface
+
+        Returns:
+            Dicionario com metodos e seus parametros
+        """
+        interface_name = interface_name.upper()
+        result = {
+            "interface": interface_name,
+            "methods": []
+        }
+
+        try:
+            # Buscar metodos na SEOCOMPO
+            methods = await self.rfc_client.read_table(
+                "SEOCOMPO",
+                fields=["CLSNAME", "CMPNAME", "CMPTYPE", "EXPOSURE"],
+                options=[{"TEXT": f"CLSNAME = '{interface_name}' AND CMPTYPE = '1'"}],
+                max_rows=50
+            )
+
+            for method in methods:
+                method_name = method.get("CMPNAME", "")
+
+                # Buscar parametros do metodo
+                params = await self.rfc_client.read_table(
+                    "SEOSUBCO",
+                    fields=["CLSNAME", "CMPNAME", "SCONAME", "SCOTYPE", "PARDECLTYP",
+                            "PARPASSTYP", "TYPE", "PAROPTIONL"],
+                    options=[{"TEXT": f"CLSNAME = '{interface_name}' AND CMPNAME = '{method_name}'"}],
+                    max_rows=50
+                )
+
+                method_params = {
+                    "importing": [],
+                    "exporting": [],
+                    "changing": [],
+                    "returning": None,
+                    "exceptions": []
+                }
+
+                for param in params:
+                    param_info = {
+                        "name": param.get("SCONAME", ""),
+                        "type": param.get("TYPE", ""),
+                        "optional": param.get("PAROPTIONL", "") == "X",
+                        "pass_by": param.get("PARPASSTYP", "")  # 0=value, 1=ref
+                    }
+
+                    decl_type = param.get("PARDECLTYP", "")
+                    if decl_type == "0":  # Importing
+                        method_params["importing"].append(param_info)
+                    elif decl_type == "1":  # Exporting
+                        method_params["exporting"].append(param_info)
+                    elif decl_type == "2":  # Changing
+                        method_params["changing"].append(param_info)
+                    elif decl_type == "3":  # Returning
+                        method_params["returning"] = param_info
+
+                    # Exceptions (scotype = 4)
+                    if param.get("SCOTYPE", "") == "4":
+                        method_params["exceptions"].append(param_info["name"])
+
+                result["methods"].append({
+                    "name": method_name,
+                    "visibility": method.get("EXPOSURE", ""),
+                    "parameters": method_params
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter parametros de {interface_name}: {e}")
+
+        return result
+
+    async def search_customer_exits(
+        self,
+        component: Optional[str] = None,
+        exit_type: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Busca Customer Exits (CMOD/SMOD).
+
+        Args:
+            component: Componente SAP (MM, SD, FI, etc.)
+            exit_type: Tipo do exit (E=Exit, C=Customer, etc.)
+
+        Returns:
+            Lista de customer exits
+        """
+        exits = []
+
+        try:
+            # Buscar projetos de ampliacao (CMOD)
+            options = []
+            if component:
+                options.append({"TEXT": f"COMPONENT LIKE '{component}%'"})
+
+            projects = await self.rfc_client.read_table(
+                "MODSAP",  # Enhancement projects
+                fields=["NAME", "MEMBER", "MODACT", "TYP"],
+                options=options if options else None,
+                max_rows=100
+            )
+
+            # Buscar exits (SMOD)
+            exit_options = []
+            if component:
+                exit_options.append({"TEXT": f"NAME LIKE '%{component}%'"})
+
+            smod_exits = await self.rfc_client.read_table(
+                "MODSAPT",  # Enhancement texts
+                fields=["NAME", "SPRSL", "MODTEXT"],
+                options=exit_options if exit_options else None,
+                max_rows=100
+            )
+
+            # Montar resultado
+            exit_texts = {e.get("NAME", ""): e.get("MODTEXT", "") for e in smod_exits}
+
+            for proj in projects:
+                exits.append({
+                    "project": proj.get("NAME", ""),
+                    "member": proj.get("MEMBER", ""),
+                    "is_active": proj.get("MODACT", "") == "X",
+                    "type": proj.get("TYP", ""),
+                    "description": exit_texts.get(proj.get("NAME", ""), "")
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao buscar customer exits: {e}")
+
+        return exits
+
+    async def get_implicit_enhancements(
+        self,
+        program_name: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Busca pontos de enhancement implicitos em um programa.
+
+        Args:
+            program_name: Nome do programa ABAP
+
+        Returns:
+            Lista de pontos de enhancement implicitos
+        """
+        enhancements = []
+        program_name = program_name.upper()
+
+        try:
+            # Buscar enhancement implementations no programa
+            impl_data = await self.rfc_client.read_table(
+                "ENHOBJ",
+                fields=["ENHNAME", "OBJNAME", "OBJTYPE", "VERSION"],
+                options=[{"TEXT": f"OBJNAME = '{program_name}'"}],
+                max_rows=50
+            )
+
+            for impl in impl_data:
+                enhancements.append({
+                    "enhancement_name": impl.get("ENHNAME", ""),
+                    "object_name": impl.get("OBJNAME", ""),
+                    "object_type": impl.get("OBJTYPE", ""),
+                    "version": impl.get("VERSION", "")
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao buscar implicit enhancements de {program_name}: {e}")
+
+        return enhancements
+
+    async def compare_badi_implementations(
+        self,
+        badi_name: str
+    ) -> Dict[str, Any]:
+        """
+        Compara todas as implementacoes de uma BADI.
+
+        Args:
+            badi_name: Nome da BADI
+
+        Returns:
+            Comparacao entre implementacoes
+        """
+        badi_name = badi_name.upper()
+
+        result = {
+            "badi": badi_name,
+            "total_implementations": 0,
+            "active_implementations": 0,
+            "inactive_implementations": 0,
+            "implementations_by_package": {},
+            "filter_distribution": {}
+        }
+
+        try:
+            # Obter todas as implementacoes
+            impls = await self._get_badi_implementations(badi_name)
+            result["total_implementations"] = len(impls)
+
+            active = [i for i in impls if i.is_active]
+            result["active_implementations"] = len(active)
+            result["inactive_implementations"] = len(impls) - len(active)
+
+            # Agrupar por pacote
+            by_package: Dict[str, int] = {}
+            for impl in impls:
+                pkg = impl.package or "UNKNOWN"
+                by_package[pkg] = by_package.get(pkg, 0) + 1
+
+            result["implementations_by_package"] = by_package
+
+            # Distribuicao de filtros
+            filter_values = await self.get_badi_filter_values(badi_name)
+            for fv in filter_values:
+                for f in fv.get("filters", []):
+                    filter_name = f.get("filter_name", "")
+                    if filter_name not in result["filter_distribution"]:
+                        result["filter_distribution"][filter_name] = []
+                    result["filter_distribution"][filter_name].append(fv.get("implementation"))
+
+        except Exception as e:
+            logger.warning(f"Erro ao comparar implementacoes de {badi_name}: {e}")
+
+        return result
+
+    async def get_new_badi_info(
+        self,
+        badi_name: str
+    ) -> Dict[str, Any]:
+        """
+        Obtem informacoes de uma nova BADI (Enhancement Framework).
+
+        As novas BADIs usam tabelas diferentes das classicas.
+
+        Args:
+            badi_name: Nome da BADI
+
+        Returns:
+            Informacoes da nova BADI
+        """
+        badi_name = badi_name.upper()
+        result = {
+            "name": badi_name,
+            "type": "new",
+            "enhancement_spot": "",
+            "interface": "",
+            "fallback_class": "",
+            "is_multiple_use": False,
+            "is_filter_dependent": False,
+            "methods": [],
+            "implementations": []
+        }
+
+        try:
+            # Buscar na BADI_DATA (tabela de novas BADIs)
+            badi_data = await self.rfc_client.read_table(
+                "BADI_DATA",
+                fields=["BADI_NAME", "ENHSPOT", "INTER_NAME", "FALLBACK_CL",
+                        "MULTIPLE_USE", "FILTER_BADI"],
+                options=[{"TEXT": f"BADI_NAME = '{badi_name}'"}],
+                max_rows=1
+            )
+
+            if badi_data:
+                bd = badi_data[0]
+                result["enhancement_spot"] = bd.get("ENHSPOT", "")
+                result["interface"] = bd.get("INTER_NAME", "")
+                result["fallback_class"] = bd.get("FALLBACK_CL", "")
+                result["is_multiple_use"] = bd.get("MULTIPLE_USE", "") == "X"
+                result["is_filter_dependent"] = bd.get("FILTER_BADI", "") == "X"
+
+                # Buscar metodos
+                if result["interface"]:
+                    interface_info = await self.get_interface_parameters(result["interface"])
+                    result["methods"] = interface_info.get("methods", [])
+
+            # Buscar implementacoes na BADI_IMPL
+            impls = await self.rfc_client.read_table(
+                "BADI_IMPL",
+                fields=["BADI_NAME", "IMPL_NAME", "IMPL_CLASS", "ACTIVE"],
+                options=[{"TEXT": f"BADI_NAME = '{badi_name}'"}],
+                max_rows=50
+            )
+
+            for impl in impls:
+                result["implementations"].append({
+                    "name": impl.get("IMPL_NAME", ""),
+                    "class": impl.get("IMPL_CLASS", ""),
+                    "is_active": impl.get("ACTIVE", "") == "X"
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao obter nova BADI {badi_name}: {e}")
+
+        return result
+
+    async def list_badis_by_package(
+        self,
+        package: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Lista todas as BADIs de um pacote.
+
+        Args:
+            package: Nome do pacote (DEVCLASS)
+
+        Returns:
+            Lista de BADIs do pacote
+        """
+        package = package.upper()
+        badis = []
+
+        try:
+            # BADIs classicas
+            classic = await self.rfc_client.read_table(
+                "SXS_ATTR",
+                fields=["EXIT_NAME", "ACTIVE", "MULTIPLE_USE", "FILTER_DEPEND"],
+                options=[{"TEXT": f"DEVCLASS = '{package}'"}],
+                max_rows=100
+            )
+
+            for b in classic:
+                badis.append({
+                    "name": b.get("EXIT_NAME", ""),
+                    "type": "classic",
+                    "is_active": b.get("ACTIVE", "") == "X",
+                    "is_multiple_use": b.get("MULTIPLE_USE", "") == "X"
+                })
+
+            # Novas BADIs
+            new_badis = await self.rfc_client.read_table(
+                "BADI_DATA",
+                fields=["BADI_NAME", "ENHSPOT", "MULTIPLE_USE"],
+                options=[{"TEXT": f"DEVCLASS = '{package}'"}],
+                max_rows=100
+            )
+
+            for b in new_badis:
+                badis.append({
+                    "name": b.get("BADI_NAME", ""),
+                    "type": "new",
+                    "enhancement_spot": b.get("ENHSPOT", ""),
+                    "is_multiple_use": b.get("MULTIPLE_USE", "") == "X"
+                })
+
+        except Exception as e:
+            logger.warning(f"Erro ao listar BADIs do pacote {package}: {e}")
+
+        return badis

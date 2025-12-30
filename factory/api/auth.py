@@ -289,12 +289,21 @@ security = HTTPBearer(auto_error=False)
 # MODELS
 # =============================================================================
 
+class UserInfo(BaseModel):
+    """Informacoes basicas do usuario"""
+    id: Optional[int] = None
+    username: str
+    email: Optional[str] = None
+    role: str
+
+
 class Token(BaseModel):
     """Token de acesso"""
     access_token: str
     token_type: str = "bearer"
     expires_at: str
     force_password_change: bool = False  # Issue #138: Indica se usuário precisa trocar senha
+    user: Optional[UserInfo] = None  # Informacoes do usuario logado
 
 
 class TokenData(BaseModel):
@@ -577,7 +586,13 @@ async def login(credentials: UserLogin):
                     access_token=token,
                     token_type="bearer",
                     expires_at=expires_at.isoformat(),
-                    force_password_change=force_change
+                    force_password_change=force_change,
+                    user=UserInfo(
+                        id=user.id,
+                        username=user.username,
+                        email=user.email,
+                        role=user.role
+                    )
                 )
         finally:
             db.close()

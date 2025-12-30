@@ -2,19 +2,24 @@
 """
 Jira Integration Module
 =======================
-Integracao com Jira via API REST.
+Integracao com Jira via API REST com isolamento por tenant.
 
 Funcionalidades:
 - Conectar/desconectar via API REST
 - Sincronizar issues <-> stories bidirecionalmente
 - Mapear status Jira -> Kanban interno
 - Webhook para atualizacoes em tempo real
+- Isolamento por tenant com credenciais seguras
+- Audit logging com contexto de tenant
+
+Terminal 5 - Issue #314: Tenant isolation for Jira integration.
 
 Configuracao via variaveis de ambiente:
 - JIRA_URL: URL base do Jira (ex: https://empresa.atlassian.net)
 - JIRA_EMAIL: Email do usuario
 - JIRA_API_TOKEN: Token de API
 - JIRA_PROJECT_KEY: Chave do projeto padrao (ex: PROJ)
+- JIRA_TENANT_ID: ID do tenant
 """
 
 import os
@@ -23,7 +28,7 @@ import aiohttp
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
 
 from .base import (
@@ -37,6 +42,17 @@ from .base import (
     map_priority_to_external
 )
 
+# Import from the new jira config module
+from .jira.config import JiraConfig
+
+# Import SecretsManager for secure credential storage
+try:
+    from .secrets import SecretsManager
+    from .secrets.azure_keyvault import SecretType
+    SECRETS_AVAILABLE = True
+except ImportError:
+    SECRETS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,68 +65,101 @@ class JiraIssueType(str, Enum):
     SUBTASK = "Sub-task"
 
 
+# Per-tenant session cache
+_tenant_sessions: Dict[str, aiohttp.ClientSession] = {}
+
+
 @dataclass
-class JiraConfig(IntegrationConfig):
-    """Configuracao especifica para Jira"""
-    url: str = ""
-    email: str = ""
-    api_token: str = ""
-    project_key: str = ""
-    default_issue_type: str = "Story"
-    sync_comments: bool = True
-    sync_attachments: bool = False
-    custom_field_mapping: Dict[str, str] = field(default_factory=dict)
-    webhook_secret: str = ""
+class JiraAuditEntry:
+    """Entrada de auditoria para operacoes Jira"""
+    timestamp: datetime
+    tenant_id: str
+    operation: str
+    resource: str
+    success: bool
+    details: Dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
 
-    @classmethod
-    def from_env(cls) -> "JiraConfig":
-        """Cria configuracao a partir de variaveis de ambiente"""
-        return cls(
-            enabled=os.getenv("JIRA_ENABLED", "false").lower() == "true",
-            url=os.getenv("JIRA_URL", ""),
-            email=os.getenv("JIRA_EMAIL", ""),
-            api_token=os.getenv("JIRA_API_TOKEN", ""),
-            project_key=os.getenv("JIRA_PROJECT_KEY", ""),
-            default_issue_type=os.getenv("JIRA_DEFAULT_ISSUE_TYPE", "Story"),
-            sync_comments=os.getenv("JIRA_SYNC_COMMENTS", "true").lower() == "true",
-            sync_attachments=os.getenv("JIRA_SYNC_ATTACHMENTS", "false").lower() == "true",
-            webhook_secret=os.getenv("JIRA_WEBHOOK_SECRET", ""),
-            auto_sync=os.getenv("JIRA_AUTO_SYNC", "false").lower() == "true",
-            sync_interval_minutes=int(os.getenv("JIRA_SYNC_INTERVAL", "30"))
-        )
-
-    def is_valid(self) -> bool:
-        """Verifica se a configuracao e valida"""
-        return bool(self.url and self.email and self.api_token)
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "tenant_id": self.tenant_id,
+            "operation": self.operation,
+            "resource": self.resource,
+            "success": self.success,
+            "details": self.details,
+            "error": self.error
+        }
 
 
 class JiraIntegration(IntegrationBase):
     """
-    Integracao com Jira via API REST v3.
+    Integracao com Jira via API REST v3 com isolamento por tenant.
+
+    Cada instancia da integracao e isolada por tenant_id, permitindo
+    que multiplos clientes usem a integracao simultaneamente com
+    credenciais separadas.
 
     Exemplo de uso:
     ```python
-    config = JiraConfig.from_env()
+    config = JiraConfig(
+        tenant_id="TENANT-001",
+        base_url="https://empresa.atlassian.net",
+        email="user@empresa.com",
+        api_token="..."
+    )
     jira = JiraIntegration(config)
 
     if await jira.connect():
         result = await jira.sync_from_external("PROJ")
         print(f"Sincronizadas {result.items_synced} issues")
     ```
+
+    Ou usando SecretsManager:
+    ```python
+    config = JiraConfig(tenant_id="TENANT-001", base_url="...")
+    jira = JiraIntegration(config, secrets_manager=secrets_manager)
+    # Credenciais serao buscadas automaticamente
+    ```
     """
 
     API_VERSION = "3"
 
-    def __init__(self, config: JiraConfig):
+    # Class-level audit log (shared across instances)
+    _audit_log: List[JiraAuditEntry] = []
+    _max_audit_entries: int = 1000
+
+    def __init__(
+        self,
+        config: JiraConfig,
+        secrets_manager: Optional["SecretsManager"] = None
+    ):
+        """
+        Inicializa a integracao Jira.
+
+        Args:
+            config: Configuracao do Jira com tenant_id
+            secrets_manager: Opcional - gerenciador de secrets para credenciais
+        """
         super().__init__(config)
         self.config: JiraConfig = config
         self._session: Optional[aiohttp.ClientSession] = None
         self._user_info: Optional[Dict] = None
+        self._secrets_manager = secrets_manager
+
+        # Validar tenant_id
+        if not self.config.tenant_id:
+            logger.warning("JiraIntegration criada sem tenant_id - isolamento nao garantido")
+
+    @property
+    def tenant_id(self) -> str:
+        """ID do tenant associado a esta integracao"""
+        return self.config.tenant_id
 
     @property
     def base_url(self) -> str:
         """URL base da API"""
-        url = self.config.url.rstrip("/")
+        url = self.config.base_url.rstrip("/")
         return f"{url}/rest/api/{self.API_VERSION}"
 
     @property
@@ -120,19 +169,182 @@ class JiraIntegration(IntegrationBase):
         encoded = base64.b64encode(credentials.encode()).decode()
         return f"Basic {encoded}"
 
+    async def get_credentials(self) -> Tuple[str, str]:
+        """
+        Obtem credenciais do SecretsManager ou da configuracao.
+
+        Returns:
+            Tuple[email, token]
+        """
+        if self._secrets_manager and SECRETS_AVAILABLE:
+            try:
+                email_secret = await self._secrets_manager.get_integration_secret(
+                    tenant_id=self.config.tenant_id,
+                    integration="jira",
+                    secret_type=SecretType.PASSWORD,
+                    suffix="email"
+                )
+                token_secret = await self._secrets_manager.get_integration_secret(
+                    tenant_id=self.config.tenant_id,
+                    integration="jira",
+                    secret_type=SecretType.API_KEY,
+                    suffix="token"
+                )
+
+                if email_secret and token_secret:
+                    self._log_audit("GET_CREDENTIALS", "secrets_manager", True)
+                    return email_secret.value, token_secret.value
+
+                logger.warning(
+                    f"Credenciais nao encontradas no SecretsManager para tenant {self.config.tenant_id}"
+                )
+            except Exception as e:
+                logger.error(f"Erro ao buscar credenciais do SecretsManager: {e}")
+                self._log_audit("GET_CREDENTIALS", "secrets_manager", False, error=str(e))
+
+        # Fallback para configuracao
+        return self.config.email, self.config.api_token
+
     def _get_headers(self) -> Dict[str, str]:
-        """Retorna headers para requisicoes"""
-        return {
+        """
+        Retorna headers para requisicoes.
+
+        Inclui X-Tenant-ID para rastreamento.
+        """
+        headers = {
             "Authorization": self.auth_header,
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
 
+        # Adiciona tenant_id para rastreamento
+        if self.config.tenant_id:
+            headers["X-Tenant-ID"] = self.config.tenant_id
+
+        return headers
+
     async def _ensure_session(self) -> aiohttp.ClientSession:
-        """Garante que existe uma sessao HTTP ativa"""
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(headers=self._get_headers())
-        return self._session
+        """
+        Garante que existe uma sessao HTTP ativa para o tenant.
+
+        Usa cache de sessoes por tenant para eficiencia.
+        """
+        global _tenant_sessions
+
+        tenant_key = self.config.tenant_id or "default"
+
+        # Verifica se ja existe sessao para este tenant
+        if tenant_key in _tenant_sessions:
+            session = _tenant_sessions[tenant_key]
+            if not session.closed:
+                return session
+            # Sessao fechada, remover do cache
+            del _tenant_sessions[tenant_key]
+
+        # Cria nova sessao para o tenant
+        session = aiohttp.ClientSession(headers=self._get_headers())
+        _tenant_sessions[tenant_key] = session
+
+        logger.debug(f"Nova sessao criada para tenant: {tenant_key}")
+        return session
+
+    def _log_audit(
+        self,
+        operation: str,
+        resource: str,
+        success: bool,
+        details: Optional[Dict] = None,
+        error: Optional[str] = None
+    ):
+        """
+        Registra entrada de auditoria com contexto de tenant.
+
+        Args:
+            operation: Operacao realizada (CONNECT, GET, CREATE, etc)
+            resource: Recurso afetado (issue key, project, etc)
+            success: Se a operacao foi bem sucedida
+            details: Detalhes adicionais
+            error: Mensagem de erro se aplicavel
+        """
+        entry = JiraAuditEntry(
+            timestamp=datetime.utcnow(),
+            tenant_id=self.config.tenant_id,
+            operation=operation,
+            resource=resource,
+            success=success,
+            details=details or {},
+            error=error
+        )
+
+        JiraIntegration._audit_log.append(entry)
+
+        # Manter apenas as ultimas N entradas
+        if len(JiraIntegration._audit_log) > JiraIntegration._max_audit_entries:
+            JiraIntegration._audit_log = JiraIntegration._audit_log[-JiraIntegration._max_audit_entries:]
+
+        # Log to standard logger as well
+        if success:
+            logger.info(
+                f"[Tenant:{self.config.tenant_id}] {operation} {resource} - SUCCESS"
+            )
+        else:
+            logger.warning(
+                f"[Tenant:{self.config.tenant_id}] {operation} {resource} - FAILED: {error}"
+            )
+
+    @classmethod
+    def get_audit_log(
+        cls,
+        tenant_id: Optional[str] = None,
+        operation: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """
+        Retorna log de auditoria filtrado.
+
+        Args:
+            tenant_id: Filtrar por tenant
+            operation: Filtrar por operacao
+            limit: Limite de entradas
+
+        Returns:
+            Lista de entradas de auditoria
+        """
+        logs = cls._audit_log
+
+        if tenant_id:
+            logs = [l for l in logs if l.tenant_id == tenant_id]
+
+        if operation:
+            logs = [l for l in logs if l.operation == operation]
+
+        return [l.to_dict() for l in logs[-limit:]]
+
+    @classmethod
+    async def cleanup_tenant_session(cls, tenant_id: str):
+        """
+        Limpa sessao de um tenant especifico.
+
+        Args:
+            tenant_id: ID do tenant
+        """
+        global _tenant_sessions
+        if tenant_id in _tenant_sessions:
+            session = _tenant_sessions[tenant_id]
+            if not session.closed:
+                await session.close()
+            del _tenant_sessions[tenant_id]
+            logger.info(f"Sessao do tenant {tenant_id} encerrada")
+
+    @classmethod
+    async def cleanup_all_sessions(cls):
+        """Limpa todas as sessoes de tenant."""
+        global _tenant_sessions
+        for tenant_id, session in list(_tenant_sessions.items()):
+            if not session.closed:
+                await session.close()
+        _tenant_sessions.clear()
+        logger.info("Todas as sessoes de tenant encerradas")
 
     async def connect(self) -> bool:
         """
@@ -142,14 +354,22 @@ class JiraIntegration(IntegrationBase):
             bool: True se conectado com sucesso
         """
         if not self.config.is_valid():
-            self._last_error = "Configuracao invalida. Verifique URL, email e token."
+            self._last_error = "Configuracao invalida. Verifique tenant_id, URL, email e token."
             self.status = IntegrationStatus.ERROR
+            self._log_audit("CONNECT", self.config.base_url, False, error=self._last_error)
             return False
 
         self.status = IntegrationStatus.CONNECTING
-        logger.info(f"Conectando ao Jira: {self.config.url}")
+        logger.info(f"[Tenant:{self.tenant_id}] Conectando ao Jira: {self.config.base_url}")
 
         try:
+            # Try to get credentials from SecretsManager if available
+            if self._secrets_manager:
+                email, token = await self.get_credentials()
+                if email and token:
+                    self.config.email = email
+                    self.config.api_token = token
+
             session = await self._ensure_session()
 
             # Testa conexao buscando informacoes do usuario
@@ -157,7 +377,16 @@ class JiraIntegration(IntegrationBase):
                 if response.status == 200:
                     self._user_info = await response.json()
                     self.status = IntegrationStatus.CONNECTED
-                    logger.info(f"Conectado ao Jira como: {self._user_info.get('displayName')}")
+                    self._log_audit(
+                        "CONNECT",
+                        self.config.base_url,
+                        True,
+                        details={"user": self._user_info.get("displayName")}
+                    )
+                    logger.info(
+                        f"[Tenant:{self.tenant_id}] Conectado ao Jira como: "
+                        f"{self._user_info.get('displayName')}"
+                    )
                     return True
                 elif response.status == 401:
                     self._last_error = "Credenciais invalidas"
@@ -173,23 +402,26 @@ class JiraIntegration(IntegrationBase):
             self._last_error = f"Erro inesperado: {str(e)}"
 
         self.status = IntegrationStatus.ERROR
-        logger.error(f"Falha ao conectar ao Jira: {self._last_error}")
+        self._log_audit("CONNECT", self.config.base_url, False, error=self._last_error)
+        logger.error(f"[Tenant:{self.tenant_id}] Falha ao conectar ao Jira: {self._last_error}")
         return False
 
     async def disconnect(self) -> bool:
         """
-        Desconecta do Jira.
+        Desconecta do Jira e limpa sessao do tenant.
 
         Returns:
             bool: True se desconectado com sucesso
         """
-        if self._session and not self._session.closed:
-            await self._session.close()
+        # Cleanup tenant-specific session
+        await self.cleanup_tenant_session(self.config.tenant_id or "default")
 
         self._session = None
         self._user_info = None
         self.status = IntegrationStatus.DISCONNECTED
-        logger.info("Desconectado do Jira")
+
+        self._log_audit("DISCONNECT", self.config.base_url, True)
+        logger.info(f"[Tenant:{self.tenant_id}] Desconectado do Jira")
         return True
 
     async def test_connection(self) -> bool:
@@ -237,6 +469,7 @@ class JiraIntegration(IntegrationBase):
             Dict ou None se nao encontrada
         """
         if not self.is_connected:
+            self._log_audit("GET_ISSUE", issue_key, False, error="Not connected")
             return None
 
         try:
@@ -248,11 +481,14 @@ class JiraIntegration(IntegrationBase):
 
             async with session.get(url, params=params) as response:
                 if response.status == 200:
+                    self._log_audit("GET_ISSUE", issue_key, True)
                     return await response.json()
                 elif response.status == 404:
-                    logger.warning(f"Issue nao encontrada: {issue_key}")
+                    self._log_audit("GET_ISSUE", issue_key, False, error="Not found")
+                    logger.warning(f"[Tenant:{self.tenant_id}] Issue nao encontrada: {issue_key}")
         except Exception as e:
-            logger.error(f"Erro ao buscar issue {issue_key}: {e}")
+            self._log_audit("GET_ISSUE", issue_key, False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao buscar issue {issue_key}: {e}")
 
         return None
 
@@ -312,6 +548,7 @@ class JiraIntegration(IntegrationBase):
             Dict com a issue criada ou None
         """
         if not self.is_connected:
+            self._log_audit("CREATE_ISSUE", "new", False, error="Not connected")
             return None
 
         try:
@@ -319,12 +556,21 @@ class JiraIntegration(IntegrationBase):
 
             async with session.post(f"{self.base_url}/issue", json=issue_data) as response:
                 if response.status == 201:
-                    return await response.json()
+                    result = await response.json()
+                    self._log_audit(
+                        "CREATE_ISSUE",
+                        result.get("key", "unknown"),
+                        True,
+                        details={"id": result.get("id")}
+                    )
+                    return result
                 else:
                     error = await response.text()
-                    logger.error(f"Erro ao criar issue: {error}")
+                    self._log_audit("CREATE_ISSUE", "new", False, error=error)
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao criar issue: {error}")
         except Exception as e:
-            logger.error(f"Erro ao criar issue: {e}")
+            self._log_audit("CREATE_ISSUE", "new", False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao criar issue: {e}")
 
         return None
 
@@ -340,6 +586,7 @@ class JiraIntegration(IntegrationBase):
             bool: True se atualizada com sucesso
         """
         if not self.is_connected:
+            self._log_audit("UPDATE_ISSUE", issue_key, False, error="Not connected")
             return False
 
         try:
@@ -347,9 +594,12 @@ class JiraIntegration(IntegrationBase):
             url = f"{self.base_url}/issue/{issue_key}"
 
             async with session.put(url, json=update_data) as response:
-                return response.status == 204
+                success = response.status == 204
+                self._log_audit("UPDATE_ISSUE", issue_key, success)
+                return success
         except Exception as e:
-            logger.error(f"Erro ao atualizar issue {issue_key}: {e}")
+            self._log_audit("UPDATE_ISSUE", issue_key, False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao atualizar issue {issue_key}: {e}")
 
         return False
 
@@ -365,6 +615,7 @@ class JiraIntegration(IntegrationBase):
             bool: True se transicao realizada
         """
         if not self.is_connected:
+            self._log_audit("TRANSITION_ISSUE", issue_key, False, error="Not connected")
             return False
 
         try:
@@ -373,9 +624,17 @@ class JiraIntegration(IntegrationBase):
             data = {"transition": {"id": transition_id}}
 
             async with session.post(url, json=data) as response:
-                return response.status == 204
+                success = response.status == 204
+                self._log_audit(
+                    "TRANSITION_ISSUE",
+                    issue_key,
+                    success,
+                    details={"transition_id": transition_id}
+                )
+                return success
         except Exception as e:
-            logger.error(f"Erro na transicao de {issue_key}: {e}")
+            self._log_audit("TRANSITION_ISSUE", issue_key, False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro na transicao de {issue_key}: {e}")
 
         return False
 
@@ -467,7 +726,8 @@ class JiraIntegration(IntegrationBase):
         return {
             "external_id": issue.get("key"),
             "external_system": "jira",
-            "external_url": f"{self.config.url}/browse/{issue.get('key')}",
+            "external_url": f"{self.config.base_url}/browse/{issue.get('key')}",
+            "tenant_id": self.config.tenant_id,  # Include tenant_id for isolation
             "title": summary,
             "description": description,
             "status": internal_status,
@@ -485,7 +745,8 @@ class JiraIntegration(IntegrationBase):
                 "project_key": fields.get("project", {}).get("key"),
                 "reporter": fields.get("reporter", {}).get("displayName") if fields.get("reporter") else None,
                 "components": [c.get("name") for c in fields.get("components", [])],
-                "fix_versions": [v.get("name") for v in fields.get("fixVersions", [])]
+                "fix_versions": [v.get("name") for v in fields.get("fixVersions", [])],
+                "tenant_id": self.config.tenant_id  # Also in external_data for reference
             }
         }
 
@@ -720,9 +981,13 @@ class JiraIntegration(IntegrationBase):
 
         return result
 
-    async def handle_webhook(self, payload: Dict) -> bool:
+    async def handle_webhook(
+        self,
+        payload: Dict,
+        expected_tenant_id: Optional[str] = None
+    ) -> bool:
         """
-        Processa webhook do Jira.
+        Processa webhook do Jira com validacao de tenant.
 
         Tipos de eventos suportados:
         - jira:issue_created
@@ -731,6 +996,7 @@ class JiraIntegration(IntegrationBase):
 
         Args:
             payload: Payload do webhook
+            expected_tenant_id: Tenant ID esperado para validacao
 
         Returns:
             bool: True se processado com sucesso
@@ -739,74 +1005,193 @@ class JiraIntegration(IntegrationBase):
             webhook_event = payload.get("webhookEvent", "")
             issue_data = payload.get("issue", {})
 
+            # Validate tenant_id if provided
+            if expected_tenant_id and expected_tenant_id != self.config.tenant_id:
+                self._log_audit(
+                    "WEBHOOK",
+                    webhook_event,
+                    False,
+                    error=f"Tenant mismatch: expected {expected_tenant_id}, got {self.config.tenant_id}"
+                )
+                logger.warning(
+                    f"[Tenant:{self.tenant_id}] Webhook rejeitado: tenant_id nao corresponde"
+                )
+                return False
+
             if not issue_data:
-                logger.warning("Webhook sem dados de issue")
+                self._log_audit("WEBHOOK", webhook_event, False, error="No issue data")
+                logger.warning(f"[Tenant:{self.tenant_id}] Webhook sem dados de issue")
                 return False
 
             issue_key = issue_data.get("key")
 
             if webhook_event == "jira:issue_created":
-                logger.info(f"Webhook: Issue criada {issue_key}")
+                self._log_audit(
+                    "WEBHOOK",
+                    issue_key,
+                    True,
+                    details={"event": "issue_created"}
+                )
+                logger.info(f"[Tenant:{self.tenant_id}] Webhook: Issue criada {issue_key}")
                 # Converte para story e retorna para processamento
                 story_data = self._jira_issue_to_story(issue_data)
                 # Aqui seria chamado o callback para criar a story localmente
                 return True
 
             elif webhook_event == "jira:issue_updated":
-                logger.info(f"Webhook: Issue atualizada {issue_key}")
                 changelog = payload.get("changelog", {})
                 items = changelog.get("items", [])
 
                 # Verifica mudancas de status
+                status_change = None
                 for item in items:
                     if item.get("field") == "status":
-                        from_status = item.get("fromString")
-                        to_status = item.get("toString")
-                        logger.info(f"Status alterado: {from_status} -> {to_status}")
+                        status_change = {
+                            "from": item.get("fromString"),
+                            "to": item.get("toString")
+                        }
+                        logger.info(
+                            f"[Tenant:{self.tenant_id}] Status alterado: "
+                            f"{status_change['from']} -> {status_change['to']}"
+                        )
 
+                self._log_audit(
+                    "WEBHOOK",
+                    issue_key,
+                    True,
+                    details={"event": "issue_updated", "status_change": status_change}
+                )
+                logger.info(f"[Tenant:{self.tenant_id}] Webhook: Issue atualizada {issue_key}")
                 return True
 
             elif webhook_event == "jira:issue_deleted":
-                logger.info(f"Webhook: Issue deletada {issue_key}")
+                self._log_audit(
+                    "WEBHOOK",
+                    issue_key,
+                    True,
+                    details={"event": "issue_deleted"}
+                )
+                logger.info(f"[Tenant:{self.tenant_id}] Webhook: Issue deletada {issue_key}")
                 return True
 
-            logger.debug(f"Webhook ignorado: {webhook_event}")
+            logger.debug(f"[Tenant:{self.tenant_id}] Webhook ignorado: {webhook_event}")
             return True
 
         except Exception as e:
-            logger.error(f"Erro ao processar webhook: {e}")
+            self._log_audit("WEBHOOK", "unknown", False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao processar webhook: {e}")
             return False
 
     def get_status(self) -> Dict[str, Any]:
-        """Retorna status detalhado da integracao"""
+        """Retorna status detalhado da integracao com contexto de tenant"""
         status = super().get_status()
         status.update({
             "system": "jira",
-            "url": self.config.url,
+            "tenant_id": self.config.tenant_id,
+            "url": self.config.base_url,
             "project_key": self.config.project_key,
             "user": self._user_info.get("displayName") if self._user_info else None,
-            "user_email": self._user_info.get("emailAddress") if self._user_info else None
+            "user_email": self._user_info.get("emailAddress") if self._user_info else None,
+            "secrets_manager_available": self._secrets_manager is not None
         })
         return status
 
 
-# Instancia global (singleton)
-_jira_instance: Optional[JiraIntegration] = None
+# Per-tenant instance registry
+_jira_instances: Dict[str, JiraIntegration] = {}
 
 
-def get_jira_integration() -> JiraIntegration:
-    """Retorna instancia global da integracao Jira"""
-    global _jira_instance
-    if _jira_instance is None:
-        config = JiraConfig.from_env()
-        _jira_instance = JiraIntegration(config)
-    return _jira_instance
+def get_jira_integration(tenant_id: Optional[str] = None) -> JiraIntegration:
+    """
+    Retorna instancia da integracao Jira para um tenant.
+
+    Args:
+        tenant_id: ID do tenant (opcional - usa variaveis de ambiente se nao fornecido)
+
+    Returns:
+        JiraIntegration para o tenant especificado
+    """
+    global _jira_instances
+
+    # Get tenant_id from env if not provided
+    effective_tenant_id = tenant_id or os.getenv("JIRA_TENANT_ID", "default")
+
+    if effective_tenant_id not in _jira_instances:
+        config = JiraConfig.from_env(effective_tenant_id)
+        _jira_instances[effective_tenant_id] = JiraIntegration(config)
+
+    return _jira_instances[effective_tenant_id]
 
 
-async def init_jira_integration() -> Optional[JiraIntegration]:
-    """Inicializa e conecta a integracao Jira se configurada"""
-    jira = get_jira_integration()
+def get_jira_integration_for_tenant(
+    tenant_id: str,
+    config: Optional[JiraConfig] = None,
+    secrets_manager: Optional["SecretsManager"] = None
+) -> JiraIntegration:
+    """
+    Cria ou retorna instancia da integracao Jira para um tenant especifico.
+
+    Args:
+        tenant_id: ID do tenant (obrigatorio)
+        config: Configuracao customizada (opcional)
+        secrets_manager: Gerenciador de secrets (opcional)
+
+    Returns:
+        JiraIntegration configurada para o tenant
+    """
+    global _jira_instances
+
+    if tenant_id in _jira_instances:
+        return _jira_instances[tenant_id]
+
+    if config is None:
+        config = JiraConfig.from_env(tenant_id)
+    else:
+        config.tenant_id = tenant_id
+
+    integration = JiraIntegration(config, secrets_manager)
+    _jira_instances[tenant_id] = integration
+    return integration
+
+
+async def init_jira_integration(
+    tenant_id: Optional[str] = None,
+    secrets_manager: Optional["SecretsManager"] = None
+) -> Optional[JiraIntegration]:
+    """
+    Inicializa e conecta a integracao Jira para um tenant.
+
+    Args:
+        tenant_id: ID do tenant (opcional)
+        secrets_manager: Gerenciador de secrets (opcional)
+
+    Returns:
+        JiraIntegration conectada ou None
+    """
+    effective_tenant_id = tenant_id or os.getenv("JIRA_TENANT_ID", "default")
+
+    jira = get_jira_integration_for_tenant(
+        effective_tenant_id,
+        secrets_manager=secrets_manager
+    )
+
     if jira.config.is_valid() and jira.config.enabled:
         if await jira.connect():
             return jira
+
     return None
+
+
+async def cleanup_jira_integrations():
+    """Limpa todas as instancias e sessoes de integracao Jira."""
+    global _jira_instances
+
+    for tenant_id, integration in list(_jira_instances.items()):
+        try:
+            await integration.disconnect()
+        except Exception as e:
+            logger.error(f"Erro ao desconectar tenant {tenant_id}: {e}")
+
+    _jira_instances.clear()
+    await JiraIntegration.cleanup_all_sessions()
+    logger.info("Todas as integracoes Jira foram limpas")
