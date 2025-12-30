@@ -104,6 +104,14 @@ factory/memory/
 # GitHub Token (NUNCA commitar!)
 .github_token
 
+# JWT Secret (NUNCA commitar!)
+.jwt_secret
+factory/.jwt_secret
+
+# Secrets em geral
+*.secret
+*.key
+
 # Hook errors
 factory/hook_errors.log
 .claude/settings.local.json

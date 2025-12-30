@@ -31,7 +31,7 @@ SCRIPTS_DIR = FACTORY_DIR / "scripts"
 
 # Arquivos importantes
 FACTORY_DB = DATABASE_DIR / "factory.db"
-JWT_SECRET_FILE = FACTORY_DIR / ".jwt_secret"
+# JWT_SECRET_FILE removido - Issue #192: usar apenas variáveis de ambiente
 
 # =============================================================================
 # DATABASE
