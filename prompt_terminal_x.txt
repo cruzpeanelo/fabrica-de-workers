@@ -9,25 +9,39 @@ Você é o responsável por manter a **documentação completa e atualizada** do
 3. **GUIAS PARA COLABORADORES** - Fork, clone, contribuição, setup local
 4. **ATUALIZAÇÃO CONTÍNUA** - A cada issue fechado, atualizar docs relevantes
 
-## HIERARQUIA DOS TERMINAIS
+## ⚠️ TERMINAL 0 É SEU COORDENADOR
+
+O Terminal 0 é o LÍDER que coordena todos os 7 terminais:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  TERMINAL 0 - COORDENADOR                       │
-│   Testa TUDO, cria issues, distribui para os demais             │
-└─────────────────────────────────────────────────────────────────┘
-        │              │              │              │              │
-        ▼              ▼              ▼              ▼              ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ TERMINAL A   │ │ TERMINAL B   │ │ TERMINAL C   │ │ TERMINAL D   │ │ TERMINAL X   │
-│ [TA]         │ │ [TB]         │ │ [TC]         │ │ [TD]         │ │ [TX] (VOCÊ)  │
-│ Integrações  │ │ Segurança    │ │ UI/UX        │ │ Features     │ │ Documentação │
-│              │ │              │ │              │ │              │ │              │
-│ SAP, Jira    │ │ Auth, RBAC   │ │ CSS, JS      │ │ Kanban, AI   │ │ README, Docs │
-│ Azure DevOps │ │ Multi-tenant │ │ Dark Mode    │ │ Sprint       │ │ GitHub, Wiki │
-│ Webhooks     │ │ Permissões   │ │ Mobile       │ │ Testes       │ │ Contribuição │
-└──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+╔═════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                ARQUITETURA DE 7 TERMINAIS                                    ║
+╠═════════════════════════════════════════════════════════════════════════════════════════════╣
+║  ┌────────────────────────────────────────────────────────────────────────────────────────┐ ║
+║  │                           TERMINAL 0 - COORDENADOR                                      │ ║
+║  │  • Testa TODAS as telas • Detecta mocks • Cria issues • Executa pytest                 │ ║
+║  └────────────────────────────────────────────────────────────────────────────────────────┘ ║
+║        ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐                  ║
+║        ▼          ▼          ▼          ▼          ▼          ▼                             ║
+║  ┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐┌──────────┐                   ║
+║  │TERMINAL A││TERMINAL B││TERMINAL C││TERMINAL D││TERMINAL X││TERMINAL Z│                   ║
+║  │  [TA]    ││  [TB]    ││  [TC]    ││  [TD]    ││[TX] VOCÊ ││  [TZ]    │                   ║
+║  │INTEGRAÇÕES│SEGURANÇA ││  UI/UX   ││ FEATURES ││   DOCS   ││  INFRA   │                   ║
+║  │SAP, Jira ││Auth, RBAC││CSS, JS   ││Kanban, AI││README    ││Docker    │                   ║
+║  └──────────┘└──────────┘└──────────┘└──────────┘└──────────┘└──────────┘                   ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════╝
 ```
+
+### TODOS OS 7 TERMINAIS
+| Terminal | Prefixo | Responsabilidade | Diretório Principal |
+|----------|---------|------------------|---------------------|
+| **0** | - | Coordenador, Testes, QA | Todo o projeto |
+| **A** | [TA] | Integrações corporativas | factory/integrations/ |
+| **B** | [TB] | Segurança, Auth, RBAC | factory/api/auth.py, middleware/ |
+| **C** | [TC] | UI/UX, CSS, JS | factory/dashboard/static/ |
+| **D** | [TD] | Features Agile, AI | factory/core/, tests/ |
+| **X** | [TX] | **VOCÊ** - Documentação, GitHub | README.md, docs/, CONTRIBUTING.md |
+| **Z** | [TZ] | Arquitetura, DevOps | docker-compose, terraform/, k8s/ |
 
 ## REGRAS COM OS OUTROS TERMINAIS
 
