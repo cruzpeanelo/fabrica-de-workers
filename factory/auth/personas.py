@@ -666,24 +666,73 @@ def get_persona_for_role(role: str) -> Optional[Persona]:
     """
     Mapeia role do sistema para persona
 
+    Issue #144: Mapeamento completo com aliases comuns.
+
     Args:
         role: Role do usuario (ADMIN, VIEWER, etc)
 
     Returns:
         Persona correspondente
     """
+    # Issue #144: Mapeamento expandido com todos os aliases comuns
     role_mapping = {
+        # Super Admin
         "SUPER_ADMIN": PersonaType.SUPER_ADMIN,
+        "SUPERADMIN": PersonaType.SUPER_ADMIN,
+        "PLATFORM_ADMIN": PersonaType.SUPER_ADMIN,
+
+        # Admin
         "ADMIN": PersonaType.ADMIN,
+        "ADMINISTRATOR": PersonaType.ADMIN,
         "OWNER": PersonaType.ADMIN,
+        "TENANT_ADMIN": PersonaType.ADMIN,
+
+        # Project Manager
         "PROJECT_MANAGER": PersonaType.PROJECT_MANAGER,
         "MANAGER": PersonaType.PROJECT_MANAGER,
+        "PM": PersonaType.PROJECT_MANAGER,
+        "PRODUCT_MANAGER": PersonaType.PROJECT_MANAGER,
+        "SCRUM_MASTER": PersonaType.PROJECT_MANAGER,
+        "AGILE_COACH": PersonaType.PROJECT_MANAGER,
+
+        # Tech Lead
         "TECH_LEAD": PersonaType.TECH_LEAD,
+        "TECHLEAD": PersonaType.TECH_LEAD,
+        "TECHNICAL_LEAD": PersonaType.TECH_LEAD,
+        "LEAD_DEVELOPER": PersonaType.TECH_LEAD,
+        "SENIOR_DEVELOPER": PersonaType.TECH_LEAD,
+        "ARCHITECT": PersonaType.TECH_LEAD,
+
+        # Developer
         "DEVELOPER": PersonaType.DEVELOPER,
+        "DEV": PersonaType.DEVELOPER,
+        "ENGINEER": PersonaType.DEVELOPER,
+        "SOFTWARE_ENGINEER": PersonaType.DEVELOPER,
         "MEMBER": PersonaType.DEVELOPER,
+        "CONTRIBUTOR": PersonaType.DEVELOPER,
+
+        # QA Engineer
+        "QA_ENGINEER": PersonaType.QA_ENGINEER,
         "QA": PersonaType.QA_ENGINEER,
+        "TESTER": PersonaType.QA_ENGINEER,
+        "QA_TESTER": PersonaType.QA_ENGINEER,
+        "QUALITY_ASSURANCE": PersonaType.QA_ENGINEER,
+        "TEST_ENGINEER": PersonaType.QA_ENGINEER,
+
+        # Stakeholder
         "STAKEHOLDER": PersonaType.STAKEHOLDER,
+        "BUSINESS_ANALYST": PersonaType.STAKEHOLDER,
+        "PRODUCT_OWNER": PersonaType.STAKEHOLDER,
+        "PO": PersonaType.STAKEHOLDER,
+        "CLIENT": PersonaType.STAKEHOLDER,
+        "CUSTOMER": PersonaType.STAKEHOLDER,
+
+        # Viewer
         "VIEWER": PersonaType.VIEWER,
+        "GUEST": PersonaType.VIEWER,
+        "OBSERVER": PersonaType.VIEWER,
+        "READONLY": PersonaType.VIEWER,
+        "READ_ONLY": PersonaType.VIEWER,
     }
 
     persona_type = role_mapping.get(role.upper())
