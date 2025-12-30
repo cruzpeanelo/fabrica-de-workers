@@ -109,6 +109,16 @@ except ImportError as e:
 except Exception as e:
     print(f"[Security] WARNING: Failed to load security middlewares: {e}")
 
+# Issue #207: Rate Limiting Middleware
+try:
+    from factory.api.rate_limit_v2 import TieredRateLimitMiddleware
+    app.add_middleware(TieredRateLimitMiddleware)
+    print("[Security] Rate limiting middleware enabled")
+except ImportError as e:
+    print(f"[Security] Rate limiting not available: {e}")
+except Exception as e:
+    print(f"[Security] Failed to load rate limiting: {e}")
+
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -10328,6 +10338,20 @@ HTML_TEMPLATE = """
             const storyBoard = ref({});
             // Issue #294: Define explicit column order for Kanban board
             const kanbanStatuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
+
+            // Issue #237: WIP Limits
+            const wipLimits = ref({
+                backlog: null,
+                ready: 10,
+                in_progress: 5,
+                review: 3,
+                testing: 5,
+                done: null
+            });
+            const wipPolicy = ref('soft');  // 'soft' = aviso, 'hard' = bloqueia
+            const showWipConfigModal = ref(false);
+            const wipConfigLoading = ref(false);
+
             const epics = ref([]);
             const sprints = ref([]);
             const selectedStory = ref(null);
@@ -11173,6 +11197,69 @@ HTML_TEMPLATE = """
 
             const getColumnPoints = (column) => {
                 return column.reduce((sum, s) => sum + (s.story_points || 0), 0);
+            };
+
+            // Issue #237: WIP Limits Functions
+            const getWipState = (status) => {
+                const limit = wipLimits.value[status];
+                if (!limit) return 'normal';
+                const count = (filteredStoryBoard.value[status] || []).length;
+                if (count > limit) return 'exceeded';
+                if (count >= limit * 0.8) return 'warning';
+                return 'normal';
+            };
+
+            const getWipPercentage = (status) => {
+                const limit = wipLimits.value[status];
+                if (!limit) return 0;
+                const count = (filteredStoryBoard.value[status] || []).length;
+                return (count / limit) * 100;
+            };
+
+            const loadWipConfig = async () => {
+                if (!selectedProjectId.value) return;
+                try {
+                    const res = await fetch(`/api/kanban/policies/${selectedProjectId.value}`);
+                    if (res.ok) {
+                        const policy = await res.json();
+                        wipLimits.value = policy.wip_limits || wipLimits.value;
+                        wipPolicy.value = policy.wip_policy || 'soft';
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar WIP config:', e);
+                }
+            };
+
+            const openWipConfig = () => {
+                showWipConfigModal.value = true;
+            };
+
+            const saveWipConfig = async () => {
+                if (!selectedProjectId.value) return;
+                wipConfigLoading.value = true;
+                try {
+                    const res = await fetch('/api/kanban/policies', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            wip_limits: wipLimits.value,
+                            wip_policy: wipPolicy.value,
+                            alert_on_exceed: true,
+                            notify_team: false
+                        })
+                    });
+                    if (res.ok) {
+                        addToast('success', 'WIP Limits salvos', 'Configuracao atualizada com sucesso');
+                        showWipConfigModal.value = false;
+                    } else {
+                        throw new Error('Erro ao salvar');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao salvar WIP', e.message);
+                } finally {
+                    wipConfigLoading.value = false;
+                }
             };
 
             const getEpicName = (epicId) => {
