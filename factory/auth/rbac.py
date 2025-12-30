@@ -213,7 +213,8 @@ class RBACManager:
 
     def __init__(self, db_session=None):
         self.db = db_session or SessionLocal()
-        self._permission_cache: Dict[int, List[str]] = {}
+        # Issue #145: Cache agora usa chave composta user_id:project_id
+        self._permission_cache: Dict[str, List[str]] = {}
 
     def close(self):
         if self.db:
@@ -356,9 +357,8 @@ class RBACManager:
         self.db.commit()
         self.db.refresh(user_role)
 
-        # Limpar cache do usuario
-        if data["user_id"] in self._permission_cache:
-            del self._permission_cache[data["user_id"]]
+        # Issue #145: Limpar cache do usuario (todas as entradas)
+        self._clear_user_cache(data["user_id"])
 
         return user_role.to_dict()
 
@@ -383,22 +383,37 @@ class RBACManager:
         self.db.delete(user_role)
         self.db.commit()
 
-        # Limpar cache
-        if user_id in self._permission_cache:
-            del self._permission_cache[user_id]
+        # Issue #145: Limpar todas as entradas de cache do usuario
+        self._clear_user_cache(user_id)
 
         return True
+
+    def _clear_user_cache(self, user_id: int):
+        """
+        Issue #145: Limpa todas as entradas de cache de um usuario.
+        Remove entradas para todos os projetos (chaves user_id:*).
+        """
+        keys_to_remove = [
+            key for key in self._permission_cache.keys()
+            if key.startswith(f"{user_id}:")
+        ]
+        for key in keys_to_remove:
+            del self._permission_cache[key]
 
     # -------------------------------------------------------------------------
     # Permission Checking
     # -------------------------------------------------------------------------
 
     def get_user_permissions(self, user_id: int, project_id: Optional[str] = None) -> List[str]:
-        """Retorna todas as permissoes de um usuario"""
-        # Verificar cache
-        cache_key = f"{user_id}_{project_id or 'global'}"
-        if user_id in self._permission_cache:
-            return self._permission_cache[user_id]
+        """
+        Retorna todas as permissoes de um usuario.
+
+        Issue #145: Cache agora usa chave composta user_id:project_id
+        """
+        # Issue #145: Usar chave composta para cache
+        cache_key = f"{user_id}:{project_id or 'global'}"
+        if cache_key in self._permission_cache:
+            return self._permission_cache[cache_key]
 
         from factory.database.models import UserRole, Role
 
@@ -420,7 +435,8 @@ class RBACManager:
                     permissions.add(perm)
 
         result = list(permissions)
-        self._permission_cache[user_id] = result
+        # Issue #145: Salvar com chave composta
+        self._permission_cache[cache_key] = result
         return result
 
     def check_permission(
