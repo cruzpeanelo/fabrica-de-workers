@@ -1,0 +1,82 @@
+# Kubernetes Kustomization - Production
+# Issue #212 - Environment separation
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fabrica-production
+
+resources:
+  - ../../deployment-api.yaml
+  - ../../deployment-workers.yaml
+  - ../../hpa.yaml
+  - ../../ingress.yaml
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: factory-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: factory-workers
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+    target:
+      kind: HorizontalPodAutoscaler
+      name: factory-api-hpa
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: factory-workers-hpa
+  # Production resource limits
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+    target:
+      kind: Deployment
+      name: factory-api
+
+configMapGenerator:
+  - name: factory-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - DEBUG=false
+
+# IMPORTANT: Production secrets MUST be managed via:
+# - Sealed Secrets (kubeseal)
+# - External Secrets Operator
+# - HashiCorp Vault
+# - AWS Secrets Manager
+# DO NOT commit real production secrets here
+secretGenerator:
+  - name: factory-secrets
+    behavior: merge
+    literals:
+      - DATABASE_URL=MANAGED_EXTERNALLY
+      - JWT_SECRET_KEY=MANAGED_EXTERNALLY
+      - REDIS_URL=MANAGED_EXTERNALLY
+      - SENTRY_DSN=MANAGED_EXTERNALLY

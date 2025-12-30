@@ -179,13 +179,10 @@ jobs:
           IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_tag }}"
           echo "Deploying: $IMAGE"
 
-          # Aplicar configuracoes
-          kubectl apply -k k8s/overlays/staging/ -n ${{ env.K8S_NAMESPACE }} || true
-
-          # Atualizar imagem
-          kubectl set image deployment/${{ env.DEPLOYMENT_NAME }} \
-            ${{ env.DEPLOYMENT_NAME }}=$IMAGE \
-            -n ${{ env.K8S_NAMESPACE }} || true
+          # Issue #212: Use kustomize overlays for environment-specific config
+          cd kubernetes/overlays/staging
+          kustomize edit set image factory-api=$IMAGE
+          kubectl apply -k . -n ${{ env.K8S_NAMESPACE }} || true
 
           # Aguardar rollout
           kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \

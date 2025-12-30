@@ -12357,6 +12357,10 @@ HTML_TEMPLATE = """
                 if (!selectedProjectId.value && projects.value.length > 0) {
                     selectedProjectId.value = projects.value[0].project_id;
                 }
+                // Load project data after selecting
+                if (selectedProjectId.value) {
+                    await loadProjectData();
+                }
             };
 
             const loadProjectData = async () => {

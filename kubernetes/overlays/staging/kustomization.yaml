@@ -1,0 +1,56 @@
+# Kubernetes Kustomization - Staging
+# Issue #212 - Environment separation
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fabrica-staging
+
+resources:
+  - ../../deployment-api.yaml
+  - ../../deployment-workers.yaml
+  - ../../hpa.yaml
+  - ../../ingress.yaml
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: factory-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: factory-workers
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+    target:
+      kind: HorizontalPodAutoscaler
+      name: factory-api-hpa
+
+configMapGenerator:
+  - name: factory-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO
+      - DEBUG=false
+
+# Note: Secrets should be managed via sealed-secrets or external-secrets
+# This is a placeholder - DO NOT commit real secrets
+secretGenerator:
+  - name: factory-secrets
+    behavior: merge
+    literals:
+      - DATABASE_URL=TO_BE_CONFIGURED
+      - JWT_SECRET_KEY=TO_BE_CONFIGURED
+      - REDIS_URL=redis://staging-redis:6379

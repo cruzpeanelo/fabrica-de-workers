@@ -1,0 +1,41 @@
+# Kubernetes Kustomization - Development
+# Issue #212 - Environment separation
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fabrica-dev
+
+resources:
+  - ../../deployment-api.yaml
+  - ../../deployment-workers.yaml
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: factory-api
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: factory-workers
+
+configMapGenerator:
+  - name: factory-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+
+secretGenerator:
+  - name: factory-secrets
+    behavior: merge
+    literals:
+      - DATABASE_URL=sqlite:///factory/database/factory.db
+      - JWT_SECRET_KEY=dev-secret-key-change-in-production
