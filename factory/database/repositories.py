@@ -55,19 +55,52 @@ from .models import (
     ExecutionLog, ExecutionStatus
 )
 
+# Issue #301: Tenant isolation helper
+import logging
+_tenant_logger = logging.getLogger(__name__)
+
+def _get_current_tenant_id() -> Optional[str]:
+    """
+    Obtém tenant_id do contexto global (thread-safe).
+    Issue #301: Helper para filtro de tenant nos repositories.
+    """
+    try:
+        from factory.middleware.tenant_middleware import get_tenant_id
+        return get_tenant_id()
+    except ImportError:
+        return None
+    except Exception:
+        return None
+
 
 # =============================================================================
 # PROJECT REPOSITORY
 # =============================================================================
 
 class ProjectRepository:
-    """Repositorio para gerenciamento de Projetos"""
+    """
+    Repositorio para gerenciamento de Projetos.
 
-    def __init__(self, db: Session):
+    Issue #301: Inclui filtro automatico de tenant para isolamento de dados.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #301: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #301: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(Project, 'tenant_id'):
+            query = query.filter(Project.tenant_id == self._tenant_id)
+        return query
 
     def create(self, project_data: dict) -> Project:
         """Cria novo projeto"""
+        # Issue #301: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in project_data and self._tenant_id:
+            project_data["tenant_id"] = self._tenant_id
+
         # Gera project_id automaticamente se nao fornecido
         if "project_id" not in project_data:
             count = self.db.query(Project).count()
@@ -80,15 +113,17 @@ class ProjectRepository:
         return project
 
     def get_by_id(self, project_id: str, include_deleted: bool = False) -> Optional[Project]:
-        """Busca projeto por ID (Issue #150: filtra soft delete)"""
+        """Busca projeto por ID (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Project).filter(Project.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Project.is_deleted == False)
         return query.first()
 
     def get_all(self, status: str = None, project_type: str = None, include_deleted: bool = False) -> List[Project]:
-        """Lista todos os projetos com filtros opcionais (Issue #150: filtra soft delete)"""
+        """Lista todos os projetos com filtros opcionais (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Project)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Project.is_deleted == False)
         if status:
@@ -119,14 +154,15 @@ class ProjectRepository:
         return False
 
     def count_by_status(self) -> Dict[str, int]:
-        """Conta projetos por status (Issue #150: filtra soft delete)"""
+        """Conta projetos por status (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         result = {}
         for status in ProjectStatus:
-            count = self.db.query(Project).filter(
+            query = self.db.query(Project).filter(
                 Project.status == status.value,
                 Project.is_deleted == False
-            ).count()
-            result[status.value] = count
+            )
+            query = self._apply_tenant_filter(query)  # Issue #301
+            result[status.value] = query.count()
         return result
 
 
@@ -733,13 +769,29 @@ class TaskRepository:
 # =============================================================================
 
 class StoryRepository:
-    """Repositorio para gerenciamento de User Stories Agile"""
+    """
+    Repositorio para gerenciamento de User Stories Agile.
 
-    def __init__(self, db: Session):
+    Issue #301: Inclui filtro automatico de tenant para isolamento de dados.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #301: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #301: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(Story, 'tenant_id'):
+            query = query.filter(Story.tenant_id == self._tenant_id)
+        return query
 
     def create(self, story_data: dict) -> Story:
         """Cria nova story"""
+        # Issue #301: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in story_data and self._tenant_id:
+            story_data["tenant_id"] = self._tenant_id
+
         # Gera story_id automaticamente se nao fornecido
         if "story_id" not in story_data:
             count = self.db.query(Story).count()
@@ -762,8 +814,9 @@ class StoryRepository:
         return story
 
     def get_by_id(self, story_id: str, include_deleted: bool = False) -> Optional[Story]:
-        """Busca story por ID (Issue #150: filtra soft delete)"""
+        """Busca story por ID (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Story).filter(Story.story_id == story_id)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Story.is_deleted == False)
         return query.first()
@@ -771,8 +824,9 @@ class StoryRepository:
     def get_all(self, project_id: str = None, status: str = None,
                 epic_id: str = None, sprint_id: str = None, limit: int = 100,
                 include_deleted: bool = False) -> List[Story]:
-        """Lista stories com filtros opcionais (Issue #150: filtra soft delete)"""
+        """Lista stories com filtros opcionais (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Story)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Story.is_deleted == False)
         if project_id:
@@ -786,15 +840,17 @@ class StoryRepository:
         return query.order_by(Story.kanban_order).limit(limit).all()
 
     def get_by_project(self, project_id: str, include_deleted: bool = False) -> List[Story]:
-        """Lista stories de um projeto (Issue #150: filtra soft delete)"""
+        """Lista stories de um projeto (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Story).filter(Story.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Story.is_deleted == False)
         return query.order_by(Story.status, Story.kanban_order).all()
 
     def get_story_board(self, project_id: str, include_deleted: bool = False) -> Dict[str, List[dict]]:
-        """Retorna board Kanban completo com stories agrupadas por status (Issue #150: filtra soft delete)"""
+        """Retorna board Kanban completo com stories agrupadas por status (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
         query = self.db.query(Story).filter(Story.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
             query = query.filter(Story.is_deleted == False)
         stories = query.order_by(Story.kanban_order).all()
