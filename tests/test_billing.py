@@ -134,7 +134,7 @@ def sample_pricing_tier(session, sample_plan):
         included_tokens=100000,
         included_storage_mb=5120,  # 5GB
         included_api_calls=5000,
-        included_compute_minutes=120,
+        included_compute_minutes=60,  # 1 hora para permitir teste de excedente
         price_per_user_cents=1000,
         price_per_million_tokens_cents=1000,
         price_per_gb_storage_cents=100,
