@@ -313,6 +313,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Bulk Actions not available: {e}")
 
+# Comments and Threads (Issue #225)
+try:
+    from factory.dashboard.comments import register_comments
+    register_comments(app)
+    print("[Dashboard] Comments and Threads loaded: /api/comments/*")
+except ImportError as e:
+    print(f"[Dashboard] Comments not available: {e}")
+
 # Global Search (Issue #271)
 try:
     from factory.dashboard.global_search import register_global_search
@@ -468,6 +476,13 @@ try:
     register_tour_endpoints(app)
 except ImportError as e:
     print(f"[Dashboard] Onboarding Tour not available: {e}")
+
+# Sandbox Terminal UI (Issue #202)
+try:
+    from factory.dashboard.sandbox_terminal import register_sandbox_terminal
+    register_sandbox_terminal(app)
+except ImportError as e:
+    print(f"[Dashboard] Sandbox Terminal not available: {e}")
 
 # Custom Kanban Columns (Issue #252)
 try:
@@ -9121,12 +9136,16 @@ HTML_TEMPLATE = """
 
                 <!-- Tabs -->
                 <div class="border-b border-gray-200">
-                    <div class="flex">
-                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos']" :key="tab"
+                    <div class="flex overflow-x-auto">
+                        <button v-for="tab in ['Detalhes', 'Tasks', 'Docs', 'Design', 'Anexos', 'Comentarios']" :key="tab"
                                 @click="activeTab = tab"
-                                :class="['px-4 py-3 text-sm font-medium',
+                                :class="['px-4 py-3 text-sm font-medium whitespace-nowrap',
                                          activeTab === tab ? 'tab-active' : 'text-gray-500 hover:text-gray-700']">
                             {{ tab }}
+                            <span v-if="tab === 'Comentarios' && storyComments.length > 0"
+                                  class="ml-1 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                                {{ storyComments.length }}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -9543,6 +9562,112 @@ HTML_TEMPLATE = """
                             </svg>
                             <p class="text-gray-400 text-sm">Nenhum arquivo anexado</p>
                             <p class="text-gray-300 text-xs mt-1">Arraste arquivos ou clique em Upload</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Comentarios - Issue #225 -->
+                    <div v-if="activeTab === 'Comentarios'" class="p-4 flex flex-col h-full">
+                        <!-- Lista de Comentarios -->
+                        <div class="flex-1 overflow-y-auto space-y-4 mb-4">
+                            <div v-if="storyComments.length === 0" class="text-center py-8">
+                                <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                </svg>
+                                <p class="text-gray-400 text-sm">Nenhum comentario ainda</p>
+                                <p class="text-gray-300 text-xs mt-1">Seja o primeiro a comentar!</p>
+                            </div>
+
+                            <!-- Comentarios -->
+                            <div v-for="comment in storyComments" :key="comment.id" class="comment-item">
+                                <div class="flex gap-3">
+                                    <!-- Avatar -->
+                                    <div class="w-8 h-8 rounded-full bg-belgo-blue text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
+                                        {{ (comment.author_name || 'U').charAt(0).toUpperCase() }}
+                                    </div>
+
+                                    <!-- Conteudo -->
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-medium text-sm text-gray-800">{{ comment.author_name }}</span>
+                                            <span class="text-xs text-gray-400">{{ formatCommentDate(comment.created_at) }}</span>
+                                            <span v-if="comment.is_edited" class="text-xs text-gray-400 italic">(editado)</span>
+                                        </div>
+
+                                        <div class="text-sm text-gray-700 comment-content" v-html="comment.content_html || comment.content"></div>
+
+                                        <!-- Reactions -->
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <div v-for="(users, emoji) in groupedReactions(comment)" :key="emoji"
+                                                 class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs cursor-pointer hover:bg-gray-200"
+                                                 @click="toggleReaction(comment.id, emoji)">
+                                                <span>{{ emoji }}</span>
+                                                <span class="text-gray-600">{{ users.length }}</span>
+                                            </div>
+
+                                            <!-- Add Reaction -->
+                                            <div class="relative">
+                                                <button @click="showReactionPicker = showReactionPicker === comment.id ? null : comment.id"
+                                                        class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                </button>
+                                                <!-- Picker -->
+                                                <div v-if="showReactionPicker === comment.id"
+                                                     class="absolute left-0 bottom-full mb-1 bg-white rounded-lg shadow-lg border p-2 flex gap-1 z-10">
+                                                    <button v-for="emoji in availableReactions" :key="emoji"
+                                                            @click="toggleReaction(comment.id, emoji); showReactionPicker = null"
+                                                            class="p-1 hover:bg-gray-100 rounded text-lg">
+                                                        {{ emoji }}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Reply -->
+                                            <button @click="replyToComment(comment)"
+                                                    class="text-xs text-gray-500 hover:text-belgo-blue">
+                                                Responder
+                                            </button>
+                                        </div>
+
+                                        <!-- Replies -->
+                                        <div v-if="comment.replies && comment.replies.length" class="mt-3 pl-4 border-l-2 border-gray-200 space-y-3">
+                                            <div v-for="reply in comment.replies" :key="reply.id" class="flex gap-2">
+                                                <div class="w-6 h-6 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs flex-shrink-0">
+                                                    {{ (reply.author_name || 'U').charAt(0).toUpperCase() }}
+                                                </div>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2 mb-1">
+                                                        <span class="font-medium text-xs text-gray-700">{{ reply.author_name }}</span>
+                                                        <span class="text-xs text-gray-400">{{ formatCommentDate(reply.created_at) }}</span>
+                                                    </div>
+                                                    <div class="text-xs text-gray-600" v-html="reply.content_html || reply.content"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input de Novo Comentario -->
+                        <div class="border-t pt-4">
+                            <div v-if="replyingTo" class="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                                <span>Respondendo a <strong>{{ replyingTo.author_name }}</strong></span>
+                                <button @click="replyingTo = null" class="text-red-500 hover:text-red-700">Cancelar</button>
+                            </div>
+                            <div class="flex gap-2">
+                                <input v-model="newCommentText"
+                                       @keyup.enter="submitComment"
+                                       type="text"
+                                       :placeholder="replyingTo ? 'Escreva uma resposta...' : 'Escreva um comentario... Use @nome para mencionar'"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-belgo-blue/50">
+                                <button @click="submitComment"
+                                        :disabled="!newCommentText.trim()"
+                                        class="px-4 py-2 bg-belgo-blue text-white rounded-lg text-sm hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Enviar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -12965,6 +13090,99 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Comments System - Issue #225
+            const storyComments = ref([]);
+            const newCommentText = ref('');
+            const replyingTo = ref(null);
+            const showReactionPicker = ref(null);
+            const availableReactions = ['👍', '🎉', '❤️', '👀', '🚀', '😕'];
+
+            const loadStoryComments = async () => {
+                if (!selectedStory.value) return;
+                try {
+                    const response = await fetch(`/api/comments/story/${selectedStory.value.story_id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        storyComments.value = data.comments || [];
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar comentarios:', e);
+                }
+            };
+
+            const submitComment = async () => {
+                if (!newCommentText.value.trim() || !selectedStory.value) return;
+                try {
+                    const payload = {
+                        entity_type: 'story',
+                        entity_id: selectedStory.value.story_id,
+                        author_id: currentUserId.value || 'admin',
+                        author_name: currentUserName.value || 'Usuario',
+                        content: newCommentText.value,
+                        parent_id: replyingTo.value?.id || null
+                    };
+                    const response = await fetch('/api/comments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        newCommentText.value = '';
+                        replyingTo.value = null;
+                        await loadStoryComments();
+                        addToast('success', 'Comentario adicionado', 'Seu comentario foi publicado');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Nao foi possivel adicionar o comentario');
+                }
+            };
+
+            const replyToComment = (comment) => {
+                replyingTo.value = comment;
+            };
+
+            const toggleReaction = async (commentId, emoji) => {
+                try {
+                    await fetch(`/api/comments/${commentId}/reaction`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            emoji: emoji,
+                            user_id: currentUserId.value || 'admin'
+                        })
+                    });
+                    await loadStoryComments();
+                } catch (e) {
+                    console.error('Erro ao adicionar reacao:', e);
+                }
+            };
+
+            const groupedReactions = (comment) => {
+                const grouped = {};
+                if (comment.reactions) {
+                    for (const r of comment.reactions) {
+                        if (!grouped[r.emoji]) grouped[r.emoji] = [];
+                        grouped[r.emoji].push(r.user_id);
+                    }
+                }
+                return grouped;
+            };
+
+            const formatCommentDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diff = now - date;
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return 'agora';
+                if (mins < 60) return `${mins}min`;
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return `${hours}h`;
+                const days = Math.floor(hours / 24);
+                if (days < 7) return `${days}d`;
+                return date.toLocaleDateString('pt-BR');
+            };
+
             // Form data
             const newStory = ref({
                 title: '', description: '', persona: '', action: '', benefit: '',
@@ -15874,6 +16092,9 @@ Process ${data.status}`);
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories, bulkDropdownOpen,
                 selectAllVisibleStories, bulkAssign, bulkPriorityStories,
+                // Comments - Issue #225
+                storyComments, newCommentText, replyingTo, showReactionPicker, availableReactions,
+                loadStoryComments, submitComment, replyToComment, toggleReaction, groupedReactions, formatCommentDate,
                 terminalCommand, terminalRunning, previewUrl, previewViewport,
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
