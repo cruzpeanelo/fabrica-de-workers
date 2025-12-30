@@ -243,6 +243,105 @@ try:
 except ImportError as e:
     print(f"[Dashboard] My Work not available: {e}")
 
+# Export Data - CSV/Excel (Issue #256)
+try:
+    from factory.dashboard.export_data import register_export_data
+    register_export_data(app)
+except ImportError as e:
+    print(f"[Dashboard] Export Data not available: {e}")
+
+# Export PDF (Issue #255)
+try:
+    from factory.dashboard.export_pdf import register_export_pdf
+    register_export_pdf(app)
+except ImportError as e:
+    print(f"[Dashboard] Export PDF not available: {e}")
+
+# Theme Editor (Issue #277)
+try:
+    from factory.dashboard.theme_editor import register_theme_editor
+    register_theme_editor(app)
+except ImportError as e:
+    print(f"[Dashboard] Theme Editor not available: {e}")
+
+# Webhooks Outbound (Issue #275)
+try:
+    from factory.dashboard.webhooks_outbound import register_webhooks_outbound
+    register_webhooks_outbound(app)
+except ImportError as e:
+    print(f"[Dashboard] Webhooks Outbound not available: {e}")
+
+# Audit Dashboard (Issue #274)
+try:
+    from factory.dashboard.audit_dashboard import register_audit_dashboard
+    register_audit_dashboard(app)
+except ImportError as e:
+    print(f"[Dashboard] Audit Dashboard not available: {e}")
+
+# Help Center (Issue #273)
+try:
+    from factory.dashboard.help_center import register_help_center
+    register_help_center(app)
+except ImportError as e:
+    print(f"[Dashboard] Help Center not available: {e}")
+
+# Data Import (Issue #276)
+try:
+    from factory.dashboard.data_import import register_data_import
+    register_data_import(app)
+except ImportError as e:
+    print(f"[Dashboard] Data Import not available: {e}")
+
+# Advanced Accessibility (Issue #270)
+try:
+    from factory.dashboard.accessibility_advanced import register_accessibility_advanced
+    register_accessibility_advanced(app)
+except ImportError as e:
+    print(f"[Dashboard] Advanced Accessibility not available: {e}")
+
+# Lazy Loading / Virtualization (Issue #269)
+try:
+    from factory.dashboard.lazy_loading import register_lazy_loading
+    register_lazy_loading(app)
+except ImportError as e:
+    print(f"[Dashboard] Lazy Loading not available: {e}")
+
+# =============================================================================
+# MULTI-TENANT PLATFORM ROUTES (Issues #286-#293 - Terminal 4)
+# =============================================================================
+
+# Platform Portal Routes (Issue #287 - Super Admin)
+try:
+    from factory.api.platform_routes import register_platform_routes
+    register_platform_routes(app)
+    print("[Dashboard] Platform Portal routes loaded: /api/platform")
+except ImportError as e:
+    print(f"[Dashboard] Platform Portal routes not available: {e}")
+
+# Tenant Admin Portal Routes (Issue #288)
+try:
+    from factory.api.tenant_admin_routes import register_tenant_admin_routes
+    register_tenant_admin_routes(app)
+    print("[Dashboard] Tenant Admin routes loaded: /api/tenant-admin")
+except ImportError as e:
+    print(f"[Dashboard] Tenant Admin routes not available: {e}")
+
+# User Context & Navigation Routes (Issues #292, #293)
+try:
+    from factory.api.user_context_routes import register_user_context_routes
+    register_user_context_routes(app)
+    print("[Dashboard] User Context routes loaded: /api/user")
+except ImportError as e:
+    print(f"[Dashboard] User Context routes not available: {e}")
+
+# Personas API Routes (Issue #290)
+try:
+    from factory.auth.personas import register_personas_endpoints
+    register_personas_endpoints(app)
+    print("[Dashboard] Personas API loaded: /api/personas")
+except ImportError as e:
+    print(f"[Dashboard] Personas API not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
@@ -9321,8 +9420,10 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // Issue #291: Skip saves to localStorage and closes all overlays
             const skipOnboardingTour = () => {
                 showOnboardingTour.value = false;
+                localStorage.setItem('onboardingSkipped', 'true');
             };
 
             const finishOnboardingTour = () => {
@@ -9337,6 +9438,7 @@ HTML_TEMPLATE = """
                 localStorage.setItem('onboardingSteps', JSON.stringify(onboardingSteps.value));
             };
 
+            // Issue #291: Check both completed and skipped states
             const loadOnboardingState = () => {
                 const saved = localStorage.getItem('onboardingSteps');
                 if (saved) {
@@ -9346,9 +9448,26 @@ HTML_TEMPLATE = """
                     });
                 }
                 const complete = localStorage.getItem('onboardingComplete');
-                if (complete === 'true') {
+                const skipped = localStorage.getItem('onboardingSkipped');
+                // Issue #291: Hide checklist if completed OR skipped
+                if (complete === 'true' || skipped === 'true') {
                     showOnboardingChecklist.value = false;
                 }
+            };
+
+            // Issue #291: Close all overlays to prevent blocking
+            const closeAllOverlays = () => {
+                showOnboardingTour.value = false;
+                showCommandPalette.value = false;
+                showDocViewer.value = false;
+                showConfirmModal.value = false;
+                showShortcutsModal.value = false;
+                showNewStoryModal.value = false;
+                showNewTaskModal.value = false;
+                showNewEpicModal.value = false;
+                showNewSprintModal.value = false;
+                showNewDocModal.value = false;
+                commandPaletteQuery.value = '';
             };
 
             const selectedProjectId = ref('');
@@ -11130,9 +11249,12 @@ HTML_TEMPLATE = """
                     return;
                 }
 
-                // Escape - close modals
+                // Escape - close modals (Issue #291: Added missing overlays)
                 if (e.key === 'Escape') {
+                    // Issue #291: Close overlays in priority order (highest z-index first)
+                    if (showOnboardingTour.value) { skipOnboardingTour(); return; }
                     if (showCommandPalette.value) { showCommandPalette.value = false; commandPaletteQuery.value = ''; return; }
+                    if (showDocViewer.value) { closeDocViewer(); return; }
                     if (showConfirmModal.value) { cancelConfirm(); return; }
                     if (showShortcutsModal.value) { showShortcutsModal.value = false; return; }
                     if (showNewStoryModal.value) { showNewStoryModal.value = false; return; }
@@ -11765,7 +11887,7 @@ Process ${data.status}`);
                 onboardingSteps, onboardingComplete, onboardingProgress,
                 tourSteps, currentTourStep, onboardingSpotlightStyle, onboardingTooltipStyle,
                 handleOnboardingStep, startOnboardingTour, nextTourStep, prevTourStep,
-                skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState,
+                skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState, closeAllOverlays,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
