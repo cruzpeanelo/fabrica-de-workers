@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Webhook Signature Verification Module
-=====================================
-Secure webhook signature verification for multiple platforms.
+Webhook Module
+==============
+Sistema completo de webhooks para integracoes.
 
-Terminal 5 - Issue #303
+Terminal 5 - Issue #303: Signature verification
+Terminal A - Issue #363: Event processor e inbound routes
 
 Supported Platforms:
 - GitHub (HMAC-SHA256)
@@ -101,6 +102,20 @@ from .salesforce_webhook import (
     normalize_org_id,
 )
 
+# Event processor (Issue #363)
+from .processor import (
+    WebhookEvent,
+    WebhookEventProcessor,
+    WebhookSource,
+    EventStatus,
+    EVENT_MAPPINGS,
+    get_processor,
+    process_webhook_event,
+)
+
+# Inbound routes (Issue #363)
+from .routes import router as inbound_webhook_router
+
 __all__ = [
     # Base classes
     "WebhookConfig",
@@ -140,4 +155,16 @@ __all__ = [
     "create_salesforce_verifier",
     "parse_salesforce_webhook",
     "normalize_org_id",
+
+    # Event processor (Issue #363)
+    "WebhookEvent",
+    "WebhookEventProcessor",
+    "WebhookSource",
+    "EventStatus",
+    "EVENT_MAPPINGS",
+    "get_processor",
+    "process_webhook_event",
+
+    # Inbound routes (Issue #363)
+    "inbound_webhook_router",
 ]
