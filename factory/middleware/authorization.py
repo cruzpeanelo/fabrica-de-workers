@@ -191,6 +191,9 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         "/verify-email",
         "/mfa",
         "/api/docs",
+        # Issue #371: Debug endpoint
+        "/api/debug",
+        "/api/health",
     ]
 
     def __init__(

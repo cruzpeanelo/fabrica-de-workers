@@ -24,7 +24,13 @@ Usage:
         ...
 
 Author: Fabrica de Agentes
+
+VERSION: Issue #371 Fix - 2025-12-30 - Added /login to PUBLIC_PATHS
 """
+
+# Issue #371: Version marker to verify code is loaded
+_MIDDLEWARE_VERSION = "371-fix-2025-12-30"
+print(f"[TenantMiddleware] Loading version: {_MIDDLEWARE_VERSION}")
 
 import os
 import logging
@@ -167,6 +173,9 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         "/verify-email",
         "/mfa",
         "/api/docs",
+        # Issue #371: Debug endpoint
+        "/api/debug",
+        "/api/health",
     ]
 
     # Admin roles that can switch tenants
@@ -224,8 +233,15 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
 
         path = request.url.path
 
+        # Issue #371 DEBUG: Log path checking for auth pages
+        if path in ["/login", "/register", "/forgot-password", "/mfa"]:
+            logger.info(f"[Issue #371 DEBUG] Auth page request: path='{path}' public_paths={self.public_paths[:5]}...")
+
         # Check public paths
         if self._is_public_path(path):
+            # Issue #371 DEBUG: Confirm path recognized as public
+            if path in ["/login", "/register", "/forgot-password", "/mfa"]:
+                logger.info(f"[Issue #371 DEBUG] Path '{path}' recognized as PUBLIC - allowing access")
             return await call_next(request)
 
         # Extract auth from JWT
@@ -274,6 +290,11 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
 
         elif self.require_tenant:
             # No auth and tenant required
+            # Issue #371 DEBUG: Log when returning AUTH_REQUIRED
+            logger.warning(
+                f"[Issue #371 DEBUG] AUTH_REQUIRED for path='{path}' - "
+                f"is_public={self._is_public_path(path)} require_tenant={self.require_tenant}"
+            )
             return JSONResponse(
                 status_code=401,
                 content={

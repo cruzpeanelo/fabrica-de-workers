@@ -922,6 +922,28 @@ def api_health_check():
     }
 
 
+# Issue #371: Debug endpoint to verify middleware version
+@app.get("/api/debug/middleware")
+def debug_middleware():
+    """Debug endpoint to verify middleware code is loaded correctly."""
+    try:
+        from factory.middleware.tenant_middleware import _MIDDLEWARE_VERSION, GlobalTenantMiddleware
+        public_paths = GlobalTenantMiddleware.PUBLIC_PATHS
+        return {
+            "middleware_version": _MIDDLEWARE_VERSION,
+            "public_paths": public_paths,
+            "login_in_public": "/login" in public_paths,
+            "code_updated": True,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "code_updated": False,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+
+
 # Issue #307: Missing API endpoints
 @app.get("/api/webhooks/list")
 def list_webhooks():
