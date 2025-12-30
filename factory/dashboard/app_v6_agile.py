@@ -327,6 +327,27 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Story Templates not available: {e}")
 
+# User Preferences (Issue #253)
+try:
+    from factory.dashboard.user_preferences import register_user_preferences
+    register_user_preferences(app)
+except ImportError as e:
+    print(f"[Dashboard] User Preferences not available: {e}")
+
+# Custom Kanban Columns (Issue #252)
+try:
+    from factory.dashboard.custom_kanban_columns import register_custom_columns
+    register_custom_columns(app)
+except ImportError as e:
+    print(f"[Dashboard] Custom Kanban Columns not available: {e}")
+
+# Push Notifications (Issue #261)
+try:
+    from factory.dashboard.push_notifications import register_push_notifications
+    register_push_notifications(app)
+except ImportError as e:
+    print(f"[Dashboard] Push Notifications not available: {e}")
+
 # =============================================================================
 # MULTI-TENANT PLATFORM ROUTES (Issues #286-#293 - Terminal 4)
 # =============================================================================
@@ -2074,6 +2095,21 @@ def list_epics(project_id: str):
     try:
         repo = EpicRepository(db)
         epics = repo.get_by_project(project_id)
+        return [e.to_dict() for e in epics]
+    finally:
+        db.close()
+
+
+@app.get("/api/epics")
+def list_all_epics(project_id: str = Query(None)):
+    """Lista todos os epics ou filtra por projeto"""
+    db = SessionLocal()
+    try:
+        repo = EpicRepository(db)
+        if project_id:
+            epics = repo.get_by_project(project_id)
+        else:
+            epics = db.query(Epic).limit(100).all()
         return [e.to_dict() for e in epics]
     finally:
         db.close()
@@ -12081,6 +12117,55 @@ def billing_page():
 @app.get("/executive", response_class=HTMLResponse)
 def executive_page():
     """Executive Dashboard - SPA route"""
+    return HTML_TEMPLATE
+
+
+# Issue #305: Additional SPA routes for auth and user pages
+@app.get("/login", response_class=HTMLResponse)
+def login_page():
+    """Login Page - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page():
+    """Register Page - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/forgot-password", response_class=HTMLResponse)
+def forgot_password_page():
+    """Forgot Password Page - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page():
+    """User Settings - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/profile", response_class=HTMLResponse)
+def profile_page():
+    """User Profile - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/notifications", response_class=HTMLResponse)
+def notifications_page():
+    """Notifications - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/help", response_class=HTMLResponse)
+def help_page():
+    """Help Center - SPA route"""
+    return HTML_TEMPLATE
+
+
+@app.get("/onboarding", response_class=HTMLResponse)
+def onboarding_page():
+    """Onboarding - SPA route"""
     return HTML_TEMPLATE
 
 
