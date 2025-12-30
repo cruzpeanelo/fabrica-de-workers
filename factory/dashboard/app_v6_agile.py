@@ -654,6 +654,11 @@ class ChatMessageCreate(BaseModel):
     story_id: Optional[str] = None
     content: str
     user_id: Optional[str] = "user"
+    # Issue #280: Contextual AI assistant enhancement
+    page_context: Optional[str] = None  # Current page/view (kanban, list, story-detail, etc.)
+    selected_story_id: Optional[str] = None  # Currently selected story
+    selected_task_id: Optional[str] = None  # Currently selected task
+    filter_status: Optional[str] = None  # Active filter status
 
 
 class EpicCreate(BaseModel):
@@ -1647,8 +1652,16 @@ def send_chat_message(msg: ChatMessageCreate):
             "user_id": msg.user_id
         })
 
-        # Gera resposta do assistente (simples por enquanto)
-        assistant_response = generate_assistant_response(msg.content, msg.project_id, msg.story_id, db)
+        # Issue #280: Build context object for enhanced AI assistant
+        context = {
+            "page_context": msg.page_context,
+            "selected_story_id": msg.selected_story_id or msg.story_id,
+            "selected_task_id": msg.selected_task_id,
+            "filter_status": msg.filter_status
+        }
+
+        # Gera resposta do assistente com contexto enriquecido
+        assistant_response = generate_assistant_response(msg.content, msg.project_id, msg.story_id, db, context)
 
         # Salva resposta
         assistant_msg = repo.create({
@@ -1982,12 +1995,132 @@ def execute_assistant_action(action: dict, db) -> str:
     return result
 
 
-def generate_assistant_response(content: str, project_id: str, story_id: str, db) -> dict:
-    """Gera resposta do assistente usando Claude AI"""
+# =============================================================================
+# Issue #280: Contextual AI Assistant - Helper Functions
+# =============================================================================
+
+def _build_contextual_suggestions(page_context: str, story_id: str, task_id: str, filter_status: str, db) -> str:
+    """
+    Issue #280: Build contextual suggestions based on current page view
+    Returns a formatted string with relevant suggestions for the AI assistant
+    """
+    suggestions = []
+
+    if page_context == "kanban":
+        suggestions.append("Sugestoes para o Kanban Board:")
+        suggestions.append("- Posso ajudar a mover stories entre colunas")
+        suggestions.append("- Verificar stories bloqueadas ou atrasadas")
+        suggestions.append("- Sugerir priorizacao baseada em criterios Agile")
+        suggestions.append("- Criar novas stories para o backlog")
+        if filter_status:
+            suggestions.append(f"- Filtro ativo: {filter_status}")
+
+    elif page_context == "story-detail":
+        suggestions.append("Sugestoes para detalhes da Story:")
+        suggestions.append("- Posso ajudar a refinar criterios de aceitacao")
+        suggestions.append("- Verificar progresso das tasks")
+        suggestions.append("- Iniciar execucao automatica da story")
+        suggestions.append("- Gerar documentacao tecnica")
+        suggestions.append("- Analisar codigo gerado pelas tasks")
+        if story_id:
+            suggestions.append(f"- Story em foco: {story_id}")
+
+    elif page_context == "task-detail":
+        suggestions.append("Sugestoes para detalhes da Task:")
+        suggestions.append("- Verificar codigo gerado")
+        suggestions.append("- Executar testes da task")
+        suggestions.append("- Marcar task como concluida")
+        suggestions.append("- Gerar mais testes automatizados")
+        if task_id:
+            suggestions.append(f"- Task em foco: {task_id}")
+
+    elif page_context == "list":
+        suggestions.append("Sugestoes para visualizacao em lista:")
+        suggestions.append("- Filtrar stories por status ou prioridade")
+        suggestions.append("- Ordenar por story points ou data")
+        suggestions.append("- Bulk operations em multiplas stories")
+        suggestions.append("- Exportar relatorio de stories")
+
+    elif page_context == "analytics":
+        suggestions.append("Sugestoes para Analytics:")
+        suggestions.append("- Gerar relatorio de velocidade do time")
+        suggestions.append("- Analisar metricas de sprint")
+        suggestions.append("- Identificar gargalos no fluxo")
+        suggestions.append("- Comparar sprints anteriores")
+
+    elif page_context == "backlog":
+        suggestions.append("Sugestoes para o Backlog:")
+        suggestions.append("- Priorizar stories para proximo sprint")
+        suggestions.append("- Estimar story points")
+        suggestions.append("- Refinar stories com criterios INVEST")
+        suggestions.append("- Agrupar stories por epic")
+
+    else:
+        suggestions.append("Sugestoes gerais:")
+        suggestions.append("- Criar nova story")
+        suggestions.append("- Listar stories do projeto")
+        suggestions.append("- Verificar status do projeto")
+        suggestions.append("- Gerar relatorio de progresso")
+
+    return "\n".join(suggestions)
+
+
+def _get_quick_actions_for_context(page_context: str, story_id: str = None, task_id: str = None) -> list:
+    """
+    Issue #280: Return quick action buttons based on current context
+    """
+    actions = []
+
+    if page_context == "kanban":
+        actions = [
+            {"label": "Nova Story", "action": "criar nova story", "icon": "+"},
+            {"label": "Stories Bloqueadas", "action": "listar stories bloqueadas", "icon": "!"},
+            {"label": "Proximas Acoes", "action": "quais stories devo priorizar", "icon": "?"}
+        ]
+    elif page_context == "story-detail" and story_id:
+        actions = [
+            {"label": "Executar Story", "action": f"executar story {story_id}", "icon": ">"},
+            {"label": "Ver Tasks", "action": f"listar tasks de {story_id}", "icon": "#"},
+            {"label": "Gerar Docs", "action": f"gerar documentacao para {story_id}", "icon": "D"}
+        ]
+    elif page_context == "task-detail" and task_id:
+        actions = [
+            {"label": "Ver Codigo", "action": f"mostrar codigo de {task_id}", "icon": "<>"},
+            {"label": "Rodar Testes", "action": f"executar testes de {task_id}", "icon": "T"},
+            {"label": "Completar", "action": f"marcar {task_id} como concluida", "icon": "V"}
+        ]
+    else:
+        actions = [
+            {"label": "Ajuda", "action": "o que voce pode fazer", "icon": "?"},
+            {"label": "Status", "action": "status do projeto", "icon": "i"},
+            {"label": "Stories", "action": "listar stories", "icon": "#"}
+        ]
+
+    return actions
+
+
+def generate_assistant_response(content: str, project_id: str, story_id: str, db, context: dict = None) -> dict:
+    """
+    Issue #280: Enhanced contextual AI assistant
+    Gera resposta do assistente usando Claude AI com contexto avancado da pagina atual
+    """
     import json as json_module
+    context = context or {}
 
     story_repo = StoryRepository(db)
+    task_repo = StoryTaskRepository(db)
     actions_executed = []
+
+    # Issue #280: Build page context information
+    page_context = context.get("page_context", "kanban")
+    selected_story_id = context.get("selected_story_id") or story_id
+    selected_task_id = context.get("selected_task_id")
+    filter_status = context.get("filter_status")
+
+    # Build contextual suggestions based on current page
+    contextual_suggestions = _build_contextual_suggestions(
+        page_context, selected_story_id, selected_task_id, filter_status, db
+    )
 
     # =========================================================================
     # USAR CLAUDE AI SE DISPONIVEL
@@ -1998,18 +2131,38 @@ def generate_assistant_response(content: str, project_id: str, story_id: str, db
 
             if claude.is_available():
                 # Obter contexto do projeto
-                project_context = get_project_context(db, project_id)
+                project_context_str = get_project_context(db, project_id)
 
                 # Obter detalhes da story atual se especificada
                 current_story_context = ""
-                if story_id:
-                    story = story_repo.get_by_id(story_id)
+                if selected_story_id:
+                    story = story_repo.get_by_id(selected_story_id)
                     if story:
                         current_story_context = f"\n\nSTORY ATUAL EM FOCO:\n{format_story_details(story)}"
+                        # Include task details if viewing story detail
+                        if page_context == "story-detail" and story.story_tasks:
+                            task_summary = "\n".join([
+                                f"  - {t.task_id}: {t.title} [{t.status}] {t.progress}%"
+                                for t in story.story_tasks
+                            ])
+                            current_story_context += f"\n\nTASKS DA STORY:\n{task_summary}"
 
-                # System prompt para o assistente
+                # Include selected task context
+                selected_task_context = ""
+                if selected_task_id:
+                    task = task_repo.get_by_id(selected_task_id)
+                    if task:
+                        selected_task_context = f"\n\nTASK SELECIONADA:\n- ID: {task.task_id}\n- Titulo: {task.title}\n- Status: {task.status}\n- Progresso: {task.progress}%"
+                        if task.code_output:
+                            selected_task_context += f"\n- Codigo gerado: {len(task.code_output)} caracteres"
+
+                # System prompt para o assistente com contexto de pagina
                 system_prompt = f"""Voce e o Assistente Inteligente da Fabrica de Agentes, um sistema de gestao Agile.
 Seu papel e ajudar usuarios a gerenciar User Stories, Tasks, Projetos e o desenvolvimento autonomo.
+
+=== CONTEXTO DA PAGINA ATUAL ===
+O usuario esta visualizando: **{page_context.upper()}**
+{contextual_suggestions}
 
 SUAS CAPACIDADES:
 1. Gerenciar stories (criar, editar, mover, listar, ver detalhes)
@@ -2018,6 +2171,7 @@ SUAS CAPACIDADES:
 4. Criar e gerenciar projetos
 5. Analisar documentos/arquivos para criar stories
 6. Sugerir melhorias e boas praticas Agile
+7. Oferecer sugestoes contextuais baseadas na pagina atual
 
 === ACOES DISPONIVEIS ===
 
@@ -2047,10 +2201,12 @@ ARQUIVOS E DOCUMENTOS:
 - Para executar acoes, inclua o JSON entre <action> e </action> NO FINAL da resposta
 - Voce pode executar MULTIPLAS acoes em uma unica resposta
 - Exemplo: "Vou criar o projeto e a primeira story. <action>{{"action": "create_project", "project_data": {{"name": "Meu App"}}}}</action><action>{{"action": "create_story", "story_data": {{"project_id": "PRJ-0001", "title": "Login"}}}}</action>"
+- IMPORTANTE: Ofereca sugestoes relevantes ao contexto da pagina atual
 
 === CONTEXTO ATUAL ===
-{project_context}
+{project_context_str}
 {current_story_context}
+{selected_task_context}
 
 === INSTRUCOES ===
 - Seja proativo: quando o usuario pedir algo, EXECUTE a acao
@@ -2058,7 +2214,8 @@ ARQUIVOS E DOCUMENTOS:
 - Para iniciar execucao automatica de uma story, use force_execute
 - Ao analisar arquivos para criar stories, primeiro use read_attachment, depois crie as stories com create_story
 - Use os dados REAIS do projeto listados acima
-- Se o usuario enviar um documento para analise, leia-o e sugira stories baseadas no conteudo"""
+- Se o usuario enviar um documento para analise, leia-o e sugira stories baseadas no conteudo
+- SEMPRE considere o contexto da pagina atual para oferecer sugestoes mais relevantes"""
 
                 # Chamar Claude
                 response = claude.chat(
@@ -2486,8 +2643,9 @@ def global_search(
 
         # Search Documentation
         if "docs" in type_list:
-            doc_repo = StoryDocumentationRepository(db)
-            all_docs = doc_repo.get_all()
+            # Issue #306: StoryDocumentationRepository does not have get_all() method
+            # Query database directly instead
+            all_docs = db.query(StoryDocumentation).all()
 
             matched_docs = []
             for doc in all_docs:
@@ -5946,7 +6104,7 @@ HTML_TEMPLATE = """
         </div>
 
         <!-- Show Created API Key Modal (Issue #156) -->
-        <div v-if="createdApiKey" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div v-if="createdApiKey" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="createdApiKey = null">
             <div class="bg-white rounded-lg w-full max-w-md shadow-xl">
                 <div class="p-4 border-b bg-green-50"><h3 class="text-lg font-semibold text-green-800">API Key Criada!</h3></div>
                 <div class="p-4">
@@ -9719,17 +9877,53 @@ HTML_TEMPLATE = """
 
             // Issue #291: Close all overlays to prevent blocking
             const closeAllOverlays = () => {
+                // Onboarding & Help
                 showOnboardingTour.value = false;
-                showCommandPalette.value = false;
-                showDocViewer.value = false;
-                showConfirmModal.value = false;
                 showShortcutsModal.value = false;
+
+                // Command Palette & Search
+                showCommandPalette.value = false;
+                commandPaletteQuery.value = '';
+                showGlobalSearch.value = false;
+
+                // Document viewers
+                showDocViewer.value = false;
+
+                // Confirmation & Core Modals
+                showConfirmModal.value = false;
                 showNewStoryModal.value = false;
                 showNewTaskModal.value = false;
                 showNewEpicModal.value = false;
                 showNewSprintModal.value = false;
                 showNewDocModal.value = false;
-                commandPaletteQuery.value = '';
+                showNewDesignModal.value = false;
+
+                // Analytics & Burndown
+                showAnalyticsModal.value = false;
+                showBurndownModal.value = false;
+
+                // Security & Settings
+                showSecuritySettings.value = false;
+                showCreateApiKeyModal.value = false;
+
+                // Wizards
+                showProjectWizard.value = false;
+                showIntegrationWizard.value = false;
+                showIntegrationsModal.value = false;
+                showIntegrationConfigModal.value = false;
+
+                // Code & Testing
+                showGeneratedTestsModal.value = false;
+                showSecurityScanModal.value = false;
+                showCodeReviewModal.value = false;
+                showDesignEditor.value = false;
+                showFileViewer.value = false;
+
+                // Preview
+                showProjectPreview.value = false;
+
+                // API Key created modal
+                createdApiKey.value = null;
             };
 
             const selectedProjectId = ref('');
@@ -11520,19 +11714,45 @@ HTML_TEMPLATE = """
                     return;
                 }
 
-                // Escape - close modals (Issue #291: Added missing overlays)
+                // Escape - close modals (Issue #291: Close ALL overlays properly)
                 if (e.key === 'Escape') {
                     // Issue #291: Close overlays in priority order (highest z-index first)
+                    // Use closeAllOverlays() for complete cleanup, or close one-by-one for priority
+
+                    // Priority overlays (close one at a time)
                     if (showOnboardingTour.value) { skipOnboardingTour(); return; }
                     if (showCommandPalette.value) { showCommandPalette.value = false; commandPaletteQuery.value = ''; return; }
                     if (showDocViewer.value) { closeDocViewer(); return; }
                     if (showConfirmModal.value) { cancelConfirm(); return; }
+
+                    // Issue #291: All modal overlays - close and return
                     if (showShortcutsModal.value) { showShortcutsModal.value = false; return; }
                     if (showNewStoryModal.value) { showNewStoryModal.value = false; return; }
                     if (showNewTaskModal.value) { showNewTaskModal.value = false; return; }
                     if (showNewEpicModal.value) { showNewEpicModal.value = false; return; }
                     if (showNewSprintModal.value) { showNewSprintModal.value = false; return; }
                     if (showNewDocModal.value) { showNewDocModal.value = false; return; }
+                    if (showNewDesignModal.value) { showNewDesignModal.value = false; return; }
+
+                    // Issue #291: Additional overlays that were missing
+                    if (showAnalyticsModal.value) { showAnalyticsModal.value = false; return; }
+                    if (showBurndownModal.value) { showBurndownModal.value = false; return; }
+                    if (showSecuritySettings.value) { showSecuritySettings.value = false; return; }
+                    if (showCreateApiKeyModal.value) { showCreateApiKeyModal.value = false; return; }
+                    if (showProjectWizard.value) { showProjectWizard.value = false; return; }
+                    if (showIntegrationWizard.value) { showIntegrationWizard.value = false; return; }
+                    if (showIntegrationsModal.value) { showIntegrationsModal.value = false; return; }
+                    if (showIntegrationConfigModal.value) { showIntegrationConfigModal.value = false; return; }
+                    if (showGeneratedTestsModal.value) { showGeneratedTestsModal.value = false; return; }
+                    if (showSecurityScanModal.value) { showSecurityScanModal.value = false; return; }
+                    if (showCodeReviewModal.value) { showCodeReviewModal.value = false; return; }
+                    if (showDesignEditor.value) { showDesignEditor.value = false; return; }
+                    if (showFileViewer.value) { showFileViewer.value = false; return; }
+                    if (showProjectPreview.value) { showProjectPreview.value = false; return; }
+                    if (showGlobalSearch.value) { showGlobalSearch.value = false; return; }
+                    if (createdApiKey.value) { createdApiKey.value = null; return; }
+
+                    // Deselect story if no overlays open
                     if (selectedStory.value) { selectedStory.value = null; return; }
                     searchQuery.value = '';
                 }
