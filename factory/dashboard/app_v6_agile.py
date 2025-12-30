@@ -3891,6 +3891,37 @@ HTML_TEMPLATE = """
             background: #E5E7EB;
         }
 
+        /* Issue #237: WIP Limits Styles */
+        .wip-warning {
+            border-left: 3px solid #F59E0B !important;
+        }
+        .wip-exceeded {
+            border-left: 3px solid #EF4444 !important;
+            background-color: rgba(239, 68, 68, 0.05) !important;
+        }
+        .wip-progress {
+            height: 4px;
+            background: #E5E7EB;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .wip-progress-bar {
+            height: 100%;
+            background: #FF6C00;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .wip-progress-bar.warning {
+            background: #F59E0B;
+        }
+        .wip-progress-bar.exceeded {
+            background: #EF4444;
+        }
+        .wip-indicator {
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
         /* Quick Actions */
         .story-card {
             position: relative;
@@ -7983,6 +8014,86 @@ HTML_TEMPLATE = """
         </div>
 
 
+        <!-- MODAL: WIP Config (Issue #237) -->
+        <div v-if="showWipConfigModal"
+             class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+             @click.self="showWipConfigModal = false">
+            <div class="bg-white rounded-lg w-[500px] max-h-[90vh] overflow-y-auto dark:bg-gray-800"
+                 @click.stop>
+                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">Configurar WIP Limits</h2>
+                    <button @click="showWipConfigModal = false"
+                            class="text-white/80 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                        Configure limites de Work in Progress (WIP) por coluna para otimizar o fluxo de trabalho.
+                    </p>
+
+                    <!-- WIP Policy -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Politica</label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" v-model="wipPolicy" value="soft"
+                                       class="text-[#003B4A] focus:ring-[#003B4A]">
+                                <span class="text-sm">Soft (aviso visual)</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" v-model="wipPolicy" value="hard"
+                                       class="text-[#003B4A] focus:ring-[#003B4A]">
+                                <span class="text-sm">Hard (bloqueia movimentacao)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- WIP Limits per Column -->
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Limites por Coluna</label>
+                        <div v-for="status in ['ready', 'in_progress', 'review', 'testing']" :key="status"
+                             class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">{{ getColumnTitle(status) }}</span>
+                            <div class="flex items-center gap-2">
+                                <input type="number" v-model.number="wipLimits[status]"
+                                       min="1" max="50"
+                                       class="w-20 px-2 py-1 text-sm border rounded focus:ring-[#003B4A] focus:border-[#003B4A] dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                       :placeholder="status === 'in_progress' ? '5' : status === 'review' ? '3' : '10'">
+                                <button @click="wipLimits[status] = null"
+                                        class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                                        title="Remover limite">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+                        <strong>Dica:</strong> Limites WIP ajudam a identificar gargalos e melhorar o throughput do time.
+                        Comece com valores conservadores e ajuste conforme necessario.
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button @click="showWipConfigModal = false"
+                                class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400">
+                            Cancelar
+                        </button>
+                        <button @click="saveWipConfig"
+                                :disabled="wipConfigLoading"
+                                class="px-4 py-2 text-sm bg-[#FF6C00] text-white rounded hover:bg-[#E65C00] disabled:opacity-50">
+                            <span v-if="wipConfigLoading">Salvando...</span>
+                            <span v-else>Salvar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL: Nova Story (Issue #308: Added data-testid for Playwright) -->
         <div v-if="showNewStoryModal"
              class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
@@ -8553,6 +8664,10 @@ HTML_TEMPLATE = """
                         <div class="shortcut-item">
                             <span class="shortcut-desc">Mostrar atalhos</span>
                             <span class="kbd">?</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Toggle Dark Mode</span>
+                            <span class="kbd">⌘/Ctrl</span>+<span class="kbd">⇧</span>+<span class="kbd">D</span>
                         </div>
                     </div>
                     <div class="shortcut-group">
@@ -10750,22 +10865,44 @@ HTML_TEMPLATE = """
                 showTemplateSelector.value = true;
             };
 
-            // Dark Mode
+            // Issue #217: Dark Mode with system preference and persistence
             const isDarkMode = ref(false);
-            const toggleDarkMode = () => {
-                isDarkMode.value = !isDarkMode.value;
-                document.documentElement.classList.toggle('dark', isDarkMode.value);
-                localStorage.setItem('darkMode', isDarkMode.value);
-                addToast('info', isDarkMode.value ? 'Modo escuro' : 'Modo claro', 'Tema alterado');
+            const darkModeStorageKey = 'factory-dark-mode';
+
+            const setDarkMode = (enabled, showToast = false) => {
+                isDarkMode.value = enabled;
+                document.documentElement.classList.toggle('dark', enabled);
+                document.documentElement.setAttribute('data-color-scheme', enabled ? 'dark' : 'light');
+                localStorage.setItem(darkModeStorageKey, enabled ? 'true' : 'false');
+                if (showToast) {
+                    addToast('info', enabled ? '🌙 Modo Escuro' : '☀️ Modo Claro', 'Tema alterado');
+                }
             };
 
-            // Load dark mode preference
+            const toggleDarkMode = () => {
+                setDarkMode(!isDarkMode.value, true);
+            };
+
+            // Load dark mode preference (respects system preference if not set)
             const loadDarkMode = () => {
-                const saved = localStorage.getItem('darkMode');
-                if (saved === 'true') {
-                    isDarkMode.value = true;
-                    document.documentElement.classList.add('dark');
+                const saved = localStorage.getItem(darkModeStorageKey);
+                if (saved !== null) {
+                    // User has explicit preference
+                    setDarkMode(saved === 'true', false);
+                } else {
+                    // Respect system preference
+                    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    setDarkMode(systemDark, false);
                 }
+
+                // Listen for system preference changes
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    // Only auto-switch if user hasn't set explicit preference
+                    const saved = localStorage.getItem(darkModeStorageKey);
+                    if (saved === null) {
+                        setDarkMode(e.matches, true);
+                    }
+                });
             };
 
             // Computed
@@ -10954,6 +11091,9 @@ HTML_TEMPLATE = """
                 // Load sprints
                 const sprintsRes = await fetch(`/api/projects/${selectedProjectId.value}/sprints`);
                 sprints.value = await sprintsRes.json();
+
+                // Issue #237: Load WIP Config
+                await loadWipConfig();
 
                 // Setup drag and drop
                 nextTick(() => {
@@ -12306,6 +12446,13 @@ HTML_TEMPLATE = """
                     return;
                 }
 
+                // Issue #217: Cmd+Shift+D / Ctrl+Shift+D - Toggle Dark Mode
+                if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+                    e.preventDefault();
+                    toggleDarkMode();
+                    return;
+                }
+
                 // Handle command palette navigation
                 if (showCommandPalette.value) {
                     handleCommandPaletteKey(e);
@@ -12990,6 +13137,9 @@ Process ${data.status}`);
                 skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState, closeAllOverlays,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, kanbanStatuses, epics, sprints, selectedStory, activeTab,
+                // Issue #237: WIP Limits
+                wipLimits, wipPolicy, showWipConfigModal, wipConfigLoading,
+                getWipState, getWipPercentage, openWipConfig, saveWipConfig, loadWipConfig,
                 chatHistory, chatInput, chatMessages,
                 // Issue #280: Enhanced contextual AI chat
                 chatLoading, chatPageContext, chatQuickActions, chatSuggestions,
