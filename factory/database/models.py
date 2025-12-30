@@ -12,7 +12,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey
 
 # Issue #184: Valores válidos de Story Points (Fibonacci)
 FIBONACCI_POINTS = [0, 1, 2, 3, 5, 8, 13, 21]
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any
@@ -3985,7 +3985,7 @@ class Comment(Base):
     commentable_id = Column(String(50), nullable=False, index=True)
 
     # Threading (respostas)
-    parent_id = Column(String(50), ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=True)
+    parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
     thread_depth = Column(Integer, default=0)  # Nivel de aninhamento
 
     # Metadata
@@ -4003,7 +4003,7 @@ class Comment(Base):
     reaction_count = Column(Integer, default=0)
 
     # Relacionamentos
-    replies = relationship("Comment", backref=backref("parent", remote_side=[comment_id]), lazy="dynamic")
+    replies = relationship("Comment", backref=backref("parent", remote_side="Comment.id"), lazy="dynamic")
     reactions = relationship("CommentReaction", back_populates="comment", cascade="all, delete-orphan")
     mentions = relationship("CommentMention", back_populates="comment", cascade="all, delete-orphan")
 
@@ -4121,6 +4121,89 @@ class CommentMention(Base):
             "read": self.read,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+
+# =============================================================================
+# TIME TRACKING SYSTEM - Issue #224
+# =============================================================================
+
+class TimeEntry(Base):
+    """
+    Modelo para registro de tempo em Tasks
+    Permite tracking de horas trabalhadas com timer inline
+
+    Issue #224: Time Tracking inline em Tasks
+    """
+    __tablename__ = "time_entries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    entry_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Relacionamento com Task
+    task_id = Column(String(50), nullable=False, index=True)
+    story_id = Column(String(50), nullable=True, index=True)
+
+    # Usuario
+    user_id = Column(String(100), nullable=False, index=True)
+    user_name = Column(String(200), nullable=True)
+
+    # Tempo
+    started_at = Column(DateTime, nullable=False)
+    ended_at = Column(DateTime, nullable=True)
+    duration_seconds = Column(Integer, default=0)
+
+    # Descricao do trabalho
+    description = Column(String(500), nullable=True)
+
+    # Status do timer
+    is_running = Column(Boolean, default=False)
+    is_billable = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Indices
+    __table_args__ = (
+        Index('ix_time_entries_task', 'task_id'),
+        Index('ix_time_entries_user', 'user_id'),
+        Index('ix_time_entries_running', 'user_id', 'is_running'),
+    )
+
+    def to_dict(self):
+        return {
+            "entry_id": self.entry_id,
+            "task_id": self.task_id,
+            "story_id": self.story_id,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "duration_seconds": self.duration_seconds,
+            "duration_formatted": self.duration_formatted,
+            "description": self.description,
+            "is_running": self.is_running,
+            "is_billable": self.is_billable,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    @property
+    def duration_formatted(self) -> str:
+        """Retorna duracao formatada HH:MM:SS"""
+        if self.is_running and self.started_at:
+            # Calcular duracao atual
+            now = datetime.utcnow()
+            seconds = int((now - self.started_at).total_seconds())
+        else:
+            seconds = self.duration_seconds or 0
+
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
 # =============================================================================

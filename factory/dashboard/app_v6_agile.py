@@ -57,7 +57,8 @@ from factory.database.models import (
     Attachment, Epic, Sprint,
     TaskPriority,
     Tenant, TenantMember,
-    KanbanPolicy, WipPolicyType  # Issue #237 - WIP Limits
+    KanbanPolicy, WipPolicyType,  # Issue #237 - WIP Limits
+    TimeEntry  # Issue #224 - Time Tracking
 )
 from factory.database.repositories import (
     ProjectRepository, ActivityLogRepository,
@@ -1308,6 +1309,126 @@ def delete_story_task(task_id: str):
         if repo.delete(task_id):
             return {"message": "Task deleted"}
         raise HTTPException(404, "Task not found")
+    finally:
+        db.close()
+
+
+# =============================================================================
+# TIME TRACKING - Issue #224
+# =============================================================================
+
+@app.post("/api/story-tasks/{task_id}/time/start")
+def start_time_tracking(task_id: str, user_id: str = "admin", user_name: str = "Usuario"):
+    """Inicia timer para uma task - Issue #224"""
+    db = SessionLocal()
+    try:
+        # Verificar se task existe
+        task = db.query(StoryTask).filter(StoryTask.task_id == task_id).first()
+        if not task:
+            raise HTTPException(404, "Task not found")
+
+        # Parar qualquer timer ativo do usuario
+        active_entry = db.query(TimeEntry).filter(
+            TimeEntry.user_id == user_id,
+            TimeEntry.is_running == True
+        ).first()
+
+        if active_entry:
+            active_entry.is_running = False
+            active_entry.ended_at = datetime.utcnow()
+            active_entry.duration_seconds = int((active_entry.ended_at - active_entry.started_at).total_seconds())
+
+        # Criar nova entrada
+        entry = TimeEntry(
+            entry_id=f"TIME-{uuid.uuid4().hex[:8].upper()}",
+            task_id=task_id,
+            story_id=task.story_id,
+            user_id=user_id,
+            user_name=user_name,
+            started_at=datetime.utcnow(),
+            is_running=True
+        )
+        db.add(entry)
+        db.commit()
+        db.refresh(entry)
+
+        return entry.to_dict()
+    finally:
+        db.close()
+
+
+@app.post("/api/story-tasks/{task_id}/time/stop")
+def stop_time_tracking(task_id: str, user_id: str = "admin", description: str = None):
+    """Para timer ativo para uma task - Issue #224"""
+    db = SessionLocal()
+    try:
+        # Buscar entrada ativa
+        entry = db.query(TimeEntry).filter(
+            TimeEntry.task_id == task_id,
+            TimeEntry.user_id == user_id,
+            TimeEntry.is_running == True
+        ).first()
+
+        if not entry:
+            raise HTTPException(404, "No active timer found for this task")
+
+        entry.is_running = False
+        entry.ended_at = datetime.utcnow()
+        entry.duration_seconds = int((entry.ended_at - entry.started_at).total_seconds())
+        entry.description = description
+
+        db.commit()
+        db.refresh(entry)
+
+        return entry.to_dict()
+    finally:
+        db.close()
+
+
+@app.get("/api/story-tasks/{task_id}/time")
+def get_task_time_entries(task_id: str):
+    """Lista entradas de tempo de uma task - Issue #224"""
+    db = SessionLocal()
+    try:
+        entries = db.query(TimeEntry).filter(
+            TimeEntry.task_id == task_id
+        ).order_by(TimeEntry.started_at.desc()).all()
+
+        total_seconds = sum(e.duration_seconds or 0 for e in entries if not e.is_running)
+
+        # Calcular tempo do timer ativo
+        active = next((e for e in entries if e.is_running), None)
+        if active:
+            active_seconds = int((datetime.utcnow() - active.started_at).total_seconds())
+            total_seconds += active_seconds
+
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+
+        return {
+            "entries": [e.to_dict() for e in entries],
+            "total_seconds": total_seconds,
+            "total_formatted": f"{hours}h {minutes}min",
+            "has_active": active is not None
+        }
+    finally:
+        db.close()
+
+
+@app.get("/api/time/active")
+def get_active_timer(user_id: str = "admin"):
+    """Retorna timer ativo do usuario - Issue #224"""
+    db = SessionLocal()
+    try:
+        entry = db.query(TimeEntry).filter(
+            TimeEntry.user_id == user_id,
+            TimeEntry.is_running == True
+        ).first()
+
+        if not entry:
+            return {"active": False, "entry": None}
+
+        return {"active": True, "entry": entry.to_dict()}
     finally:
         db.close()
 
@@ -9289,6 +9410,57 @@ HTML_TEMPLATE = """
                                     </div>
                                 </div>
 
+                                <!-- Timer de Tempo - Issue #224 -->
+                                <div class="mt-2 pt-2 border-t border-gray-100 flex items-center gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span class="text-xs text-gray-500">Tempo:</span>
+                                    </div>
+
+                                    <!-- Timer Display -->
+                                    <span v-if="activeTimer?.task_id === task.task_id"
+                                          class="text-sm font-mono font-semibold text-orange-600">
+                                        {{ timerDisplay }}
+                                    </span>
+                                    <span v-else class="text-xs text-gray-500">
+                                        {{ formatTotalTime(getTaskTotalTime(task.task_id)) }}
+                                    </span>
+
+                                    <!-- Timer Controls -->
+                                    <div class="flex items-center gap-1">
+                                        <!-- Start Button -->
+                                        <button v-if="!activeTimer || activeTimer.task_id !== task.task_id"
+                                                @click.stop="startTimer(task)"
+                                                class="p-1 text-green-600 hover:bg-green-50 rounded transition"
+                                                title="Iniciar timer">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Pause/Stop Buttons (when running) -->
+                                        <template v-else>
+                                            <button @click.stop="stopTimer(task)"
+                                                    class="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                                                    title="Parar timer">
+                                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                    <rect x="6" y="4" width="4" height="16"/>
+                                                    <rect x="14" y="4" width="4" height="16"/>
+                                                </svg>
+                                            </button>
+                                        </template>
+                                        <!-- View History -->
+                                        <button @click.stop="showTimeHistory(task)"
+                                                class="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition"
+                                                title="Ver historico de tempo">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <!-- Output Tecnico -->
                                 <div v-if="task.files_created?.length || task.code_output"
                                      class="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
@@ -10648,6 +10820,66 @@ HTML_TEMPLATE = """
                         </svg>
                         <h3 class="text-lg font-semibold text-green-700">Nenhuma Vulnerabilidade Detectada</h3>
                         <p class="text-sm text-gray-600">O codigo passou na analise de seguranca.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Time History (Issue #224) -->
+        <div v-if="showTimeHistoryModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showTimeHistoryModal = false">
+            <div class="bg-white rounded-lg w-[600px] max-h-[80vh] shadow-xl overflow-hidden dark:bg-gray-800">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white">
+                    <div>
+                        <h2 class="text-lg font-semibold">Historico de Tempo</h2>
+                        <p class="text-sm text-white/70" v-if="timeHistoryTask">{{ timeHistoryTask.title }}</p>
+                    </div>
+                    <button @click="showTimeHistoryModal = false" class="text-white/70 hover:text-white text-xl font-bold">X</button>
+                </div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(80vh - 80px);">
+                    <!-- Total Time -->
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mb-4 text-center">
+                        <div class="text-3xl font-mono font-bold text-[#003B4A] dark:text-white">
+                            {{ formatTotalTime(getTaskTotalTime(timeHistoryTask?.task_id)) }}
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Tempo Total</div>
+                    </div>
+
+                    <!-- Time Entries List -->
+                    <div v-if="taskTimeEntries[timeHistoryTask?.task_id]?.length" class="space-y-2">
+                        <div v-for="entry in taskTimeEntries[timeHistoryTask?.task_id]" :key="entry.entry_id"
+                             class="border dark:border-gray-600 rounded-lg p-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium dark:text-white">
+                                        {{ new Date(entry.started_at).toLocaleDateString('pt-BR') }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ new Date(entry.started_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) }}
+                                        <span v-if="entry.ended_at">
+                                            - {{ new Date(entry.ended_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) }}
+                                        </span>
+                                        <span v-else class="text-green-600">(Em andamento)</span>
+                                    </span>
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400" v-if="entry.user_name">
+                                    {{ entry.user_name }}
+                                </div>
+                                <div class="text-xs text-gray-400" v-if="entry.description">
+                                    {{ entry.description }}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono text-lg font-semibold text-[#FF6C00]">
+                                    {{ formatTotalTime(entry.duration_seconds || 0) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-center text-gray-500 dark:text-gray-400 py-8">
+                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p>Nenhum registro de tempo</p>
                     </div>
                 </div>
             </div>
@@ -12995,6 +13227,14 @@ HTML_TEMPLATE = """
             const selectedStories = ref([]);
             const bulkDropdownOpen = ref(null);  // 'move', 'priority', 'assign' ou null
 
+            // Time Tracking - Issue #224
+            const activeTimer = ref(null);  // { entry_id, task_id, started_at }
+            const timerInterval = ref(null);
+            const timerDisplay = ref('00:00:00');
+            const taskTimeEntries = ref({});  // { task_id: [entries] }
+            const showTimeHistoryModal = ref(false);
+            const timeHistoryTask = ref(null);
+
             const toggleBulkSelectMode = () => {
                 bulkSelectMode.value = !bulkSelectMode.value;
                 if (!bulkSelectMode.value) {
@@ -13106,6 +13346,146 @@ HTML_TEMPLATE = """
                     loadProjectData();
                 } catch (e) {
                     addToast('error', 'Erro', 'Nao foi possivel atualizar a prioridade');
+                }
+            };
+
+            // Time Tracking Methods - Issue #224
+            const startTimer = async (task) => {
+                try {
+                    // Stop any existing timer first
+                    if (activeTimer.value) {
+                        await stopTimer({ task_id: activeTimer.value.task_id });
+                    }
+
+                    const response = await fetch('/api/story-tasks/' + task.task_id + '/time/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: currentUser.value?.username || 'user',
+                            user_name: currentUser.value?.name || 'User',
+                            description: ''
+                        })
+                    });
+
+                    if (response.ok) {
+                        const entry = await response.json();
+                        activeTimer.value = {
+                            entry_id: entry.entry_id,
+                            task_id: task.task_id,
+                            started_at: new Date(entry.started_at)
+                        };
+
+                        // Start interval to update display
+                        timerInterval.value = setInterval(updateTimerDisplay, 1000);
+                        updateTimerDisplay();
+
+                        addToast('success', 'Timer iniciado', 'Tempo de ' + task.title + ' iniciado');
+                    } else {
+                        throw new Error('Failed to start timer');
+                    }
+                } catch (e) {
+                    console.error('Error starting timer:', e);
+                    addToast('error', 'Erro', 'Nao foi possivel iniciar o timer');
+                }
+            };
+
+            const stopTimer = async (task) => {
+                try {
+                    const response = await fetch('/api/story-tasks/' + task.task_id + '/time/stop', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: currentUser.value?.username || 'user'
+                        })
+                    });
+
+                    if (response.ok) {
+                        // Clear interval
+                        if (timerInterval.value) {
+                            clearInterval(timerInterval.value);
+                            timerInterval.value = null;
+                        }
+
+                        activeTimer.value = null;
+                        timerDisplay.value = '00:00:00';
+
+                        // Reload time entries for this task
+                        await loadTaskTimeEntries(task.task_id);
+
+                        addToast('success', 'Timer parado', 'Tempo registrado com sucesso');
+                    }
+                } catch (e) {
+                    console.error('Error stopping timer:', e);
+                    addToast('error', 'Erro', 'Nao foi possivel parar o timer');
+                }
+            };
+
+            const updateTimerDisplay = () => {
+                if (!activeTimer.value) return;
+
+                const now = new Date();
+                const start = activeTimer.value.started_at;
+                const diff = Math.floor((now - start) / 1000);
+
+                const hours = Math.floor(diff / 3600);
+                const minutes = Math.floor((diff % 3600) / 60);
+                const seconds = diff % 60;
+
+                timerDisplay.value = String(hours).padStart(2, '0') + ':' +
+                                     String(minutes).padStart(2, '0') + ':' +
+                                     String(seconds).padStart(2, '0');
+            };
+
+            const loadTaskTimeEntries = async (taskId) => {
+                try {
+                    const response = await fetch('/api/story-tasks/' + taskId + '/time');
+                    if (response.ok) {
+                        const entries = await response.json();
+                        taskTimeEntries.value[taskId] = entries;
+                    }
+                } catch (e) {
+                    console.error('Error loading time entries:', e);
+                }
+            };
+
+            const getTaskTotalTime = (taskId) => {
+                const entries = taskTimeEntries.value[taskId] || [];
+                return entries.reduce((total, entry) => total + (entry.duration_seconds || 0), 0);
+            };
+
+            const formatTotalTime = (seconds) => {
+                if (seconds === 0) return '00:00:00';
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return String(hours).padStart(2, '0') + ':' +
+                       String(minutes).padStart(2, '0') + ':' +
+                       String(secs).padStart(2, '0');
+            };
+
+            const showTimeHistory = (task) => {
+                timeHistoryTask.value = task;
+                loadTaskTimeEntries(task.task_id);
+                showTimeHistoryModal.value = true;
+            };
+
+            const checkActiveTimer = async () => {
+                try {
+                    const response = await fetch('/api/time/active?user_id=' + (currentUser.value?.username || 'user'));
+                    if (response.ok) {
+                        const entry = await response.json();
+                        if (entry) {
+                            activeTimer.value = {
+                                entry_id: entry.entry_id,
+                                task_id: entry.task_id,
+                                started_at: new Date(entry.started_at)
+                            };
+                            timerInterval.value = setInterval(updateTimerDisplay, 1000);
+                            updateTimerDisplay();
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error checking active timer:', e);
                 }
             };
 
@@ -15708,6 +16088,9 @@ Process ${data.status}`);
                 // Connect WebSocket for real-time notifications
                 connectWebSocket();
 
+                // Check for active timer - Issue #224
+                checkActiveTimer();
+
                 // Setup keyboard shortcuts
                 document.addEventListener('keydown', handleKeyboard);
 
@@ -16114,6 +16497,9 @@ Process ${data.status}`);
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories, bulkDropdownOpen,
                 selectAllVisibleStories, bulkAssign, bulkPriorityStories,
+                // Time Tracking - Issue #224
+                activeTimer, timerDisplay, taskTimeEntries, showTimeHistoryModal, timeHistoryTask,
+                startTimer, stopTimer, formatTotalTime, getTaskTotalTime, showTimeHistory, checkActiveTimer,
                 // Comments - Issue #225
                 storyComments, newCommentText, replyingTo, showReactionPicker, availableReactions,
                 loadStoryComments, submitComment, replyToComment, toggleReaction, groupedReactions, formatCommentDate,
