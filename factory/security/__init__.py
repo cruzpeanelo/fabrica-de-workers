@@ -40,6 +40,17 @@ from .tenant_isolation import (
     initialize_tenant_isolation,
 )
 
+# IP Policy (Issue #343)
+from .ip_policy import (
+    IPPolicyService,
+    get_ip_policy_service,
+    TenantIPPolicy,
+    IPPolicyMode,
+    BlockReason,
+    GeoIPService,
+)
+from .ip_policy_routes import router as ip_policy_router
+
 __all__ = [
     "VaultClient",
     "TenantIsolation",
@@ -61,4 +72,12 @@ __all__ = [
     "IsolationLevel",
     "AccessType",
     "initialize_tenant_isolation",
+    # IP Policy (Issue #343)
+    "IPPolicyService",
+    "get_ip_policy_service",
+    "TenantIPPolicy",
+    "IPPolicyMode",
+    "BlockReason",
+    "GeoIPService",
+    "ip_policy_router",
 ]
