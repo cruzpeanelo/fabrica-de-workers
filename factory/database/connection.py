@@ -7,7 +7,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from dotenv import load_dotenv
@@ -251,7 +251,7 @@ async def check_db_health() -> dict:
     # Check database
     try:
         async with AsyncSessionLocal() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
             health["database"]["status"] = "healthy"
     except Exception as e:
         health["database"]["status"] = "unhealthy"

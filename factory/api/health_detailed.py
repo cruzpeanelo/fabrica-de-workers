@@ -24,10 +24,11 @@ router = APIRouter(prefix="/health", tags=["Health"])
 async def check_database() -> Dict[str, Any]:
     """Check database connectivity."""
     try:
+        from sqlalchemy import text
         from factory.database.connection import SessionLocal
         db = SessionLocal()
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             return {"status": "healthy", "latency_ms": 0}
         finally:
             db.close()
