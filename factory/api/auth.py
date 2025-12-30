@@ -294,6 +294,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_at: str
+    force_password_change: bool = False  # Issue #138: Indica se usuário precisa trocar senha
 
 
 class TokenData(BaseModel):
@@ -501,7 +502,20 @@ async def login(credentials: UserLogin):
 
     Credenciais devem estar configuradas no banco de dados ou
     via variaveis de ambiente (DEFAULT_ADMIN_USER/DEFAULT_ADMIN_PASS).
+
+    Issue #138: Em produção, credenciais default são bloqueadas.
     """
+    # Issue #138: Verificar se credenciais estão na lista de bloqueio (produção)
+    from factory.config import is_credential_blocked
+    if is_credential_blocked(credentials.username, credentials.password):
+        logger.warning(
+            f"[Auth] BLOCKED: Tentativa de login com credencial bloqueada em produção: {credentials.username}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This credential is not allowed in production. Please use a secure password."
+        )
+
     # Verificar credenciais de admin via variaveis de ambiente (apenas desenvolvimento)
     if not _is_production():
         default_user = os.getenv("DEFAULT_ADMIN_USER")
@@ -520,6 +534,13 @@ async def login(credentials: UserLogin):
                     token_type="bearer",
                     expires_at=expires_at.isoformat()
                 )
+    else:
+        # Issue #138: Log warning se alguém tentou usar credenciais de ambiente em produção
+        default_user = os.getenv("DEFAULT_ADMIN_USER")
+        if default_user and credentials.username == default_user:
+            logger.warning(
+                f"[Auth] Tentativa de login com DEFAULT_ADMIN_USER em produção (bloqueado): {default_user}"
+            )
 
     # Buscar usuario do banco de dados
     try:
@@ -534,8 +555,15 @@ async def login(credentials: UserLogin):
             ).first()
 
             if user and verify_password(credentials.password, user.password_hash):
+                # Issue #138: Verificar se usuário precisa trocar senha
+                force_change = getattr(user, 'force_password_change', False)
+
                 token = create_access_token(
-                    data={"sub": user.username, "role": user.role}
+                    data={
+                        "sub": user.username,
+                        "role": user.role,
+                        "force_password_change": force_change
+                    }
                 )
                 expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
@@ -548,7 +576,8 @@ async def login(credentials: UserLogin):
                 return Token(
                     access_token=token,
                     token_type="bearer",
-                    expires_at=expires_at.isoformat()
+                    expires_at=expires_at.isoformat(),
+                    force_password_change=force_change
                 )
         finally:
             db.close()
@@ -588,6 +617,107 @@ async def refresh_token(user: TokenData = Depends(get_current_user)):
         token_type="bearer",
         expires_at=expires_at.isoformat()
     )
+
+
+# =============================================================================
+# PASSWORD CHANGE - Issue #138
+# =============================================================================
+
+class PasswordChangeRequest(BaseModel):
+    """Requisição de mudança de senha"""
+    current_password: str
+    new_password: str
+
+
+class PasswordChangeResponse(BaseModel):
+    """Resposta de mudança de senha"""
+    message: str
+    access_token: Optional[str] = None
+    expires_at: Optional[str] = None
+
+
+@auth_router.post("/change-password", response_model=PasswordChangeResponse)
+async def change_password(
+    data: PasswordChangeRequest,
+    user: TokenData = Depends(get_current_user)
+):
+    """
+    Issue #138: Muda a senha do usuário atual.
+
+    Valida:
+    - Senha atual correta
+    - Nova senha atende requisitos de força (em produção)
+    - Nova senha não é igual à atual
+    """
+    from factory.database.connection import SessionLocal
+    from factory.database.models import User
+    from factory.config import validate_password_strength, is_credential_blocked
+
+    # Validar força da nova senha em produção
+    is_valid, error_msg = validate_password_strength(data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Nova senha não atende requisitos: {error_msg}"
+        )
+
+    # Verificar se nova credencial seria bloqueada
+    if is_credential_blocked(user.username, data.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta combinação de usuário/senha não é permitida. Escolha uma senha mais forte."
+        )
+
+    db = SessionLocal()
+    try:
+        db_user = db.query(User).filter(
+            User.username == user.username,
+            User.active == True
+        ).first()
+
+        if not db_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuário não encontrado"
+            )
+
+        # Verificar senha atual
+        if not verify_password(data.current_password, db_user.password_hash):
+            logger.warning(f"[Auth] Tentativa de mudança de senha com senha atual incorreta: {user.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Senha atual incorreta"
+            )
+
+        # Verificar se nova senha é diferente
+        if verify_password(data.new_password, db_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nova senha deve ser diferente da atual"
+            )
+
+        # Atualizar senha
+        db_user.password_hash = get_password_hash(data.new_password)
+        db_user.force_password_change = False  # Issue #138: Marcar que já trocou
+        db_user.updated_at = datetime.utcnow()
+        db.commit()
+
+        logger.info(f"[Auth] Senha alterada com sucesso: {user.username}")
+
+        # Gerar novo token (sem force_password_change)
+        new_token = create_access_token(
+            data={"sub": user.username, "role": user.role, "force_password_change": False}
+        )
+        expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+        return PasswordChangeResponse(
+            message="Senha alterada com sucesso",
+            access_token=new_token,
+            expires_at=expires_at.isoformat()
+        )
+
+    finally:
+        db.close()
 
 
 # =============================================================================

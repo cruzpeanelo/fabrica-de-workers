@@ -242,6 +242,111 @@ DEFAULT_ADMIN_USER = os.getenv("DEFAULT_ADMIN_USER", "admin")
 DEFAULT_ADMIN_PASS = os.getenv("DEFAULT_ADMIN_PASS", "admin123")
 
 # =============================================================================
+# SECURITY - Issue #138: Block default credentials in production
+# =============================================================================
+
+# Lista de credenciais bloqueadas em produção (username:password hashes ou patterns)
+BLOCKED_CREDENTIALS = [
+    # Credenciais default conhecidas
+    ("admin", "admin"),
+    ("admin", "admin123"),
+    ("admin", "admin1234"),
+    ("admin", "password"),
+    ("admin", "password123"),
+    ("administrator", "administrator"),
+    ("root", "root"),
+    ("root", "toor"),
+    ("test", "test"),
+    ("test", "test123"),
+    ("user", "user"),
+    ("user", "user123"),
+    ("demo", "demo"),
+]
+
+# Padrões de senha fraca (regex)
+WEAK_PASSWORD_PATTERNS = [
+    r"^(.)\1+$",           # Caracteres repetidos (aaa, 111)
+    r"^(12345|123456|1234567|12345678|123456789)$",  # Sequências numéricas
+    r"^password\d*$",      # password, password1, password123
+    r"^admin\d*$",         # admin, admin1, admin123
+    r"^qwerty\d*$",        # qwerty, qwerty123
+    r"^letmein\d*$",       # letmein
+    r"^welcome\d*$",       # welcome
+]
+
+# Requisitos mínimos de senha em produção
+PASSWORD_MIN_LENGTH = int(os.getenv("PASSWORD_MIN_LENGTH", 8))
+PASSWORD_REQUIRE_UPPERCASE = os.getenv("PASSWORD_REQUIRE_UPPERCASE", "true").lower() == "true"
+PASSWORD_REQUIRE_LOWERCASE = os.getenv("PASSWORD_REQUIRE_LOWERCASE", "true").lower() == "true"
+PASSWORD_REQUIRE_DIGIT = os.getenv("PASSWORD_REQUIRE_DIGIT", "true").lower() == "true"
+PASSWORD_REQUIRE_SPECIAL = os.getenv("PASSWORD_REQUIRE_SPECIAL", "false").lower() == "true"
+
+
+def is_credential_blocked(username: str, password: str) -> bool:
+    """
+    Issue #138: Verifica se credencial está na lista de bloqueio.
+
+    Em produção, bloqueia credenciais conhecidas como inseguras.
+    Em desenvolvimento, apenas loga um warning.
+
+    Returns:
+        True se a credencial está bloqueada
+    """
+    if not is_production():
+        return False
+
+    username_lower = username.lower()
+    for blocked_user, blocked_pass in BLOCKED_CREDENTIALS:
+        if username_lower == blocked_user.lower() and password == blocked_pass:
+            return True
+    return False
+
+
+def validate_password_strength(password: str, is_prod: bool = None) -> tuple[bool, str]:
+    """
+    Issue #138: Valida força da senha.
+
+    Args:
+        password: Senha a validar
+        is_prod: Se None, usa is_production()
+
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    import re
+
+    if is_prod is None:
+        is_prod = is_production()
+
+    # Em desenvolvimento, aceita qualquer senha
+    if not is_prod:
+        return True, ""
+
+    # Verificar comprimento mínimo
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return False, f"Senha deve ter no mínimo {PASSWORD_MIN_LENGTH} caracteres"
+
+    # Verificar padrões fracos
+    for pattern in WEAK_PASSWORD_PATTERNS:
+        if re.match(pattern, password, re.IGNORECASE):
+            return False, "Senha muito fraca: padrão comum detectado"
+
+    # Verificar requisitos
+    if PASSWORD_REQUIRE_UPPERCASE and not re.search(r"[A-Z]", password):
+        return False, "Senha deve conter pelo menos uma letra maiúscula"
+
+    if PASSWORD_REQUIRE_LOWERCASE and not re.search(r"[a-z]", password):
+        return False, "Senha deve conter pelo menos uma letra minúscula"
+
+    if PASSWORD_REQUIRE_DIGIT and not re.search(r"\d", password):
+        return False, "Senha deve conter pelo menos um número"
+
+    if PASSWORD_REQUIRE_SPECIAL and not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Senha deve conter pelo menos um caractere especial"
+
+    return True, ""
+
+# =============================================================================
 # STRIPE / BILLING
 # =============================================================================
 

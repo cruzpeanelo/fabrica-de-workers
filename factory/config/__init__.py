@@ -39,6 +39,14 @@ from .feature_flags import (
     FlagStatus,
 )
 
+from .security import (
+    is_credential_blocked,
+    validate_password_strength,
+    get_password_requirements,
+    BLOCKED_CREDENTIALS,
+    PASSWORD_MIN_LENGTH,
+)
+
 __all__ = [
     # Main functions
     "is_feature_enabled",
@@ -61,4 +69,11 @@ __all__ = [
     "Environment",
     "FlagType",
     "FlagStatus",
+
+    # Security (Issue #138)
+    "is_credential_blocked",
+    "validate_password_strength",
+    "get_password_requirements",
+    "BLOCKED_CREDENTIALS",
+    "PASSWORD_MIN_LENGTH",
 ]

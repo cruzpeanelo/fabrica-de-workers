@@ -487,6 +487,9 @@ class User(Base):
     role = Column(String(20), nullable=False, default="VIEWER")
     active = Column(Boolean, default=True, nullable=False)
 
+    # Issue #138: Force password change on first login
+    force_password_change = Column(Boolean, default=True, nullable=False)
+
     # Quotas
     quotas = Column(JSON, default=lambda: {
         "max_jobs_per_day": 10,
@@ -527,6 +530,7 @@ class User(Base):
             "email": self.email,
             "role": self.role,
             "active": self.active,
+            "force_password_change": self.force_password_change,  # Issue #138
             "quotas": self.quotas or {},
             "billing": self.billing or {},
             "rate_limit_tokens": self.rate_limit_tokens,
