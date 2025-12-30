@@ -4511,9 +4511,41 @@ HTML_TEMPLATE = """
             .modal-dialog input, .modal-dialog select, .modal-dialog textarea { font-size: 16px !important; min-height: 44px !important; }
         }
 
-        @media screen and (max-width: 480px) { .kanban-column-container { flex: 0 0 92vw !important; width: 92vw !important; } .story-card h4 { font-size: 13px !important; } .mobile-nav-item { padding: 6px 12px !important; } .mobile-nav-item svg { width: 20px !important; height: 20px !important; } }
+        /* Issue #215: Enhanced mobile responsiveness for small screens (480px) */
+        @media screen and (max-width: 480px) {
+            .kanban-column-container { flex: 0 0 92vw !important; width: 92vw !important; }
+            .story-card h4 { font-size: 13px !important; }
+            .mobile-nav-item { padding: 6px 12px !important; }
+            .mobile-nav-item svg { width: 20px !important; height: 20px !important; }
+            .modal-dialog { margin: 8px !important; max-height: calc(100vh - 16px) !important; }
+            .template-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+            .breadcrumb-nav { padding: 8px 12px !important; }
+            .breadcrumb-item:not(:last-child):not(:first-child) { display: none !important; }
+        }
 
-        @media (hover: none) and (pointer: coarse) { .quick-actions { opacity: 1 !important; } button, a { min-height: 44px; } .story-card:hover { transform: none !important; } .story-card:active { transform: scale(0.98); } }
+        /* Issue #215: iPhone SE and very small screens (375px) */
+        @media screen and (max-width: 375px) {
+            .header-container { padding: 0 8px !important; }
+            .kanban-column-container { flex: 0 0 95vw !important; width: 95vw !important; }
+            .story-card { padding: 10px !important; }
+            .story-card h4 { font-size: 12px !important; }
+            .mobile-nav-item { padding: 4px 8px !important; min-width: 56px !important; }
+            .modal-dialog { margin: 4px !important; border-radius: 12px !important; }
+            .template-grid { grid-template-columns: 1fr !important; }
+            .filter-bar { gap: 4px !important; }
+            .filter-bar select, .filter-bar input { font-size: 14px !important; padding: 8px !important; }
+        }
+
+        /* Issue #215: Touch-friendly buttons for all devices */
+        @media (hover: none) and (pointer: coarse) {
+            .quick-actions { opacity: 1 !important; }
+            button, a, .clickable { min-height: 44px; min-width: 44px; }
+            .story-card:hover { transform: none !important; }
+            .story-card:active { transform: scale(0.98); }
+            .btn, button:not(.mobile-menu-btn) { padding: 12px 16px !important; }
+            input[type="checkbox"], input[type="radio"] { width: 20px !important; height: 20px !important; }
+            select { padding: 12px !important; }
+        }
 
         @media screen and (max-width: 896px) and (orientation: landscape) { .header-container { height: 48px !important; } .sidebar-desktop, .chat-panel-desktop { top: 48px !important; } .mobile-nav-item span { display: none !important; } }
 
