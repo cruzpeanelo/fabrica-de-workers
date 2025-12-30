@@ -68,6 +68,9 @@ from factory.core.multi_tenant import (
     require_tenant, require_role
 )
 
+# Auth (Issue #140)
+from .auth import get_current_user, TokenData
+
 
 # =============================================================================
 # ROUTER
@@ -545,15 +548,16 @@ async def list_tenant_invites(
 async def create_tenant_invite(
     tenant_id: str,
     data: InviteCreate,
-    db=Depends(get_db)
+    db=Depends(get_db),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Cria convite para novo membro
     """
     service = TenantService(db)
 
-    current_user = get_current_tenant()  # TODO: pegar usuario atual
-    invited_by = current_user.get("email", "admin") if current_user else "admin"
+    # Issue #140: Extrair usuario do JWT em vez de hardcoded
+    invited_by = current_user.username if current_user else "system"
 
     invite = service.create_invite(
         tenant_id=tenant_id,
