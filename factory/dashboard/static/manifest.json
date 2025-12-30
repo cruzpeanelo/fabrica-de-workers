@@ -1,68 +1,86 @@
 {
   "name": "Fabrica de Agentes - Dashboard Agile",
-  "short_name": "FdA",
-  "description": "Sistema de gestao Agile com Stories, Tasks e Assistente IA",
+  "short_name": "FdA Agile",
+  "description": "Sistema de gestao Agile com Stories, Tasks e Assistente IA - Desenvolvimento Autonomo com Workers Claude",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "theme_color": "#003B4A",
-  "background_color": "#ffffff",
+  "background_color": "#003B4A",
   "orientation": "any",
   "scope": "/",
   "lang": "pt-BR",
-  "categories": ["productivity", "business", "developer tools"],
+  "dir": "ltr",
+  "categories": ["productivity", "business", "developer tools", "project management"],
+  "prefer_related_applications": false,
+
   "icons": [
     {
       "src": "/static/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/static/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
+
   "shortcuts": [
     {
-      "name": "Novo Story",
+      "name": "Nova Story",
       "short_name": "Story",
       "description": "Criar nova User Story",
       "url": "/?action=new-story",
@@ -74,22 +92,86 @@
       "description": "Acessar Kanban Board",
       "url": "/?view=kanban",
       "icons": [{ "src": "/static/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "Ver dashboard de produtividade",
+      "url": "/analytics",
+      "icons": [{ "src": "/static/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Meu Trabalho",
+      "short_name": "My Work",
+      "description": "Ver minhas tarefas",
+      "url": "/my-work",
+      "icons": [{ "src": "/static/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
+
   "screenshots": [
     {
       "src": "/static/screenshots/kanban.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Kanban Board"
+      "label": "Kanban Board - Vista Desktop"
     },
     {
       "src": "/static/screenshots/mobile.png",
       "sizes": "375x812",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mobile View"
+      "label": "Kanban Board - Vista Mobile"
     }
-  ]
+  ],
+
+  "protocol_handlers": [
+    {
+      "protocol": "web+fda",
+      "url": "/handle-protocol?url=%s"
+    }
+  ],
+
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", "application/json", ".md", ".txt"]
+        }
+      ]
+    }
+  },
+
+  "file_handlers": [
+    {
+      "action": "/open-file",
+      "accept": {
+        "application/json": [".json"],
+        "text/markdown": [".md"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+
+  "handle_links": "preferred",
+
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+
+  "related_applications": [],
+
+  "iarc_rating_id": ""
 }
