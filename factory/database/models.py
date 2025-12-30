@@ -3954,6 +3954,176 @@ class FlowMetric(Base):
 
 
 # =============================================================================
+# COMMENTS SYSTEM - Issue #225
+# =============================================================================
+
+class Comment(Base):
+    """
+    Modelo para Comentarios em Stories e Tasks
+    Suporta threads (respostas aninhadas), @mentions e reactions
+
+    Issue #225: Comments e Threads em Stories/Tasks
+    """
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    comment_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Conteudo
+    content = Column(Text, nullable=False)
+    content_html = Column(Text, nullable=True)  # Rendered markdown
+
+    # Autor
+    author_id = Column(String(100), nullable=False, index=True)
+    author_name = Column(String(200), nullable=True)
+
+    # Polymorphic - pode ser em Story ou Task
+    commentable_type = Column(String(50), nullable=False, index=True)  # 'story' ou 'task'
+    commentable_id = Column(String(50), nullable=False, index=True)
+
+    # Threading (respostas)
+    parent_id = Column(String(50), ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=True)
+    thread_depth = Column(Integer, default=0)  # Nivel de aninhamento
+
+    # Metadata
+    edited = Column(Boolean, default=False)
+    edited_at = Column(DateTime, nullable=True)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Contadores (denormalizados para performance)
+    reply_count = Column(Integer, default=0)
+    reaction_count = Column(Integer, default=0)
+
+    # Relacionamentos
+    replies = relationship("Comment", backref=backref("parent", remote_side=[comment_id]), lazy="dynamic")
+    reactions = relationship("CommentReaction", back_populates="comment", cascade="all, delete-orphan")
+    mentions = relationship("CommentMention", back_populates="comment", cascade="all, delete-orphan")
+
+    # Indices
+    __table_args__ = (
+        Index('ix_comments_commentable', 'commentable_type', 'commentable_id'),
+        Index('ix_comments_tenant_created', 'tenant_id', 'created_at'),
+        Index('ix_comments_parent', 'parent_id'),
+    )
+
+    def to_dict(self):
+        return {
+            "comment_id": self.comment_id,
+            "content": self.content,
+            "content_html": self.content_html,
+            "author_id": self.author_id,
+            "author_name": self.author_name,
+            "commentable_type": self.commentable_type,
+            "commentable_id": self.commentable_id,
+            "parent_id": self.parent_id,
+            "thread_depth": self.thread_depth,
+            "edited": self.edited,
+            "edited_at": self.edited_at.isoformat() if self.edited_at else None,
+            "is_deleted": self.is_deleted,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "reply_count": self.reply_count,
+            "reaction_count": self.reaction_count,
+            "reactions": [r.to_dict() for r in self.reactions] if self.reactions else [],
+            "mentions": [m.to_dict() for m in self.mentions] if self.mentions else []
+        }
+
+
+class CommentReaction(Base):
+    """
+    Modelo para Reacoes (emojis) em Comentarios
+    Issue #225: Comments e Threads
+    """
+    __tablename__ = "comment_reactions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamento com comentario
+    comment_id = Column(String(50), ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Usuario que reagiu
+    user_id = Column(String(100), nullable=False, index=True)
+    user_name = Column(String(200), nullable=True)
+
+    # Emoji
+    emoji = Column(String(10), nullable=False)  # 👍, 🎉, 👀, ❤️, 🚀, 😕
+
+    # Timestamp
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relacionamento
+    comment = relationship("Comment", back_populates="reactions")
+
+    # Unique constraint - um usuario so pode dar uma reacao de cada emoji por comentario
+    __table_args__ = (
+        Index('ix_reaction_comment_user', 'comment_id', 'user_id'),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "comment_id": self.comment_id,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "emoji": self.emoji,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class CommentMention(Base):
+    """
+    Modelo para @Mentions em Comentarios
+    Issue #225: Comments e Threads
+    """
+    __tablename__ = "comment_mentions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamento com comentario
+    comment_id = Column(String(50), ForeignKey("comments.comment_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Usuario mencionado
+    user_id = Column(String(100), nullable=False, index=True)
+    username = Column(String(100), nullable=False)
+
+    # Status de notificacao
+    notified = Column(Boolean, default=False)
+    notified_at = Column(DateTime, nullable=True)
+    read = Column(Boolean, default=False)
+    read_at = Column(DateTime, nullable=True)
+
+    # Timestamp
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relacionamento
+    comment = relationship("Comment", back_populates="mentions")
+
+    # Indices
+    __table_args__ = (
+        Index('ix_mention_user_notified', 'user_id', 'notified'),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "comment_id": self.comment_id,
+            "user_id": self.user_id,
+            "username": self.username,
+            "notified": self.notified,
+            "read": self.read,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+# =============================================================================
 # DEPRECATED MODELS (mantidos para compatibilidade durante migracao)
 # =============================================================================
 

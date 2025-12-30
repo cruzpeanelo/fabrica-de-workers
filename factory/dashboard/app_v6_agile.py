@@ -3760,6 +3760,25 @@ HTML_TEMPLATE = """
 
         .criteria-item:hover { background-color: #f3f4f6; }
 
+        /* Comments - Issue #225 */
+        .comment-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .comment-item:hover { border-color: #d1d5db; }
+        .comment-content { line-height: 1.5; }
+        .comment-content .mention {
+            color: #003B4A;
+            font-weight: 500;
+            background: #e0f2fe;
+            padding: 0 4px;
+            border-radius: 3px;
+        }
+        .dark .comment-item { background: var(--bg-secondary); border-color: var(--border-primary); }
+        .dark .comment-content .mention { background: #1e3a5f; color: #93c5fd; }
+
         .markdown-content h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
         .markdown-content h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
         .markdown-content p { margin-bottom: 0.75rem; }
@@ -13903,6 +13922,9 @@ HTML_TEMPLATE = """
                 // Load designs
                 const designsRes = await fetch(`/api/stories/${story.story_id}/designs`);
                 selectedStory.value.designs = await designsRes.json();
+
+                // Load comments - Issue #225
+                await loadStoryComments();
 
                 activeTab.value = 'Detalhes';
             };
