@@ -90,9 +90,13 @@ DEFAULT_ROLES = {
         "level": 75,
         "is_system": True,
         "permissions": [
+            # Issue #143: Wildcards + explicit delete permissions for clarity
             "projects:*",
+            "projects:delete",  # Issue #143: Explicit delete
             "stories:*",
+            "stories:delete",   # Issue #143: Explicit delete
             "tasks:*",
+            "tasks:delete",     # Issue #143: Explicit delete
             "epics:*",
             "sprints:*",
             "documentation:*",

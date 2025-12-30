@@ -2855,14 +2855,18 @@ class TenantMember(Base):
 
     def has_permission(self, permission: str) -> bool:
         """Verifica se membro tem permissao especifica"""
+        # Issue #143: ADMIN e MEMBER agora têm permissões de delete
         role_permissions = {
             MemberRole.OWNER.value: ["*"],
             MemberRole.ADMIN.value: [
                 "manage_members", "manage_projects", "manage_settings",
-                "view_billing", "create_stories", "delete_stories"
+                "view_billing", "create_stories", "edit_stories", "delete_stories",
+                "create_tasks", "edit_tasks", "delete_tasks",  # Issue #143
+                "create_projects", "delete_projects"  # Issue #143
             ],
             MemberRole.MEMBER.value: [
-                "create_projects", "create_stories", "edit_stories"
+                "create_projects", "create_stories", "edit_stories",
+                "create_tasks", "edit_tasks"  # Issue #143: Members can create/edit tasks
             ],
             MemberRole.VIEWER.value: ["view"],
             MemberRole.BILLING.value: ["view_billing", "manage_billing"]
