@@ -6,9 +6,11 @@ Sistema de rollback automatico para deploys.
 
 Terminal 5 - Issue #300
 Terminal A - Issue #332: Restauracao por integracao (SAP, Salesforce, Azure DevOps)
+Terminal A - Issue #362: Integracao com Storage Persistente
 """
 
 import asyncio
+import json
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, TYPE_CHECKING
@@ -20,6 +22,7 @@ if TYPE_CHECKING:
     from ..sap_s4hana import SAPS4HanaIntegration
     from ..salesforce_connector import SalesforceConnector
     from ..azure_devops import AzureDevOpsIntegration
+    from .storage.base import BackupStorage
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +47,22 @@ class RollbackHandler:
         result = await handler.restore_backup(backup_id)
     """
 
-    def __init__(self, config: DeployConfig):
+    def __init__(self, config: DeployConfig, storage: Optional["BackupStorage"] = None):
         """
         Inicializa o handler.
 
         Args:
             config: Configuracao de deploy do tenant
+            storage: Storage persistente para backups (opcional)
         """
         self.config = config
+        self._storage = storage
         self._backups: Dict[str, DeployBackup] = {}
         self._rollback_history: List[Dict] = []
+
+    def set_storage(self, storage: "BackupStorage"):
+        """Define storage persistente para backups"""
+        self._storage = storage
 
     async def rollback(
         self,
@@ -400,9 +409,59 @@ class RollbackHandler:
             raise
 
     async def _fetch_backup(self, backup_id: str) -> Optional[DeployBackup]:
-        """Busca backup do storage externo"""
-        # TODO: Implementar busca de backup em storage persistente
-        return None
+        """
+        Busca backup do storage.
+
+        Issue #362 - Implementado busca em storage persistente.
+
+        Primeiro verifica cache em memoria, depois busca do storage externo.
+        """
+        # Primeiro verifica cache em memoria
+        if backup_id in self._backups:
+            return self._backups[backup_id]
+
+        # Se nao tem storage configurado, retorna None
+        if not self._storage:
+            logger.debug("Storage nao configurado, backup nao encontrado em memoria")
+            return None
+
+        try:
+            # Busca metadados do storage
+            metadata = await self._storage.get_metadata(backup_id, self.config.tenant_id)
+            if not metadata:
+                logger.debug(f"Backup {backup_id} nao encontrado no storage")
+                return None
+
+            # Busca dados do backup
+            data = await self._storage.fetch_backup(backup_id, self.config.tenant_id)
+            if not data:
+                logger.error(f"Dados do backup {backup_id} nao encontrados")
+                return None
+
+            # Reconstroi objeto DeployBackup
+            backup_data = json.loads(data.decode())
+            backup = DeployBackup(
+                backup_id=backup_data.get("backup_id", backup_id),
+                request_id=backup_data.get("request_id", metadata.request_id),
+                tenant_id=backup_data.get("tenant_id", metadata.tenant_id),
+                integration=backup_data.get("integration", metadata.integration),
+                environment=backup_data.get("environment", metadata.environment),
+                created_at=datetime.fromisoformat(backup_data["created_at"]) if backup_data.get("created_at") else metadata.created_at,
+                artifacts=backup_data.get("artifacts", []),
+                storage_path=metadata.storage_path,
+                size_bytes=metadata.size_bytes,
+                checksum=metadata.checksum,
+                metadata=backup_data.get("metadata", {})
+            )
+
+            # Atualiza cache em memoria
+            self._backups[backup_id] = backup
+            logger.info(f"Backup {backup_id} carregado do storage")
+            return backup
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar backup {backup_id}: {e}")
+            return None
 
     async def create_backup(
         self,
@@ -412,6 +471,8 @@ class RollbackHandler:
     ) -> DeployBackup:
         """
         Cria backup do estado atual para rollback futuro.
+
+        Issue #362 - Persiste em storage externo se configurado.
 
         Args:
             integration: Nome da integracao
@@ -432,8 +493,28 @@ class RollbackHandler:
         artifacts = await self._collect_current_artifacts(integration, environment)
         backup.artifacts = artifacts
 
-        # Armazena backup
+        # Armazena em memoria
         self._backups[backup.backup_id] = backup
+
+        # Persiste em storage externo se configurado
+        if self._storage:
+            try:
+                backup_data = self._backup_to_json(backup)
+                metadata = await self._storage.save_backup(
+                    backup_id=backup.backup_id,
+                    tenant_id=backup.tenant_id,
+                    request_id=backup.request_id,
+                    integration=integration,
+                    environment=environment,
+                    data=backup_data.encode(),
+                    metadata={"artifact_count": len(artifacts)}
+                )
+                backup.storage_path = metadata.storage_path
+                backup.size_bytes = metadata.size_bytes
+                backup.checksum = metadata.checksum
+                logger.info(f"Backup {backup.backup_id} persistido em {metadata.storage_path}")
+            except Exception as e:
+                logger.warning(f"Falha ao persistir backup em storage: {e}")
 
         logger.info(
             f"Backup criado: {backup.backup_id} "
@@ -441,6 +522,20 @@ class RollbackHandler:
         )
 
         return backup
+
+    def _backup_to_json(self, backup: DeployBackup) -> str:
+        """Converte backup para JSON"""
+        return json.dumps({
+            "backup_id": backup.backup_id,
+            "request_id": backup.request_id,
+            "tenant_id": backup.tenant_id,
+            "integration": backup.integration,
+            "environment": backup.environment,
+            "created_at": backup.created_at.isoformat(),
+            "expires_at": backup.expires_at.isoformat() if backup.expires_at else None,
+            "artifacts": backup.artifacts,
+            "metadata": backup.metadata
+        })
 
     async def _collect_current_artifacts(
         self,
