@@ -140,6 +140,34 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
+# Issue #182: Context manager síncrono com transaction boundaries
+from contextlib import contextmanager
+
+@contextmanager
+def transaction_context() -> Generator[Session, None, None]:
+    """
+    Context manager síncrono para transações (Issue #182)
+
+    Uso:
+        with transaction_context() as db:
+            repo = ProjectRepository(db)
+            repo.create({...})
+            repo.update(...)
+            # commit automático no fim do bloco
+            # rollback automático em caso de exceção
+    """
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
     """Context manager para uso fora de FastAPI"""
