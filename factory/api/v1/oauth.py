@@ -39,6 +39,9 @@ from factory.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
+# Import authentication dependencies (Issue #137)
+from factory.api.auth import get_current_user, TokenData
+
 router = APIRouter(tags=["OAuth 2.0"])
 
 
@@ -638,15 +641,15 @@ async def authorize(
     scope: str = Query("read:stories"),
     state: Optional[str] = Query(None),
     code_challenge: Optional[str] = Query(None),
-    code_challenge_method: Optional[str] = Query(None)
+    code_challenge_method: Optional[str] = Query(None),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Endpoint de autorizacao OAuth 2.0.
 
     Redireciona usuario para login e depois para redirect_uri com codigo.
 
-    Para desenvolvimento, gera codigo diretamente.
-    Em producao, deve redirecionar para pagina de login.
+    Requer autenticacao JWT para identificar o usuario.
     """
     if response_type != "code":
         raise HTTPException(
@@ -654,9 +657,8 @@ async def authorize(
             detail="Apenas response_type=code e suportado"
         )
 
-    # Em desenvolvimento, simular usuario autenticado
-    # Em producao, verificar sessao/redirecionar para login
-    user_id = "admin"  # TODO: Obter do contexto de autenticacao
+    # Obter user_id do token JWT autenticado (Issue #137)
+    user_id = current_user.username
 
     redirect_url = oauth_handler.authorize(
         client_id=client_id,
