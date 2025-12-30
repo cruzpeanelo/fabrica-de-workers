@@ -44,13 +44,18 @@ class ProjectRepository:
         self.db.refresh(project)
         return project
 
-    def get_by_id(self, project_id: str) -> Optional[Project]:
-        """Busca projeto por ID"""
-        return self.db.query(Project).filter(Project.project_id == project_id).first()
+    def get_by_id(self, project_id: str, include_deleted: bool = False) -> Optional[Project]:
+        """Busca projeto por ID (Issue #150: filtra soft delete)"""
+        query = self.db.query(Project).filter(Project.project_id == project_id)
+        if not include_deleted:
+            query = query.filter(Project.is_deleted == False)
+        return query.first()
 
-    def get_all(self, status: str = None, project_type: str = None) -> List[Project]:
-        """Lista todos os projetos com filtros opcionais"""
+    def get_all(self, status: str = None, project_type: str = None, include_deleted: bool = False) -> List[Project]:
+        """Lista todos os projetos com filtros opcionais (Issue #150: filtra soft delete)"""
         query = self.db.query(Project)
+        if not include_deleted:
+            query = query.filter(Project.is_deleted == False)
         if status:
             query = query.filter(Project.status == status)
         if project_type:
@@ -79,10 +84,13 @@ class ProjectRepository:
         return False
 
     def count_by_status(self) -> Dict[str, int]:
-        """Conta projetos por status"""
+        """Conta projetos por status (Issue #150: filtra soft delete)"""
         result = {}
         for status in ProjectStatus:
-            count = self.db.query(Project).filter(Project.status == status.value).count()
+            count = self.db.query(Project).filter(
+                Project.status == status.value,
+                Project.is_deleted == False
+            ).count()
             result[status.value] = count
         return result
 
@@ -110,46 +118,56 @@ class JobRepository:
         self.db.refresh(job)
         return job
 
-    def get_by_id(self, job_id: str) -> Optional[Job]:
-        """Busca job por ID"""
-        return self.db.query(Job).filter(Job.job_id == job_id).first()
+    def get_by_id(self, job_id: str, include_deleted: bool = False) -> Optional[Job]:
+        """Busca job por ID (Issue #150: filtra soft delete)"""
+        query = self.db.query(Job).filter(Job.job_id == job_id)
+        if not include_deleted:
+            query = query.filter(Job.is_deleted == False)
+        return query.first()
 
-    def get_all(self, status: str = None, limit: int = 100) -> List[Job]:
-        """Lista todos os jobs com filtros opcionais"""
+    def get_all(self, status: str = None, limit: int = 100, include_deleted: bool = False) -> List[Job]:
+        """Lista todos os jobs com filtros opcionais (Issue #150: filtra soft delete)"""
         query = self.db.query(Job)
+        if not include_deleted:
+            query = query.filter(Job.is_deleted == False)
         if status:
             query = query.filter(Job.status == status)
         return query.order_by(desc(Job.created_at)).limit(limit).all()
 
     def get_pending(self) -> List[Job]:
-        """Lista jobs pendentes na fila (FIFO)"""
+        """Lista jobs pendentes na fila (FIFO) (Issue #150: filtra soft delete)"""
         return self.db.query(Job).filter(
-            Job.status.in_([JobStatus.PENDING.value, JobStatus.QUEUED.value])
+            Job.status.in_([JobStatus.PENDING.value, JobStatus.QUEUED.value]),
+            Job.is_deleted == False
         ).order_by(Job.queued_at).all()
 
     def get_next_pending(self) -> Optional[Job]:
-        """Retorna proximo job pendente para processamento"""
+        """Retorna proximo job pendente para processamento (Issue #150: filtra soft delete)"""
         return self.db.query(Job).filter(
-            Job.status == JobStatus.PENDING.value
+            Job.status == JobStatus.PENDING.value,
+            Job.is_deleted == False
         ).order_by(Job.queued_at).first()
 
     def get_running(self) -> List[Job]:
-        """Lista jobs em execucao"""
+        """Lista jobs em execucao (Issue #150: filtra soft delete)"""
         return self.db.query(Job).filter(
-            Job.status == JobStatus.RUNNING.value
+            Job.status == JobStatus.RUNNING.value,
+            Job.is_deleted == False
         ).all()
 
-    def get_by_project(self, project_id: str) -> List[Job]:
-        """Lista jobs de um projeto"""
-        return self.db.query(Job).filter(
-            Job.project_id == project_id
-        ).order_by(desc(Job.created_at)).all()
+    def get_by_project(self, project_id: str, include_deleted: bool = False) -> List[Job]:
+        """Lista jobs de um projeto (Issue #150: filtra soft delete)"""
+        query = self.db.query(Job).filter(Job.project_id == project_id)
+        if not include_deleted:
+            query = query.filter(Job.is_deleted == False)
+        return query.order_by(desc(Job.created_at)).all()
 
-    def get_by_worker(self, worker_id: str) -> List[Job]:
-        """Lista jobs de um worker"""
-        return self.db.query(Job).filter(
-            Job.worker_id == worker_id
-        ).order_by(desc(Job.created_at)).all()
+    def get_by_worker(self, worker_id: str, include_deleted: bool = False) -> List[Job]:
+        """Lista jobs de um worker (Issue #150: filtra soft delete)"""
+        query = self.db.query(Job).filter(Job.worker_id == worker_id)
+        if not include_deleted:
+            query = query.filter(Job.is_deleted == False)
+        return query.order_by(desc(Job.created_at)).all()
 
     def update(self, job_id: str, data: dict) -> Optional[Job]:
         """Atualiza job"""
@@ -702,14 +720,20 @@ class StoryRepository:
         self.db.refresh(story)
         return story
 
-    def get_by_id(self, story_id: str) -> Optional[Story]:
-        """Busca story por ID"""
-        return self.db.query(Story).filter(Story.story_id == story_id).first()
+    def get_by_id(self, story_id: str, include_deleted: bool = False) -> Optional[Story]:
+        """Busca story por ID (Issue #150: filtra soft delete)"""
+        query = self.db.query(Story).filter(Story.story_id == story_id)
+        if not include_deleted:
+            query = query.filter(Story.is_deleted == False)
+        return query.first()
 
     def get_all(self, project_id: str = None, status: str = None,
-                epic_id: str = None, sprint_id: str = None, limit: int = 100) -> List[Story]:
-        """Lista stories com filtros opcionais"""
+                epic_id: str = None, sprint_id: str = None, limit: int = 100,
+                include_deleted: bool = False) -> List[Story]:
+        """Lista stories com filtros opcionais (Issue #150: filtra soft delete)"""
         query = self.db.query(Story)
+        if not include_deleted:
+            query = query.filter(Story.is_deleted == False)
         if project_id:
             query = query.filter(Story.project_id == project_id)
         if status:
@@ -720,17 +744,19 @@ class StoryRepository:
             query = query.filter(Story.sprint_id == sprint_id)
         return query.order_by(Story.kanban_order).limit(limit).all()
 
-    def get_by_project(self, project_id: str) -> List[Story]:
-        """Lista stories de um projeto"""
-        return self.db.query(Story).filter(
-            Story.project_id == project_id
-        ).order_by(Story.status, Story.kanban_order).all()
+    def get_by_project(self, project_id: str, include_deleted: bool = False) -> List[Story]:
+        """Lista stories de um projeto (Issue #150: filtra soft delete)"""
+        query = self.db.query(Story).filter(Story.project_id == project_id)
+        if not include_deleted:
+            query = query.filter(Story.is_deleted == False)
+        return query.order_by(Story.status, Story.kanban_order).all()
 
-    def get_story_board(self, project_id: str) -> Dict[str, List[dict]]:
-        """Retorna board Kanban completo com stories agrupadas por status"""
-        stories = self.db.query(Story).filter(
-            Story.project_id == project_id
-        ).order_by(Story.kanban_order).all()
+    def get_story_board(self, project_id: str, include_deleted: bool = False) -> Dict[str, List[dict]]:
+        """Retorna board Kanban completo com stories agrupadas por status (Issue #150: filtra soft delete)"""
+        query = self.db.query(Story).filter(Story.project_id == project_id)
+        if not include_deleted:
+            query = query.filter(Story.is_deleted == False)
+        stories = query.order_by(Story.kanban_order).all()
 
         # Inicializa todas as colunas
         board = {status.value: [] for status in StoryStatus}
