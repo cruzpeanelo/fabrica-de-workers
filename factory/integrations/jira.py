@@ -664,6 +664,574 @@ class JiraIntegration(IntegrationBase):
 
         return []
 
+    # =========================================================================
+    # Jira Agile API (Sprints, Boards, Epics)
+    # Issue #311 - Terminal A
+    # =========================================================================
+
+    @property
+    def agile_base_url(self) -> str:
+        """URL base da API Agile"""
+        url = self.config.base_url.rstrip("/")
+        return f"{url}/rest/agile/1.0"
+
+    async def get_boards(
+        self,
+        project_key: Optional[str] = None,
+        board_type: Optional[str] = None,
+        max_results: int = 50
+    ) -> List[Dict]:
+        """
+        Lista boards do Jira Software.
+
+        Args:
+            project_key: Filtrar por projeto
+            board_type: Filtrar por tipo (scrum/kanban)
+            max_results: Maximo de resultados
+
+        Returns:
+            List[Dict]: Lista de boards
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/board"
+            params = {"maxResults": max_results}
+
+            if project_key:
+                params["projectKeyOrId"] = project_key
+            if board_type:
+                params["type"] = board_type
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    self._log_audit("GET_BOARDS", "boards", True)
+                    return data.get("values", [])
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_BOARDS", "boards", False, error=error)
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar boards: {error}")
+        except Exception as e:
+            self._log_audit("GET_BOARDS", "boards", False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar boards: {e}")
+
+        return []
+
+    async def get_board(self, board_id: int) -> Optional[Dict]:
+        """
+        Busca informacoes de um board especifico.
+
+        Args:
+            board_id: ID do board
+
+        Returns:
+            Dict ou None se nao encontrado
+        """
+        if not self.is_connected:
+            return None
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/board/{board_id}"
+
+            async with session.get(url) as response:
+                if response.status == 200:
+                    self._log_audit("GET_BOARD", str(board_id), True)
+                    return await response.json()
+                elif response.status == 404:
+                    self._log_audit("GET_BOARD", str(board_id), False, error="Not found")
+                    logger.warning(f"[Tenant:{self.tenant_id}] Board nao encontrado: {board_id}")
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_BOARD", str(board_id), False, error=error)
+        except Exception as e:
+            self._log_audit("GET_BOARD", str(board_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao buscar board {board_id}: {e}")
+
+        return None
+
+    async def get_sprints(
+        self,
+        board_id: int,
+        state: Optional[str] = None,
+        max_results: int = 50
+    ) -> List[Dict]:
+        """
+        Lista sprints de um board.
+
+        Args:
+            board_id: ID do board
+            state: Filtrar por estado (future/active/closed)
+            max_results: Maximo de resultados
+
+        Returns:
+            List[Dict]: Lista de sprints
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/board/{board_id}/sprint"
+            params = {"maxResults": max_results}
+
+            if state:
+                params["state"] = state
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    self._log_audit("GET_SPRINTS", str(board_id), True)
+                    return data.get("values", [])
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_SPRINTS", str(board_id), False, error=error)
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar sprints: {error}")
+        except Exception as e:
+            self._log_audit("GET_SPRINTS", str(board_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar sprints: {e}")
+
+        return []
+
+    async def get_sprint(self, sprint_id: int) -> Optional[Dict]:
+        """
+        Busca informacoes de um sprint especifico.
+
+        Args:
+            sprint_id: ID do sprint
+
+        Returns:
+            Dict ou None se nao encontrado
+        """
+        if not self.is_connected:
+            return None
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint/{sprint_id}"
+
+            async with session.get(url) as response:
+                if response.status == 200:
+                    self._log_audit("GET_SPRINT", str(sprint_id), True)
+                    return await response.json()
+                elif response.status == 404:
+                    self._log_audit("GET_SPRINT", str(sprint_id), False, error="Not found")
+                    logger.warning(f"[Tenant:{self.tenant_id}] Sprint nao encontrado: {sprint_id}")
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_SPRINT", str(sprint_id), False, error=error)
+        except Exception as e:
+            self._log_audit("GET_SPRINT", str(sprint_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao buscar sprint {sprint_id}: {e}")
+
+        return None
+
+    async def get_epics(
+        self,
+        board_id: Optional[int] = None,
+        project_key: Optional[str] = None,
+        max_results: int = 50
+    ) -> List[Dict]:
+        """
+        Lista epics.
+
+        Args:
+            board_id: ID do board (para API Agile)
+            project_key: Chave do projeto (para busca JQL)
+            max_results: Maximo de resultados
+
+        Returns:
+            List[Dict]: Lista de epics
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            if board_id:
+                # Usa API Agile
+                session = await self._ensure_session()
+                url = f"{self.agile_base_url}/board/{board_id}/epic"
+                params = {"maxResults": max_results}
+
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        self._log_audit("GET_EPICS", str(board_id), True)
+                        return data.get("values", [])
+                    else:
+                        error = await response.text()
+                        self._log_audit("GET_EPICS", str(board_id), False, error=error)
+            else:
+                # Usa JQL
+                project = project_key or self.config.project_key
+                jql = f"project = {project} AND issuetype = Epic ORDER BY created DESC"
+                issues = await self.search_issues(jql=jql, max_results=max_results)
+                self._log_audit("GET_EPICS", project or "all", True)
+                return issues
+
+        except Exception as e:
+            self._log_audit("GET_EPICS", str(board_id or project_key), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar epics: {e}")
+
+        return []
+
+    async def get_epic(self, epic_key: str) -> Optional[Dict]:
+        """
+        Busca informacoes de um epic especifico.
+
+        Args:
+            epic_key: Chave do epic (ex: PROJ-123)
+
+        Returns:
+            Dict ou None se nao encontrado
+        """
+        if not self.is_connected:
+            return None
+
+        # Epics sao issues, entao usa get_issue
+        return await self.get_issue(epic_key)
+
+    async def get_backlog(self, board_id: int, max_results: int = 100) -> List[Dict]:
+        """
+        Lista issues do backlog de um board.
+
+        Args:
+            board_id: ID do board
+            max_results: Maximo de resultados
+
+        Returns:
+            List[Dict]: Lista de issues do backlog
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/board/{board_id}/backlog"
+            params = {"maxResults": max_results}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    self._log_audit("GET_BACKLOG", str(board_id), True)
+                    return data.get("issues", [])
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_BACKLOG", str(board_id), False, error=error)
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao buscar backlog: {error}")
+        except Exception as e:
+            self._log_audit("GET_BACKLOG", str(board_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao buscar backlog: {e}")
+
+        return []
+
+    async def move_to_sprint(self, sprint_id: int, issue_keys: List[str]) -> bool:
+        """
+        Move issues para um sprint.
+
+        Args:
+            sprint_id: ID do sprint destino
+            issue_keys: Lista de chaves de issues
+
+        Returns:
+            bool: True se movidas com sucesso
+        """
+        if not self.is_connected:
+            return False
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint/{sprint_id}/issue"
+            data = {"issues": issue_keys}
+
+            async with session.post(url, json=data) as response:
+                success = response.status in [200, 204]
+                self._log_audit(
+                    "MOVE_TO_SPRINT",
+                    str(sprint_id),
+                    success,
+                    details={"issues": issue_keys}
+                )
+                if not success:
+                    error = await response.text()
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao mover issues: {error}")
+                return success
+        except Exception as e:
+            self._log_audit("MOVE_TO_SPRINT", str(sprint_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao mover issues para sprint: {e}")
+
+        return False
+
+    async def move_to_backlog(self, issue_keys: List[str]) -> bool:
+        """
+        Move issues para o backlog (remove do sprint).
+
+        Args:
+            issue_keys: Lista de chaves de issues
+
+        Returns:
+            bool: True se movidas com sucesso
+        """
+        if not self.is_connected:
+            return False
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/backlog/issue"
+            data = {"issues": issue_keys}
+
+            async with session.post(url, json=data) as response:
+                success = response.status in [200, 204]
+                self._log_audit(
+                    "MOVE_TO_BACKLOG",
+                    "backlog",
+                    success,
+                    details={"issues": issue_keys}
+                )
+                return success
+        except Exception as e:
+            self._log_audit("MOVE_TO_BACKLOG", "backlog", False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao mover issues para backlog: {e}")
+
+        return False
+
+    async def get_velocity(self, board_id: int, num_sprints: int = 5) -> Dict:
+        """
+        Calcula velocity baseado em sprints anteriores.
+
+        Args:
+            board_id: ID do board
+            num_sprints: Numero de sprints para calcular
+
+        Returns:
+            Dict com velocity media e dados por sprint
+        """
+        if not self.is_connected:
+            return {"error": "Not connected"}
+
+        try:
+            # Lista sprints fechados
+            sprints = await self.get_sprints(
+                board_id=board_id,
+                state="closed",
+                max_results=num_sprints
+            )
+
+            velocity_data = {
+                "board_id": board_id,
+                "sprints_analyzed": len(sprints),
+                "sprint_velocities": [],
+                "average_velocity": 0,
+                "total_points": 0
+            }
+
+            session = await self._ensure_session()
+
+            for sprint in sprints:
+                sprint_id = sprint.get("id")
+                sprint_name = sprint.get("name")
+
+                # Busca issues do sprint
+                url = f"{self.agile_base_url}/sprint/{sprint_id}/issue"
+
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        issues = data.get("issues", [])
+
+                        # Soma story points das issues completas
+                        sprint_points = 0
+                        for issue in issues:
+                            fields = issue.get("fields", {})
+                            if fields.get("resolution"):
+                                points = fields.get("customfield_10016") or \
+                                         fields.get("customfield_10024") or 0
+                                sprint_points += int(points) if points else 0
+
+                        velocity_data["sprint_velocities"].append({
+                            "sprint_id": sprint_id,
+                            "sprint_name": sprint_name,
+                            "points": sprint_points
+                        })
+                        velocity_data["total_points"] += sprint_points
+
+            if velocity_data["sprints_analyzed"] > 0:
+                velocity_data["average_velocity"] = round(
+                    velocity_data["total_points"] / velocity_data["sprints_analyzed"], 1
+                )
+
+            self._log_audit("GET_VELOCITY", str(board_id), True)
+            return velocity_data
+
+        except Exception as e:
+            self._log_audit("GET_VELOCITY", str(board_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao calcular velocity: {e}")
+            return {"error": str(e)}
+
+    async def create_sprint(
+        self,
+        board_id: int,
+        name: str,
+        goal: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Cria um novo sprint.
+
+        Args:
+            board_id: ID do board
+            name: Nome do sprint
+            goal: Objetivo do sprint
+            start_date: Data de inicio (ISO format)
+            end_date: Data de fim (ISO format)
+
+        Returns:
+            Dict com sprint criado ou None
+        """
+        if not self.is_connected:
+            return None
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint"
+
+            data = {
+                "name": name,
+                "originBoardId": board_id
+            }
+
+            if goal:
+                data["goal"] = goal
+            if start_date:
+                data["startDate"] = start_date
+            if end_date:
+                data["endDate"] = end_date
+
+            async with session.post(url, json=data) as response:
+                if response.status == 201:
+                    sprint = await response.json()
+                    self._log_audit(
+                        "CREATE_SPRINT",
+                        sprint.get("name", name),
+                        True,
+                        details={"sprint_id": sprint.get("id")}
+                    )
+                    return sprint
+                else:
+                    error = await response.text()
+                    self._log_audit("CREATE_SPRINT", name, False, error=error)
+                    logger.error(f"[Tenant:{self.tenant_id}] Erro ao criar sprint: {error}")
+        except Exception as e:
+            self._log_audit("CREATE_SPRINT", name, False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao criar sprint: {e}")
+
+        return None
+
+    async def start_sprint(
+        self,
+        sprint_id: int,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> bool:
+        """
+        Inicia um sprint.
+
+        Args:
+            sprint_id: ID do sprint
+            start_date: Data de inicio
+            end_date: Data de fim
+
+        Returns:
+            bool: True se iniciado com sucesso
+        """
+        if not self.is_connected:
+            return False
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint/{sprint_id}"
+
+            data = {"state": "active"}
+            if start_date:
+                data["startDate"] = start_date
+            if end_date:
+                data["endDate"] = end_date
+
+            async with session.post(url, json=data) as response:
+                success = response.status in [200, 204]
+                self._log_audit("START_SPRINT", str(sprint_id), success)
+                return success
+        except Exception as e:
+            self._log_audit("START_SPRINT", str(sprint_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao iniciar sprint {sprint_id}: {e}")
+
+        return False
+
+    async def complete_sprint(self, sprint_id: int) -> bool:
+        """
+        Completa um sprint.
+
+        Args:
+            sprint_id: ID do sprint
+
+        Returns:
+            bool: True se completado com sucesso
+        """
+        if not self.is_connected:
+            return False
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint/{sprint_id}"
+            data = {"state": "closed"}
+
+            async with session.post(url, json=data) as response:
+                success = response.status in [200, 204]
+                self._log_audit("COMPLETE_SPRINT", str(sprint_id), success)
+                return success
+        except Exception as e:
+            self._log_audit("COMPLETE_SPRINT", str(sprint_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao completar sprint {sprint_id}: {e}")
+
+        return False
+
+    async def get_sprint_issues(self, sprint_id: int, max_results: int = 100) -> List[Dict]:
+        """
+        Lista issues de um sprint.
+
+        Args:
+            sprint_id: ID do sprint
+            max_results: Maximo de resultados
+
+        Returns:
+            List[Dict]: Lista de issues
+        """
+        if not self.is_connected:
+            return []
+
+        try:
+            session = await self._ensure_session()
+            url = f"{self.agile_base_url}/sprint/{sprint_id}/issue"
+            params = {"maxResults": max_results}
+
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    self._log_audit("GET_SPRINT_ISSUES", str(sprint_id), True)
+                    return data.get("issues", [])
+                else:
+                    error = await response.text()
+                    self._log_audit("GET_SPRINT_ISSUES", str(sprint_id), False, error=error)
+        except Exception as e:
+            self._log_audit("GET_SPRINT_ISSUES", str(sprint_id), False, error=str(e))
+            logger.error(f"[Tenant:{self.tenant_id}] Erro ao listar issues do sprint: {e}")
+
+        return []
+
     def _jira_issue_to_story(self, issue: Dict) -> Dict:
         """
         Converte issue Jira para formato Story interno.
