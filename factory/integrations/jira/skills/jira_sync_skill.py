@@ -591,8 +591,32 @@ class JiraSyncSkill:
             result.items.extend(import_result.items)
             result.error_messages.extend(import_result.error_messages)
 
-            # TODO: Buscar stories locais que precisam ser exportadas
-            # Isso requer acesso ao repositorio de stories
+            # Buscar stories locais que precisam ser exportadas - Issue #335
+            if self.story_repo and project_id:
+                try:
+                    # Busca stories do projeto que não têm referência Jira ou foram modificadas
+                    local_stories = await self._get_stories_for_export(project_id, project_key)
+
+                    for story in local_stories:
+                        export_result = await self.export_to_jira(
+                            story_data=story,
+                            project_key=project_key
+                        )
+
+                        if export_result.success:
+                            result.synced += 1
+                            if export_result.data.get("created"):
+                                result.created += 1
+                            else:
+                                result.updated += 1
+                            result.items.append(export_result.data)
+                        else:
+                            result.errors += 1
+                            result.error_messages.extend(export_result.errors or [])
+
+                except Exception as e:
+                    logger.warning(f"Erro ao exportar stories locais: {e}")
+                    result.error_messages.append(f"Falha na exportacao: {str(e)}")
 
             result.total_items = len(result.items)
 
@@ -801,22 +825,51 @@ class JiraSyncSkill:
                     message=f"Issue {issue_key} nao encontrada"
                 )
 
-            # TODO: Buscar story local do repositorio
-            # Por agora, retorna a issue do Jira como vencedora
+            # Buscar story local do repositorio - Issue #335
+            local_story = None
+            if self.story_repo and story_id:
+                try:
+                    local_story = await self.story_repo.get_by_id(story_id)
+                except Exception as e:
+                    logger.warning(f"Erro ao buscar story local {story_id}: {e}")
+
+            # Determina vencedor baseado na estrategia
+            jira_data = self._jira_issue_to_story(jira_issue)
+            winner = "jira"  # default
+
+            if strategy == SyncStrategy.JIRA_WINS:
+                winner = "jira"
+            elif strategy == SyncStrategy.LOCAL_WINS:
+                winner = "local"
+            elif strategy == SyncStrategy.NEWEST_WINS and local_story:
+                # Compara timestamps
+                jira_updated = jira_issue.get("fields", {}).get("updated")
+                local_updated = getattr(local_story, "updated_at", None)
+                if local_updated and jira_updated:
+                    from dateutil.parser import parse as parse_date
+                    jira_time = parse_date(jira_updated)
+                    if local_updated.replace(tzinfo=None) > jira_time.replace(tzinfo=None):
+                        winner = "local"
 
             resolution = {
-                "winner": "jira" if strategy in [SyncStrategy.JIRA_WINS, SyncStrategy.NEWEST_WINS] else "local",
+                "winner": winner,
                 "strategy": strategy.value,
                 "issue_key": issue_key,
                 "story_id": story_id
             }
 
-            if strategy == SyncStrategy.JIRA_WINS:
-                resolution["data"] = self._jira_issue_to_story(jira_issue)
+            if winner == "jira":
+                resolution["data"] = jira_data
                 resolution["data"]["story_id"] = story_id
-            elif strategy == SyncStrategy.MANUAL:
+            elif winner == "local" and local_story:
+                resolution["data"] = self._story_to_dict(local_story)
+                resolution["data"]["jira_key"] = issue_key
+
+            if strategy == SyncStrategy.MANUAL:
                 resolution["requires_manual_resolution"] = True
-                resolution["jira_data"] = self._jira_issue_to_story(jira_issue)
+                resolution["jira_data"] = jira_data
+                if local_story:
+                    resolution["local_data"] = self._story_to_dict(local_story)
 
             return SkillResult(
                 success=True,
@@ -1077,3 +1130,85 @@ class JiraSyncSkill:
             Chave Jira ou None
         """
         return self._sync_map.get(local_id)
+
+    async def _get_stories_for_export(self, project_id: str, project_key: str) -> List[Dict]:
+        """
+        Busca stories locais que precisam ser exportadas para o Jira - Issue #335
+
+        Retorna stories que:
+        1. Não têm referência Jira (external_references sem jira)
+        2. Foram modificadas após última sincronização
+
+        Args:
+            project_id: ID do projeto local
+            project_key: Chave do projeto Jira
+
+        Returns:
+            Lista de stories para exportar (como dicts)
+        """
+        stories_to_export = []
+
+        if not self.story_repo:
+            return stories_to_export
+
+        try:
+            # Busca todas as stories do projeto
+            all_stories = await self.story_repo.get_by_project(project_id)
+
+            for story in all_stories:
+                # Verifica se já tem referência Jira
+                ext_refs = getattr(story, "external_references", None) or {}
+                jira_ref = ext_refs.get("jira", {})
+
+                # Se não tem chave Jira, precisa exportar
+                if not jira_ref.get("key"):
+                    stories_to_export.append(self._story_to_dict(story))
+                    continue
+
+                # Se tem chave, verifica se foi modificada após última sync
+                synced_at = jira_ref.get("synced_at")
+                updated_at = getattr(story, "updated_at", None)
+
+                if synced_at and updated_at:
+                    from dateutil.parser import parse as parse_date
+                    sync_time = parse_date(synced_at) if isinstance(synced_at, str) else synced_at
+                    if updated_at > sync_time.replace(tzinfo=None):
+                        stories_to_export.append(self._story_to_dict(story))
+
+        except Exception as e:
+            logger.error(f"Erro ao buscar stories para exportacao: {e}")
+
+        return stories_to_export
+
+    def _story_to_dict(self, story) -> Dict:
+        """
+        Converte objeto Story (SQLAlchemy) para dicionário - Issue #335
+
+        Args:
+            story: Objeto Story do ORM
+
+        Returns:
+            Dict com dados da story
+        """
+        return {
+            "story_id": getattr(story, "story_id", None),
+            "tenant_id": getattr(story, "tenant_id", None),
+            "project_id": getattr(story, "project_id", None),
+            "title": getattr(story, "title", ""),
+            "description": getattr(story, "description", ""),
+            "persona": getattr(story, "persona", ""),
+            "action": getattr(story, "action", ""),
+            "benefit": getattr(story, "benefit", ""),
+            "status": getattr(story, "status", "backlog"),
+            "priority": getattr(story, "priority", "medium"),
+            "story_points": getattr(story, "story_points", 0),
+            "assignee": getattr(story, "assignee", None),
+            "epic_id": getattr(story, "epic_id", None),
+            "sprint_id": getattr(story, "sprint_id", None),
+            "tags": getattr(story, "tags", []),
+            "acceptance_criteria": getattr(story, "acceptance_criteria", []),
+            "definition_of_done": getattr(story, "definition_of_done", []),
+            "external_references": getattr(story, "external_references", {}),
+            "created_at": str(getattr(story, "created_at", "")) if getattr(story, "created_at", None) else None,
+            "updated_at": str(getattr(story, "updated_at", "")) if getattr(story, "updated_at", None) else None,
+        }

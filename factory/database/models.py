@@ -1048,6 +1048,10 @@ class Story(Base):
     dependencies = Column(JSON, default=list)  # IDs de stories dependentes
     blocked_by = Column(JSON, default=list)    # IDs de stories bloqueadoras
 
+    # Referências externas para sincronização - Issue #335
+    # Formato: {"jira": {"key": "PROJ-123", "synced_at": "..."}, "azure_devops": {...}}
+    external_references = Column(JSON, default=dict)
+
     # Metricas
     progress = Column(Float, default=0.0)  # 0-100, calculado das tasks
     tasks_total = Column(Integer, default=0)
