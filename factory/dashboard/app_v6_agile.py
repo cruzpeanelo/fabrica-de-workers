@@ -699,7 +699,8 @@ class StoryMove(BaseModel):
 
 
 class StoryTaskCreate(BaseModel):
-    story_id: str
+    # Issue #319: story_id opcional pois vem da URL em POST /api/stories/{story_id}/tasks
+    story_id: Optional[str] = None
     title: str
     description: Optional[str] = None
     task_type: Optional[str] = "development"
