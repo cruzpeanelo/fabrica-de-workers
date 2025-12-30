@@ -2678,6 +2678,22 @@ HTML_TEMPLATE = """
             border: 1px solid #FCA5A5;
         }
 
+        /* Issue #216: Command Palette */
+        @keyframes paletteIn {
+            from { transform: translateY(-20px) scale(0.98); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .kbd-small {
+            display: inline-block;
+            padding: 1px 4px;
+            font-size: 0.65rem;
+            font-family: monospace;
+            background: #E5E7EB;
+            border: 1px solid #D1D5DB;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+
         /* Keyboard Shortcuts */
         .kbd {
             display: inline-block;
@@ -6086,6 +6102,52 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- Issue #216: Command Palette Modal -->
+        <div v-if="showCommandPalette" class="fixed inset-0 bg-black/50 z-[60] flex items-start justify-center pt-[15vh]"
+             @click.self="showCommandPalette = false; commandPaletteQuery = '';"
+             style="backdrop-filter: blur(4px);">
+            <div class="bg-white rounded-xl w-[600px] max-w-[90vw] shadow-2xl overflow-hidden"
+                 style="animation: paletteIn 0.15s ease-out;">
+                <div class="p-3 border-b border-gray-200 flex items-center gap-3">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input id="command-palette-input"
+                           v-model="commandPaletteQuery"
+                           type="text"
+                           class="flex-1 outline-none text-lg"
+                           placeholder="Search commands or stories..."
+                           autocomplete="off"
+                           @keydown="handleCommandPaletteKey">
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Esc</span>
+                </div>
+                <div class="max-h-[400px] overflow-y-auto">
+                    <div v-if="commandPaletteResults.length === 0" class="p-4 text-center text-gray-500">
+                        Nenhum resultado encontrado
+                    </div>
+                    <div v-for="(cmd, idx) in commandPaletteResults" :key="cmd.id"
+                         @click="executeCommand(cmd)"
+                         :class="['flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors',
+                                  idx === commandPaletteIndex ? 'bg-blue-50' : 'hover:bg-gray-50']"
+                         @mouseenter="commandPaletteIndex = idx">
+                        <span class="text-lg w-6 text-center">{{ cmd.icon }}</span>
+                        <div class="flex-1">
+                            <div class="font-medium">{{ cmd.title }}</div>
+                            <div class="text-xs text-gray-500">{{ cmd.category }}</div>
+                        </div>
+                        <span v-if="cmd.shortcut" class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono">
+                            {{ cmd.shortcut }}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-2 border-t border-gray-200 flex items-center gap-4 text-xs text-gray-500">
+                    <span><kbd class="kbd-small">↑↓</kbd> Navegar</span>
+                    <span><kbd class="kbd-small">↵</kbd> Selecionar</span>
+                    <span><kbd class="kbd-small">Esc</kbd> Fechar</span>
+                </div>
+            </div>
+        </div>
+
         <!-- MODAL: Atalhos de Teclado -->
         <div v-if="showShortcutsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
              @click.self="showShortcutsModal = false">
@@ -6101,6 +6163,10 @@ HTML_TEMPLATE = """
                 <div class="p-4">
                     <div class="shortcut-group">
                         <div class="shortcut-group-title">Navegacao</div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Command Palette</span>
+                            <span class="kbd">⌘K</span>
+                        </div>
                         <div class="shortcut-item">
                             <span class="shortcut-desc">Focar no campo de busca</span>
                             <span class="kbd">/</span>
@@ -7509,6 +7575,13 @@ HTML_TEMPLATE = """
 
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
+
+            // Issue #216: Command Palette (Cmd+K)
+            const showCommandPalette = ref(false);
+            const commandPaletteQuery = ref('');
+            const commandPaletteIndex = ref(0);
+            const commandPaletteResults = ref([]);
+            const recentCommands = ref([]);
             // Project Preview Dashboard (Issue #73)
             const showProjectPreview = ref(false);
             const previewData = ref(null);
@@ -9005,8 +9078,112 @@ HTML_TEMPLATE = """
                 );
             };
 
+            // Issue #216: Command Palette Commands
+            const commandPaletteCommands = computed(() => {
+                const commands = [
+                    // Actions
+                    { id: 'new-story', title: 'Create Story', icon: '📝', category: 'Actions', shortcut: 'N', action: () => { showNewStoryModal.value = true; } },
+                    { id: 'new-task', title: 'Create Task', icon: '✓', category: 'Actions', shortcut: 'T', action: () => { if(selectedStory.value) showNewTaskModal.value = true; } },
+                    { id: 'new-epic', title: 'Create Epic', icon: '📦', category: 'Actions', action: () => { showNewEpicModal.value = true; } },
+                    { id: 'new-sprint', title: 'Create Sprint', icon: '🏃', category: 'Actions', action: () => { showNewSprintModal.value = true; } },
+                    { id: 'refresh', title: 'Refresh Data', icon: '🔄', category: 'Actions', shortcut: 'R', action: () => { loadProjectData(); } },
+                    // Navigation
+                    { id: 'go-kanban', title: 'Go to Kanban', icon: '📋', category: 'Navigation', action: () => { currentView.value = 'kanban'; } },
+                    { id: 'go-list', title: 'Go to List View', icon: '📃', category: 'Navigation', action: () => { currentView.value = 'list'; } },
+                    { id: 'go-analytics', title: 'Go to Analytics', icon: '📊', category: 'Navigation', action: () => { showAnalyticsModal.value = true; } },
+                    { id: 'go-settings', title: 'Open Settings', icon: '⚙️', category: 'Navigation', shortcut: '⌘,', action: () => { showSettingsModal.value = true; } },
+                    // Toggles
+                    { id: 'toggle-dark', title: 'Toggle Dark Mode', icon: '🌙', category: 'Settings', shortcut: 'D', action: () => { toggleDarkMode(); } },
+                    { id: 'toggle-sound', title: 'Toggle Notifications', icon: '🔔', category: 'Settings', action: () => { toggleNotificationSound(); } },
+                    // Help
+                    { id: 'shortcuts', title: 'Keyboard Shortcuts', icon: '⌨️', category: 'Help', shortcut: '?', action: () => { showShortcutsModal.value = true; } },
+                ];
+                // Add stories as searchable items
+                stories.value.forEach(story => {
+                    commands.push({
+                        id: 'story-' + story.story_id,
+                        title: story.story_id + ' - ' + story.title,
+                        icon: '📄',
+                        category: 'Stories',
+                        action: () => { selectStory(story); }
+                    });
+                });
+                return commands;
+            });
+
+            const filterCommandPalette = () => {
+                const query = commandPaletteQuery.value.toLowerCase().trim();
+                if (!query) {
+                    // Show recent + actions when no query
+                    const recent = recentCommands.value.slice(0, 3).map(id =>
+                        commandPaletteCommands.value.find(c => c.id === id)
+                    ).filter(Boolean);
+                    const actions = commandPaletteCommands.value.filter(c => c.category === 'Actions');
+                    commandPaletteResults.value = [...recent, ...actions].slice(0, 10);
+                } else {
+                    // Fuzzy search
+                    commandPaletteResults.value = commandPaletteCommands.value.filter(cmd =>
+                        cmd.title.toLowerCase().includes(query) ||
+                        cmd.category.toLowerCase().includes(query)
+                    ).slice(0, 10);
+                }
+                commandPaletteIndex.value = 0;
+            };
+
+            const executeCommand = (cmd) => {
+                if (!cmd) return;
+                // Add to recent (front, unique)
+                recentCommands.value = [cmd.id, ...recentCommands.value.filter(id => id !== cmd.id)].slice(0, 5);
+                showCommandPalette.value = false;
+                commandPaletteQuery.value = '';
+                cmd.action();
+            };
+
+            const handleCommandPaletteKey = (e) => {
+                if (!showCommandPalette.value) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    commandPaletteIndex.value = Math.min(commandPaletteIndex.value + 1, commandPaletteResults.value.length - 1);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    commandPaletteIndex.value = Math.max(commandPaletteIndex.value - 1, 0);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    executeCommand(commandPaletteResults.value[commandPaletteIndex.value]);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    showCommandPalette.value = false;
+                    commandPaletteQuery.value = '';
+                }
+            };
+
+            // Watch query changes
+            watch(commandPaletteQuery, filterCommandPalette);
+            watch(showCommandPalette, (val) => {
+                if (val) {
+                    filterCommandPalette();
+                    setTimeout(() => {
+                        const input = document.getElementById('command-palette-input');
+                        if (input) input.focus();
+                    }, 50);
+                }
+            });
+
             // Keyboard Shortcuts
             const handleKeyboard = (e) => {
+                // Cmd+K / Ctrl+K - Command Palette (Issue #216)
+                if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                    e.preventDefault();
+                    showCommandPalette.value = !showCommandPalette.value;
+                    return;
+                }
+
+                // Handle command palette navigation
+                if (showCommandPalette.value) {
+                    handleCommandPaletteKey(e);
+                    return;
+                }
+
                 // Ignore if in input/textarea
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
                     if (e.key === 'Escape') {
@@ -9018,6 +9195,7 @@ HTML_TEMPLATE = """
 
                 // Escape - close modals
                 if (e.key === 'Escape') {
+                    if (showCommandPalette.value) { showCommandPalette.value = false; commandPaletteQuery.value = ''; return; }
                     if (showConfirmModal.value) { cancelConfirm(); return; }
                     if (showShortcutsModal.value) { showShortcutsModal.value = false; return; }
                     if (showNewStoryModal.value) { showNewStoryModal.value = false; return; }
@@ -9655,6 +9833,9 @@ Process ${data.status}`);
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 showShortcutsModal, showConfirmModal, confirmModal,
+                // Issue #216: Command Palette
+                showCommandPalette, commandPaletteQuery, commandPaletteIndex, commandPaletteResults,
+                executeCommand, handleCommandPaletteKey,
                 contextMenu, isLoading,
                 // Issue #155: Voice Input
                 voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,
