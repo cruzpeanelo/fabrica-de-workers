@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-config
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+data:
+  ENVIRONMENT: {{ .Values.global.environment | quote }}
+  CLAUDE_MODEL: {{ .Values.config.claudeModel | quote }}
+  RATE_LIMIT_REQUESTS: {{ .Values.config.rateLimitRequests | quote }}
+  RATE_LIMIT_WINDOW: {{ .Values.config.rateLimitWindow | quote }}
+  MULTI_TENANT_ENABLED: {{ .Values.config.features.multiTenant | quote }}
+  BILLING_ENABLED: {{ .Values.config.features.billing | quote }}
+  SANDBOX_ENABLED: {{ .Values.config.features.sandbox | quote }}
+  DASHBOARD_PORT: "9001"
+  DASHBOARD_HOST: "0.0.0.0"

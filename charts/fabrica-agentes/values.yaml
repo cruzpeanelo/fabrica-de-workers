@@ -1,0 +1,303 @@
+# =============================================================================
+# Fabrica de Agentes - Helm Chart Values
+# =============================================================================
+# Issue #379: Configurações padrão para deployment Kubernetes
+#
+# Uso:
+#   helm install fabrica ./charts/fabrica-agentes
+#   helm install fabrica ./charts/fabrica-agentes -f values-prod.yaml
+# =============================================================================
+
+# Global settings
+global:
+  # Environment: development, staging, production
+  environment: development
+
+  # Image pull secrets
+  imagePullSecrets: []
+
+  # Storage class for persistent volumes
+  storageClass: ""
+
+# =============================================================================
+# API/Dashboard Deployment
+# =============================================================================
+api:
+  # Replica count
+  replicaCount: 2
+
+  # Image configuration
+  image:
+    repository: fabrica-agentes
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 9001
+    annotations: {}
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  # Pod annotations
+  podAnnotations: {}
+
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 1000
+
+  # Container security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    readOnlyRootFilesystem: false
+
+  # Liveness probe
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9001
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  # Readiness probe
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 9001
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+  # Environment variables
+  env:
+    - name: ENVIRONMENT
+      value: "development"
+    - name: LOG_LEVEL
+      value: "INFO"
+    - name: DASHBOARD_PORT
+      value: "9001"
+
+  # Environment from secrets/configmaps
+  envFrom: []
+
+# =============================================================================
+# Worker Deployment
+# =============================================================================
+worker:
+  # Enable workers
+  enabled: true
+
+  # Replica count
+  replicaCount: 1
+
+  # Image (uses same as API)
+  image:
+    repository: fabrica-agentes
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  # Resources
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # Autoscaling
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+
+  # Environment
+  env:
+    - name: WORKER_MODE
+      value: "true"
+    - name: MIN_WORKERS
+      value: "1"
+    - name: MAX_WORKERS
+      value: "3"
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+ingress:
+  enabled: true
+  className: "nginx"
+
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+  hosts:
+    - host: fabrica.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+  tls: []
+  # - secretName: fabrica-tls
+  #   hosts:
+  #     - fabrica.local
+
+# =============================================================================
+# PostgreSQL (Bitnami)
+# =============================================================================
+postgresql:
+  enabled: true
+
+  auth:
+    database: fabrica_db
+    username: fabrica
+    # password set via secret
+    existingSecret: ""
+
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# =============================================================================
+# Redis (Bitnami)
+# =============================================================================
+redis:
+  enabled: true
+
+  architecture: standalone
+
+  auth:
+    enabled: true
+    # password set via secret
+    existingSecret: ""
+
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# =============================================================================
+# External Database (when postgresql.enabled=false)
+# =============================================================================
+externalDatabase:
+  host: ""
+  port: 5432
+  database: fabrica_db
+  username: fabrica
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# =============================================================================
+# External Redis (when redis.enabled=false)
+# =============================================================================
+externalRedis:
+  host: ""
+  port: 6379
+  existingSecret: ""
+  existingSecretPasswordKey: password
+
+# =============================================================================
+# Secrets
+# =============================================================================
+secrets:
+  # Create secrets from values
+  create: true
+
+  # JWT Secret (generate if empty)
+  jwtSecret: ""
+
+  # Anthropic API Key
+  anthropicApiKey: ""
+
+  # Database password
+  databasePassword: ""
+
+  # Redis password
+  redisPassword: ""
+
+# =============================================================================
+# ConfigMap
+# =============================================================================
+config:
+  # Claude model
+  claudeModel: "claude-sonnet-4-20250514"
+
+  # Rate limiting
+  rateLimitRequests: 100
+  rateLimitWindow: 60
+
+  # Features
+  features:
+    multiTenant: true
+    billing: false
+    sandbox: true
+
+# =============================================================================
+# Persistence (for uploads/projects)
+# =============================================================================
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 10Gi
+  annotations: {}
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# =============================================================================
+# Prometheus Metrics
+# =============================================================================
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 15s

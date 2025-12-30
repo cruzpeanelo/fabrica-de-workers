@@ -1,0 +1,46 @@
+apiVersion: v2
+name: fabrica-agentes
+description: Plataforma de desenvolvimento autônomo com agentes IA
+
+# Chart version (semver)
+version: 1.0.0
+
+# App version
+appVersion: "6.5"
+
+# Chart type (application or library)
+type: application
+
+# Keywords for search
+keywords:
+  - ai
+  - agile
+  - development
+  - automation
+  - claude
+
+# Home and sources
+home: https://github.com/cruzpeanelo/fabrica-de-workers
+sources:
+  - https://github.com/cruzpeanelo/fabrica-de-workers
+
+# Maintainers
+maintainers:
+  - name: Terminal Z
+    email: infra@fabrica.com
+
+# Dependencies (optional)
+dependencies:
+  - name: postgresql
+    version: "13.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+
+# Annotations
+annotations:
+  category: Development
+  licenses: MIT
