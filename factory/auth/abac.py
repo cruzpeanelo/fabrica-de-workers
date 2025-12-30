@@ -25,6 +25,15 @@ from pydantic import BaseModel, validator
 
 logger = logging.getLogger(__name__)
 
+# Database imports for persistence (Issue #147)
+try:
+    from factory.database.connection import get_db
+    from factory.database.models import ABACPolicy
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    logger.warning("[ABAC] Database not available, policies will not persist")
+
 
 # =============================================================================
 # ENUMS AND CONSTANTS
@@ -267,7 +276,8 @@ class ABACEngine:
         self,
         combining_algorithm: str = "deny_unless_permit",
         enable_cache: bool = True,
-        cache_ttl_seconds: int = 300
+        cache_ttl_seconds: int = 300,
+        persist_to_db: bool = True  # Issue #147: persistir no banco
     ):
         """
         Inicializa o motor ABAC
@@ -276,21 +286,39 @@ class ABACEngine:
             combining_algorithm: Algoritmo de combinacao de politicas
             enable_cache: Habilitar cache de decisoes
             cache_ttl_seconds: TTL do cache em segundos
+            persist_to_db: Se True, salva políticas no banco (Issue #147)
         """
         self.combining_algorithm = combining_algorithm
         self.enable_cache = enable_cache
         self.cache_ttl = cache_ttl_seconds
+        self.persist_to_db = persist_to_db and DB_AVAILABLE
         self._policies: Dict[str, Policy] = {}
         self._policy_sets: Dict[str, PolicySet] = {}
         self._decision_cache: Dict[str, tuple] = {}
 
-        # Carregar politicas padrao
+        # Issue #147: Carregar políticas do banco primeiro
+        if self.persist_to_db:
+            self._load_policies_from_db()
+
+        # Carregar politicas padrao (se não existirem no banco)
         self._load_default_policies()
 
     def _load_default_policies(self):
-        """Carrega politicas padrao do sistema"""
+        """
+        Carrega politicas padrao do sistema.
+
+        Issue #147: Políticas default só são adicionadas se não existirem.
+        """
+        def add_if_not_exists(policy: Policy, is_system: bool = True):
+            """Adiciona política apenas se não existir"""
+            if policy.policy_id not in self._policies:
+                self._policies[policy.policy_id] = policy
+                # Persistir como política de sistema
+                if self.persist_to_db:
+                    self._save_policy_to_db(policy, is_system=is_system)
+
         # Politica: Admin tem acesso total
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-ADMIN-ALL",
             name="Admin Full Access",
             description="Administradores tem acesso total a todos os recursos",
@@ -309,7 +337,7 @@ class ABACEngine:
         ))
 
         # Politica: Usuarios so podem editar seus proprios recursos
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-OWNER-EDIT",
             name="Owner Resource Access",
             description="Usuarios podem editar recursos que possuem",
@@ -328,7 +356,7 @@ class ABACEngine:
         ))
 
         # Politica: Bloquear acesso fora do horario comercial (exemplo)
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-BUSINESS-HOURS",
             name="Business Hours Only",
             description="Bloqueia acesso a recursos sensiveis fora do horario comercial",
@@ -348,7 +376,7 @@ class ABACEngine:
         ))
 
         # Politica: Viewers so podem ler
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-VIEWER-READ",
             name="Viewer Read Only",
             description="Viewers so podem ler recursos",
@@ -367,7 +395,7 @@ class ABACEngine:
         ))
 
         # Politica: Developers podem CRUD em projetos
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-DEV-PROJECTS",
             name="Developer Project Access",
             description="Developers podem gerenciar projetos, stories e tasks",
@@ -386,7 +414,7 @@ class ABACEngine:
         ))
 
         # Politica: Managers podem deletar
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-MANAGER-DELETE",
             name="Manager Delete Access",
             description="Managers podem deletar recursos",
@@ -405,7 +433,7 @@ class ABACEngine:
         ))
 
         # Politica: Bloquear IPs suspeitos
-        self.add_policy(Policy(
+        add_if_not_exists(Policy(
             policy_id="POL-BLOCK-SUSPICIOUS-IP",
             name="Block Suspicious IPs",
             description="Bloqueia acesso de IPs marcados como suspeitos",
@@ -425,15 +453,150 @@ class ABACEngine:
 
         logger.info(f"[ABAC] {len(self._policies)} politicas padrao carregadas")
 
-    def add_policy(self, policy: Policy):
-        """Adiciona uma politica ao motor"""
+    def _load_policies_from_db(self):
+        """
+        Issue #147: Carrega políticas persistidas do banco de dados.
+        Chamado no startup do motor ABAC.
+        """
+        if not DB_AVAILABLE:
+            return
+
+        try:
+            db = next(get_db())
+            db_policies = db.query(ABACPolicy).filter(ABACPolicy.active == True).all()
+
+            for db_pol in db_policies:
+                # Converter condições do JSON para objetos Condition
+                conditions = []
+                for cond_data in (db_pol.conditions or []):
+                    conditions.append(Condition(
+                        attribute=cond_data.get("attribute", ""),
+                        operator=ConditionOperator(cond_data.get("operator", "equals")),
+                        value=cond_data.get("value"),
+                        source=AttributeSource(cond_data.get("source", "subject"))
+                    ))
+
+                policy = Policy(
+                    policy_id=db_pol.policy_id,
+                    name=db_pol.name,
+                    description=db_pol.description or "",
+                    effect=Effect(db_pol.effect),
+                    resources=db_pol.resources or [],
+                    actions=db_pol.actions or [],
+                    conditions=conditions,
+                    priority=db_pol.priority,
+                    active=db_pol.active
+                )
+                self._policies[policy.policy_id] = policy
+
+            logger.info(f"[ABAC] {len(db_policies)} políticas carregadas do banco")
+        except Exception as e:
+            logger.error(f"[ABAC] Erro ao carregar políticas do banco: {e}")
+
+    def _save_policy_to_db(self, policy: Policy, is_system: bool = False):
+        """
+        Issue #147: Salva política no banco de dados.
+        """
+        if not self.persist_to_db:
+            return
+
+        try:
+            db = next(get_db())
+
+            # Verificar se já existe
+            existing = db.query(ABACPolicy).filter(ABACPolicy.policy_id == policy.policy_id).first()
+
+            # Converter condições para JSON
+            conditions_json = [
+                {
+                    "attribute": c.attribute,
+                    "operator": c.operator.value,
+                    "value": c.value,
+                    "source": c.source.value
+                }
+                for c in policy.conditions
+            ]
+
+            if existing:
+                # Atualizar
+                existing.name = policy.name
+                existing.description = policy.description
+                existing.effect = policy.effect.value
+                existing.resources = policy.resources
+                existing.actions = policy.actions
+                existing.conditions = conditions_json
+                existing.priority = policy.priority
+                existing.active = policy.active
+            else:
+                # Criar novo
+                db_policy = ABACPolicy(
+                    policy_id=policy.policy_id,
+                    name=policy.name,
+                    description=policy.description,
+                    effect=policy.effect.value,
+                    resources=policy.resources,
+                    actions=policy.actions,
+                    conditions=conditions_json,
+                    priority=policy.priority,
+                    active=policy.active,
+                    is_system=is_system
+                )
+                db.add(db_policy)
+
+            db.commit()
+            logger.debug(f"[ABAC] Política {policy.policy_id} salva no banco")
+        except Exception as e:
+            logger.error(f"[ABAC] Erro ao salvar política no banco: {e}")
+
+    def _delete_policy_from_db(self, policy_id: str) -> bool:
+        """
+        Issue #147: Remove política do banco de dados.
+        """
+        if not self.persist_to_db:
+            return True
+
+        try:
+            db = next(get_db())
+            db_policy = db.query(ABACPolicy).filter(ABACPolicy.policy_id == policy_id).first()
+
+            if db_policy:
+                if db_policy.is_system:
+                    logger.warning(f"[ABAC] Tentativa de deletar política de sistema: {policy_id}")
+                    return False
+                db.delete(db_policy)
+                db.commit()
+                logger.debug(f"[ABAC] Política {policy_id} removida do banco")
+            return True
+        except Exception as e:
+            logger.error(f"[ABAC] Erro ao remover política do banco: {e}")
+            return False
+
+    def add_policy(self, policy: Policy, persist: bool = True):
+        """
+        Adiciona uma politica ao motor.
+
+        Issue #147: Agora também persiste no banco de dados.
+        """
         self._policies[policy.policy_id] = policy
         self._clear_cache()
+
+        # Issue #147: Persistir no banco
+        if persist and self.persist_to_db:
+            self._save_policy_to_db(policy)
+
         logger.debug(f"[ABAC] Politica adicionada: {policy.policy_id}")
 
     def remove_policy(self, policy_id: str) -> bool:
-        """Remove uma politica"""
+        """
+        Remove uma politica.
+
+        Issue #147: Agora também remove do banco de dados.
+        """
         if policy_id in self._policies:
+            # Issue #147: Remover do banco primeiro
+            if not self._delete_policy_from_db(policy_id):
+                return False  # Não permitido (ex: política de sistema)
+
             del self._policies[policy_id]
             self._clear_cache()
             return True

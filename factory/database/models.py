@@ -3102,6 +3102,76 @@ class ProjectMember(Base):
 
 
 # =============================================================================
+# ABAC POLICY - Políticas de Controle de Acesso (Issue #147)
+# =============================================================================
+
+class ABACPolicy(Base):
+    """
+    Modelo para políticas ABAC persistentes.
+
+    Issue #147: Políticas são salvas no banco e carregadas no startup.
+    Antes: políticas eram hardcoded e perdidas ao reiniciar.
+    Agora: políticas customizadas são persistidas.
+    """
+    __tablename__ = "abac_policies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant (opcional)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Dados da política
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    effect = Column(String(20), nullable=False)  # allow, deny
+
+    # Recursos e ações (JSON arrays)
+    resources = Column(JSON, default=list)  # ["projects/*", "stories/STR-*"]
+    actions = Column(JSON, default=list)    # ["create", "read", "update", "delete"]
+
+    # Condições (JSON array of condition objects)
+    conditions = Column(JSON, default=list)  # [{"attribute": "role", "operator": "equals", "value": "ADMIN", "source": "subject"}]
+
+    # Controle
+    priority = Column(Integer, default=0)
+    active = Column(Boolean, default=True)
+    is_system = Column(Boolean, default=False)  # Políticas do sistema não podem ser deletadas
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    # Índices
+    __table_args__ = (
+        Index('ix_abac_policies_tenant_active', 'tenant_id', 'active'),
+        Index('ix_abac_policies_priority', 'priority'),
+    )
+
+    def to_dict(self):
+        return {
+            "policy_id": self.policy_id,
+            "tenant_id": self.tenant_id,
+            "name": self.name,
+            "description": self.description,
+            "effect": self.effect,
+            "resources": self.resources or [],
+            "actions": self.actions or [],
+            "conditions": self.conditions or [],
+            "priority": self.priority,
+            "active": self.active,
+            "is_system": self.is_system,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by
+        }
+
+    def __repr__(self):
+        return f"<ABACPolicy {self.policy_id}: {self.name} [{self.effect}]>"
+
+
+# =============================================================================
 # DEPRECATED MODELS (mantidos para compatibilidade durante migracao)
 # =============================================================================
 
