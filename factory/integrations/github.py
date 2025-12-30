@@ -1029,64 +1029,213 @@ class GitHubIntegration(IntegrationBase):
 
         return result
 
-    async def handle_webhook(self, payload: Dict) -> bool:
+    async def handle_webhook(self, payload: Dict, project_id: str = None) -> Dict[str, Any]:
         """
-        Processa webhook do GitHub.
+        Processa webhook do GitHub e sincroniza com stories locais.
+
+        Issue #162: Implementa callbacks que atualizam dados locais.
 
         Eventos suportados:
         - issues (opened, edited, deleted, closed, reopened, labeled, unlabeled)
         - issue_comment (created, edited, deleted)
+        - pull_request (opened, closed, merged)
+        - push (commits)
 
         Args:
             payload: Payload do webhook
+            project_id: ID do projeto local para sincronização
 
         Returns:
-            bool: True se processado com sucesso
+            Dict com resultado do processamento
         """
         try:
+            from factory.database.connection import SessionLocal
+            from factory.database.models import Story, StoryTask, StoryStatus
+
             action = payload.get("action", "")
+            event_type = payload.get("event", "issues")
+            result = {"success": True, "action": action, "changes": []}
+
+            # Issue events
             issue = payload.get("issue", {})
-
-            if not issue:
-                logger.debug("Webhook sem dados de issue")
-                return True
-
-            issue_number = issue.get("number")
-
-            if action == "opened":
-                logger.info(f"Webhook: Issue criada #{issue_number}")
+            if issue:
+                issue_number = issue.get("number")
                 story_data = self._issue_to_story(issue)
-                # Aqui seria chamado o callback para criar a story localmente
-                return True
 
-            elif action in ["edited", "labeled", "unlabeled", "assigned", "unassigned"]:
-                logger.info(f"Webhook: Issue atualizada #{issue_number} ({action})")
-                return True
+                db = SessionLocal()
+                try:
+                    # Issue #162: Buscar story pelo external_id ou criar nova
+                    external_id = f"github:{self.config.owner}/{self.config.repo}#{issue_number}"
 
-            elif action == "closed":
-                logger.info(f"Webhook: Issue fechada #{issue_number}")
-                return True
+                    # Buscar story existente
+                    story = db.query(Story).filter(
+                        Story.quotas.contains({"external_id": external_id})
+                    ).first()
 
-            elif action == "reopened":
-                logger.info(f"Webhook: Issue reaberta #{issue_number}")
-                return True
+                    if not story and project_id:
+                        # Buscar por title match como fallback
+                        story = db.query(Story).filter(
+                            Story.project_id == project_id,
+                            Story.title == story_data["title"]
+                        ).first()
 
-            elif action == "deleted":
-                logger.info(f"Webhook: Issue deletada #{issue_number}")
-                return True
+                    if action == "opened":
+                        logger.info(f"[Webhook] Issue criada #{issue_number}")
+                        if not story and project_id:
+                            # Criar nova story
+                            count = db.query(Story).count()
+                            new_story = Story(
+                                story_id=f"STR-{count + 1:04d}",
+                                project_id=project_id,
+                                title=story_data["title"],
+                                description=story_data.get("description"),
+                                status=story_data.get("status", "backlog"),
+                                priority=story_data.get("priority", "medium"),
+                                story_points=story_data.get("story_points", 0),
+                                assignee=story_data.get("assignee"),
+                                tags=story_data.get("tags", []),
+                            )
+                            db.add(new_story)
+                            db.commit()
+                            result["changes"].append({"type": "story_created", "story_id": new_story.story_id})
+                            logger.info(f"[Webhook] Story criada: {new_story.story_id}")
+
+                    elif action in ["edited", "labeled", "unlabeled", "assigned", "unassigned"]:
+                        logger.info(f"[Webhook] Issue atualizada #{issue_number} ({action})")
+                        if story:
+                            # Atualizar campos da story
+                            story.title = story_data["title"]
+                            if story_data.get("description"):
+                                story.description = story_data["description"]
+                            story.status = story_data.get("status", story.status)
+                            story.priority = story_data.get("priority", story.priority)
+                            story.assignee = story_data.get("assignee")
+                            story.tags = story_data.get("tags", story.tags)
+                            story.updated_at = datetime.utcnow()
+                            db.commit()
+                            result["changes"].append({"type": "story_updated", "story_id": story.story_id})
+                            logger.info(f"[Webhook] Story atualizada: {story.story_id}")
+
+                    elif action == "closed":
+                        logger.info(f"[Webhook] Issue fechada #{issue_number}")
+                        if story:
+                            story.status = "done"
+                            story.completed_at = datetime.utcnow()
+                            story.updated_at = datetime.utcnow()
+                            db.commit()
+                            result["changes"].append({"type": "story_closed", "story_id": story.story_id})
+                            logger.info(f"[Webhook] Story fechada: {story.story_id}")
+
+                    elif action == "reopened":
+                        logger.info(f"[Webhook] Issue reaberta #{issue_number}")
+                        if story:
+                            story.status = "in_progress"
+                            story.completed_at = None
+                            story.updated_at = datetime.utcnow()
+                            db.commit()
+                            result["changes"].append({"type": "story_reopened", "story_id": story.story_id})
+                            logger.info(f"[Webhook] Story reaberta: {story.story_id}")
+
+                    elif action == "deleted":
+                        logger.info(f"[Webhook] Issue deletada #{issue_number}")
+                        if story:
+                            story.is_deleted = True
+                            story.deleted_at = datetime.utcnow()
+                            db.commit()
+                            result["changes"].append({"type": "story_deleted", "story_id": story.story_id})
+
+                finally:
+                    db.close()
+
+            # Pull Request events - Issue #162
+            pr = payload.get("pull_request", {})
+            if pr:
+                pr_number = pr.get("number")
+                pr_title = pr.get("title", "")
+                pr_state = pr.get("state", "")
+                pr_merged = pr.get("merged", False)
+
+                logger.info(f"[Webhook] PR #{pr_number}: {action}")
+
+                db = SessionLocal()
+                try:
+                    # Tentar encontrar task relacionada ao PR
+                    task = db.query(StoryTask).filter(
+                        StoryTask.title.contains(f"PR #{pr_number}")
+                    ).first()
+
+                    # Ou buscar por branch name mencionando story
+                    branch_name = pr.get("head", {}).get("ref", "")
+                    if not task and branch_name:
+                        # Ex: feature/STR-0001-login
+                        import re
+                        match = re.search(r'(STR-\d+)', branch_name, re.IGNORECASE)
+                        if match:
+                            story_id = match.group(1).upper()
+                            story = db.query(Story).filter(Story.story_id == story_id).first()
+                            if story:
+                                # Atualizar status da story baseado no PR
+                                if action == "opened":
+                                    if story.status in ["backlog", "ready", "in_progress"]:
+                                        story.status = "review"
+                                        story.updated_at = datetime.utcnow()
+                                        db.commit()
+                                        result["changes"].append({"type": "story_to_review", "story_id": story.story_id})
+
+                                elif action == "closed":
+                                    if pr_merged:
+                                        # PR merged = move to testing or done
+                                        story.status = "testing"
+                                        story.updated_at = datetime.utcnow()
+                                        db.commit()
+                                        result["changes"].append({"type": "story_to_testing", "story_id": story.story_id})
+                finally:
+                    db.close()
+
+            # Push events - Issue #162
+            commits = payload.get("commits", [])
+            if commits:
+                ref = payload.get("ref", "")
+                branch = ref.replace("refs/heads/", "") if ref.startswith("refs/heads/") else ref
+
+                logger.info(f"[Webhook] Push: {len(commits)} commits to {branch}")
+
+                # Verificar se commits mencionam stories
+                db = SessionLocal()
+                try:
+                    for commit in commits:
+                        message = commit.get("message", "")
+                        # Procurar por referências a stories (ex: "STR-0001")
+                        import re
+                        story_refs = re.findall(r'(STR-\d+)', message, re.IGNORECASE)
+                        for story_ref in story_refs:
+                            story = db.query(Story).filter(Story.story_id == story_ref.upper()).first()
+                            if story and story.status == "backlog":
+                                story.status = "in_progress"
+                                story.started_at = datetime.utcnow()
+                                story.updated_at = datetime.utcnow()
+                                db.commit()
+                                result["changes"].append({
+                                    "type": "story_started",
+                                    "story_id": story.story_id,
+                                    "commit": commit.get("id", "")[:7]
+                                })
+                finally:
+                    db.close()
 
             # Issue comment events
             comment = payload.get("comment", {})
             if comment and action in ["created", "edited", "deleted"]:
-                logger.info(f"Webhook: Comentario {action} na issue #{issue_number}")
-                return True
+                issue_number = issue.get("number") if issue else None
+                logger.info(f"[Webhook] Comentário {action} na issue #{issue_number}")
+                result["changes"].append({"type": f"comment_{action}", "issue": issue_number})
 
-            logger.debug(f"Webhook ignorado: {action}")
-            return True
+            logger.debug(f"[Webhook] Processado: {result}")
+            return result
 
         except Exception as e:
-            logger.error(f"Erro ao processar webhook: {e}")
-            return False
+            logger.error(f"[Webhook] Erro ao processar: {e}")
+            return {"success": False, "error": str(e)}
 
     def get_status(self) -> Dict[str, Any]:
         """Retorna status detalhado da integracao"""
