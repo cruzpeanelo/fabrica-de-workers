@@ -6085,6 +6085,15 @@ HTML_TEMPLATE = """
                             </svg>
                         </button>
 
+                        <!-- Issue #214: Language Selector -->
+                        <button @click="toggleLocale"
+                                class="text-white/70 hover:text-white p-2 transition flex items-center gap-1 hide-on-mobile"
+                                :title="currentLocale === 'pt_BR' ? 'Switch to English' : 'Mudar para Português'">
+                            <span v-if="currentLocale === 'pt_BR'">🇧🇷</span>
+                            <span v-else>🇺🇸</span>
+                            <span class="text-xs hidden lg:inline">{{ currentLocale === 'pt_BR' ? 'PT' : 'EN' }}</span>
+                        </button>
+
                         <!-- WebSocket Status -->
                         <div :class="['flex items-center gap-1 px-2 py-1 rounded-full text-xs', wsStatus === 'connected' ? 'bg-green-500/20 text-green-300' : wsStatus === 'connecting' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300']" :title="wsStatusTitle">
                             <span :class="['w-2 h-2 rounded-full', wsStatus === 'connected' ? 'bg-green-400 animate-pulse' : wsStatus === 'connecting' ? 'bg-yellow-400' : 'bg-red-400']"></span>
@@ -8772,6 +8781,10 @@ HTML_TEMPLATE = """
                             <span class="shortcut-desc">Toggle Dark Mode</span>
                             <span class="kbd">⌘/Ctrl</span>+<span class="kbd">⇧</span>+<span class="kbd">D</span>
                         </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-desc">Toggle Language (PT/EN)</span>
+                            <span class="kbd">⌘/Ctrl</span>+<span class="kbd">⇧</span>+<span class="kbd">L</span>
+                        </div>
                     </div>
                     <div class="shortcut-group">
                         <div class="shortcut-group-title">Acoes</div>
@@ -9926,24 +9939,121 @@ HTML_TEMPLATE = """
                 }
             };
 
-            // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
-            const businessTerms = {
-                'story': 'funcionalidade',
-                'stories': 'funcionalidades',
-                'sprint': 'ciclo de desenvolvimento',
-                'deploy': 'publicacao',
-                'bug': 'problema',
-                'api': 'conexao',
-                'backlog': 'lista de pendencias',
-                'task': 'tarefa',
-                'tasks': 'tarefas',
-                'epic': 'iniciativa',
-                'review': 'revisao',
-                'testing': 'validacao'
+            // ========== ISSUE #214 - MULTI-LANGUAGE I18N SUPPORT ==========
+            const currentLocale = ref(localStorage.getItem('factory-locale') || 'pt_BR');
+
+            const translations = {
+                pt_BR: {
+                    // Business Terms (Issue #133)
+                    terms: {
+                        story: 'funcionalidade', stories: 'funcionalidades',
+                        sprint: 'ciclo de desenvolvimento', deploy: 'publicacao',
+                        bug: 'problema', api: 'conexao', backlog: 'lista de pendencias',
+                        task: 'tarefa', tasks: 'tarefas', epic: 'iniciativa',
+                        review: 'revisao', testing: 'validacao'
+                    },
+                    // Common UI
+                    common: {
+                        save: 'Salvar', cancel: 'Cancelar', delete: 'Excluir',
+                        confirm: 'Confirmar', close: 'Fechar', loading: 'Carregando...',
+                        search: 'Buscar', filter: 'Filtrar', clear: 'Limpar',
+                        create: 'Criar', edit: 'Editar', view: 'Ver', back: 'Voltar',
+                        next: 'Proximo', previous: 'Anterior', submit: 'Enviar',
+                        yes: 'Sim', no: 'Nao', ok: 'OK', error: 'Erro', success: 'Sucesso'
+                    },
+                    // Dashboard
+                    dashboard: {
+                        title: 'Fabrica de Agentes', welcome: 'Bem-vindo',
+                        newStory: 'Nova Funcionalidade', newTask: 'Nova Tarefa',
+                        kanban: 'Quadro Kanban', analytics: 'Analiticos',
+                        settings: 'Configuracoes', darkMode: 'Modo Escuro',
+                        lightMode: 'Modo Claro', language: 'Idioma'
+                    },
+                    // Kanban
+                    kanban: {
+                        backlog: 'Backlog', ready: 'Pronto', inProgress: 'Em Progresso',
+                        review: 'Revisao', testing: 'Testes', done: 'Concluido'
+                    },
+                    // Messages
+                    messages: {
+                        storyCreated: 'Funcionalidade criada com sucesso',
+                        storyMoved: 'Funcionalidade movida',
+                        taskCompleted: 'Tarefa concluida',
+                        errorOccurred: 'Ocorreu um erro',
+                        confirmDelete: 'Tem certeza que deseja excluir?'
+                    }
+                },
+                en_US: {
+                    // Business Terms
+                    terms: {
+                        story: 'story', stories: 'stories',
+                        sprint: 'sprint', deploy: 'deploy',
+                        bug: 'bug', api: 'API', backlog: 'backlog',
+                        task: 'task', tasks: 'tasks', epic: 'epic',
+                        review: 'review', testing: 'testing'
+                    },
+                    // Common UI
+                    common: {
+                        save: 'Save', cancel: 'Cancel', delete: 'Delete',
+                        confirm: 'Confirm', close: 'Close', loading: 'Loading...',
+                        search: 'Search', filter: 'Filter', clear: 'Clear',
+                        create: 'Create', edit: 'Edit', view: 'View', back: 'Back',
+                        next: 'Next', previous: 'Previous', submit: 'Submit',
+                        yes: 'Yes', no: 'No', ok: 'OK', error: 'Error', success: 'Success'
+                    },
+                    // Dashboard
+                    dashboard: {
+                        title: 'Agent Factory', welcome: 'Welcome',
+                        newStory: 'New Story', newTask: 'New Task',
+                        kanban: 'Kanban Board', analytics: 'Analytics',
+                        settings: 'Settings', darkMode: 'Dark Mode',
+                        lightMode: 'Light Mode', language: 'Language'
+                    },
+                    // Kanban
+                    kanban: {
+                        backlog: 'Backlog', ready: 'Ready', inProgress: 'In Progress',
+                        review: 'Review', testing: 'Testing', done: 'Done'
+                    },
+                    // Messages
+                    messages: {
+                        storyCreated: 'Story created successfully',
+                        storyMoved: 'Story moved',
+                        taskCompleted: 'Task completed',
+                        errorOccurred: 'An error occurred',
+                        confirmDelete: 'Are you sure you want to delete?'
+                    }
+                }
             };
+
+            // Get translation by key path (e.g., 'common.save')
+            const t = (key) => {
+                const locale = translations[currentLocale.value] || translations.pt_BR;
+                const keys = key.split('.');
+                let value = locale;
+                for (const k of keys) {
+                    value = value?.[k];
+                    if (!value) break;
+                }
+                return value || key;
+            };
+
+            // Translate business term (backwards compatible with Issue #133)
+            const businessTerms = computed(() => translations[currentLocale.value]?.terms || translations.pt_BR.terms);
             const translateTerm = (term, capitalize = false) => {
-                const translated = businessTerms[term.toLowerCase()] || term;
+                const translated = businessTerms.value[term.toLowerCase()] || term;
                 return capitalize ? translated.charAt(0).toUpperCase() + translated.slice(1) : translated;
+            };
+
+            // Change language
+            const setLocale = (locale) => {
+                currentLocale.value = locale;
+                localStorage.setItem('factory-locale', locale);
+                document.documentElement.setAttribute('lang', locale.replace('_', '-'));
+                addToast('info', locale === 'en_US' ? '🇺🇸 English' : '🇧🇷 Português', t('dashboard.language') + ' ' + (locale === 'en_US' ? 'changed' : 'alterado'));
+            };
+
+            const toggleLocale = () => {
+                setLocale(currentLocale.value === 'pt_BR' ? 'en_US' : 'pt_BR');
             };
 
             // ========== ISSUE #135 - EXECUTIVE DASHBOARD ==========
@@ -12465,6 +12575,7 @@ HTML_TEMPLATE = """
                     { id: 'go-settings', title: 'Open Settings', icon: '⚙️', category: 'Navigation', shortcut: '⌘,', action: () => { showSettingsModal.value = true; } },
                     // Toggles
                     { id: 'toggle-dark', title: 'Toggle Dark Mode', icon: '🌙', category: 'Settings', shortcut: 'D', action: () => { toggleDarkMode(); } },
+                    { id: 'toggle-lang', title: 'Toggle Language (PT/EN)', icon: '🌐', category: 'Settings', shortcut: 'L', action: () => { toggleLocale(); } },
                     { id: 'toggle-sound', title: 'Toggle Notifications', icon: '🔔', category: 'Settings', action: () => { toggleNotificationSound(); } },
                     // Help
                     { id: 'shortcuts', title: 'Keyboard Shortcuts', icon: '⌨️', category: 'Help', shortcut: '?', action: () => { showShortcutsModal.value = true; } },
@@ -12553,6 +12664,13 @@ HTML_TEMPLATE = """
                 if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
                     e.preventDefault();
                     toggleDarkMode();
+                    return;
+                }
+
+                // Issue #214: Cmd+Shift+L / Ctrl+Shift+L - Toggle Language
+                if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+                    e.preventDefault();
+                    toggleLocale();
                     return;
                 }
 
@@ -13207,8 +13325,8 @@ Process ${data.status}`);
                 showFileViewer, fileViewerData, closeFileViewer, downloadViewerFile, copyFileContent, openInNewTab,
                 // Doc Viewer
                 showDocViewer, docViewerData, closeDocViewer, toggleDocEditMode, saveDocContent,
-                // Issue #133 - Business Terms
-                businessTerms, translateTerm,
+                // Issue #214 - Multi-language i18n
+                currentLocale, translations, t, businessTerms, translateTerm, setLocale, toggleLocale,
                 // Issue #135 - Executive Dashboard
                 viewMode, showTechnicalLogs, recentActivityLogs,
                 currentProjectName, projectReadyToTest, projectProgressPercent,
