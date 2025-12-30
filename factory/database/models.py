@@ -3541,6 +3541,161 @@ class OKRProjectLink(Base):
 
 
 # =============================================================================
+# WIP LIMITS E KANBAN POLICIES - Issue #237
+# =============================================================================
+
+class WipPolicyType(str, Enum):
+    """Tipo de politica WIP - soft (aviso) ou hard (bloqueia)"""
+    SOFT = "soft"
+    HARD = "hard"
+
+
+class KanbanPolicy(Base):
+    """
+    Modelo para politicas de WIP Limits no Kanban - Issue #237
+
+    Permite configurar limites por coluna e politicas de fluxo
+    para otimizar throughput do time.
+    """
+    __tablename__ = "kanban_policies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Associacao com projeto
+    project_id = Column(String(50), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+    project = relationship("Project", backref="kanban_policies")
+
+    # WIP Limits por coluna (JSON: {"in_progress": 5, "review": 3, ...})
+    wip_limits = Column(JSON, default=dict)
+
+    # Tipo de politica: soft (aviso) ou hard (bloqueia)
+    wip_policy = Column(String(20), default=WipPolicyType.SOFT.value)
+
+    # Alertas
+    alert_on_exceed = Column(Boolean, default=True)
+    notify_team = Column(Boolean, default=False)
+
+    # Metricas
+    track_cycle_time = Column(Boolean, default=True)
+    track_lead_time = Column(Boolean, default=True)
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    # Indices
+    __table_args__ = (
+        Index('ix_kanban_policies_tenant_project', 'tenant_id', 'project_id'),
+        UniqueConstraint('project_id', name='uq_kanban_policy_project'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "policy_id": self.policy_id,
+            "project_id": self.project_id,
+            "wip_limits": self.wip_limits or {},
+            "wip_policy": self.wip_policy,
+            "alert_on_exceed": self.alert_on_exceed,
+            "notify_team": self.notify_team,
+            "track_cycle_time": self.track_cycle_time,
+            "track_lead_time": self.track_lead_time,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by
+        }
+
+    def get_limit(self, status: str) -> Optional[int]:
+        """Retorna o limite WIP para um status, ou None se sem limite"""
+        if self.wip_limits:
+            return self.wip_limits.get(status)
+        return None
+
+    def is_hard_limit(self) -> bool:
+        """Verifica se a politica bloqueia movimentacao"""
+        return self.wip_policy == WipPolicyType.HARD.value
+
+
+class FlowMetric(Base):
+    """
+    Modelo para metricas de fluxo do Kanban - Issue #237
+
+    Armazena snapshot diario de metricas para:
+    - Cumulative Flow Diagram
+    - Throughput
+    - Cycle Time / Lead Time
+    """
+    __tablename__ = "flow_metrics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    metric_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Associacao com projeto
+    project_id = Column(String(50), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Data do snapshot
+    date = Column(DateTime, nullable=False, index=True)
+
+    # Contagem por status (snapshot diario)
+    backlog_count = Column(Integer, default=0)
+    ready_count = Column(Integer, default=0)
+    in_progress_count = Column(Integer, default=0)
+    review_count = Column(Integer, default=0)
+    testing_count = Column(Integer, default=0)
+    done_count = Column(Integer, default=0)
+
+    # Metricas calculadas
+    throughput = Column(Float, default=0.0)  # Stories completadas no periodo
+    avg_cycle_time = Column(Float, default=0.0)  # Dias medio em desenvolvimento
+    avg_lead_time = Column(Float, default=0.0)  # Dias medio total (criacao -> done)
+    wip_average = Column(Float, default=0.0)  # WIP medio no periodo
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Indices
+    __table_args__ = (
+        Index('ix_flow_metrics_tenant_project', 'tenant_id', 'project_id'),
+        Index('ix_flow_metrics_project_date', 'project_id', 'date'),
+        UniqueConstraint('project_id', 'date', name='uq_flow_metric_project_date'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "metric_id": self.metric_id,
+            "project_id": self.project_id,
+            "date": self.date.isoformat() if self.date else None,
+            "counts": {
+                "backlog": self.backlog_count,
+                "ready": self.ready_count,
+                "in_progress": self.in_progress_count,
+                "review": self.review_count,
+                "testing": self.testing_count,
+                "done": self.done_count
+            },
+            "metrics": {
+                "throughput": self.throughput,
+                "avg_cycle_time": self.avg_cycle_time,
+                "avg_lead_time": self.avg_lead_time,
+                "wip_average": self.wip_average
+            },
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    @property
+    def total_wip(self) -> int:
+        """Calcula total de items em WIP (in_progress + review + testing)"""
+        return self.in_progress_count + self.review_count + self.testing_count
+
+
+# =============================================================================
 # DEPRECATED MODELS (mantidos para compatibilidade durante migracao)
 # =============================================================================
 
