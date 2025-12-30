@@ -7,6 +7,91 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [7.0.1] - 2025-12-30
+
+### Hotfix e Novas Features de Segurança
+
+Esta release traz **correções críticas** e **novas funcionalidades de segurança enterprise**.
+
+#### 🔐 Segurança (Terminal B) - 12 Issues
+
+| Issue | Funcionalidade | Status |
+|-------|----------------|--------|
+| #340 | **Two-Factor Authentication (2FA/MFA)** - TOTP com Google Authenticator | ✅ |
+| #341 | **API Key Management** - Gestão de chaves para integrações | ✅ |
+| #342 | **Password Policies** - Políticas configuráveis por tenant | ✅ |
+| #343 | **IP Whitelisting/Geo-blocking** - Restrição por IP e região | ✅ |
+| #344 | **Encryption at Rest** - Criptografia de dados sensíveis | ✅ |
+| #345 | **Security Headers/CSP** - Headers de segurança avançados | ✅ |
+| #339 | **Audit Log Detalhado** - Trail de auditoria completo | ✅ |
+| #357 | **Input Validation Middleware** - Validação de entrada | ✅ |
+| #358 | **JWT Blacklist/Token Revocation** - Revogação de tokens | ✅ |
+| #359 | **Security Event Notifications** - Alertas de segurança | ✅ |
+| #290 | **Enforcement de Permissões** - Validação em endpoints | ✅ |
+| #301 | **Filtro de Tenant** - Em todos os endpoints | ✅ |
+
+#### 🔗 Integrações (Terminal A) - 15 Issues
+
+| Issue | Funcionalidade | Status |
+|-------|----------------|--------|
+| #310 | **Jira Skills** - Skills para sistema de agentes | ✅ |
+| #311 | **Jira Agile API** - Sprints, Boards, Epics, Velocity | ✅ |
+| #312 | **Azure DevOps Skills** - Para sistema de agentes | ✅ |
+| #313 | **Azure DevOps API** - Repos, Pipelines, Work Items | ✅ |
+| #314 | **Tenant Isolation** - Em todas as integrações | ✅ |
+| #315 | **SAP ECC Analyzers** - Table, BADI, Config analyzers | ✅ |
+| #326 | **Testes Unitários** - Para integrações | ✅ |
+| #332 | **Deploy Manager Real** - Integração real | ✅ |
+| #333 | **Health Check Monitoring** - Para integrações | ✅ |
+| #335 | **Jira Sync Skill** - Sincronização completa | ✅ |
+| #360 | **API Routes Monitoring** - Rotas de monitoramento | ✅ |
+
+#### 🎨 UI/UX (Terminal C) - 8 Issues
+
+| Issue | Funcionalidade | Status |
+|-------|----------------|--------|
+| #217 | **Dark Mode Persistente** - Toggle com localStorage | ✅ |
+| #218 | **Skeleton Loaders** - Animação shimmer | ✅ |
+| #214 | **Multi-idioma (i18n)** - PT-BR, EN-US | ✅ |
+| #215 | **Responsividade Mobile** - Touch targets 44px | ✅ |
+| #219 | **Empty States** - Estados elegantes | ✅ |
+| #203 | **Feedback Visual** - Toasts e notificações | ✅ |
+| #232 | **Onboarding Tour** - Tutorial para novos usuários | ✅ |
+| #234 | **Animações** - Micro-interações | ✅ |
+
+#### 🐛 Bugs Corrigidos - 15 Issues
+
+| Issue | Bug | Status |
+|-------|-----|--------|
+| #308 | Modal Criar Story não abria | ✅ |
+| #306 | API Global Search retornava 500 | ✅ |
+| #309 | Página /security timeout | ✅ |
+| #316 | Testes ImportError Agent | ✅ |
+| #317 | MetaData tabela tenants duplicada | ✅ |
+| #318 | Mocks em endpoints removidos | ✅ |
+| #319 | API Tasks story_id no body | ✅ |
+| #294 | Story cards não apareciam no Kanban | ✅ |
+| #291 | Overlays bloqueando interação | ✅ |
+| #337 | Merge conflict repositories.py | ✅ |
+
+#### 📊 Estatísticas do Dia
+
+```
+Issues Fechados: 50+
+Issues Testados: 45+ (Terminal 0)
+Commits: 30+
+
+Por Terminal:
+- T0 (Coordenador): 25 testes/validações
+- TA (Integrações): 15 features
+- TB (Segurança):   12 features
+- TC (UI/UX):        8 features
+- TD (Features):     5 features
+- TX (Documentação): README, CONTRIBUTING, CHANGELOG
+```
+
+---
+
 ## [7.0.0] - 2025-12-29
 
 ### Enterprise Edition - Integrações Corporativas e Multi-Cloud
