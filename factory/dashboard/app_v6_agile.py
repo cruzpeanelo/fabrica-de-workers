@@ -140,6 +140,14 @@ except ImportError as e:
 except Exception as e:
     print(f"[Observability] Failed to setup observability: {e}")
 
+# Issue #206: Graceful shutdown for stateless deployment
+try:
+    from factory.shutdown import setup_graceful_shutdown
+    setup_graceful_shutdown(app)
+    print("[Shutdown] Graceful shutdown configured")
+except ImportError as e:
+    print(f"[Shutdown] Graceful shutdown not available: {e}")
+
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
