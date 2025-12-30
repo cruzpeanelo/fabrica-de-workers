@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-GitHub Issues Integration Module
-=================================
+GitHub Issues Integration Module (Canonical Implementation)
+============================================================
+
+Issue #161: Este é o módulo CANÔNICO para integração com GitHub.
+Use este módulo ao invés de `factory.integrations.git.github_integration`.
+
 Integracao com GitHub Issues via API REST.
 
 Funcionalidades:
@@ -10,13 +14,14 @@ Funcionalidades:
 - Mapear labels <-> tags
 - Mapear milestones <-> sprints
 - Mapear projects <-> epics
-- Webhook para atualizacoes em tempo real
+- Webhook para atualizacoes em tempo real (Issue #162)
 
 Configuracao via variaveis de ambiente:
 - GITHUB_TOKEN: Personal Access Token
 - GITHUB_OWNER: Owner do repositorio (usuario ou organizacao)
 - GITHUB_REPO: Nome do repositorio
 - GITHUB_PROJECT_NUMBER: Numero do projeto (opcional)
+- GITHUB_WEBHOOK_SECRET: Secret para validacao de webhooks
 """
 
 import os

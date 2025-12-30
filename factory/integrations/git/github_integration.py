@@ -2,6 +2,17 @@
 """
 GitHub Integration Module - Extended Version
 =============================================
+
+.. deprecated::
+    Issue #161: Este módulo está DEPRECATED.
+    Use `factory.integrations.github` ao invés deste módulo.
+
+    Este arquivo será removido em uma versão futura.
+    Para migrar, substitua:
+        from factory.integrations.git.github_integration import GitHubIntegration
+    Por:
+        from factory.integrations.github import GitHubIntegration
+
 Integracao completa com GitHub incluindo webhooks avancados e sync de codigo.
 
 Funcionalidades:
@@ -19,7 +30,18 @@ Configuracao via variaveis de ambiente:
 - GITHUB_WEBHOOK_SECRET: Secret para validacao de webhooks
 
 Issue #102 - GitHub/GitLab Integration Completa
+Issue #161 - DEPRECATED: Use factory.integrations.github instead
 """
+
+import warnings
+
+# Issue #161: Emit deprecation warning on import
+warnings.warn(
+    "factory.integrations.git.github_integration is deprecated. "
+    "Use factory.integrations.github instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 import os
 import hmac
