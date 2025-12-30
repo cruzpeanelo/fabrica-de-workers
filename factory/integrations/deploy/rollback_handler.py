@@ -5,15 +5,21 @@ Rollback Handler
 Sistema de rollback automatico para deploys.
 
 Terminal 5 - Issue #300
+Terminal A - Issue #332: Restauracao por integracao (SAP, Salesforce, Azure DevOps)
 """
 
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 from .config import DeployConfig, DeployStatus, DeployEnvironment
 from .models import DeployResult, DeployStep, DeployBackup
+
+if TYPE_CHECKING:
+    from ..sap_s4hana import SAPS4HanaIntegration
+    from ..salesforce_connector import SalesforceConnector
+    from ..azure_devops import AzureDevOpsIntegration
 
 logger = logging.getLogger(__name__)
 
@@ -171,22 +177,227 @@ class RollbackHandler:
         backup: DeployBackup,
         deploy_result: DeployResult
     ):
-        """Executa a restauracao do backup"""
+        """
+        Executa a restauracao do backup.
+
+        Issue #332 - Terminal A: Restauracao por integracao
+        - SAP: Transporte reverso ou reimplantacao
+        - Salesforce: Metadata API deploy da versao anterior
+        - Azure DevOps: Revert de commits
+        """
         logger.info(f"Restaurando backup {backup.backup_id}")
+
+        integration = backup.integration.lower()
 
         # Para cada artefato no backup, restaura
         for artifact in backup.artifacts:
             artifact_name = artifact.get("name", "unknown")
+            artifact_type = artifact.get("type", "generic")
+            artifact_content = artifact.get("content", "")
+            artifact_metadata = artifact.get("metadata", {})
+
             logger.debug(f"Restaurando artefato: {artifact_name}")
 
-            # TODO: Implementar restauracao por integracao
-            # - SAP: Transporte reverso
-            # - Salesforce: Metadata deploy do backup
-            # - Azure DevOps: Revert de commits
+            try:
+                if integration in ("sap_s4", "sap_s4hana", "sap"):
+                    await self._restore_sap_artifact(
+                        artifact_name, artifact_type, artifact_content, artifact_metadata
+                    )
 
-            await asyncio.sleep(0.1)  # Simula operacao
+                elif integration in ("salesforce", "sfdc"):
+                    await self._restore_salesforce_artifact(
+                        artifact_name, artifact_type, artifact_content, artifact_metadata
+                    )
+
+                elif integration in ("azure_devops", "azdo", "azure"):
+                    await self._restore_azure_artifact(
+                        artifact_name, artifact_type, artifact_content, artifact_metadata
+                    )
+
+                else:
+                    logger.warning(f"Integracao {integration} nao suporta rollback automatico")
+                    await asyncio.sleep(0.1)
+
+            except Exception as e:
+                logger.error(f"Erro ao restaurar artefato {artifact_name}: {e}")
+                raise
 
         logger.info(f"Backup {backup.backup_id} restaurado")
+
+    async def _restore_sap_artifact(
+        self,
+        name: str,
+        artifact_type: str,
+        content: str,
+        metadata: dict
+    ):
+        """
+        Restaura artefato SAP via transporte reverso.
+
+        Estrategias:
+        - CDS View: Reimplanta versao anterior
+        - ABAP Class: Reimplanta versao anterior
+        - Transporte: Importa transporte de rollback
+        """
+        try:
+            from ..sap_s4hana import SAPS4HanaIntegration
+
+            sap = SAPS4HanaIntegration.from_environment()
+            if not sap:
+                raise ValueError("Integracao SAP nao configurada")
+
+            await sap.connect()
+
+            logger.info(f"Restaurando SAP [{artifact_type}]: {name}")
+
+            transport = metadata.get("original_transport")
+
+            if artifact_type == "cds_view":
+                await sap.deploy_cds_view(
+                    view_name=name,
+                    source=content,
+                    package=metadata.get("package", "$TMP"),
+                    transport=transport
+                )
+
+            elif artifact_type == "abap_class":
+                await sap.deploy_abap_class(
+                    class_name=name,
+                    source=content,
+                    package=metadata.get("package", "$TMP"),
+                    transport=transport
+                )
+
+            elif artifact_type == "transport":
+                if transport:
+                    await sap.import_transport(transport)
+
+            else:
+                logger.warning(f"Rollback SAP para tipo {artifact_type} nao implementado")
+
+        except ImportError:
+            logger.error("Modulo SAP S/4 HANA nao disponivel para rollback")
+        except Exception as e:
+            logger.error(f"Erro no rollback SAP: {e}")
+            raise
+
+    async def _restore_salesforce_artifact(
+        self,
+        name: str,
+        artifact_type: str,
+        content: str,
+        metadata: dict
+    ):
+        """
+        Restaura artefato Salesforce via Metadata API.
+        """
+        try:
+            from ..salesforce_connector import SalesforceConnector
+            from ..salesforce import SalesforceConfig
+
+            config = SalesforceConfig.from_env()
+            if not config.username:
+                raise ValueError("Connector Salesforce nao configurado")
+
+            sf = SalesforceConnector(config)
+            await sf.connect()
+
+            logger.info(f"Restaurando Salesforce [{artifact_type}]: {name}")
+
+            if artifact_type == "apex_class":
+                await sf.deploy_apex_class(
+                    class_name=name,
+                    body=content,
+                    api_version=metadata.get("api_version", "59.0")
+                )
+
+            elif artifact_type == "apex_trigger":
+                await sf.deploy_apex_trigger(
+                    trigger_name=name,
+                    body=content,
+                    sobject=metadata.get("sobject"),
+                    api_version=metadata.get("api_version", "59.0")
+                )
+
+            elif artifact_type == "lwc":
+                files = metadata.get("files", {})
+                if files:
+                    await sf.deploy_lwc(
+                        component_name=name,
+                        files=files,
+                        api_version=metadata.get("api_version", "59.0")
+                    )
+
+            elif artifact_type == "flow":
+                await sf.deploy_flow(
+                    flow_name=name,
+                    flow_definition=content
+                )
+
+            else:
+                await sf.deploy_metadata(
+                    metadata_type=artifact_type,
+                    full_name=name,
+                    content=content
+                )
+
+        except ImportError:
+            logger.error("Modulo Salesforce nao disponivel para rollback")
+        except Exception as e:
+            logger.error(f"Erro no rollback Salesforce: {e}")
+            raise
+
+    async def _restore_azure_artifact(
+        self,
+        name: str,
+        artifact_type: str,
+        content: str,
+        metadata: dict
+    ):
+        """
+        Restaura artefato Azure DevOps via revert.
+        """
+        try:
+            from ..azure_devops import AzureDevOpsIntegration, AzureDevOpsConfig
+
+            config = AzureDevOpsConfig.from_env()
+            if not config.is_valid():
+                raise ValueError("Integracao Azure DevOps nao configurada")
+
+            azure = AzureDevOpsIntegration(config)
+            await azure.connect()
+
+            logger.info(f"Restaurando Azure DevOps [{artifact_type}]: {name}")
+
+            if artifact_type == "repository":
+                commit_id = metadata.get("commit_id")
+                repo_id = metadata.get("repo_id")
+                if commit_id and repo_id:
+                    await azure.revert_commit(
+                        repo_id=repo_id,
+                        commit_id=commit_id
+                    )
+
+            elif artifact_type == "work_item":
+                work_item_id = metadata.get("work_item_id")
+                original_state = metadata.get("original_state", {})
+                if work_item_id and original_state:
+                    await azure.update_work_item(
+                        work_item_id=work_item_id,
+                        fields=original_state
+                    )
+
+            elif artifact_type == "pipeline":
+                logger.warning("Rollback de pipeline nao suportado")
+
+            else:
+                logger.warning(f"Rollback Azure DevOps para tipo {artifact_type} nao implementado")
+
+        except ImportError:
+            logger.error("Modulo Azure DevOps nao disponivel para rollback")
+        except Exception as e:
+            logger.error(f"Erro no rollback Azure DevOps: {e}")
+            raise
 
     async def _fetch_backup(self, backup_id: str) -> Optional[DeployBackup]:
         """Busca backup do storage externo"""

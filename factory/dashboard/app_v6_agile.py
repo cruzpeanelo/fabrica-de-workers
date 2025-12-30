@@ -730,6 +730,36 @@ class StoryMove(BaseModel):
     order: Optional[int] = None
 
 
+# Issue #236: Bulk Actions Schemas
+class BulkMoveRequest(BaseModel):
+    """Request para mover multiplas stories"""
+    ids: List[str]
+    status: str
+
+
+class BulkAssignRequest(BaseModel):
+    """Request para assignar multiplas stories"""
+    ids: List[str]
+    assignee: str
+
+
+class BulkPriorityRequest(BaseModel):
+    """Request para mudar prioridade de multiplas stories"""
+    ids: List[str]
+    priority: str
+
+
+class BulkDeleteRequest(BaseModel):
+    """Request para deletar multiplas stories"""
+    ids: List[str]
+
+
+class BulkLabelRequest(BaseModel):
+    """Request para adicionar label a multiplas stories"""
+    ids: List[str]
+    label: str
+
+
 class StoryTaskCreate(BaseModel):
     # Issue #319: story_id opcional pois vem da URL em POST /api/stories/{story_id}/tasks
     story_id: Optional[str] = None
@@ -931,6 +961,158 @@ def delete_story(story_id: str):
         if repo.delete(story_id):
             return {"message": "Story deleted"}
         raise HTTPException(404, "Story not found")
+    finally:
+        db.close()
+
+
+# =============================================================================
+# BULK ACTIONS - Issue #236
+# =============================================================================
+
+@app.post("/api/stories/bulk-move")
+def bulk_move_stories(request: BulkMoveRequest):
+    """Move multiplas stories para um novo status - Issue #236"""
+    db = SessionLocal()
+    try:
+        updated = []
+        errors = []
+
+        for story_id in request.ids:
+            story = db.query(Story).filter(Story.story_id == story_id).first()
+            if story:
+                story.status = request.status
+                story.updated_at = datetime.utcnow()
+                updated.append(story_id)
+            else:
+                errors.append({"id": story_id, "error": "not_found"})
+
+        db.commit()
+
+        return {
+            "updated": len(updated),
+            "updated_ids": updated,
+            "errors": errors
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/bulk-assign")
+def bulk_assign_stories(request: BulkAssignRequest):
+    """Assigna multiplas stories a um usuario - Issue #236"""
+    db = SessionLocal()
+    try:
+        updated = []
+        errors = []
+
+        for story_id in request.ids:
+            story = db.query(Story).filter(Story.story_id == story_id).first()
+            if story:
+                story.assignee = request.assignee
+                story.updated_at = datetime.utcnow()
+                updated.append(story_id)
+            else:
+                errors.append({"id": story_id, "error": "not_found"})
+
+        db.commit()
+
+        return {
+            "updated": len(updated),
+            "updated_ids": updated,
+            "errors": errors
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/bulk-priority")
+def bulk_priority_stories(request: BulkPriorityRequest):
+    """Muda prioridade de multiplas stories - Issue #236"""
+    db = SessionLocal()
+    try:
+        updated = []
+        errors = []
+
+        valid_priorities = ["low", "medium", "high", "urgent"]
+        if request.priority not in valid_priorities:
+            raise HTTPException(400, f"Prioridade invalida. Use: {valid_priorities}")
+
+        for story_id in request.ids:
+            story = db.query(Story).filter(Story.story_id == story_id).first()
+            if story:
+                story.priority = request.priority
+                story.updated_at = datetime.utcnow()
+                updated.append(story_id)
+            else:
+                errors.append({"id": story_id, "error": "not_found"})
+
+        db.commit()
+
+        return {
+            "updated": len(updated),
+            "updated_ids": updated,
+            "errors": errors
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/bulk-delete")
+def bulk_delete_stories(request: BulkDeleteRequest):
+    """Deleta multiplas stories (soft delete) - Issue #236"""
+    db = SessionLocal()
+    try:
+        deleted = []
+        errors = []
+
+        for story_id in request.ids:
+            story = db.query(Story).filter(Story.story_id == story_id).first()
+            if story:
+                story.is_deleted = True
+                story.deleted_at = datetime.utcnow()
+                deleted.append(story_id)
+            else:
+                errors.append({"id": story_id, "error": "not_found"})
+
+        db.commit()
+
+        return {
+            "deleted": len(deleted),
+            "deleted_ids": deleted,
+            "errors": errors
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/bulk-label")
+def bulk_label_stories(request: BulkLabelRequest):
+    """Adiciona label a multiplas stories - Issue #236"""
+    db = SessionLocal()
+    try:
+        updated = []
+        errors = []
+
+        for story_id in request.ids:
+            story = db.query(Story).filter(Story.story_id == story_id).first()
+            if story:
+                # Adicionar label sem duplicar
+                current_tags = story.tags or []
+                if request.label not in current_tags:
+                    current_tags.append(request.label)
+                    story.tags = current_tags
+                story.updated_at = datetime.utcnow()
+                updated.append(story_id)
+            else:
+                errors.append({"id": story_id, "error": "not_found"})
+
+        db.commit()
+
+        return {
+            "updated": len(updated),
+            "updated_ids": updated,
+            "errors": errors
+        }
     finally:
         db.close()
 
@@ -8465,16 +8647,16 @@ HTML_TEMPLATE = """
                             </button>
                             <div v-if="bulkDropdownOpen === 'priority'"
                                  class="absolute bottom-full left-0 mb-2 bg-white rounded-lg shadow-xl py-2 min-w-[140px] text-gray-700">
-                                <button @click="bulkSetPriority('urgent'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                <button @click="bulkPriorityStories('urgent'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-red-500"></span> Urgente
                                 </button>
-                                <button @click="bulkSetPriority('high'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                <button @click="bulkPriorityStories('high'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-orange-500"></span> Alta
                                 </button>
-                                <button @click="bulkSetPriority('medium'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                <button @click="bulkPriorityStories('medium'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Media
                                 </button>
-                                <button @click="bulkSetPriority('low'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                <button @click="bulkPriorityStories('low'); bulkDropdownOpen = null" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-green-500"></span> Baixa
                                 </button>
                             </div>
@@ -12664,9 +12846,10 @@ HTML_TEMPLATE = """
                 dailyData: []
             });
 
-            // Bulk Actions
+            // Bulk Actions - Issue #236
             const bulkSelectMode = ref(false);
             const selectedStories = ref([]);
+            const bulkDropdownOpen = ref(null);  // 'move', 'priority', 'assign' ou null
 
             const toggleBulkSelectMode = () => {
                 bulkSelectMode.value = !bulkSelectMode.value;
@@ -12689,17 +12872,20 @@ HTML_TEMPLATE = """
                 selectedStories.value = [];
             };
 
+            // Issue #236: Bulk Actions usando endpoints dedicados
             const bulkMoveStories = async (newStatus) => {
                 const count = selectedStories.value.length;
                 try {
-                    for (const storyId of selectedStories.value) {
-                        await fetch(`/api/stories/${storyId}/move`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                    }
-                    addToast('success', 'Stories movidas', count + ' stories movidas para ' + getColumnTitle(newStatus));
+                    const response = await fetch('/api/stories/bulk-move', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ids: selectedStories.value,
+                            status: newStatus
+                        })
+                    });
+                    const result = await response.json();
+                    addToast('success', 'Stories movidas', result.updated + ' stories movidas para ' + getColumnTitle(newStatus));
                     cancelBulkSelect();
                     loadProjectData();
                 } catch (e) {
@@ -12712,14 +12898,70 @@ HTML_TEMPLATE = """
                 if (!confirm('Tem certeza que deseja excluir ' + count + ' stories?')) return;
 
                 try {
-                    for (const storyId of selectedStories.value) {
-                        await fetch(`/api/stories/${storyId}`, { method: 'DELETE' });
-                    }
-                    addToast('success', 'Stories excluidas', count + ' stories foram excluidas');
+                    const response = await fetch('/api/stories/bulk-delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: selectedStories.value })
+                    });
+                    const result = await response.json();
+                    addToast('success', 'Stories excluidas', result.deleted + ' stories foram excluidas');
                     cancelBulkSelect();
                     loadProjectData();
                 } catch (e) {
                     addToast('error', 'Erro', 'Nao foi possivel excluir as stories');
+                }
+            };
+
+            // Issue #236: Selecionar todas stories visiveis
+            const selectAllVisibleStories = () => {
+                const allVisible = [];
+                for (const status of kanbanColumns.value) {
+                    const stories = filteredStoryBoard.value[status] || [];
+                    stories.forEach(s => allVisible.push(s.story_id));
+                }
+                selectedStories.value = allVisible;
+            };
+
+            // Issue #236: Assignar multiplas stories
+            const bulkAssign = async (member) => {
+                // member pode ser string, objeto {name: ...} ou null
+                const assignee = member ? (typeof member === 'string' ? member : member.name) : '';
+                try {
+                    const response = await fetch('/api/stories/bulk-assign', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ids: selectedStories.value,
+                            assignee: assignee
+                        })
+                    });
+                    const result = await response.json();
+                    const msg = assignee ? result.updated + ' stories atribuidas a ' + assignee : result.updated + ' stories sem atribuicao';
+                    addToast('success', 'Stories atualizadas', msg);
+                    cancelBulkSelect();
+                    loadProjectData();
+                } catch (e) {
+                    addToast('error', 'Erro', 'Nao foi possivel atribuir as stories');
+                }
+            };
+
+            // Issue #236: Mudar prioridade de multiplas stories
+            const bulkPriorityStories = async (priority) => {
+                try {
+                    const response = await fetch('/api/stories/bulk-priority', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ids: selectedStories.value,
+                            priority: priority
+                        })
+                    });
+                    const result = await response.json();
+                    addToast('success', 'Prioridade atualizada', result.updated + ' stories atualizadas');
+                    cancelBulkSelect();
+                    loadProjectData();
+                } catch (e) {
+                    addToast('error', 'Erro', 'Nao foi possivel atualizar a prioridade');
                 }
             };
 
@@ -14957,6 +15199,42 @@ Data: ${new Date().toISOString()}`;
                     moveStoryToStatus(selectedStory.value, newStatus);
                     return;
                 }
+
+                // Issue #236: Bulk Actions Shortcuts
+                // Cmd+A / Ctrl+A - Select all visible (in bulk mode)
+                if ((e.metaKey || e.ctrlKey) && e.key === 'a' && bulkSelectMode.value) {
+                    e.preventDefault();
+                    selectAllVisibleStories();
+                    return;
+                }
+
+                // Escape in bulk mode - cancel selection
+                if (e.key === 'Escape' && bulkSelectMode.value) {
+                    e.preventDefault();
+                    cancelBulkSelect();
+                    return;
+                }
+
+                // Delete in bulk mode - delete selected
+                if ((e.key === 'Delete' || e.key === 'Backspace') && bulkSelectMode.value && selectedStories.value.length > 0) {
+                    e.preventDefault();
+                    bulkDeleteStories();
+                    return;
+                }
+
+                // M in bulk mode - open move dropdown
+                if (e.key === 'm' && bulkSelectMode.value && selectedStories.value.length > 0 && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    bulkDropdownOpen.value = bulkDropdownOpen.value === 'move' ? null : 'move';
+                    return;
+                }
+
+                // B - Toggle bulk select mode
+                if (e.key === 'b' && selectedProjectId.value && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    toggleBulkSelectMode();
+                    return;
+                }
             };
 
             // Move story to status (for keyboard shortcuts)
@@ -15594,7 +15872,8 @@ Process ${data.status}`);
                 isDarkMode, toggleDarkMode,
                 showBurndownModal, burndownData, updateBurndownChart,
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
-                cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
+                cancelBulkSelect, bulkMoveStories, bulkDeleteStories, bulkDropdownOpen,
+                selectAllVisibleStories, bulkAssign, bulkPriorityStories,
                 terminalCommand, terminalRunning, previewUrl, previewViewport,
                 executeTerminalCommand, startApp, runTests, stopProcess, refreshPreview,
                 wsStatus, wsStatusText, wsStatusTitle, notificationSoundEnabled, toggleNotificationSound,
