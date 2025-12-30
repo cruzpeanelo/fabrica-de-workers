@@ -3,6 +3,7 @@ Autonomous Loop - Loop Autonomo de Geracao de Codigo v4.0
 Nova Arquitetura MVP - Fabrica de Agentes
 
 Integrado com Claude API para geracao e auto-fix de codigo.
+Issue #198: Sandbox isolation para workers
 
 Implementa o ciclo:
 1. Parse requirements
@@ -19,11 +20,14 @@ import subprocess
 import os
 import json
 import shutil
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+
+logger = logging.getLogger(__name__)
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -44,6 +48,12 @@ class LoopConfig:
     security_scan_enabled: bool = True
     auto_commit: bool = True
     project_base_dir: Path = PROJECTS_DIR
+    # Issue #198: Sandbox configuration
+    sandbox_enabled: bool = True  # Enable sandbox isolation
+    sandbox_timeout: int = 120  # Sandbox timeout in seconds
+    sandbox_memory_limit: str = "512m"  # Memory limit for sandbox
+    sandbox_cpu_limit: float = 1.0  # CPU limit (1 core)
+    sandbox_network: bool = False  # Allow network in sandbox
 
 
 @dataclass
@@ -69,6 +79,242 @@ class AutonomousLoop:
         self.config = config or LoopConfig()
         self._current_job_id: Optional[str] = None
         self._project_path: Optional[Path] = None
+        self._sandbox_executor = None
+        self._resource_limiter = None
+        self._init_sandbox()
+
+    def _init_sandbox(self):
+        """Issue #198: Initialize sandbox and resource limiter"""
+        if self.config.sandbox_enabled:
+            try:
+                from factory.core.sandbox_executor import (
+                    SandboxExecutor, SandboxConfig, get_sandbox_executor
+                )
+                from factory.core.resource_limiter import (
+                    ResourceLimiter, ResourceLimits, get_resource_limiter
+                )
+
+                # Configure sandbox
+                sandbox_config = SandboxConfig(
+                    cpu_limit=self.config.sandbox_cpu_limit,
+                    memory_limit=self.config.sandbox_memory_limit,
+                    timeout_seconds=self.config.sandbox_timeout,
+                    network_mode="bridge" if self.config.sandbox_network else "none"
+                )
+                self._sandbox_executor = get_sandbox_executor(sandbox_config)
+
+                # Configure resource limiter
+                resource_limits = ResourceLimits(
+                    max_execution_time=self.config.sandbox_timeout,
+                    max_memory_mb=int(self.config.sandbox_memory_limit.replace("m", "")),
+                    max_cpu_percent=self.config.sandbox_cpu_limit * 100
+                )
+                self._resource_limiter = get_resource_limiter(resource_limits)
+
+                logger.info("[AutonomousLoop] Sandbox and resource limiter initialized")
+            except ImportError as e:
+                logger.warning(f"[AutonomousLoop] Sandbox modules not available: {e}")
+                self._sandbox_executor = None
+                self._resource_limiter = None
+
+    async def _execute_in_sandbox(
+        self,
+        code: str,
+        language: str = "python",
+        files: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Issue #198: Execute code in sandboxed environment
+
+        Args:
+            code: Source code to execute
+            language: Programming language
+            files: Additional files to include
+
+        Returns:
+            Dict with success, stdout, stderr, execution_time
+        """
+        if not self._sandbox_executor:
+            # Fallback to direct execution (less secure)
+            return await self._execute_direct(code, language)
+
+        try:
+            # Start resource tracking
+            task_id = f"{self._current_job_id}-{datetime.now().timestamp()}"
+            if self._resource_limiter:
+                if not self._resource_limiter.start_task(task_id):
+                    return {
+                        "success": False,
+                        "stdout": "",
+                        "stderr": "Rate limit exceeded",
+                        "execution_time": 0
+                    }
+
+            # Execute in sandbox
+            result = await self._sandbox_executor.execute(
+                code=code,
+                language=language,
+                files=files
+            )
+
+            # End resource tracking
+            if self._resource_limiter:
+                usage = self._resource_limiter.end_task(task_id)
+                logger.info(f"[Sandbox] Task {task_id} resource usage: {usage}")
+
+            return {
+                "success": result.success,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "execution_time": result.execution_time,
+                "container_id": result.container_id,
+                "error": result.error
+            }
+
+        except Exception as e:
+            logger.error(f"[Sandbox] Execution error: {e}")
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": str(e),
+                "execution_time": 0,
+                "error": "SANDBOX_ERROR"
+            }
+
+    async def _execute_direct(self, code: str, language: str) -> Dict[str, Any]:
+        """Fallback direct execution when sandbox unavailable"""
+        import tempfile
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="direct_exec_") as tmpdir:
+                if language in ("python", "python3"):
+                    code_file = Path(tmpdir) / "main.py"
+                    code_file.write_text(code, encoding="utf-8")
+                    cmd = ["python", str(code_file)]
+                elif language in ("node", "javascript"):
+                    code_file = Path(tmpdir) / "main.js"
+                    code_file.write_text(code, encoding="utf-8")
+                    cmd = ["node", str(code_file)]
+                else:
+                    return {
+                        "success": False,
+                        "stdout": "",
+                        "stderr": f"Unsupported language: {language}",
+                        "execution_time": 0
+                    }
+
+                start = datetime.now()
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(),
+                    timeout=self.config.sandbox_timeout
+                )
+                execution_time = (datetime.now() - start).total_seconds()
+
+                return {
+                    "success": proc.returncode == 0,
+                    "stdout": stdout.decode("utf-8", errors="replace"),
+                    "stderr": stderr.decode("utf-8", errors="replace") + "\n[WARNING: Direct execution - no sandbox]",
+                    "execution_time": execution_time
+                }
+        except asyncio.TimeoutError:
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": f"Execution timed out after {self.config.sandbox_timeout}s",
+                "execution_time": self.config.sandbox_timeout,
+                "error": "TIMEOUT"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": str(e),
+                "execution_time": 0,
+                "error": "EXECUTION_ERROR"
+            }
+
+    async def _run_sandboxed_tests(self, test_file: Path) -> StepResult:
+        """Issue #198: Run tests in sandboxed environment"""
+        if not self._sandbox_executor:
+            return await self._run_direct_tests(test_file)
+
+        try:
+            # Read test file
+            test_code = test_file.read_text(encoding="utf-8")
+
+            # Read main code files
+            files = {}
+            for py_file in self._project_path.glob("**/*.py"):
+                if py_file != test_file and "__pycache__" not in str(py_file):
+                    rel_path = py_file.relative_to(self._project_path)
+                    files[str(rel_path)] = py_file.read_text(encoding="utf-8")
+
+            # Execute tests in sandbox
+            result = await self._execute_in_sandbox(
+                code=test_code,
+                language="python",
+                files=files
+            )
+
+            if result["success"]:
+                return StepResult(
+                    success=True,
+                    message="Tests passed (sandboxed)",
+                    output=result["stdout"]
+                )
+            else:
+                return StepResult(
+                    success=False,
+                    message="Tests failed (sandboxed)",
+                    output=result["stdout"] + result["stderr"],
+                    errors=result["stderr"].split("\n"),
+                    can_fix=True
+                )
+
+        except Exception as e:
+            return StepResult(
+                success=False,
+                message=f"Sandboxed test execution failed: {e}",
+                errors=[str(e)],
+                can_fix=True
+            )
+
+    async def _run_direct_tests(self, test_file: Path) -> StepResult:
+        """Fallback: run tests directly"""
+        try:
+            result = subprocess.run(
+                ["pytest", str(test_file), "-v", "--tb=short"],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=str(self._project_path)
+            )
+            if result.returncode == 0:
+                return StepResult(
+                    success=True,
+                    message="Tests passed",
+                    output=result.stdout
+                )
+            else:
+                return StepResult(
+                    success=False,
+                    message="Tests failed",
+                    output=result.stdout + result.stderr,
+                    errors=result.stderr.split("\n"),
+                    can_fix=True
+                )
+        except Exception as e:
+            return StepResult(
+                success=False,
+                message=f"Test execution failed: {e}",
+                errors=[str(e)],
+                can_fix=True
+            )
 
     # =========================================================================
     # MAIN LOOP
