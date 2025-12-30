@@ -51,6 +51,18 @@ from .ip_policy import (
 )
 from .ip_policy_routes import router as ip_policy_router
 
+# Encryption at Rest (Issue #344)
+from .encryption import (
+    EncryptionService,
+    KeyManager,
+    BulkEncryptor,
+    EncryptedString,
+    encrypted_column,
+    initialize_encryption,
+    is_encryption_available,
+)
+from .encryption_routes import router as encryption_router
+
 __all__ = [
     "VaultClient",
     "TenantIsolation",
@@ -80,4 +92,13 @@ __all__ = [
     "BlockReason",
     "GeoIPService",
     "ip_policy_router",
+    # Encryption at Rest (Issue #344)
+    "EncryptionService",
+    "KeyManager",
+    "BulkEncryptor",
+    "EncryptedString",
+    "encrypted_column",
+    "initialize_encryption",
+    "is_encryption_available",
+    "encryption_router",
 ]
