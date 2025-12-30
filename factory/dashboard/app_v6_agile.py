@@ -494,6 +494,13 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Sandbox Terminal not available: {e}")
 
+# Keyboard Shortcuts (Issue #226)
+try:
+    from factory.dashboard.keyboard_shortcuts import register_keyboard_shortcuts
+    register_keyboard_shortcuts(app)
+except ImportError as e:
+    print(f"[Dashboard] Keyboard Shortcuts not available: {e}")
+
 # Custom Kanban Columns (Issue #252)
 try:
     from factory.dashboard.custom_kanban_columns import register_custom_columns
