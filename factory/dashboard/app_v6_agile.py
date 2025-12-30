@@ -85,6 +85,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Issue #290: Security Middlewares (ordem importa - último adicionado executa primeiro)
+# 1. AuthorizationMiddleware - verifica permissões (executa DEPOIS do tenant)
+# 2. GlobalTenantMiddleware - extrai contexto do token (executa PRIMEIRO)
+try:
+    from factory.middleware.tenant_middleware import GlobalTenantMiddleware
+    from factory.middleware.authorization import AuthorizationMiddleware
+
+    # Authorization middleware (executa após tenant context ser definido)
+    app.add_middleware(
+        AuthorizationMiddleware,
+        enabled=True,
+        log_denials=True
+    )
+
+    # Tenant middleware (extrai user/tenant do JWT token)
+    app.add_middleware(GlobalTenantMiddleware)
+
+    print("[Security] Authorization and Tenant middlewares enabled")
+except ImportError as e:
+    print(f"[Security] WARNING: Security middlewares not available: {e}")
+except Exception as e:
+    print(f"[Security] WARNING: Failed to load security middlewares: {e}")
+
 # Diretorio de uploads
 UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
