@@ -25,6 +25,7 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { storiesApi, Story } from '../services/api';
+import { StoryCard } from '../components';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_WIDTH = SCREEN_WIDTH * 0.8;
@@ -177,77 +178,42 @@ export function KanbanScreen({ navigation }: any) {
                 </View>
               </View>
 
-              {/* Cards */}
+              {/* Cards - Usando StoryCard fiel ao dashboard web */}
               <ScrollView
                 style={styles.cardsContainer}
                 showsVerticalScrollIndicator={false}
               >
                 {columnStories.map((story) => (
-                  <TouchableOpacity
+                  <StoryCard
                     key={story.story_id}
-                    style={styles.card}
+                    story={story}
+                    columnColor={column.color}
                     onPress={() =>
                       navigation.navigate('StoryDetail', {
                         storyId: story.story_id,
                       })
                     }
-                  >
-                    <Text style={styles.cardTitle} numberOfLines={2}>
-                      {story.title}
-                    </Text>
-
-                    {/* Progress Bar */}
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBg}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            {
-                              width: `${story.progress || 0}%`,
-                              backgroundColor: column.color,
-                            },
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.progressText}>
-                        {story.progress || 0}%
-                      </Text>
-                    </View>
-
-                    {/* Card Footer */}
-                    <View style={styles.cardFooter}>
-                      <View style={styles.pointsBadge}>
-                        <Text style={styles.pointsText}>
-                          {story.story_points} pts
-                        </Text>
-                      </View>
-                      <Text style={styles.cardId}>{story.story_id}</Text>
-                    </View>
-
-                    {/* Quick Actions */}
-                    <View style={styles.quickActions}>
-                      {column.id !== 'done' && (
-                        <TouchableOpacity
-                          style={[
-                            styles.actionBtn,
-                            { backgroundColor: colors.success + '20' },
-                          ]}
-                          onPress={() => {
+                    onMoveNext={
+                      column.id !== 'done'
+                        ? () => {
                             const nextStatus = getNextStatus(column.id);
                             if (nextStatus) {
                               moveStory(story.story_id, nextStatus);
                             }
-                          }}
-                        >
-                          <Text
-                            style={[styles.actionText, { color: colors.success }]}
-                          >
-                            Avancar
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </TouchableOpacity>
+                          }
+                        : undefined
+                    }
+                    onDelete={async () => {
+                      try {
+                        await storiesApi.delete(story.story_id);
+                        setStories((prev) =>
+                          prev.filter((s) => s.story_id !== story.story_id)
+                        );
+                      } catch (error) {
+                        console.error('Erro ao deletar story:', error);
+                      }
+                    }}
+                  />
                 ))}
 
                 {columnStories.length === 0 && (

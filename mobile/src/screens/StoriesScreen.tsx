@@ -96,21 +96,33 @@ export function StoriesScreen({ navigation }: any) {
       }
     >
       <View style={styles.storyHeader}>
-        <Text style={styles.storyId}>{item.story_id}</Text>
-        <View
-          style={[
-            styles.priorityBadge,
-            { backgroundColor: getPriorityColor(item.priority, colors) + '20' },
-          ]}
-        >
-          <Text
+        {/* Epic Badge - igual ao dashboard web */}
+        {item.epic_name || item.epic_id ? (
+          <View style={styles.epicBadge}>
+            <Text style={styles.epicText}>
+              {item.epic_name || item.epic_id}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.storyId}>{item.story_id}</Text>
+        )}
+        <View style={styles.headerRight}>
+          <Text style={styles.pointsText}>{item.story_points} pts</Text>
+          <View
             style={[
-              styles.priorityText,
-              { color: getPriorityColor(item.priority, colors) },
+              styles.priorityBadge,
+              { backgroundColor: getPriorityColor(item.priority, colors) + '20' },
             ]}
           >
-            {item.priority || 'medium'}
-          </Text>
+            <Text
+              style={[
+                styles.priorityText,
+                { color: getPriorityColor(item.priority, colors) },
+              ]}
+            >
+              {item.priority || 'medium'}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -142,7 +154,10 @@ export function StoriesScreen({ navigation }: any) {
         </View>
 
         <View style={styles.storyMeta}>
-          <Text style={styles.storyPoints}>{item.story_points} pts</Text>
+          {/* Tasks count - igual ao dashboard web */}
+          <Text style={styles.tasksText}>
+            {item.tasks_completed || 0}/{item.tasks_total || 0} tasks
+          </Text>
           <View style={styles.progressMini}>
             <View
               style={[
@@ -151,9 +166,19 @@ export function StoriesScreen({ navigation }: any) {
               ]}
             />
           </View>
+          <Text style={styles.progressPercent}>{item.progress || 0}%</Text>
         </View>
 
-        <ChevronRight color={colors.textSecondary} size={20} />
+        {/* Assignee Avatar - igual ao dashboard web */}
+        {item.assignee ? (
+          <View style={styles.assigneeAvatar}>
+            <Text style={styles.assigneeText}>
+              {item.assignee.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        ) : (
+          <ChevronRight color={colors.textSecondary} size={20} />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -509,6 +534,27 @@ const createStyles = (colors: any) =>
       fontWeight: '600',
       color: colors.textSecondary,
     },
+    epicBadge: {
+      backgroundColor: colors.info + '20',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 4,
+    },
+    epicText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.info,
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    pointsText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
     priorityBadge: {
       paddingHorizontal: 8,
       paddingVertical: 2,
@@ -549,10 +595,10 @@ const createStyles = (colors: any) =>
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
     },
-    storyPoints: {
-      fontSize: 12,
+    tasksText: {
+      fontSize: 11,
       color: colors.textSecondary,
     },
     progressMini: {
@@ -565,6 +611,24 @@ const createStyles = (colors: any) =>
     progressMiniFill: {
       height: '100%',
       backgroundColor: colors.success,
+    },
+    progressPercent: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      minWidth: 30,
+    },
+    assigneeAvatar: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    assigneeText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textSecondary,
     },
     emptyState: {
       alignItems: 'center',
