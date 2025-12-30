@@ -486,32 +486,38 @@ class ActivityLogRepository:
         self.db.refresh(log)
         return log
 
-    def get_recent(self, limit: int = 100, project_id: str = None, job_id: str = None) -> List[ActivityLog]:
-        """Lista logs recentes"""
+    def get_recent(self, limit: int = 100, project_id: str = None, job_id: str = None,
+                   tenant_id: str = None) -> List[ActivityLog]:
+        """Lista logs recentes (Issue #188: filtra por tenant)"""
         query = self.db.query(ActivityLog)
+        if tenant_id:
+            query = query.filter(ActivityLog.tenant_id == tenant_id)
         if project_id:
             query = query.filter(ActivityLog.project_id == project_id)
         if job_id:
             query = query.filter(ActivityLog.job_id == job_id)
         return query.order_by(desc(ActivityLog.timestamp)).limit(limit).all()
 
-    def get_by_worker(self, worker_id: str, limit: int = 50) -> List[ActivityLog]:
-        """Lista logs de um worker"""
-        return self.db.query(ActivityLog).filter(
-            ActivityLog.worker_id == worker_id
-        ).order_by(desc(ActivityLog.timestamp)).limit(limit).all()
+    def get_by_worker(self, worker_id: str, tenant_id: str = None, limit: int = 50) -> List[ActivityLog]:
+        """Lista logs de um worker (Issue #188: filtra por tenant)"""
+        query = self.db.query(ActivityLog).filter(ActivityLog.worker_id == worker_id)
+        if tenant_id:
+            query = query.filter(ActivityLog.tenant_id == tenant_id)
+        return query.order_by(desc(ActivityLog.timestamp)).limit(limit).all()
 
-    def get_by_level(self, level: str, limit: int = 100) -> List[ActivityLog]:
-        """Lista logs por nivel"""
-        return self.db.query(ActivityLog).filter(
-            ActivityLog.level == level
-        ).order_by(desc(ActivityLog.timestamp)).limit(limit).all()
+    def get_by_level(self, level: str, tenant_id: str = None, limit: int = 100) -> List[ActivityLog]:
+        """Lista logs por nivel (Issue #188: filtra por tenant)"""
+        query = self.db.query(ActivityLog).filter(ActivityLog.level == level)
+        if tenant_id:
+            query = query.filter(ActivityLog.tenant_id == tenant_id)
+        return query.order_by(desc(ActivityLog.timestamp)).limit(limit).all()
 
-    def get_by_event_type(self, event_type: str, limit: int = 100) -> List[ActivityLog]:
-        """Lista logs por tipo de evento"""
-        return self.db.query(ActivityLog).filter(
-            ActivityLog.event_type == event_type
-        ).order_by(desc(ActivityLog.timestamp)).limit(limit).all()
+    def get_by_event_type(self, event_type: str, tenant_id: str = None, limit: int = 100) -> List[ActivityLog]:
+        """Lista logs por tipo de evento (Issue #188: filtra por tenant)"""
+        query = self.db.query(ActivityLog).filter(ActivityLog.event_type == event_type)
+        if tenant_id:
+            query = query.filter(ActivityLog.tenant_id == tenant_id)
+        return query.order_by(desc(ActivityLog.timestamp)).limit(limit).all()
 
 
 # =============================================================================

@@ -376,6 +376,12 @@ class Worker(Base):
     hostname = Column(String(100), nullable=True)
     ip_address = Column(String(50), nullable=True)
 
+    # Indices para performance em queries de workers
+    __table_args__ = (
+        Index('ix_workers_status_heartbeat', 'status', 'last_heartbeat'),
+        Index('ix_workers_current_job', 'current_job_id'),
+    )
+
     def to_dict(self):
         return {
             "worker_id": self.worker_id,
@@ -433,6 +439,13 @@ class FailureHistory(Base):
 
     # Timestamp
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Indices para analise de falhas
+    __table_args__ = (
+        Index('ix_failure_history_job_step', 'job_id', 'step'),
+        Index('ix_failure_history_error_type', 'error_type'),
+        Index('ix_failure_history_resolved', 'resolved', 'created_at'),
+    )
 
     def to_dict(self):
         return {
@@ -497,6 +510,13 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = Column(DateTime, nullable=True)
 
+    # Indices para busca e autenticacao de usuarios
+    __table_args__ = (
+        Index('ix_users_email', 'email'),
+        Index('ix_users_role_active', 'role', 'active'),
+        Index('ix_users_last_login', 'last_login'),
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -527,10 +547,18 @@ class User(Base):
 # =============================================================================
 
 class ActivityLog(Base):
-    """Modelo para Logs de Atividades"""
+    """
+    Modelo para Logs de Atividades
+
+    Multi-Tenancy (Issue #188):
+    - tenant_id para isolamento de dados
+    """
     __tablename__ = "activity_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Multi-Tenant: Isolamento de dados (Issue #188)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
 
     # Origem
     source = Column(String(50), nullable=False, index=True)
@@ -552,9 +580,18 @@ class ActivityLog(Base):
     # Timestamp
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
 
+    # Indices compostos para queries de logs
+    __table_args__ = (
+        Index('ix_activity_logs_project_timestamp', 'project_id', 'timestamp'),
+        Index('ix_activity_logs_level_timestamp', 'level', 'timestamp'),
+        Index('ix_activity_logs_source_event', 'source', 'event_type'),
+        Index('ix_activity_logs_job_timestamp', 'job_id', 'timestamp'),
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
+            "tenant_id": self.tenant_id,
             "source": self.source,
             "source_id": self.source_id,
             "project_id": self.project_id,
