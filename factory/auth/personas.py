@@ -150,14 +150,26 @@ class Persona:
     def has_permission(self, resource: str, action: str) -> bool:
         """Verifica se a persona tem a permissao especificada"""
         perm_key = f"{resource}:{action}"
+        all_perms = self.get_all_permissions()
 
-        # Verificar permissao wildcard
-        if f"{resource}:*" in self.get_all_permissions():
-            return True
-        if "*:*" in self.get_all_permissions():
+        # Verificar permissao exata
+        if perm_key in all_perms:
             return True
 
-        return perm_key in self.get_all_permissions()
+        # Verificar permissao wildcard de recurso
+        if f"{resource}:*" in all_perms:
+            return True
+
+        # Verificar permissao wildcard total
+        if "*:*" in all_perms:
+            return True
+
+        # Issue #353: 'manage' inclui todas as acoes basicas (create, read, update, delete)
+        if f"{resource}:manage" in all_perms:
+            if action in ["create", "read", "update", "delete", "manage"]:
+                return True
+
+        return False
 
     def can_access_feature(self, feature: str) -> bool:
         """Verifica se a persona pode acessar uma feature"""
