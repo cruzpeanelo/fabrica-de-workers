@@ -4339,6 +4339,144 @@ HTML_TEMPLATE = """
         .dark .search-footer kbd {
             background: #374151;
         }
+
+        /* ========== ISSUE #222 - QUICK CREATE FAB ========== */
+        .fab-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+        .fab-main {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FF6C00 0%, #FF8533 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(255, 108, 0, 0.4), 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .fab-main:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(255, 108, 0, 0.5), 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .fab-main.open {
+            transform: rotate(45deg);
+            background: linear-gradient(135deg, #003B4A 0%, #005566 100%);
+            box-shadow: 0 4px 12px rgba(0, 59, 74, 0.4);
+        }
+        .fab-icon {
+            transition: transform 0.3s ease;
+            line-height: 1;
+        }
+        .fab-menu {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px) scale(0.9);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+        .fab-menu.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .fab-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            transform-origin: right center;
+        }
+        .dark .fab-item {
+            background: #1F2937;
+            border-color: #374151;
+        }
+        .fab-item:hover {
+            transform: translateX(-8px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            border-color: #FF6C00;
+        }
+        .fab-item:nth-child(1) { animation-delay: 0.05s; }
+        .fab-item:nth-child(2) { animation-delay: 0.1s; }
+        .fab-item:nth-child(3) { animation-delay: 0.15s; }
+        .fab-item:nth-child(4) { animation-delay: 0.2s; }
+        .fab-item:nth-child(5) { animation-delay: 0.25s; }
+        .fab-menu.open .fab-item {
+            animation: fabItemIn 0.3s ease forwards;
+        }
+        @keyframes fabItemIn {
+            from { opacity: 0; transform: translateX(20px) scale(0.8); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .fab-item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        .fab-item-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1F2937;
+        }
+        .dark .fab-item-label {
+            color: #F9FAFB;
+        }
+        .fab-item-shortcut {
+            font-size: 11px;
+            color: #9CA3AF;
+            margin-left: auto;
+            font-family: monospace;
+            background: #F3F4F6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .dark .fab-item-shortcut {
+            background: #374151;
+            color: #6B7280;
+        }
+        .fab-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 999;
+        }
+        .fab-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Mobile adjustment */
+        @media (max-width: 768px) {
+            .fab-container {
+                bottom: 80px;
+            }
+            .fab-item-shortcut {
+                display: none;
+            }
+        }
         </style>
 </head>
 <body class="bg-gray-100">
@@ -7277,7 +7415,47 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        
+        <!-- ISSUE #222 - QUICK CREATE FAB -->
+        <div class="fab-backdrop" :class="{ 'open': fabMenuOpen }" @click="fabMenuOpen = false"></div>
+        <div class="fab-container" v-click-outside="closeFabMenu">
+            <button class="fab-main"
+                    :class="{ 'open': fabMenuOpen }"
+                    @click="toggleFabMenu"
+                    :aria-expanded="fabMenuOpen"
+                    aria-label="Criar novo item">
+                <span class="fab-icon">➕</span>
+            </button>
+
+            <div class="fab-menu" :class="{ 'open': fabMenuOpen }" role="menu">
+                <button class="fab-item" role="menuitem" @click="fabAction('story')">
+                    <span class="fab-item-icon">📄</span>
+                    <span class="fab-item-label">Nova Story</span>
+                    <span class="fab-item-shortcut">⇧⌘S</span>
+                </button>
+                <button class="fab-item" role="menuitem" @click="fabAction('task')" v-if="selectedStory">
+                    <span class="fab-item-icon">☑️</span>
+                    <span class="fab-item-label">Nova Task</span>
+                    <span class="fab-item-shortcut">⇧⌘T</span>
+                </button>
+                <button class="fab-item" role="menuitem" @click="fabAction('epic')" v-if="selectedProjectId">
+                    <span class="fab-item-icon">🎯</span>
+                    <span class="fab-item-label">Novo Epic</span>
+                    <span class="fab-item-shortcut">⇧⌘E</span>
+                </button>
+                <button class="fab-item" role="menuitem" @click="fabAction('sprint')" v-if="selectedProjectId">
+                    <span class="fab-item-icon">🏃</span>
+                    <span class="fab-item-label">Novo Sprint</span>
+                    <span class="fab-item-shortcut">⇧⌘P</span>
+                </button>
+                <button class="fab-item" role="menuitem" @click="fabAction('project')">
+                    <span class="fab-item-icon">📁</span>
+                    <span class="fab-item-label">Novo Projeto</span>
+                    <span class="fab-item-shortcut">⇧⌘N</span>
+                </button>
+            </div>
+        </div>
+
+
         <!-- PROJECT PREVIEW DASHBOARD MODAL (Issue #73) -->
         <div v-if="showProjectPreview && selectedProjectId"
              class="fixed inset-0 bg-black/50 z-50 overflow-y-auto"
@@ -7983,6 +8161,50 @@ HTML_TEMPLATE = """
                 if (!query || !text) return text;
                 const regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
                 return text.replace(regex, '<mark>$1</mark>');
+            };
+
+            // ========== ISSUE #222 - QUICK CREATE FAB ==========
+            const fabMenuOpen = ref(false);
+
+            const toggleFabMenu = () => {
+                fabMenuOpen.value = !fabMenuOpen.value;
+            };
+
+            const closeFabMenu = () => {
+                fabMenuOpen.value = false;
+            };
+
+            const fabAction = (type) => {
+                closeFabMenu();
+                switch (type) {
+                    case 'story':
+                        showNewStoryModal.value = true;
+                        break;
+                    case 'task':
+                        if (selectedStory.value) {
+                            showNewTaskModal.value = true;
+                        } else {
+                            addToast('warning', 'Selecione uma Story', 'Para criar uma task, primeiro selecione uma story.');
+                        }
+                        break;
+                    case 'epic':
+                        if (selectedProjectId.value) {
+                            showNewEpicModal.value = true;
+                        } else {
+                            addToast('warning', 'Selecione um Projeto', 'Para criar um epic, primeiro selecione um projeto.');
+                        }
+                        break;
+                    case 'sprint':
+                        if (selectedProjectId.value) {
+                            showNewSprintModal.value = true;
+                        } else {
+                            addToast('warning', 'Selecione um Projeto', 'Para criar um sprint, primeiro selecione um projeto.');
+                        }
+                        break;
+                    case 'project':
+                        showProjectWizard.value = true;
+                        break;
+                }
             };
 
             // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
@@ -10933,6 +11155,8 @@ Process ${data.status}`);
                 globalSearchFilters, openGlobalSearch, closeGlobalSearch, setGlobalSearchFilter,
                 debouncedGlobalSearch, handleGlobalSearchKey, navigateToSearchResult,
                 applySearchHistory, highlightMatch, getGlobalSearchIndex,
+                // Issue #222: Quick Create FAB
+                fabMenuOpen, toggleFabMenu, closeFabMenu, fabAction,
                 contextMenu, isLoading,
                 // Issue #155: Voice Input
                 voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,

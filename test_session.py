@@ -48,6 +48,20 @@ async def test_dashboard():
             print(f"[ERRO] Pagina inicial: {e}")
             issues.append({"test": "home", "error": str(e)})
 
+        print("\n=== TESTE 1.5: Fechar Onboarding Tour ===")
+        try:
+            # Tentar fechar o onboarding overlay se existir
+            onboarding = await page.query_selector('.onboarding-overlay')
+            if onboarding:
+                print("  Onboarding detectado, fechando...")
+                await onboarding.click()
+                await asyncio.sleep(0.5)
+                print("[OK] Onboarding fechado")
+            else:
+                print("  Nenhum onboarding ativo")
+        except Exception as e:
+            print(f"[WARN] Erro ao fechar onboarding: {e}")
+
         print("\n=== TESTE 2: Navegacao e Links ===")
         try:
             # Procurar links de navegacao
@@ -160,6 +174,92 @@ async def test_dashboard():
         except Exception as e:
             print(f"[ERRO] Responsividade: {e}")
             issues.append({"test": "responsive", "error": str(e)})
+
+        print("\n=== TESTE 6: Command Palette (Ctrl+K) ===")
+        try:
+            await page.keyboard.press('Control+k')
+            await asyncio.sleep(0.5)
+
+            palette = await page.query_selector('.command-palette, [role="dialog"], .modal')
+            if palette and await palette.is_visible():
+                print("[OK] Command Palette abriu com Ctrl+K")
+                await page.screenshot(path='screenshots/05_command_palette.png')
+                # Fechar palette
+                await page.keyboard.press('Escape')
+            else:
+                print("[WARN] Command Palette nao abriu")
+                issues.append({"test": "command_palette", "error": "Command Palette nao abriu com Ctrl+K"})
+
+        except Exception as e:
+            print(f"[ERRO] Command Palette: {e}")
+            issues.append({"test": "command_palette", "error": str(e)})
+
+        print("\n=== TESTE 7: Dark Mode Toggle ===")
+        try:
+            # Procurar toggle de dark mode
+            dark_toggle = await page.query_selector('[title*="modo"], [title*="theme"], button:has-text("Dark"), .dark-toggle')
+            if dark_toggle:
+                await dark_toggle.click()
+                await asyncio.sleep(0.5)
+                await page.screenshot(path='screenshots/06_dark_mode.png')
+                print("[OK] Dark mode toggle encontrado e clicado")
+            else:
+                # Tentar pelo icone
+                moon_icon = await page.query_selector('button:has-text("lua"), button:has-text("moon")')
+                if moon_icon:
+                    await moon_icon.click()
+                    await asyncio.sleep(0.5)
+                    print("[OK] Toggle de tema encontrado")
+                else:
+                    print("[WARN] Toggle de dark mode nao encontrado")
+
+        except Exception as e:
+            print(f"[ERRO] Dark Mode: {e}")
+
+        print("\n=== TESTE 8: Breadcrumb Navigation ===")
+        try:
+            breadcrumb = await page.query_selector('.breadcrumb, nav[aria-label="breadcrumb"], .breadcrumbs')
+            if breadcrumb:
+                print("[OK] Breadcrumb encontrado")
+                crumbs = await breadcrumb.query_selector_all('a, span, li')
+                print(f"  {len(crumbs)} itens no breadcrumb")
+            else:
+                print("[WARN] Breadcrumb nao encontrado")
+                issues.append({"test": "breadcrumb", "error": "Navegacao breadcrumb nao encontrada"})
+
+        except Exception as e:
+            print(f"[ERRO] Breadcrumb: {e}")
+
+        print("\n=== TESTE 9: API Health Check ===")
+        try:
+            # Testar endpoint de health
+            api_response = await page.evaluate('''async () => {
+                try {
+                    const res = await fetch('/api/stories');
+                    return { status: res.status, ok: res.ok };
+                } catch(e) {
+                    return { error: e.message };
+                }
+            }''')
+            print(f"  API /api/stories: {api_response}")
+
+        except Exception as e:
+            print(f"[ERRO] API: {e}")
+
+        print("\n=== TESTE 10: Console Errors ===")
+        try:
+            errors = await page.evaluate('''() => {
+                return window.__consoleErrors || [];
+            }''')
+            if errors:
+                print(f"[WARN] {len(errors)} erros no console")
+                for err in errors[:5]:
+                    print(f"  - {err}")
+            else:
+                print("[OK] Nenhum erro critico no console detectado")
+
+        except Exception as e:
+            print(f"  Nao foi possivel verificar console: {e}")
 
         print("\n=== RESUMO ===")
         print(f"Issues encontradas: {len(issues)}")
