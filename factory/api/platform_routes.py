@@ -311,25 +311,12 @@ async def list_tenants(
             db.close()
 
     except Exception as e:
+        # Issue #318: Propagar erros em vez de retornar dados mock
         logger.error(f"Error listing tenants: {e}")
-        # Return mock data if DB not fully configured
-        return {
-            "success": True,
-            "tenants": [
-                {
-                    "tenant_id": "TENANT-DEFAULT",
-                    "name": "Default Tenant",
-                    "slug": "default",
-                    "plan": "professional",
-                    "status": "active",
-                    "created_at": datetime.utcnow().isoformat(),
-                    "stats": {"projects": 0, "stories": 0}
-                }
-            ],
-            "total": 1,
-            "limit": limit,
-            "offset": offset
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error while listing tenants: {str(e)}"
+        )
 
 
 @router.get("/tenants/{tenant_id}")

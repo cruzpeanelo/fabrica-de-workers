@@ -411,24 +411,12 @@ async def get_user_tenants(request: Request):
             db.close()
 
     except Exception as e:
+        # Issue #318: Propagar erros em vez de retornar dados mock
         logger.error(f"Error getting user tenants: {e}")
-        # Return mock data
-        return {
-            "success": True,
-            "tenants": [
-                {
-                    "tenant_id": current_tenant_id or "TENANT-DEFAULT",
-                    "name": "My Organization",
-                    "slug": "default",
-                    "plan": "professional",
-                    "role": role.lower(),
-                    "is_current": True,
-                    "branding": None
-                }
-            ],
-            "current": current_tenant_id,
-            "can_switch": False
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error while getting user tenants: {str(e)}"
+        )
 
 
 @router.post("/switch-tenant")
