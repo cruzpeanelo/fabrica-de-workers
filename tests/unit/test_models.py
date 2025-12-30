@@ -58,12 +58,11 @@ class TestProjectModel:
         assert ProjectStatus.ARCHIVED.value == "ARCHIVED"
 
     @pytest.mark.unit
-    def test_project_relationships(self, db_session, sample_project, sample_story, sample_sprint):
-        """Test project relationships with stories and sprints"""
+    def test_project_relationships(self, db_session, sample_project, sample_story):
+        """Test project relationships with stories"""
         db_session.refresh(sample_project)
 
         assert len(sample_project.stories) >= 1
-        assert len(sample_project.sprints) >= 1
         assert sample_project.stories[0].story_id == sample_story.story_id
 
 
@@ -78,16 +77,16 @@ class TestStoryModel:
             project_id=sample_project.project_id,
             title="Another Story",
             description="Test story",
-            status="BACKLOG",
-            sprint=1,
-            points=5
+            status="backlog",
+            sprint_id="SPR-001",
+            story_points=5
         )
         db_session.add(story)
         db_session.commit()
 
         assert story.id is not None
         assert story.story_id == "US-002"
-        assert story.points == 5
+        assert story.story_points == 5
 
     @pytest.mark.unit
     def test_story_to_dict(self, sample_story):
@@ -106,10 +105,12 @@ class TestStoryModel:
         data = sample_story.to_dict()
         narrative = data["narrative"]
 
-        assert "persona" in narrative
-        assert "action" in narrative
-        assert "benefit" in narrative
-        assert "full" in narrative
+        # Narrative is a formatted string containing persona, action, benefit
+        assert isinstance(narrative, str)
+        assert "Como um" in narrative
+        assert sample_story.persona in narrative
+        assert sample_story.action in narrative
+        assert sample_story.benefit in narrative
 
     @pytest.mark.unit
     def test_story_acceptance_criteria(self, sample_story):
@@ -218,18 +219,17 @@ class TestTaskModel:
         """Test creating a new task"""
         task = Task(
             task_id="TASK-001",
-            task_type="development",
             project_id=sample_project.project_id,
             title="Implement Feature",
-            status=TaskStatus.PENDING.value,
-            priority=3
+            status=TaskStatus.BACKLOG.value,
+            priority="high"
         )
         db_session.add(task)
         db_session.commit()
 
         assert task.id is not None
         assert task.task_id == "TASK-001"
-        assert task.status == "pending"
+        assert task.status == "backlog"
 
     @pytest.mark.unit
     def test_task_to_dict(self, sample_task):
@@ -237,17 +237,16 @@ class TestTaskModel:
         data = sample_task.to_dict()
 
         assert "task_id" in data
-        assert "task_type" in data
         assert "status" in data
         assert "priority" in data
 
     @pytest.mark.unit
     def test_task_status_enum(self):
         """Test TaskStatus enum values"""
-        assert TaskStatus.PENDING.value == "pending"
-        assert TaskStatus.IN_PROGRESS.value == "in_progress"
-        assert TaskStatus.COMPLETED.value == "completed"
-        assert TaskStatus.FAILED.value == "failed"
+        assert TaskStatus.BACKLOG.value == "backlog"
+        assert TaskStatus.TODO.value == "todo"
+        assert TaskStatus.IN_DEVELOPMENT.value == "in_development"
+        assert TaskStatus.DONE.value == "done"
 
 
 class TestSprintModel:
@@ -257,8 +256,8 @@ class TestSprintModel:
     def test_sprint_creation(self, db_session, sample_project):
         """Test creating a new sprint"""
         sprint = Sprint(
+            sprint_id="SPR-TEST-002",
             project_id=sample_project.project_id,
-            sprint_number=2,
             name="Sprint 2",
             status="planned",
             goal="Implement core features"
@@ -267,14 +266,14 @@ class TestSprintModel:
         db_session.commit()
 
         assert sprint.id is not None
-        assert sprint.sprint_number == 2
+        assert sprint.sprint_id == "SPR-TEST-002"
 
     @pytest.mark.unit
     def test_sprint_to_dict(self, sample_sprint):
         """Test sprint serialization"""
         data = sample_sprint.to_dict()
 
-        assert "sprint_number" in data
+        assert "sprint_id" in data
         assert "name" in data
         assert "status" in data
         assert "goal" in data
@@ -324,7 +323,6 @@ class TestActivityLogModel:
         log = ActivityLog(
             source="test",
             source_id=sample_agent.agent_id,
-            agent_id=sample_agent.agent_id,
             level="INFO",
             event_type="test_event",
             message="Test log message"
