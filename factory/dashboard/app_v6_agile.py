@@ -29,7 +29,7 @@ sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect, Cookie, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -48,7 +48,8 @@ from factory.database.models import (
     StoryDesign, DesignType,
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
-    TaskPriority
+    TaskPriority,
+    Tenant, TenantMember
 )
 from factory.database.repositories import (
     ProjectRepository, ActivityLogRepository,
@@ -120,6 +121,13 @@ except ImportError as e:
 from factory.dashboard.analytics_endpoints import register_analytics_endpoints
 register_analytics_endpoints(app, SessionLocal, Story, Sprint, HAS_CLAUDE, get_claude_client if HAS_CLAUDE else None)
 
+# Analytics Page with Charts (Issue #65 Enhancement)
+try:
+    from factory.dashboard.analytics_page import register_analytics_page
+    register_analytics_page(app)
+except ImportError as e:
+    print(f"[Dashboard] Analytics Page not available: {e}")
+
 # Admin API Routes (Issue #87 - User Administration)
 try:
     from factory.api.admin_routes import router as admin_router
@@ -161,6 +169,29 @@ try:
     print("[Dashboard] Admin Portal loaded")
 except ImportError as e:
     print(f"[Dashboard] Admin Portal not available: {e}")
+
+# Executive Dashboard - KPIs de Alto Nivel
+try:
+    from factory.dashboard.executive_dashboard import register_executive_endpoints
+    register_executive_endpoints(app, SessionLocal, Story, Sprint)
+    print("[Dashboard] Executive Dashboard loaded: /executive")
+except ImportError as e:
+    print(f"[Dashboard] Executive Dashboard not available: {e}")
+
+# Billing Page (Issue #89) - Pagina /billing com graficos e faturas
+try:
+    from factory.dashboard.billing_routes import register_billing_routes
+    register_billing_routes(app)
+except ImportError as e:
+    print(f"[Dashboard] Billing Page not available: {e}")
+
+# Integrations Panel (Issue #154)
+try:
+    from factory.dashboard.integrations_panel import register_integrations_endpoints
+    register_integrations_endpoints(app)
+    print("[Dashboard] Integrations Panel loaded")
+except ImportError as e:
+    print(f"[Dashboard] Integrations Panel not available: {e}")
 
 
 # =============================================================================
@@ -1911,16 +1942,77 @@ def complete_sprint(sprint_id: str):
 
 
 # =============================================================================
+# API ENDPOINTS - TENANT SELECTOR (Multi-Tenancy)
+# =============================================================================
+
+@app.get("/api/tenants")
+def list_tenants(current_tenant: Optional[str] = Cookie(None)):
+    """Lista tenants disponiveis para o usuario atual"""
+    db = SessionLocal()
+    try:
+        tenants = db.query(Tenant).filter(Tenant.status == 'active').all()
+        result = []
+        for t in tenants:
+            result.append({
+                'tenant_id': t.tenant_id,
+                'id': t.tenant_id,
+                'name': t.name,
+                'slug': t.slug,
+                'plan': t.plan
+            })
+        return result
+    finally:
+        db.close()
+
+
+@app.post("/api/tenant/select")
+def select_tenant(request: dict, response: Response):
+    """Seleciona tenant ativo para a sessao"""
+    tenant_id = request.get('tenant_id')
+    if tenant_id:
+        db = SessionLocal()
+        try:
+            tenant = db.query(Tenant).filter(Tenant.tenant_id == tenant_id).first()
+            if not tenant:
+                raise HTTPException(404, "Tenant not found")
+            response.set_cookie(key="current_tenant", value=tenant_id, max_age=86400*30, httponly=False, samesite="lax")
+            return {"success": True, "tenant_id": tenant_id, "tenant_name": tenant.name}
+        finally:
+            db.close()
+    else:
+        response.delete_cookie(key="current_tenant")
+        return {"success": True, "tenant_id": None}
+
+
+@app.get("/api/tenant/current")
+def get_current_tenant(current_tenant: Optional[str] = Cookie(None)):
+    """Retorna o tenant atual da sessao"""
+    if not current_tenant:
+        return {"tenant_id": None, "tenant_name": None}
+    db = SessionLocal()
+    try:
+        tenant = db.query(Tenant).filter(Tenant.tenant_id == current_tenant).first()
+        if tenant:
+            return {"tenant_id": tenant.tenant_id, "tenant_name": tenant.name}
+        return {"tenant_id": None, "tenant_name": None}
+    finally:
+        db.close()
+
+
+# =============================================================================
 # API ENDPOINTS - PROJECTS
 # =============================================================================
 
 @app.get("/api/projects")
-def list_projects():
-    """Lista projetos"""
+def list_projects(current_tenant: Optional[str] = Cookie(None)):
+    """Lista projetos, filtrados pelo tenant selecionado"""
     db = SessionLocal()
     try:
         repo = ProjectRepository(db)
         projects = repo.get_all()
+        # Filtrar por tenant se selecionado
+        if current_tenant:
+            projects = [p for p in projects if getattr(p, 'tenant_id', None) == current_tenant or not getattr(p, 'tenant_id', None)]
         return [p.to_dict() for p in projects]
     finally:
         db.close()
@@ -2191,6 +2283,25 @@ HTML_TEMPLATE = """
     <!-- xterm.js for terminal -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-docker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-toml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-ini.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <!-- PDF.js for PDF viewing -->
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <style>
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -2205,6 +2316,21 @@ HTML_TEMPLATE = """
         .text-belgo-orange { color: var(--belgo-orange); }
         .border-belgo-orange { border-color: var(--belgo-orange); }
         .hover-belgo-orange:hover { background-color: var(--belgo-orange); }
+        /* File Viewer */ .file-viewer-modal { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .file-viewer-header { background: rgba(0,0,0,0.3); padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .file-viewer-content { background: #1e1e2e; border-radius: 8px; margin: 16px; overflow: hidden; }
+        .file-viewer-code { max-height: calc(80vh - 180px); overflow: auto; }
+        .file-viewer-code pre { margin: 0; padding: 16px; font-size: 13px; line-height: 1.6; background: #2d2d2d; }
+        .markdown-body { padding: 24px; background: white; color: #333; max-height: calc(80vh - 180px); overflow: auto; }
+        .markdown-body h1 { font-size: 2em; border-bottom: 1px solid #eee; } .markdown-body h2 { font-size: 1.5em; }
+        .markdown-body code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+        .markdown-body pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 8px; }
+        .pdf-viewer-container { background: #525659; padding: 16px; max-height: calc(80vh - 180px); overflow: auto; }
+        .image-viewer-container { background: #1a1a2e; padding: 24px; display: flex; align-items: center; justify-content: center; }
+        .image-viewer-container img { max-width: 100%; max-height: 60vh; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+        .file-viewer-btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .file-viewer-btn.primary { background: #FF6C00; color: white; border: none; }
+        .file-viewer-btn.secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
 
         .story-card { transition: all 0.2s; cursor: grab; }
         .story-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -2800,6 +2926,168 @@ HTML_TEMPLATE = """
         }
         .dark-mode-toggle:hover { background: rgba(255,255,255,0.1); }
         .dark-mode-icon { font-size: 1.1rem; }
+
+        /* ===================== ENHANCED FILE UPLOAD - Issue #185 ===================== */
+        .upload-dropzone {
+            border: 2px dashed #D1D5DB;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #F9FAFB;
+            cursor: pointer;
+        }
+        .upload-dropzone:hover {
+            border-color: #FF6C00;
+            background: #FFF7ED;
+        }
+        .upload-dropzone.drag-over {
+            border-color: #FF6C00;
+            background: #FFF7ED;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(255, 108, 0, 0.15);
+        }
+        .upload-dropzone-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #003B4A 0%, #005566 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        .upload-progress-bar {
+            height: 6px;
+            background: #E5E7EB;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .upload-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6C00, #FF8C3A);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .upload-file-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .upload-file-item:hover {
+            border-color: #D1D5DB;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .upload-file-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .upload-file-icon.pdf { background: #FEE2E2; color: #DC2626; }
+        .upload-file-icon.doc { background: #DBEAFE; color: #2563EB; }
+        .upload-file-icon.video { background: #F3E8FF; color: #9333EA; }
+        .upload-file-icon.image { background: #D1FAE5; color: #059669; }
+        .upload-file-icon.text { background: #F3F4F6; color: #6B7280; }
+        .upload-file-icon.default { background: #E5E7EB; color: #374151; }
+        .upload-thumbnail {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .upload-file-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .upload-file-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #111827;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .upload-file-meta {
+            font-size: 0.75rem;
+            color: #6B7280;
+            display: flex;
+            gap: 8px;
+            margin-top: 2px;
+        }
+        .upload-file-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .upload-action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #6B7280;
+        }
+        .upload-action-btn:hover {
+            background: #F3F4F6;
+            color: #111827;
+        }
+        .upload-action-btn.danger:hover {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+        .upload-status-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .upload-status-badge.uploading {
+            background: #DBEAFE;
+            color: #2563EB;
+        }
+        .upload-status-badge.success {
+            background: #D1FAE5;
+            color: #059669;
+        }
+        .upload-status-badge.error {
+            background: #FEE2E2;
+            color: #DC2626;
+        }
+        .upload-filter-chip {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid #E5E7EB;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-filter-chip:hover {
+            border-color: #D1D5DB;
+        }
+        .upload-filter-chip.active {
+            background: #003B4A;
+            color: white;
+            border-color: #003B4A;
+        }
 
         /* Bulk Actions */
         .bulk-toolbar {
@@ -3418,7 +3706,49 @@ HTML_TEMPLATE = """
             color: #003B4A;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-    </style>
+
+        /* Integrations Page Styles */
+        .integrations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px 0; }
+        .integration-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1px solid #E5E7EB; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+        .integration-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); border-color: #003B4A; }
+        .integration-icon { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; color: white; }
+        .integration-icon.github { background: linear-gradient(135deg, #24292E 0%, #404448 100%); }
+        .integration-icon.jira { background: linear-gradient(135deg, #0052CC 0%, #2684FF 100%); }
+        .integration-icon.azure { background: linear-gradient(135deg, #0078D4 0%, #00BCF2 100%); }
+        .integration-icon.sap { background: linear-gradient(135deg, #0FAAFF 0%, #00AEEF 100%); }
+        .integration-icon.slack { background: linear-gradient(135deg, #4A154B 0%, #611F69 100%); }
+        .integration-icon.teams { background: linear-gradient(135deg, #5059C9 0%, #7B83EB 100%); }
+        .integration-card h3 { font-size: 1.1rem; font-weight: 600; color: #1F2937; margin: 0; }
+        .integration-card p { font-size: 0.85rem; color: #6B7280; margin: 0; }
+        .integration-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+        .integration-status.connected { background: #DCFCE7; color: #15803D; }
+        .integration-status.disconnected { background: #FEE2E2; color: #B91C1C; }
+        .integration-status.loading { background: #FEF3C7; color: #B45309; }
+        .integration-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .integration-status.connected .integration-status-dot { background: #22C55E; }
+        .integration-status.disconnected .integration-status-dot { background: #EF4444; }
+        .integration-status.loading .integration-status-dot { background: #F59E0B; animation: pulse 1.5s infinite; }
+        .btn-configure { padding: 8px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-configure.primary { background: linear-gradient(135deg, #003B4A 0%, #005566 100%); color: white; }
+        .btn-configure.primary:hover { background: linear-gradient(135deg, #004d5f 0%, #006677 100%); transform: translateY(-1px); }
+        .btn-configure.secondary { background: #F3F4F6; color: #374151; border: 1px solid #E5E7EB; }
+        .btn-configure.secondary:hover { background: #E5E7EB; }
+        .btn-configure.danger { background: #FEE2E2; color: #B91C1C; }
+        .btn-configure.danger:hover { background: #FECACA; }
+        .integrations-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #E5E7EB; }
+        .integrations-header h2 { font-size: 1.5rem; font-weight: 600; color: #1F2937; margin: 0; }
+        .integrations-header p { font-size: 0.9rem; color: #6B7280; margin: 4px 0 0 0; }
+        .integration-config-form { display: flex; flex-direction: column; gap: 16px; }
+        .integration-config-form .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .integration-config-form label { font-size: 0.85rem; font-weight: 500; color: #374151; }
+        .integration-config-form input { padding: 10px 14px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 0.9rem; }
+        .integration-config-form input:focus { outline: none; border-color: #003B4A; box-shadow: 0 0 0 3px rgba(0, 59, 74, 0.1); }
+        .dark .integration-card { background: #1F2937; border-color: #374151; }
+        .dark .integration-card h3 { color: #F9FAFB; }
+        .dark .integration-card p { color: #9CA3AF; }
+        .dark .integrations-header h2 { color: #F9FAFB; }
+        .dark .integrations-header { border-color: #374151; }
+        </style>
 </head>
 <body class="bg-gray-100">
     <div id="app" :class="{ 'dark': isDarkMode }">
@@ -3446,6 +3776,24 @@ HTML_TEMPLATE = """
                     </div>
 
                     <div class="flex items-center gap-4">
+                        <!-- Issue #158 - Tenant Selector -->
+                        <div v-if="userTenants.length > 1" class="hide-on-mobile" style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(255,255,255,0.1);border-radius:8px;border:1px solid rgba(255,255,255,0.2);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <div style="display:flex;flex-direction:column;min-width:100px;">
+                                <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Tenant</span>
+                                <select v-model="selectedTenantId" @change="onTenantChange" style="background:transparent;border:none;color:white;font-size:13px;font-weight:500;cursor:pointer;padding:0;min-width:100px;">
+                                    <option v-for="tenant in userTenants" :key="tenant.tenant_id" :value="tenant.tenant_id" style="background:white;color:#374151;">{{ tenant.name }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div v-else-if="userTenants.length === 1" class="hide-on-mobile" style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(255,255,255,0.1);border-radius:8px;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <div style="display:flex;flex-direction:column;">
+                                <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Tenant</span>
+                                <span style="font-size:13px;font-weight:500;">{{ currentTenantName }}</span>
+                            </div>
+                        </div>
+
                         <!-- Projeto Selecionado -->
                         <select v-model="selectedProjectId" @change="loadProjectData"
                                 class="bg-white/10 text-white border border-white/20 rounded px-3 py-1.5 text-sm">
@@ -3666,6 +4014,18 @@ HTML_TEMPLATE = """
                             <span>+</span> Configurar Conexao
                         </button>
                     </div>
+
+                    <!-- Integrations Menu -->
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Integracoes</h3>
+                        <button @click="showIntegrationsModal = true; loadIntegrationsStatus()"
+                                class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                            Gerenciar Integracoes
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -3696,6 +4056,23 @@ HTML_TEMPLATE = """
                     </div>
                     <div v-else class="text-center py-12 text-gray-500">Selecione um projeto para ver as metricas.</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- MODAL: File Viewer -->
+        <div v-if="showFileViewer" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center" @click.self="closeFileViewer">
+            <div class="file-viewer-modal rounded-xl w-[95vw] max-w-[1200px] max-h-[90vh] shadow-2xl overflow-hidden">
+                <div class="file-viewer-header flex justify-between items-center text-white"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center"><svg v-if="fileViewerData.fileType === 'code'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg><svg v-else-if="fileViewerData.fileType === 'markdown'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><svg v-else-if="fileViewerData.fileType === 'pdf'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div><h2 class="text-lg font-semibold">{{ fileViewerData.file?.name }}</h2><div class="flex items-center gap-2 text-sm text-white/60"><span class="file-info-badge">{{ fileViewerData.language || fileViewerData.fileType }}</span><span v-if="fileViewerData.file?.size">{{ formatFileSize(fileViewerData.file.size) }}</span></div></div></div><button @click="closeFileViewer" class="text-white/70 hover:text-white text-2xl font-bold">&times;</button></div>
+                <div class="file-viewer-content"><div v-if="fileViewerData.loading" class="flex items-center justify-center py-20"><div class="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full"></div></div><div v-else-if="fileViewerData.error" class="flex flex-col items-center justify-center py-20 text-red-400"><p>{{ fileViewerData.error }}</p></div><div v-else-if="fileViewerData.fileType === 'code'" class="file-viewer-code line-numbers"><pre :class="'language-' + fileViewerData.language"><code :class="'language-' + fileViewerData.language">{{ fileViewerData.content }}</code></pre></div><div v-else-if="fileViewerData.fileType === 'markdown'" class="markdown-body" v-html="renderMarkdown(fileViewerData.content)"></div><div v-else-if="fileViewerData.fileType === 'pdf'" class="pdf-viewer-container"><iframe :src="fileViewerData.file?.url" class="w-full h-[70vh] border-0 rounded-lg"></iframe></div><div v-else-if="fileViewerData.fileType === 'image'" class="image-viewer-container"><img :src="fileViewerData.file?.url" :alt="fileViewerData.file?.name"></div></div>
+                <div class="file-viewer-toolbar"><button @click="downloadViewerFile" class="file-viewer-btn secondary"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Download</button><button v-if="fileViewerData.fileType === 'code'" @click="copyFileContent" class="file-viewer-btn secondary"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>Copiar</button><button @click="openInNewTab" class="file-viewer-btn primary ml-auto"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>Abrir</button></div>
+            </div>
+        </div>
+
+        <!-- MODAL: Doc Viewer -->
+        <div v-if="showDocViewer" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center" @click.self="closeDocViewer">
+            <div class="bg-white rounded-xl w-[95vw] max-w-[900px] max-h-[90vh] shadow-2xl overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white"><div><h2 class="text-lg font-semibold">{{ docViewerData.doc?.title }}</h2><span class="text-sm text-white/70">{{ docViewerData.doc?.doc_type }}</span></div><div class="flex items-center gap-2"><button @click="toggleDocEditMode" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-sm">{{ docViewerData.editMode ? 'Visualizar' : 'Editar' }}</button><button @click="closeDocViewer" class="text-white/70 hover:text-white text-xl">&times;</button></div></div>
+                <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 120px);"><div v-if="docViewerData.editMode"><textarea v-model="docViewerData.editContent" class="w-full h-[60vh] p-4 border rounded-lg font-mono text-sm resize-none"></textarea><div class="mt-4 flex justify-end gap-2"><button @click="docViewerData.editMode = false" class="px-4 py-2 border rounded hover:bg-gray-100">Cancelar</button><button @click="saveDocContent" class="px-4 py-2 bg-[#FF6C00] text-white rounded hover:bg-[#e56000]">Salvar</button></div></div><div v-else class="markdown-body" v-html="renderMarkdown(docViewerData.doc?.content || '')"></div></div>
             </div>
         </div>
 
@@ -3811,9 +4188,116 @@ HTML_TEMPLATE = """
                             </div>
                         </div>
                         <div class="wizard-buttons">
-                            <button class="wizard-btn secondary" @click="showIntegrationWizard = false">
-                                Cancelar
-                            </button>
+                            <button class="wizard-btn secondary" @click="showIntegrationWizard = false">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Integrations Dashboard -->
+        <div v-if="showIntegrationsModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showIntegrationsModal = false">
+            <div class="bg-white rounded-lg w-[95vw] max-w-[1000px] max-h-[90vh] shadow-xl overflow-hidden dark:bg-gray-800">
+                <div class="p-4 border-b flex justify-between items-center bg-[#003B4A] text-white rounded-t-lg">
+                    <div>
+                        <h2 class="text-lg font-semibold">Integracoes</h2>
+                        <p class="text-sm text-blue-200">Conecte ferramentas externas ao seu projeto</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button @click="loadIntegrationsStatus()" class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-sm transition">Atualizar Status</button>
+                        <button @click="showIntegrationsModal = false" class="text-white/70 hover:text-white text-xl">X</button>
+                    </div>
+                </div>
+                <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);">
+                    <div v-if="integrationsLoading" class="flex items-center justify-center py-12">
+                        <div class="spinner"></div>
+                        <span class="ml-3">Carregando integracoes...</span>
+                    </div>
+                    <div v-else class="integrations-grid">
+                        <!-- GitHub -->
+                        <div class="integration-card">
+                            <div class="integration-icon github">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                            </div>
+                            <h3>GitHub</h3>
+                            <p>Sincronize issues e commits com seu repositorio</p>
+                            <span :class="['integration-status', integrationsStatus.github?.connected ? 'connected' : 'disconnected']">
+                                <span class="integration-status-dot"></span>
+                                {{ integrationsStatus.github?.connected ? 'Conectado' : 'Desconectado' }}
+                            </span>
+                            <button v-if="integrationsStatus.github?.connected" @click="openIntegrationConfig('github')" class="btn-configure secondary">Configurar</button>
+                            <button v-else @click="openIntegrationConfig('github')" class="btn-configure primary">Conectar</button>
+                        </div>
+                        <!-- Jira -->
+                        <div class="integration-card">
+                            <div class="integration-icon jira">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 11.429h.857v.857h-.857zm0 1.714h.857v.857h-.857zm-2.571-1.714h.857v.857h-.857zm0 1.714h.857v.857h-.857zm5.143-1.714h.857v.857h-.857zm0 1.714h.857v.857h-.857zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.286 14.286H7.714V7.714h8.572v8.572z"/></svg>
+                            </div>
+                            <h3>Jira</h3>
+                            <p>Sincronize tarefas e sprints com o Jira</p>
+                            <span :class="['integration-status', integrationsStatus.jira?.connected ? 'connected' : 'disconnected']">
+                                <span class="integration-status-dot"></span>
+                                {{ integrationsStatus.jira?.connected ? 'Conectado' : 'Desconectado' }}
+                            </span>
+                            <button v-if="integrationsStatus.jira?.connected" @click="openIntegrationConfig('jira')" class="btn-configure secondary">Configurar</button>
+                            <button v-else @click="openIntegrationConfig('jira')" class="btn-configure primary">Conectar</button>
+                        </div>
+                        <!-- Azure DevOps -->
+                        <div class="integration-card">
+                            <div class="integration-icon azure">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M0 8.877L2.247 5.91l8.405-3.416V.022l7.37 5.393L2.966 8.338v8.225L0 15.707zm24-4.45v14.651l-5.753 4.9-9.303-3.057v3.056l-5.978-7.416 15.057 1.798V5.415z"/></svg>
+                            </div>
+                            <h3>Azure DevOps</h3>
+                            <p>Integre com pipelines e work items</p>
+                            <span :class="['integration-status', integrationsStatus.azure_devops?.connected ? 'connected' : 'disconnected']">
+                                <span class="integration-status-dot"></span>
+                                {{ integrationsStatus.azure_devops?.connected ? 'Conectado' : 'Desconectado' }}
+                            </span>
+                            <button v-if="integrationsStatus.azure_devops?.connected" @click="openIntegrationConfig('azure_devops')" class="btn-configure secondary">Configurar</button>
+                            <button v-else @click="openIntegrationConfig('azure_devops')" class="btn-configure primary">Conectar</button>
+                        </div>
+                        <!-- SAP -->
+                        <div class="integration-card">
+                            <div class="integration-icon sap">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                            </div>
+                            <h3>SAP</h3>
+                            <p>Conecte com sistemas SAP ERP</p>
+                            <span class="integration-status disconnected"><span class="integration-status-dot"></span>Em breve</span>
+                            <button class="btn-configure secondary" disabled>Em desenvolvimento</button>
+                        </div>
+                        <!-- Slack -->
+                        <div class="integration-card">
+                            <div class="integration-icon slack">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/></svg>
+                            </div>
+                            <h3>Slack</h3>
+                            <p>Receba notificacoes em tempo real</p>
+                            <span class="integration-status disconnected"><span class="integration-status-dot"></span>Em breve</span>
+                            <button class="btn-configure secondary" disabled>Em desenvolvimento</button>
+                        </div>
+                        <!-- Microsoft Teams -->
+                        <div class="integration-card">
+                            <div class="integration-icon teams">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 3H4.5A1.5 1.5 0 003 4.5v15A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019.5 3zm-9 15h-3v-9h3v9zm6 0h-3v-6h3v6z"/></svg>
+                            </div>
+                            <h3>Microsoft Teams</h3>
+                            <p>Integre com canais e chats do Teams</p>
+                            <span class="integration-status disconnected"><span class="integration-status-dot"></span>Em breve</span>
+                            <button class="btn-configure secondary" disabled>Em desenvolvimento</button>
+                        </div>
+                    </div>
+                    <!-- Issue #154: Integration Configuration Panel -->
+                    <div class="mt-6 pt-6 border-t">
+                        <h3 class="text-lg font-semibold mb-4">Configurar Integracao</h3>
+                        <div class="border-b bg-gray-50 mb-4"><div class="flex"><button v-for="tab in integrationTabs" :key="tab.id" @click="activeIntegrationTab = tab.id; loadIntegrationConfigs()" :class="['px-4 py-2 text-sm border-b-2', activeIntegrationTab === tab.id ? 'border-[#FF6C00] text-[#FF6C00] bg-white' : 'border-transparent text-gray-500']">{{ tab.label }}<span v-if="integrationConfigs[tab.id]?.connected" class="ml-1 w-2 h-2 bg-green-500 rounded-full inline-block"></span></button></div></div>
+                        <div class="bg-white p-4 rounded-lg border">
+                            <div v-if="activeIntegrationTab === 'github'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">Token</label><input type="password" v-model="integrationConfigs.github.token" class="w-full px-3 py-2 border rounded" placeholder="ghp_xxx"></div><div><label class="block text-sm font-medium mb-1">Owner</label><input type="text" v-model="integrationConfigs.github.owner" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Repo</label><input type="text" v-model="integrationConfigs.github.repo" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Branch</label><input type="text" v-model="integrationConfigs.github.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
+                            <div v-if="activeIntegrationTab === 'gitlab'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">URL</label><input type="text" v-model="integrationConfigs.gitlab.url" class="w-full px-3 py-2 border rounded" placeholder="https://gitlab.com"></div><div><label class="block text-sm font-medium mb-1">Token</label><input type="password" v-model="integrationConfigs.gitlab.token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Project ID</label><input type="text" v-model="integrationConfigs.gitlab.project_id" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Branch</label><input type="text" v-model="integrationConfigs.gitlab.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
+                            <div v-if="activeIntegrationTab === 'sap'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label class="block text-sm font-medium mb-1">System URL</label><input type="text" v-model="integrationConfigs.sap.host" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Client</label><input type="text" v-model="integrationConfigs.sap.client" class="w-full px-3 py-2 border rounded" placeholder="100"></div><div><label class="block text-sm font-medium mb-1">Environment</label><select v-model="integrationConfigs.sap.environment" class="w-full px-3 py-2 border rounded"><option value="cloud">Cloud</option><option value="private">Private</option><option value="on_premise">On-Premise</option></select></div><div><label class="block text-sm font-medium mb-1">Username</label><input type="text" v-model="integrationConfigs.sap.username" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Password</label><input type="password" v-model="integrationConfigs.sap.password" class="w-full px-3 py-2 border rounded"></div></div>
+                            <div v-if="activeIntegrationTab === 'salesforce'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">Client ID</label><input type="text" v-model="integrationConfigs.salesforce.client_id" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Client Secret</label><input type="password" v-model="integrationConfigs.salesforce.client_secret" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Username</label><input type="text" v-model="integrationConfigs.salesforce.username" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Security Token</label><input type="password" v-model="integrationConfigs.salesforce.security_token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Domain</label><select v-model="integrationConfigs.salesforce.domain" class="w-full px-3 py-2 border rounded"><option value="login">Production</option><option value="test">Sandbox</option></select></div></div>
+                            <div v-if="activeIntegrationTab === 'jira'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label class="block text-sm font-medium mb-1">Jira URL</label><input type="text" v-model="integrationConfigs.jira.url" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Email</label><input type="email" v-model="integrationConfigs.jira.email" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">API Token</label><input type="password" v-model="integrationConfigs.jira.token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Project Key</label><input type="text" v-model="integrationConfigs.jira.project_key" class="w-full px-3 py-2 border rounded"></div></div>
+                            <div class="mt-4 flex justify-between"><button @click="testIntegration(activeIntegrationTab)" :disabled="integrationTesting === activeIntegrationTab" class="px-4 py-2 bg-gray-600 text-white rounded disabled:opacity-50">{{ integrationTesting === activeIntegrationTab ? 'Testando...' : 'Testar Conexao' }}</button><button @click="saveIntegration(activeIntegrationTab)" :disabled="integrationSaving === activeIntegrationTab" class="px-4 py-2 bg-[#FF6C00] text-white rounded disabled:opacity-50">{{ integrationSaving === activeIntegrationTab ? 'Salvando...' : 'Salvar' }}</button></div>
                         </div>
                     </div>
                 </div>
@@ -4595,31 +5079,137 @@ HTML_TEMPLATE = """
                         <p v-else class="text-gray-400 text-sm italic">Nenhuma documentacao. Use "Gerar com IA" para criar automaticamente.</p>
                     </div>
 
-                    <!-- Tab: Anexos -->
+                    <!-- Tab: Anexos (Enhanced - Issue #185) -->
                     <div v-if="activeTab === 'Anexos'" class="p-4">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-semibold">Anexos</h3>
-                            <label class="text-sm bg-[#FF6C00] text-white px-3 py-1 rounded hover:bg-orange-600 cursor-pointer">
-                                + Upload
-                                <input type="file" class="hidden" @change="uploadFile">
-                            </label>
-                        </div>
-
-                        <div v-if="selectedStory.files?.length" class="space-y-2">
-                            <div v-for="file in selectedStory.files" :key="file.attachment_id"
-                                 class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xl">📎</span>
-                                    <div>
-                                        <div class="text-sm font-medium">{{ file.original_filename }}</div>
-                                        <div class="text-xs text-gray-500">{{ formatFileSize(file.file_size) }}</div>
-                                    </div>
-                                </div>
-                                <a :href="'/api/attachments/' + file.attachment_id"
-                                   class="text-blue-600 text-sm hover:underline">Download</a>
+                            <h3 class="font-semibold">Arquivos e Midias</h3>
+                            <div class="flex gap-2">
+                                <label class="text-sm bg-[#FF6C00] text-white px-3 py-1 rounded hover:bg-orange-600 cursor-pointer flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                    </svg>
+                                    Upload
+                                    <input type="file" class="hidden" multiple @change="handleMultipleFileUpload"
+                                           accept=".pdf,.doc,.docx,.txt,.md,.mp4,.mov,.avi,.png,.jpg,.jpeg,.gif">
+                                </label>
                             </div>
                         </div>
-                        <p v-else class="text-gray-400 text-sm italic">Nenhum anexo</p>
+
+                        <!-- Drag and Drop Zone -->
+                        <div class="upload-dropzone mb-4"
+                             :class="{ 'drag-over': isDraggingFile }"
+                             @dragover.prevent="isDraggingFile = true"
+                             @dragleave.prevent="isDraggingFile = false"
+                             @drop.prevent="handleFileDrop"
+                             @click="$refs.dropzoneInput.click()">
+                            <div class="upload-dropzone-icon">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                            </div>
+                            <p class="text-gray-700 font-medium mb-1">Arraste arquivos aqui</p>
+                            <p class="text-gray-500 text-sm mb-3">ou clique para selecionar</p>
+                            <div class="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+                                <span class="px-2 py-1 bg-gray-100 rounded">PDF</span>
+                                <span class="px-2 py-1 bg-gray-100 rounded">DOC/DOCX</span>
+                                <span class="px-2 py-1 bg-gray-100 rounded">TXT/MD</span>
+                                <span class="px-2 py-1 bg-gray-100 rounded">MP4/MOV/AVI</span>
+                                <span class="px-2 py-1 bg-gray-100 rounded">PNG/JPG/GIF</span>
+                            </div>
+                            <input type="file" class="hidden" ref="dropzoneInput" multiple
+                                   @change="handleMultipleFileUpload"
+                                   accept=".pdf,.doc,.docx,.txt,.md,.mp4,.mov,.avi,.png,.jpg,.jpeg,.gif">
+                        </div>
+
+                        <!-- Upload Progress Queue -->
+                        <div v-if="uploadQueue.length" class="mb-4 space-y-2">
+                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Enviando...</div>
+                            <div v-for="item in uploadQueue" :key="item.id" class="upload-file-item">
+                                <div :class="['upload-file-icon', getFileIconClass(item.file.name)]">
+                                    {{ getFileIcon(item.file.name) }}
+                                </div>
+                                <div class="upload-file-info">
+                                    <div class="upload-file-name">{{ item.file.name }}</div>
+                                    <div class="upload-progress-bar">
+                                        <div class="upload-progress-fill" :style="{ width: item.progress + '%' }"></div>
+                                    </div>
+                                </div>
+                                <span :class="['upload-status-badge', item.status]">
+                                    {{ item.status === 'uploading' ? item.progress + '%' : item.status === 'success' ? 'Concluido' : 'Erro' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- File Type Filter -->
+                        <div v-if="selectedStory.files?.length" class="flex gap-2 mb-4 flex-wrap">
+                            <button @click="uploadFileFilter = 'all'"
+                                    :class="['upload-filter-chip', uploadFileFilter === 'all' ? 'active' : '']">
+                                Todos ({{ selectedStory.files?.length || 0 }})
+                            </button>
+                            <button @click="uploadFileFilter = 'document'"
+                                    :class="['upload-filter-chip', uploadFileFilter === 'document' ? 'active' : '']">
+                                Documentos ({{ countFilesByType('document') }})
+                            </button>
+                            <button @click="uploadFileFilter = 'video'"
+                                    :class="['upload-filter-chip', uploadFileFilter === 'video' ? 'active' : '']">
+                                Videos ({{ countFilesByType('video') }})
+                            </button>
+                            <button @click="uploadFileFilter = 'image'"
+                                    :class="['upload-filter-chip', uploadFileFilter === 'image' ? 'active' : '']">
+                                Imagens ({{ countFilesByType('image') }})
+                            </button>
+                        </div>
+
+                        <!-- Files List -->
+                        <div v-if="filteredUploadFiles.length" class="space-y-2">
+                            <div v-for="file in filteredUploadFiles" :key="file.attachment_id"
+                                 class="upload-file-item">
+                                <!-- Thumbnail for images -->
+                                <img v-if="isImageFile(file.original_filename) && file.attachment_id"
+                                     :src="'/api/attachments/' + file.attachment_id"
+                                     :alt="file.original_filename"
+                                     class="upload-thumbnail">
+                                <!-- File icon for non-images -->
+                                <div v-else :class="['upload-file-icon', getFileIconClass(file.original_filename)]">
+                                    {{ getFileIcon(file.original_filename) }}
+                                </div>
+                                <div class="upload-file-info">
+                                    <div class="upload-file-name">{{ file.original_filename }}</div>
+                                    <div class="upload-file-meta">
+                                        <span>{{ formatFileSize(file.file_size) }}</span>
+                                        <span>{{ getFileTypeName(file.original_filename) }}</span>
+                                        <span v-if="file.created_at">{{ formatUploadDate(file.created_at) }}</span>
+                                    </div>
+                                </div>
+                                <div class="upload-file-actions">
+                                    <a :href="'/api/attachments/' + file.attachment_id"
+                                       class="upload-action-btn" title="Download" download>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                    </a>
+                                    <button @click="previewFile(file)" class="upload-action-btn" title="Visualizar"
+                                            v-if="canPreviewFile(file.original_filename)">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                    <button @click="deleteUploadedFile(file)" class="upload-action-btn danger" title="Excluir">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="!uploadQueue.length" class="text-center py-8">
+                            <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="text-gray-400 text-sm">Nenhum arquivo anexado</p>
+                            <p class="text-gray-300 text-xs mt-1">Arraste arquivos ou clique em Upload</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4720,7 +5310,20 @@ HTML_TEMPLATE = """
             <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800">
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
                     <h2 class="text-lg font-semibold">Nova User Story</h2>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-3">
+                        <!-- Issue #155: Voice Input Button -->
+                        <button @click="toggleVoiceInput"
+                                :class="['flex items-center gap-1 px-3 py-1 rounded transition-all',
+                                         voiceRecording ? 'bg-red-500 animate-pulse' : 'bg-white/20 hover:bg-white/30']"
+                                :title="voiceRecording ? 'Parar gravacao' : 'Gravar por voz'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path v-if="!voiceRecording" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                            </svg>
+                            <span class="text-sm">{{ voiceRecording ? 'Parar' : 'Voz' }}</span>
+                        </button>
                         <span class="text-sm opacity-80">Template:</span>
                         <select v-model="selectedTemplate" @change="applyTemplate"
                                 class="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white">
@@ -4731,6 +5334,21 @@ HTML_TEMPLATE = """
                             <option value="spike">Spike/Pesquisa</option>
                             <option value="improvement">Melhoria</option>
                         </select>
+                    </div>
+                </div>
+                <!-- Voice Recording Status -->
+                <div v-if="voiceRecording || voiceProcessing" class="bg-blue-50 dark:bg-blue-900/30 p-3 border-b flex items-center gap-3">
+                    <div v-if="voiceRecording" class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm">Gravando... Fale sua user story</span>
+                        <span class="text-xs opacity-70">{{ voiceRecordingTime }}s</span>
+                    </div>
+                    <div v-else-if="voiceProcessing" class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm">Processando audio com IA...</span>
                     </div>
                 </div>
                 <div class="p-6 space-y-4">
@@ -5801,6 +6419,46 @@ HTML_TEMPLATE = """
             const analyticsLoading = ref(false);
             const analyticsDays = ref(30);
 
+            // ========== TENANT SELECTOR (Multi-Tenancy) ==========
+            const userTenants = ref([]);
+            const selectedTenantId = ref('');
+            const currentTenantName = computed(() => {
+                const tenant = userTenants.value.find(t => t.tenant_id === selectedTenantId.value);
+                return tenant ? tenant.name : '';
+            });
+
+            const loadTenants = async () => {
+                try {
+                    const res = await fetch('/api/tenants');
+                    userTenants.value = await res.json();
+                    const currentRes = await fetch('/api/tenant/current');
+                    const current = await currentRes.json();
+                    if (current.tenant_id) {
+                        selectedTenantId.value = current.tenant_id;
+                    } else if (userTenants.value.length > 0) {
+                        selectedTenantId.value = userTenants.value[0].tenant_id;
+                        await onTenantChange();
+                    }
+                } catch (e) {
+                    console.error('Error loading tenants:', e);
+                }
+            };
+
+            const onTenantChange = async () => {
+                if (!selectedTenantId.value) return;
+                try {
+                    await fetch('/api/tenant/select', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenant_id: selectedTenantId.value })
+                    });
+                    await loadProjects();
+                    addToast('success', 'Tenant selecionado', currentTenantName.value);
+                } catch (e) {
+                    addToast('error', 'Erro ao selecionar tenant', e.message);
+                }
+            };
+
             // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
             const businessTerms = {
                 'story': 'funcionalidade',
@@ -5970,6 +6628,112 @@ HTML_TEMPLATE = """
             const selectIntegration = (integration) => {
                 addToast('info', 'Em breve', `Integracao com ${integration.name} em desenvolvimento`);
                 showIntegrationWizard.value = false;
+            };
+
+            // ========== INTEGRATIONS DASHBOARD ==========
+            const showIntegrationsModal = ref(false);
+            const integrationsLoading = ref(false);
+            const integrationsStatus = ref({
+                github: { connected: false, status: 'disconnected' },
+                jira: { connected: false, status: 'disconnected' },
+                azure_devops: { connected: false, status: 'disconnected' }
+            });
+
+            const loadIntegrationsStatus = async () => {
+                integrationsLoading.value = true;
+                try {
+                    const res = await fetch('/api/integrations/status');
+                    if (res.ok) {
+                        const data = await res.json();
+                        integrationsStatus.value = {
+                            github: data.github || { connected: false, status: 'disconnected' },
+                            jira: data.jira || { connected: false, status: 'disconnected' },
+                            azure_devops: data.azure_devops || { connected: false, status: 'disconnected' }
+                        };
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar status das integracoes:', e);
+                } finally {
+                    integrationsLoading.value = false;
+                }
+            };
+
+            const openIntegrationConfig = (integrationType) => {
+                // Set the active tab and load configurations
+                activeIntegrationTab.value = integrationType;
+                loadIntegrationConfigs();
+            };
+
+            // ========== ISSUE #154 - INTEGRATIONS MANAGEMENT ==========
+            const showIntegrationConfigModal = ref(false);
+            const activeIntegrationTab = ref('github');
+            const integrationTesting = ref(null);
+            const integrationSaving = ref(null);
+            const integrationTabs = [
+                { id: 'github', label: 'GitHub' },
+                { id: 'gitlab', label: 'GitLab' },
+                { id: 'sap', label: 'SAP S/4HANA' },
+                { id: 'salesforce', label: 'Salesforce' },
+                { id: 'jira', label: 'Jira' }
+            ];
+            const integrationConfigs = ref({
+                github: { token: '', owner: '', repo: '', branch: 'main', connected: false },
+                gitlab: { url: 'https://gitlab.com', token: '', project_id: '', branch: 'main', connected: false },
+                sap: { host: '', client: '100', username: '', password: '', environment: 'cloud', connected: false },
+                salesforce: { client_id: '', client_secret: '', username: '', security_token: '', domain: 'login', connected: false },
+                jira: { url: '', email: '', token: '', project_key: '', connected: false }
+            });
+
+            const loadIntegrationConfigs = async () => {
+                try {
+                    const res = await fetch('/api/integrations/config');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.github) integrationConfigs.value.github = { ...integrationConfigs.value.github, ...data.github };
+                        if (data.gitlab) integrationConfigs.value.gitlab = { ...integrationConfigs.value.gitlab, ...data.gitlab };
+                        if (data.sap) integrationConfigs.value.sap = { ...integrationConfigs.value.sap, ...data.sap };
+                        if (data.salesforce) integrationConfigs.value.salesforce = { ...integrationConfigs.value.salesforce, ...data.salesforce };
+                        if (data.jira) integrationConfigs.value.jira = { ...integrationConfigs.value.jira, ...data.jira };
+                    }
+                } catch (e) { console.error('Erro ao carregar configs:', e); }
+            };
+
+            const testIntegration = async (type) => {
+                integrationTesting.value = type;
+                try {
+                    const res = await fetch('/api/integrations/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ integration_type: type, config: integrationConfigs.value[type] })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        addToast('success', 'Conexao OK', data.message);
+                        integrationConfigs.value[type].connected = true;
+                    } else {
+                        addToast('error', 'Falha na Conexao', data.message);
+                    }
+                } catch (e) { addToast('error', 'Erro', e.message); }
+                finally { integrationTesting.value = null; }
+            };
+
+            const saveIntegration = async (type) => {
+                integrationSaving.value = type;
+                try {
+                    const res = await fetch('/api/integrations/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ integration_type: type, config: integrationConfigs.value[type] })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        addToast('success', 'Salvo', data.message);
+                        await loadIntegrationsStatus();
+                    } else {
+                        addToast('error', 'Erro', data.message || 'Falha ao salvar');
+                    }
+                } catch (e) { addToast('error', 'Erro', e.message); }
+                finally { integrationSaving.value = null; }
             };
 
             // ========== ISSUE #132 - ONBOARDING TOUR ==========
@@ -6144,6 +6908,12 @@ HTML_TEMPLATE = """
             const wsStatusText = ref('Offline');
             const wsStatusTitle = ref('Desconectado do servidor');
             const notificationSoundEnabled = ref(true);
+
+            // Issue #185 - Enhanced File Upload
+            const isDraggingFile = ref(false);
+            const uploadQueue = ref([]);
+            const uploadFileFilter = ref('all');
+
             let ws = null;
             let wsReconnectTimer = null;
             const notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
@@ -6179,6 +6949,14 @@ HTML_TEMPLATE = """
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
 
+            // Issue #155: Voice Input for Story Creation
+            const voiceRecording = ref(false);
+            const voiceProcessing = ref(false);
+            const voiceRecordingTime = ref(0);
+            let voiceMediaRecorder = null;
+            let voiceAudioChunks = [];
+            let voiceRecordingTimer = null;
+
             // Test Generation
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
@@ -6194,6 +6972,13 @@ HTML_TEMPLATE = """
             const reviewingCode = ref(null);
             const showCodeReviewModal = ref(false);
             const currentCodeReview = ref(null);
+
+            // File Viewer
+            const showFileViewer = ref(false);
+            const fileViewerData = ref({ file: null, content: '', loading: false, error: null, fileType: 'code', language: 'text' });
+            // Doc Viewer
+            const showDocViewer = ref(false);
+            const docViewerData = ref({ doc: null, editMode: false, editContent: '' });
 
             const showShortcutsModal = ref(false);
             const showBurndownModal = ref(false);
@@ -6836,6 +7621,95 @@ HTML_TEMPLATE = """
                 activeTab.value = 'Detalhes';
             };
 
+            // Issue #155: Voice Input Functions
+            const toggleVoiceInput = async () => {
+                if (voiceRecording.value) {
+                    // Stop recording
+                    if (voiceMediaRecorder && voiceMediaRecorder.state === 'recording') {
+                        voiceMediaRecorder.stop();
+                    }
+                    if (voiceRecordingTimer) {
+                        clearInterval(voiceRecordingTimer);
+                        voiceRecordingTimer = null;
+                    }
+                    voiceRecording.value = false;
+                } else {
+                    // Start recording
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        voiceMediaRecorder = new MediaRecorder(stream);
+                        voiceAudioChunks = [];
+
+                        voiceMediaRecorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) {
+                                voiceAudioChunks.push(e.data);
+                            }
+                        };
+
+                        voiceMediaRecorder.onstop = async () => {
+                            stream.getTracks().forEach(track => track.stop());
+                            voiceProcessing.value = true;
+
+                            try {
+                                const audioBlob = new Blob(voiceAudioChunks, { type: 'audio/webm' });
+                                const formData = new FormData();
+                                formData.append('audio', audioBlob, 'voice_input.webm');
+                                formData.append('language', 'pt-BR');
+
+                                const res = await fetch('/api/v1/inputs/voice', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+
+                                if (res.ok) {
+                                    const result = await res.json();
+                                    if (result.stories && result.stories.length > 0) {
+                                        const story = result.stories[0];
+                                        // Fill form with extracted story
+                                        newStory.value.title = story.title || '';
+                                        newStory.value.persona = story.persona || '';
+                                        newStory.value.action = story.action || '';
+                                        newStory.value.benefit = story.benefit || '';
+                                        if (story.acceptance_criteria && story.acceptance_criteria.length > 0) {
+                                            newStoryCriteria.value = story.acceptance_criteria.join('\\n');
+                                        }
+                                        if (story.story_points) newStory.value.story_points = story.story_points;
+                                        if (story.priority) newStory.value.priority = story.priority;
+                                        addToast('success', 'Voz processada', 'Story preenchida a partir do audio');
+                                    } else {
+                                        addToast('warning', 'Nenhuma story extraida', 'Tente descrever sua story novamente');
+                                    }
+                                } else {
+                                    addToast('error', 'Erro ao processar voz', 'Tente novamente');
+                                }
+                            } catch (e) {
+                                console.error('Voice processing error:', e);
+                                addToast('error', 'Erro de processamento', e.message);
+                            } finally {
+                                voiceProcessing.value = false;
+                            }
+                        };
+
+                        voiceMediaRecorder.start();
+                        voiceRecording.value = true;
+                        voiceRecordingTime.value = 0;
+
+                        // Timer for recording duration
+                        voiceRecordingTimer = setInterval(() => {
+                            voiceRecordingTime.value++;
+                            // Auto-stop after 60 seconds
+                            if (voiceRecordingTime.value >= 60) {
+                                toggleVoiceInput();
+                            }
+                        }, 1000);
+
+                    } catch (e) {
+                        console.error('Microphone access error:', e);
+                        addToast('error', 'Erro de microfone', 'Permita acesso ao microfone nas configuracoes do navegador');
+                    }
+                }
+            };
+
             const createStory = async () => {
                 try {
                     const storyData = { ...newStory.value, project_id: selectedProjectId.value };
@@ -7175,6 +8049,168 @@ HTML_TEMPLATE = """
                     selectedStory.value = await storyRes.json();
                 } catch (e) {
                     addToast('error', 'Erro no upload', 'Nao foi possivel enviar o arquivo');
+                }
+            };
+
+            // ========== ENHANCED FILE UPLOAD FUNCTIONS - Issue #185 ==========
+            const handleMultipleFileUpload = async (event) => {
+                const files = Array.from(event.target.files);
+                if (!files.length) return;
+                for (const file of files) {
+                    await uploadSingleFile(file);
+                }
+            };
+
+            const handleFileDrop = async (event) => {
+                isDraggingFile.value = false;
+                const files = Array.from(event.dataTransfer.files);
+                for (const file of files) {
+                    await uploadSingleFile(file);
+                }
+            };
+
+            const uploadSingleFile = async (file) => {
+                const id = Date.now() + Math.random();
+                const queueItem = { id, file, progress: 0, status: 'uploading' };
+                uploadQueue.value.push(queueItem);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('story_id', selectedStory.value.story_id);
+
+                    // Determine endpoint based on file type
+                    let endpoint = '/api/upload';
+                    const ext = file.name.toLowerCase().split('.').pop();
+                    if (['doc', 'docx'].includes(ext)) {
+                        endpoint = '/api/input/document';
+                    } else if (['mp4', 'mov', 'avi'].includes(ext)) {
+                        endpoint = '/api/input/video';
+                    }
+
+                    // Create XMLHttpRequest for progress tracking
+                    const xhr = new XMLHttpRequest();
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            const item = uploadQueue.value.find(q => q.id === id);
+                            if (item) item.progress = Math.round((e.loaded / e.total) * 100);
+                        }
+                    };
+
+                    await new Promise((resolve, reject) => {
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                resolve(xhr.response);
+                            } else {
+                                reject(new Error('Upload failed'));
+                            }
+                        };
+                        xhr.onerror = () => reject(new Error('Network error'));
+                        xhr.open('POST', endpoint);
+                        xhr.send(formData);
+                    });
+
+                    const item = uploadQueue.value.find(q => q.id === id);
+                    if (item) item.status = 'success';
+                    addToast('success', 'Arquivo enviado', file.name);
+
+                    // Refresh story files
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    selectedStory.value = await storyRes.json();
+
+                    // Remove from queue after 2 seconds
+                    setTimeout(() => {
+                        uploadQueue.value = uploadQueue.value.filter(q => q.id !== id);
+                    }, 2000);
+                } catch (e) {
+                    const item = uploadQueue.value.find(q => q.id === id);
+                    if (item) item.status = 'error';
+                    addToast('error', 'Erro no upload', file.name);
+                }
+            };
+
+            const getFileIcon = (filename) => {
+                const ext = (filename || '').toLowerCase().split('.').pop();
+                const icons = {
+                    pdf: '📕', doc: '📘', docx: '📘', txt: '📝', md: '📝',
+                    mp4: '🎬', mov: '🎬', avi: '🎬',
+                    png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️'
+                };
+                return icons[ext] || '📄';
+            };
+
+            const getFileIconClass = (filename) => {
+                const ext = (filename || '').toLowerCase().split('.').pop();
+                if (['pdf'].includes(ext)) return 'pdf';
+                if (['doc', 'docx'].includes(ext)) return 'doc';
+                if (['mp4', 'mov', 'avi'].includes(ext)) return 'video';
+                if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) return 'image';
+                if (['txt', 'md'].includes(ext)) return 'text';
+                return 'default';
+            };
+
+            const getFileTypeName = (filename) => {
+                const ext = (filename || '').toLowerCase().split('.').pop();
+                const names = {
+                    pdf: 'PDF', doc: 'Word', docx: 'Word', txt: 'Texto', md: 'Markdown',
+                    mp4: 'Video MP4', mov: 'Video MOV', avi: 'Video AVI',
+                    png: 'Imagem PNG', jpg: 'Imagem JPG', jpeg: 'Imagem JPG', gif: 'Imagem GIF'
+                };
+                return names[ext] || ext.toUpperCase();
+            };
+
+            const isImageFile = (filename) => {
+                const ext = (filename || '').toLowerCase().split('.').pop();
+                return ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+            };
+
+            const canPreviewFile = (filename) => {
+                const ext = (filename || '').toLowerCase().split('.').pop();
+                return ['png', 'jpg', 'jpeg', 'gif', 'pdf'].includes(ext);
+            };
+
+            const formatUploadDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+            };
+
+            const countFilesByType = (type) => {
+                if (!selectedStory.value?.files) return 0;
+                return selectedStory.value.files.filter(f => {
+                    const ext = (f.original_filename || '').toLowerCase().split('.').pop();
+                    if (type === 'document') return ['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext);
+                    if (type === 'video') return ['mp4', 'mov', 'avi'].includes(ext);
+                    if (type === 'image') return ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+                    return true;
+                }).length;
+            };
+
+            const filteredUploadFiles = computed(() => {
+                if (!selectedStory.value?.files) return [];
+                if (uploadFileFilter.value === 'all') return selectedStory.value.files;
+                return selectedStory.value.files.filter(f => {
+                    const ext = (f.original_filename || '').toLowerCase().split('.').pop();
+                    if (uploadFileFilter.value === 'document') return ['pdf', 'doc', 'docx', 'txt', 'md'].includes(ext);
+                    if (uploadFileFilter.value === 'video') return ['mp4', 'mov', 'avi'].includes(ext);
+                    if (uploadFileFilter.value === 'image') return ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+                    return true;
+                });
+            });
+
+            const previewFile = (file) => {
+                window.open('/api/attachments/' + file.attachment_id, '_blank');
+            };
+
+            const deleteUploadedFile = async (file) => {
+                if (!confirm('Excluir arquivo ' + file.original_filename + '?')) return;
+                try {
+                    await fetch('/api/attachments/' + file.attachment_id, { method: 'DELETE' });
+                    addToast('success', 'Arquivo excluido', file.original_filename);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    selectedStory.value = await storyRes.json();
+                } catch (e) {
+                    addToast('error', 'Erro ao excluir', e.message);
                 }
             };
 
@@ -7691,6 +8727,7 @@ Process ${data.status}`);
             // Init
             onMounted(() => {
                 initTerminal();
+                loadTenants(); // Load tenants first - Multi-Tenancy
                 loadProjects();
                 loadDarkMode();
                 loadNotificationSoundPreference();
@@ -7797,14 +8834,57 @@ Process ${data.status}`);
                 }
             };
 
-            // Open file viewer
-            const openFileViewer = (file) => {
-                console.log('Open file:', file);
+            // Open file viewer with syntax highlighting
+            const openFileViewer = async (file) => {
+                const ext = (file.extension || '.' + file.name.split('.').pop()).toLowerCase();
+                const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.ico', '.bmp'];
+                const pdfExts = ['.pdf'];
+                const codeExts = { '.py': 'python', '.js': 'javascript', '.ts': 'typescript', '.jsx': 'javascript', '.tsx': 'typescript', '.json': 'json', '.md': 'markdown', '.css': 'css', '.scss': 'css', '.html': 'markup', '.htm': 'markup', '.xml': 'markup', '.yaml': 'yaml', '.yml': 'yaml', '.sh': 'bash', '.bash': 'bash', '.sql': 'sql', '.txt': 'text', '.env': 'text', '.gitignore': 'text', '.dockerfile': 'docker', '.toml': 'toml', '.ini': 'ini' };
+                fileViewerData.value = { file, content: '', loading: true, error: null, fileType: 'code', language: 'text' };
+                showFileViewer.value = true;
+                const extLower = ext.startsWith('.') ? ext : '.' + ext;
+                if (imageExts.includes(extLower)) {
+                    fileViewerData.value.fileType = 'image';
+                    fileViewerData.value.loading = false;
+                } else if (pdfExts.includes(extLower)) {
+                    fileViewerData.value.fileType = 'pdf';
+                    fileViewerData.value.loading = false;
+                } else if (extLower === '.md') {
+                    fileViewerData.value.fileType = 'markdown';
+                    fileViewerData.value.language = 'markdown';
+                    try {
+                        const resp = await fetch(file.url);
+                        if (!resp.ok) throw new Error('Erro ao carregar arquivo');
+                        fileViewerData.value.content = await resp.text();
+                    } catch (e) { fileViewerData.value.error = e.message; }
+                    fileViewerData.value.loading = false;
+                } else {
+                    fileViewerData.value.fileType = 'code';
+                    fileViewerData.value.language = codeExts[extLower] || 'text';
+                    try {
+                        const resp = await fetch(file.url);
+                        if (!resp.ok) throw new Error('Erro ao carregar arquivo');
+                        fileViewerData.value.content = await resp.text();
+                        setTimeout(() => { if (window.Prism) Prism.highlightAll(); }, 100);
+                    } catch (e) { fileViewerData.value.error = e.message; }
+                    fileViewerData.value.loading = false;
+                }
             };
+            const closeFileViewer = () => { showFileViewer.value = false; fileViewerData.value = { file: null, content: '', loading: false, error: null, fileType: 'code', language: 'text' }; };
+            const downloadViewerFile = () => { if (fileViewerData.value.file?.url) { const a = document.createElement('a'); a.href = fileViewerData.value.file.url; a.download = fileViewerData.value.file.name; document.body.appendChild(a); a.click(); document.body.removeChild(a); } };
+            const copyFileContent = () => { if (fileViewerData.value.content) { navigator.clipboard.writeText(fileViewerData.value.content); addToast('success', 'Copiado', 'Conteudo copiado para a area de transferencia'); } };
+            const openInNewTab = () => { if (fileViewerData.value.file?.url) window.open(fileViewerData.value.file.url, '_blank'); };
 
-            // Open doc viewer
-            const openDocViewer = (doc) => {
-                console.log('Open doc:', doc);
+            // Open doc viewer with markdown rendering
+            const openDocViewer = (doc) => { docViewerData.value = { doc, editMode: false, editContent: doc.content || '' }; showDocViewer.value = true; };
+            const closeDocViewer = () => { showDocViewer.value = false; docViewerData.value = { doc: null, editMode: false, editContent: '' }; };
+            const toggleDocEditMode = () => { if (!docViewerData.value.editMode) docViewerData.value.editContent = docViewerData.value.doc.content || ''; docViewerData.value.editMode = !docViewerData.value.editMode; };
+            const saveDocContent = async () => {
+                if (!docViewerData.value.doc?.doc_id) return;
+                try {
+                    const resp = await fetch('/api/story-docs/' + docViewerData.value.doc.doc_id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: docViewerData.value.editContent }) });
+                    if (resp.ok) { docViewerData.value.doc.content = docViewerData.value.editContent; docViewerData.value.editMode = false; addToast('success', 'Documento salvo', 'Conteudo atualizado'); }
+                } catch (e) { addToast('error', 'Erro', 'Falha ao salvar documento'); }
             };
             // ==================== END PROJECT PREVIEW DASHBOARD ====================
 
@@ -7832,6 +8912,10 @@ Process ${data.status}`);
                 previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
                 startAppPreview, runProjectTests, buildProject, openAppPreview,
                 openFileViewer, openDocViewer,
+                // File Viewer
+                showFileViewer, fileViewerData, closeFileViewer, downloadViewerFile, copyFileContent, openInNewTab,
+                // Doc Viewer
+                showDocViewer, docViewerData, closeDocViewer, toggleDocEditMode, saveDocContent,
                 // Issue #133 - Business Terms
                 businessTerms, translateTerm,
                 // Issue #135 - Executive Dashboard
@@ -7842,6 +8926,13 @@ Process ${data.status}`);
                 showProjectWizard, showIntegrationWizard, wizardCurrentStep, wizardData,
                 wizardSteps, projectTypeOptions, availableIntegrations,
                 canProceedWizard, getProjectTypeName, createProjectFromWizard, selectIntegration,
+                // Integrations Dashboard
+                showIntegrationsModal, integrationsLoading, integrationsStatus,
+                loadIntegrationsStatus, openIntegrationConfig,
+                // Issue #154 - Integrations Management
+                activeIntegrationTab, integrationTesting, integrationSaving,
+                integrationTabs, integrationConfigs, loadIntegrationConfigs,
+                testIntegration, saveIntegration,
                 // Issue #132 - Onboarding Tour
                 showOnboardingChecklist, showOnboardingTour, currentTourStepIndex,
                 onboardingSteps, onboardingComplete, onboardingProgress,
@@ -7854,6 +8945,8 @@ Process ${data.status}`);
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 showShortcutsModal, showConfirmModal, confirmModal,
                 contextMenu, isLoading,
+                // Issue #155: Voice Input
+                voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, filteredStoriesCount, searchQuery, searchInput, toasts,
@@ -7881,7 +8974,16 @@ Process ${data.status}`);
                 reviewingCode, showCodeReviewModal, currentCodeReview,
                 codeReviewTask, showCodeReviewResult,
                 // Mobile State
-                mobileMenuOpen, mobileChatOpen, isPullingToRefresh
+                mobileMenuOpen, mobileChatOpen, isPullingToRefresh,
+                // Issue #185 - Enhanced File Upload
+                isDraggingFile, uploadQueue, uploadFileFilter,
+                handleMultipleFileUpload, handleFileDrop, uploadSingleFile,
+                getFileIcon, getFileIconClass, getFileTypeName, isImageFile,
+                canPreviewFile, formatUploadDate, countFilesByType,
+                filteredUploadFiles, previewFile, deleteUploadedFile,
+                // Tenant Selector (Multi-Tenancy)
+                userTenants, selectedTenantId, currentTenantName,
+                loadTenants, onTenantChange
             };
         }
     }).mount('#app');
@@ -7895,6 +8997,46 @@ Process ${data.status}`);
 def index():
     """Pagina principal - Dashboard Agile"""
     return HTML_TEMPLATE
+
+
+@app.get("/integrations", response_class=HTMLResponse)
+def integrations_page():
+    """Pagina de Integracoes - Redireciona para o dashboard com modal aberto"""
+    return HTML_TEMPLATE
+
+
+@app.get("/api/integrations/all-status")
+async def get_all_integrations_status():
+    """Retorna o status de todas as integracoes disponiveis"""
+    try:
+        # Try to get status from integration modules
+        from factory.integrations.jira import get_jira_integration
+        from factory.integrations.azure_devops import get_azure_devops_integration
+
+        jira = get_jira_integration()
+        azure = get_azure_devops_integration()
+
+        # Try GitHub if available
+        try:
+            from factory.integrations.github import get_github_integration
+            github = get_github_integration()
+            github_status = github.get_status()
+        except:
+            github_status = {"connected": False, "status": "unavailable"}
+
+        return {
+            "github": github_status,
+            "jira": jira.get_status(),
+            "azure_devops": azure.get_status()
+        }
+    except Exception as e:
+        # Return default disconnected status if integration modules not available
+        return {
+            "github": {"connected": False, "status": "disconnected"},
+            "jira": {"connected": False, "status": "disconnected"},
+            "azure_devops": {"connected": False, "status": "disconnected"},
+            "error": str(e)
+        }
 
 
 # =============================================================================
