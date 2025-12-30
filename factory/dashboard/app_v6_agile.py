@@ -2008,6 +2008,177 @@ def get_current_tenant(current_tenant: Optional[str] = Cookie(None)):
 
 
 # =============================================================================
+# API ENDPOINTS - GLOBAL SEARCH (Issue #221)
+# =============================================================================
+
+@app.get("/api/search")
+def global_search(
+    q: str = Query(..., min_length=1, description="Search query"),
+    types: str = Query(default="stories,tasks,docs,projects", description="Comma-separated types"),
+    project_id: Optional[str] = Query(None, description="Filter by project"),
+    limit: int = Query(default=10, le=50, description="Max results per type"),
+    current_tenant: Optional[str] = Cookie(None)
+):
+    """
+    Issue #221: Global search across stories, tasks, docs, and projects.
+    Supports full-text search with relevance ranking.
+    """
+    db = SessionLocal()
+    try:
+        query_lower = q.lower().strip()
+        type_list = [t.strip() for t in types.split(",")]
+        results = {
+            "query": q,
+            "stories": [],
+            "tasks": [],
+            "docs": [],
+            "projects": [],
+            "total": 0
+        }
+
+        # Search Stories
+        if "stories" in type_list:
+            story_repo = StoryRepository(db)
+            all_stories = story_repo.get_all()
+            if project_id:
+                all_stories = [s for s in all_stories if s.project_id == project_id]
+            if current_tenant:
+                all_stories = [s for s in all_stories if getattr(s, 'tenant_id', None) == current_tenant or not getattr(s, 'tenant_id', None)]
+
+            matched_stories = []
+            for story in all_stories:
+                score = 0
+                searchable = f"{story.story_id} {story.title or ''} {story.persona or ''} {story.action or ''} {story.benefit or ''}".lower()
+                if query_lower in searchable:
+                    # Higher score for title match
+                    if query_lower in (story.title or '').lower():
+                        score = 100
+                    elif query_lower in (story.story_id or '').lower():
+                        score = 90
+                    else:
+                        score = 50
+                    matched_stories.append({
+                        "story_id": story.story_id,
+                        "title": story.title,
+                        "status": story.status.value if hasattr(story.status, 'value') else story.status,
+                        "project_id": story.project_id,
+                        "story_points": story.story_points,
+                        "priority": story.priority.value if hasattr(story.priority, 'value') else story.priority,
+                        "score": score
+                    })
+
+            # Sort by score and limit
+            matched_stories.sort(key=lambda x: x['score'], reverse=True)
+            results["stories"] = matched_stories[:limit]
+
+        # Search Tasks
+        if "tasks" in type_list:
+            task_repo = StoryTaskRepository(db)
+            all_tasks = task_repo.get_all()
+
+            matched_tasks = []
+            for task in all_tasks:
+                # Filter by project if specified
+                if project_id:
+                    story = db.query(Story).filter(Story.story_id == task.story_id).first()
+                    if story and story.project_id != project_id:
+                        continue
+
+                score = 0
+                searchable = f"{task.task_id} {task.title or ''} {task.description or ''}".lower()
+                if query_lower in searchable:
+                    if query_lower in (task.title or '').lower():
+                        score = 100
+                    elif query_lower in (task.task_id or '').lower():
+                        score = 90
+                    else:
+                        score = 50
+                    matched_tasks.append({
+                        "task_id": task.task_id,
+                        "title": task.title,
+                        "status": task.status.value if hasattr(task.status, 'value') else task.status,
+                        "story_id": task.story_id,
+                        "progress": task.progress,
+                        "score": score
+                    })
+
+            matched_tasks.sort(key=lambda x: x['score'], reverse=True)
+            results["tasks"] = matched_tasks[:limit]
+
+        # Search Documentation
+        if "docs" in type_list:
+            doc_repo = StoryDocumentationRepository(db)
+            all_docs = doc_repo.get_all()
+
+            matched_docs = []
+            for doc in all_docs:
+                # Filter by project if specified
+                if project_id:
+                    story = db.query(Story).filter(Story.story_id == doc.story_id).first()
+                    if story and story.project_id != project_id:
+                        continue
+
+                score = 0
+                searchable = f"{doc.doc_id} {doc.title or ''} {doc.content or ''}".lower()
+                if query_lower in searchable:
+                    if query_lower in (doc.title or '').lower():
+                        score = 100
+                    elif query_lower in (doc.doc_id or '').lower():
+                        score = 90
+                    else:
+                        score = 50
+                    matched_docs.append({
+                        "doc_id": doc.doc_id,
+                        "title": doc.title,
+                        "doc_type": doc.doc_type.value if hasattr(doc.doc_type, 'value') else doc.doc_type,
+                        "story_id": doc.story_id,
+                        "score": score
+                    })
+
+            matched_docs.sort(key=lambda x: x['score'], reverse=True)
+            results["docs"] = matched_docs[:limit]
+
+        # Search Projects
+        if "projects" in type_list:
+            project_repo = ProjectRepository(db)
+            all_projects = project_repo.get_all()
+            if current_tenant:
+                all_projects = [p for p in all_projects if getattr(p, 'tenant_id', None) == current_tenant or not getattr(p, 'tenant_id', None)]
+
+            matched_projects = []
+            for project in all_projects:
+                score = 0
+                searchable = f"{project.project_id} {project.name or ''} {project.description or ''} {project.project_type or ''}".lower()
+                if query_lower in searchable:
+                    if query_lower in (project.name or '').lower():
+                        score = 100
+                    else:
+                        score = 50
+                    matched_projects.append({
+                        "project_id": project.project_id,
+                        "name": project.name,
+                        "project_type": project.project_type,
+                        "status": project.status.value if hasattr(project.status, 'value') else project.status,
+                        "score": score
+                    })
+
+            matched_projects.sort(key=lambda x: x['score'], reverse=True)
+            results["projects"] = matched_projects[:limit]
+
+        # Calculate total
+        results["total"] = (
+            len(results["stories"]) +
+            len(results["tasks"]) +
+            len(results["docs"]) +
+            len(results["projects"])
+        )
+
+        return results
+    finally:
+        db.close()
+
+
+# =============================================================================
 # API ENDPOINTS - PROJECTS
 # =============================================================================
 
@@ -3902,6 +4073,272 @@ HTML_TEMPLATE = """
                 display: none;
             }
         }
+
+        /* ========== ISSUE #221 - GLOBAL SEARCH ========== */
+        .global-search-container {
+            position: relative;
+        }
+        .global-search-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 6px 12px;
+            transition: all 0.2s ease;
+        }
+        .global-search-input-wrapper:focus-within {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 0 0 3px rgba(255,108,0,0.15);
+        }
+        .global-search-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 13px;
+            width: 180px;
+            outline: none;
+        }
+        .global-search-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        .global-search-input:focus {
+            width: 280px;
+        }
+        .search-shortcut-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            font-family: monospace;
+        }
+        .global-search-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            min-width: 420px;
+            max-width: 520px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
+            z-index: 9999;
+            max-height: 70vh;
+            overflow-y: auto;
+            animation: searchDropdownIn 0.2s ease-out;
+        }
+        @keyframes searchDropdownIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dark .global-search-dropdown {
+            background: #1F2937;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
+        }
+        .search-filters {
+            display: flex;
+            gap: 6px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #E5E7EB;
+            flex-wrap: wrap;
+        }
+        .dark .search-filters {
+            border-color: #374151;
+        }
+        .search-filter-chip {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #F3F4F6;
+            color: #6B7280;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .search-filter-chip:hover {
+            background: #E5E7EB;
+        }
+        .search-filter-chip.active {
+            background: #003B4A;
+            color: white;
+        }
+        .dark .search-filter-chip {
+            background: #374151;
+            color: #9CA3AF;
+        }
+        .dark .search-filter-chip:hover {
+            background: #4B5563;
+        }
+        .dark .search-filter-chip.active {
+            background: #FF6C00;
+            color: white;
+        }
+        .search-results-section {
+            padding: 8px 0;
+        }
+        .search-results-header {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9CA3AF;
+        }
+        .search-result-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+        .search-result-item:hover, .search-result-item.selected {
+            background: #F3F4F6;
+        }
+        .dark .search-result-item:hover, .dark .search-result-item.selected {
+            background: #374151;
+        }
+        .search-result-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .search-result-icon.story { background: #DBEAFE; }
+        .search-result-icon.task { background: #D1FAE5; }
+        .search-result-icon.doc { background: #FEF3C7; }
+        .search-result-icon.project { background: #E0E7FF; }
+        .dark .search-result-icon.story { background: rgba(59, 130, 246, 0.2); }
+        .dark .search-result-icon.task { background: rgba(16, 185, 129, 0.2); }
+        .dark .search-result-icon.doc { background: rgba(245, 158, 11, 0.2); }
+        .dark .search-result-icon.project { background: rgba(99, 102, 241, 0.2); }
+        .search-result-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .search-result-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1F2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .dark .search-result-title {
+            color: #F9FAFB;
+        }
+        .search-result-title mark {
+            background: #FEF3C7;
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        .dark .search-result-title mark {
+            background: rgba(245, 158, 11, 0.3);
+        }
+        .search-result-meta {
+            font-size: 12px;
+            color: #6B7280;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+        .dark .search-result-meta {
+            color: #9CA3AF;
+        }
+        .search-result-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .search-result-badge.status-done { background: #D1FAE5; color: #059669; }
+        .search-result-badge.status-in_progress { background: #DBEAFE; color: #2563EB; }
+        .search-result-badge.status-backlog { background: #F3F4F6; color: #6B7280; }
+        .search-empty {
+            padding: 32px 16px;
+            text-align: center;
+            color: #6B7280;
+        }
+        .search-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        .search-empty-text {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .search-empty-hint {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .search-history {
+            padding: 12px 16px;
+            border-top: 1px solid #E5E7EB;
+        }
+        .dark .search-history {
+            border-color: #374151;
+        }
+        .search-history-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9CA3AF;
+            margin-bottom: 8px;
+        }
+        .search-history-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #6B7280;
+        }
+        .search-history-item:hover {
+            background: #F3F4F6;
+            color: #1F2937;
+        }
+        .dark .search-history-item:hover {
+            background: #374151;
+            color: #F9FAFB;
+        }
+        .search-footer {
+            padding: 8px 16px;
+            border-top: 1px solid #E5E7EB;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #9CA3AF;
+        }
+        .dark .search-footer {
+            border-color: #374151;
+        }
+        .search-footer kbd {
+            background: #F3F4F6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 0 2px;
+        }
+        .dark .search-footer kbd {
+            background: #374151;
+        }
         </style>
 </head>
 <body class="bg-gray-100">
@@ -3966,17 +4403,148 @@ HTML_TEMPLATE = """
                             </option>
                         </select>
 
-                        <!-- Campo de Busca -->
-                        <div class="search-box" v-if="selectedProjectId">
-                            <svg class="search-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
-                            <input v-model="searchQuery"
-                                   @keyup.escape="searchQuery = ''"
-                                   type="text"
-                                   placeholder="Buscar stories... (pressione /)"
-                                   ref="searchInput"
-                                   class="bg-white/10 text-white placeholder-gray-300 border border-white/20 rounded px-3 py-1.5 text-sm w-56 focus:w-72 transition-all focus:outline-none">
+                        <!-- ISSUE #221 - Global Search -->
+                        <div class="global-search-container" v-click-outside="closeGlobalSearch">
+                            <div class="global-search-input-wrapper" @click="openGlobalSearch">
+                                <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                <input v-model="globalSearchQuery"
+                                       @input="debouncedGlobalSearch"
+                                       @focus="openGlobalSearch"
+                                       @keydown="handleGlobalSearchKey"
+                                       type="text"
+                                       placeholder="Buscar tudo..."
+                                       ref="globalSearchInput"
+                                       class="global-search-input"
+                                       aria-label="Busca global"
+                                       :aria-expanded="showGlobalSearch"
+                                       aria-controls="global-search-results">
+                                <span class="search-shortcut-badge hide-on-mobile">⌘K</span>
+                            </div>
+
+                            <!-- Global Search Dropdown -->
+                            <div v-if="showGlobalSearch" id="global-search-results" class="global-search-dropdown" role="listbox">
+                                <!-- Filters -->
+                                <div class="search-filters">
+                                    <button v-for="filter in globalSearchFilters" :key="filter.value"
+                                            :class="['search-filter-chip', globalSearchFilter === filter.value ? 'active' : '']"
+                                            @click="setGlobalSearchFilter(filter.value)">
+                                        {{ filter.label }}
+                                    </button>
+                                </div>
+
+                                <!-- Loading State -->
+                                <div v-if="globalSearchLoading" class="search-empty">
+                                    <div class="spinner spinner-sm"></div>
+                                    <div class="search-empty-text">Buscando...</div>
+                                </div>
+
+                                <!-- Results -->
+                                <div v-else-if="globalSearchResults.total > 0">
+                                    <!-- Stories -->
+                                    <div v-if="globalSearchResults.stories.length && (globalSearchFilter === 'all' || globalSearchFilter === 'stories')" class="search-results-section">
+                                        <div class="search-results-header">Stories ({{ globalSearchResults.stories.length }})</div>
+                                        <div v-for="(item, idx) in globalSearchResults.stories" :key="'s-'+item.story_id"
+                                             :class="['search-result-item', globalSearchSelectedIndex === getGlobalSearchIndex('story', idx) ? 'selected' : '']"
+                                             @click="navigateToSearchResult('story', item)"
+                                             @mouseenter="globalSearchSelectedIndex = getGlobalSearchIndex('story', idx)">
+                                            <div class="search-result-icon story">📄</div>
+                                            <div class="search-result-content">
+                                                <div class="search-result-title" v-html="highlightMatch(item.story_id + ': ' + item.title, globalSearchQuery)"></div>
+                                                <div class="search-result-meta">
+                                                    <span :class="['search-result-badge', 'status-'+item.status]">{{ item.status }}</span>
+                                                    <span v-if="item.story_points">{{ item.story_points }} pts</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tasks -->
+                                    <div v-if="globalSearchResults.tasks.length && (globalSearchFilter === 'all' || globalSearchFilter === 'tasks')" class="search-results-section">
+                                        <div class="search-results-header">Tasks ({{ globalSearchResults.tasks.length }})</div>
+                                        <div v-for="(item, idx) in globalSearchResults.tasks" :key="'t-'+item.task_id"
+                                             :class="['search-result-item', globalSearchSelectedIndex === getGlobalSearchIndex('task', idx) ? 'selected' : '']"
+                                             @click="navigateToSearchResult('task', item)"
+                                             @mouseenter="globalSearchSelectedIndex = getGlobalSearchIndex('task', idx)">
+                                            <div class="search-result-icon task">☑️</div>
+                                            <div class="search-result-content">
+                                                <div class="search-result-title" v-html="highlightMatch(item.title, globalSearchQuery)"></div>
+                                                <div class="search-result-meta">
+                                                    <span>{{ item.story_id }}</span>
+                                                    <span :class="['search-result-badge', 'status-'+item.status]">{{ item.status }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Docs -->
+                                    <div v-if="globalSearchResults.docs.length && (globalSearchFilter === 'all' || globalSearchFilter === 'docs')" class="search-results-section">
+                                        <div class="search-results-header">Documentos ({{ globalSearchResults.docs.length }})</div>
+                                        <div v-for="(item, idx) in globalSearchResults.docs" :key="'d-'+item.doc_id"
+                                             :class="['search-result-item', globalSearchSelectedIndex === getGlobalSearchIndex('doc', idx) ? 'selected' : '']"
+                                             @click="navigateToSearchResult('doc', item)"
+                                             @mouseenter="globalSearchSelectedIndex = getGlobalSearchIndex('doc', idx)">
+                                            <div class="search-result-icon doc">📚</div>
+                                            <div class="search-result-content">
+                                                <div class="search-result-title" v-html="highlightMatch(item.title, globalSearchQuery)"></div>
+                                                <div class="search-result-meta">
+                                                    <span>{{ item.story_id }}</span>
+                                                    <span>{{ item.doc_type }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Projects -->
+                                    <div v-if="globalSearchResults.projects.length && (globalSearchFilter === 'all' || globalSearchFilter === 'projects')" class="search-results-section">
+                                        <div class="search-results-header">Projetos ({{ globalSearchResults.projects.length }})</div>
+                                        <div v-for="(item, idx) in globalSearchResults.projects" :key="'p-'+item.project_id"
+                                             :class="['search-result-item', globalSearchSelectedIndex === getGlobalSearchIndex('project', idx) ? 'selected' : '']"
+                                             @click="navigateToSearchResult('project', item)"
+                                             @mouseenter="globalSearchSelectedIndex = getGlobalSearchIndex('project', idx)">
+                                            <div class="search-result-icon project">📁</div>
+                                            <div class="search-result-content">
+                                                <div class="search-result-title" v-html="highlightMatch(item.name, globalSearchQuery)"></div>
+                                                <div class="search-result-meta">
+                                                    <span>{{ item.project_type }}</span>
+                                                    <span :class="['search-result-badge', 'status-'+item.status]">{{ item.status }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Empty State (with query) -->
+                                <div v-else-if="globalSearchQuery.length >= 2" class="search-empty">
+                                    <div class="search-empty-icon">🔍</div>
+                                    <div class="search-empty-text">Nenhum resultado encontrado</div>
+                                    <div class="search-empty-hint">Tente outros termos de busca</div>
+                                </div>
+
+                                <!-- Initial State (no query) -->
+                                <div v-else-if="globalSearchHistory.length" class="search-history">
+                                    <div class="search-history-header">Buscas Recentes</div>
+                                    <div v-for="(q, idx) in globalSearchHistory" :key="'h-'+idx"
+                                         class="search-history-item"
+                                         @click="applySearchHistory(q)">
+                                        <span>🕐</span>
+                                        <span>{{ q }}</span>
+                                    </div>
+                                </div>
+                                <div v-else class="search-empty">
+                                    <div class="search-empty-icon">🔎</div>
+                                    <div class="search-empty-text">Digite para buscar</div>
+                                    <div class="search-empty-hint">Stories, tasks, documentos e projetos</div>
+                                </div>
+
+                                <!-- Footer -->
+                                <div class="search-footer">
+                                    <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+                                    <span><kbd>Enter</kbd> selecionar</span>
+                                    <span><kbd>Esc</kbd> fechar</span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Atalhos de Teclado -->
@@ -6999,7 +7567,22 @@ HTML_TEMPLATE = """
     <script>
     const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
-    createApp({
+    // Issue #221: Click-outside directive for global search
+    const clickOutsideDirective = {
+        mounted(el, binding) {
+            el._clickOutside = (event) => {
+                if (!(el === event.target || el.contains(event.target))) {
+                    binding.value(event);
+                }
+            };
+            document.addEventListener('click', el._clickOutside);
+        },
+        unmounted(el) {
+            document.removeEventListener('click', el._clickOutside);
+        }
+    };
+
+    const app = createApp({
         setup() {
             // State
             const projects = ref([]);
@@ -7154,6 +7737,252 @@ HTML_TEMPLATE = """
                         // Already at story level
                         break;
                 }
+            };
+
+            // ========== ISSUE #221 - GLOBAL SEARCH ==========
+            const showGlobalSearch = ref(false);
+            const globalSearchQuery = ref('');
+            const globalSearchFilter = ref('all');
+            const globalSearchLoading = ref(false);
+            const globalSearchResults = ref({ stories: [], tasks: [], docs: [], projects: [], total: 0 });
+            const globalSearchSelectedIndex = ref(0);
+            const globalSearchInput = ref(null);
+            const globalSearchHistory = ref([]);
+
+            const globalSearchFilters = [
+                { label: 'Todos', value: 'all' },
+                { label: 'Stories', value: 'stories' },
+                { label: 'Tasks', value: 'tasks' },
+                { label: 'Docs', value: 'docs' },
+                { label: 'Projetos', value: 'projects' }
+            ];
+
+            // Load search history from localStorage
+            const loadSearchHistory = () => {
+                try {
+                    const saved = localStorage.getItem('globalSearchHistory');
+                    if (saved) {
+                        globalSearchHistory.value = JSON.parse(saved);
+                    }
+                } catch (e) {}
+            };
+
+            const saveSearchHistory = (query) => {
+                if (!query || query.length < 2) return;
+                const history = globalSearchHistory.value.filter(q => q !== query);
+                history.unshift(query);
+                globalSearchHistory.value = history.slice(0, 10);
+                localStorage.setItem('globalSearchHistory', JSON.stringify(globalSearchHistory.value));
+            };
+
+            const openGlobalSearch = () => {
+                showGlobalSearch.value = true;
+                loadSearchHistory();
+            };
+
+            const closeGlobalSearch = () => {
+                showGlobalSearch.value = false;
+            };
+
+            const setGlobalSearchFilter = (filter) => {
+                globalSearchFilter.value = filter;
+                if (globalSearchQuery.value.length >= 2) {
+                    performGlobalSearch();
+                }
+            };
+
+            let searchDebounceTimer = null;
+            const debouncedGlobalSearch = () => {
+                if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    performGlobalSearch();
+                }, 300);
+            };
+
+            const performGlobalSearch = async () => {
+                const query = globalSearchQuery.value.trim();
+                if (query.length < 2) {
+                    globalSearchResults.value = { stories: [], tasks: [], docs: [], projects: [], total: 0 };
+                    return;
+                }
+
+                globalSearchLoading.value = true;
+                globalSearchSelectedIndex.value = 0;
+
+                try {
+                    const params = new URLSearchParams({
+                        q: query,
+                        types: 'stories,tasks,docs,projects',
+                        limit: '10'
+                    });
+                    if (selectedProjectId.value) {
+                        params.set('project_id', selectedProjectId.value);
+                    }
+
+                    const res = await fetch('/api/search?' + params.toString());
+                    if (res.ok) {
+                        globalSearchResults.value = await res.json();
+                        saveSearchHistory(query);
+                    }
+                } catch (e) {
+                    console.error('Search error:', e);
+                } finally {
+                    globalSearchLoading.value = false;
+                }
+            };
+
+            const getGlobalSearchIndex = (type, idx) => {
+                let offset = 0;
+                const results = globalSearchResults.value;
+                const filter = globalSearchFilter.value;
+
+                if (type === 'story') return offset + idx;
+                offset += (filter === 'all' || filter === 'stories') ? results.stories.length : 0;
+
+                if (type === 'task') return offset + idx;
+                offset += (filter === 'all' || filter === 'tasks') ? results.tasks.length : 0;
+
+                if (type === 'doc') return offset + idx;
+                offset += (filter === 'all' || filter === 'docs') ? results.docs.length : 0;
+
+                if (type === 'project') return offset + idx;
+
+                return offset;
+            };
+
+            const getTotalSearchResults = () => {
+                const results = globalSearchResults.value;
+                const filter = globalSearchFilter.value;
+                if (filter === 'all') return results.total;
+                if (filter === 'stories') return results.stories.length;
+                if (filter === 'tasks') return results.tasks.length;
+                if (filter === 'docs') return results.docs.length;
+                if (filter === 'projects') return results.projects.length;
+                return 0;
+            };
+
+            const handleGlobalSearchKey = (e) => {
+                const total = getTotalSearchResults();
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    globalSearchSelectedIndex.value = (globalSearchSelectedIndex.value + 1) % Math.max(1, total);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    globalSearchSelectedIndex.value = (globalSearchSelectedIndex.value - 1 + total) % Math.max(1, total);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    navigateToSelectedResult();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeGlobalSearch();
+                }
+            };
+
+            const navigateToSelectedResult = () => {
+                const idx = globalSearchSelectedIndex.value;
+                const results = globalSearchResults.value;
+                const filter = globalSearchFilter.value;
+
+                let offset = 0;
+
+                // Stories
+                if (filter === 'all' || filter === 'stories') {
+                    if (idx < offset + results.stories.length) {
+                        navigateToSearchResult('story', results.stories[idx - offset]);
+                        return;
+                    }
+                    offset += results.stories.length;
+                }
+
+                // Tasks
+                if (filter === 'all' || filter === 'tasks') {
+                    if (idx < offset + results.tasks.length) {
+                        navigateToSearchResult('task', results.tasks[idx - offset]);
+                        return;
+                    }
+                    offset += results.tasks.length;
+                }
+
+                // Docs
+                if (filter === 'all' || filter === 'docs') {
+                    if (idx < offset + results.docs.length) {
+                        navigateToSearchResult('doc', results.docs[idx - offset]);
+                        return;
+                    }
+                    offset += results.docs.length;
+                }
+
+                // Projects
+                if (filter === 'all' || filter === 'projects') {
+                    if (idx < offset + results.projects.length) {
+                        navigateToSearchResult('project', results.projects[idx - offset]);
+                        return;
+                    }
+                }
+            };
+
+            const navigateToSearchResult = async (type, item) => {
+                closeGlobalSearch();
+                globalSearchQuery.value = '';
+
+                switch (type) {
+                    case 'story':
+                        // Select project and open story
+                        if (item.project_id && item.project_id !== selectedProjectId.value) {
+                            selectedProjectId.value = item.project_id;
+                            await loadProjectData();
+                        }
+                        // Find and select story
+                        const storyData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        if (storyData) {
+                            selectedStory.value = storyData;
+                            activeTab.value = 'Detalhes';
+                        }
+                        break;
+
+                    case 'task':
+                        // Load story that contains the task
+                        const taskStoryData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        if (taskStoryData) {
+                            if (taskStoryData.project_id !== selectedProjectId.value) {
+                                selectedProjectId.value = taskStoryData.project_id;
+                                await loadProjectData();
+                            }
+                            selectedStory.value = taskStoryData;
+                            activeTab.value = 'Tasks';
+                        }
+                        break;
+
+                    case 'doc':
+                        // Load story that contains the doc
+                        const docStoryData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        if (docStoryData) {
+                            if (docStoryData.project_id !== selectedProjectId.value) {
+                                selectedProjectId.value = docStoryData.project_id;
+                                await loadProjectData();
+                            }
+                            selectedStory.value = docStoryData;
+                            activeTab.value = 'Docs';
+                        }
+                        break;
+
+                    case 'project':
+                        selectedProjectId.value = item.project_id;
+                        await loadProjectData();
+                        break;
+                }
+            };
+
+            const applySearchHistory = (query) => {
+                globalSearchQuery.value = query;
+                performGlobalSearch();
+            };
+
+            const highlightMatch = (text, query) => {
+                if (!query || !text) return text;
+                const regex = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                return text.replace(regex, '<mark>$1</mark>');
             };
 
             // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
@@ -10098,6 +10927,12 @@ Process ${data.status}`);
                 executeCommand, handleCommandPaletteKey,
                 // Issue #220: Breadcrumb Navigation
                 breadcrumbItems, navigateBreadcrumb,
+                // Issue #221: Global Search
+                showGlobalSearch, globalSearchQuery, globalSearchFilter, globalSearchLoading,
+                globalSearchResults, globalSearchSelectedIndex, globalSearchInput, globalSearchHistory,
+                globalSearchFilters, openGlobalSearch, closeGlobalSearch, setGlobalSearchFilter,
+                debouncedGlobalSearch, handleGlobalSearchKey, navigateToSearchResult,
+                applySearchHistory, highlightMatch, getGlobalSearchIndex,
                 contextMenu, isLoading,
                 // Issue #155: Voice Input
                 voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,
@@ -10142,7 +10977,13 @@ Process ${data.status}`);
                 loadTenants, onTenantChange
             };
         }
-    }).mount('#app');
+    });
+
+    // Register directives
+    app.directive('click-outside', clickOutsideDirective);
+
+    // Mount
+    app.mount('#app');
     </script>
 </body>
 </html>
