@@ -70,12 +70,53 @@ class SandboxExecutor:
     - Security hardening (seccomp, no-new-privileges, read-only fs)
     - Network isolation
     - Non-root execution
+    - Dangerous command blocking (Issue #381)
     """
+
+    # Issue #381: Blocked patterns for security
+    BLOCKED_PATTERNS = [
+        # Destructive file operations
+        "rm -rf", "rm -fr", "rmdir /s", "del /f", "format",
+        # Network access
+        "wget", "curl -o", "curl --output", "nc ", "netcat",
+        "socket.connect", "urllib.request", "requests.get", "requests.post",
+        # Python dangerous imports
+        "import os", "from os import", "import subprocess", "from subprocess",
+        "import shutil", "from shutil import", "import sys", "from sys import",
+        # Dynamic code execution
+        "eval(", "exec(", "compile(", "__import__",
+        "open('/etc", "open('/root", "open('/home",
+        # Process/system commands
+        "os.system(", "os.popen(", "subprocess.run", "subprocess.call",
+        "subprocess.Popen", "os.fork(", "os.spawn",
+        # File system manipulation
+        "os.remove", "os.unlink", "os.rmdir", "shutil.rmtree",
+        "os.chmod", "os.chown",
+    ]
 
     def __init__(self, config: Optional[SandboxConfig] = None):
         self.config = config or SandboxConfig()
         self._docker_available = None
         self._warm_pool: List[str] = []
+
+    def validate_code(self, code: str, language: str = "python") -> tuple[bool, Optional[str]]:
+        """
+        Validate code for potentially dangerous patterns.
+
+        Args:
+            code: Source code to validate
+            language: Programming language
+
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        code_lower = code.lower()
+
+        for pattern in self.BLOCKED_PATTERNS:
+            if pattern.lower() in code_lower:
+                return False, f"Blocked pattern detected: {pattern}"
+
+        return True, None
 
     async def check_docker(self) -> bool:
         """Check if Docker is available and running"""
@@ -120,6 +161,19 @@ class SandboxExecutor:
         config = config_override or self.config
         start_time = datetime.now()
         container_id = None
+
+        # Issue #381: Validate code for dangerous patterns
+        is_valid, error_msg = self.validate_code(code, language)
+        if not is_valid:
+            logger.warning(f"[Sandbox] Code validation failed: {error_msg}")
+            return SandboxResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=f"Security validation failed: {error_msg}",
+                execution_time=0.0,
+                error=error_msg
+            )
 
         # Check Docker availability
         if not await self.check_docker():
@@ -325,6 +379,48 @@ class SandboxExecutor:
             await proc.wait()
         except Exception:
             pass
+
+    # Issue #381 - Convenience methods for specific languages
+    async def execute_python(self, code: str, **kwargs) -> SandboxResult:
+        """
+        Execute Python code in isolated sandbox.
+
+        Args:
+            code: Python source code to execute
+            **kwargs: Additional arguments for execute()
+
+        Returns:
+            SandboxResult with execution outcome
+        """
+        return await self.execute(code, language="python", **kwargs)
+
+    async def execute_javascript(self, code: str, **kwargs) -> SandboxResult:
+        """
+        Execute JavaScript code with Node.js in isolated sandbox.
+
+        Args:
+            code: JavaScript source code to execute
+            **kwargs: Additional arguments for execute()
+
+        Returns:
+            SandboxResult with execution outcome
+        """
+        return await self.execute(code, language="node", **kwargs)
+
+    async def execute_bash(self, code: str, **kwargs) -> SandboxResult:
+        """
+        Execute Bash commands in isolated sandbox.
+
+        Note: Many dangerous commands are blocked for security.
+
+        Args:
+            code: Bash commands to execute
+            **kwargs: Additional arguments for execute()
+
+        Returns:
+            SandboxResult with execution outcome
+        """
+        return await self.execute(code, language="bash", **kwargs)
 
     async def _fallback_execute(
         self,
