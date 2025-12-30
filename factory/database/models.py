@@ -8,7 +8,10 @@ Multi-Tenancy v5.0 (Issues #81, #82):
 - Soft delete com deleted_at e deleted_by para auditoria
 - Relacionamentos corretos entre Tenant e demais entidades
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint, CheckConstraint
+
+# Issue #184: Valores válidos de Story Points (Fibonacci)
+FIBONACCI_POINTS = [0, 1, 2, 3, 5, 8, 13, 21]
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum
@@ -806,8 +809,8 @@ class Story(Base):
     sprint_id = Column(String(50), nullable=True, index=True)
     category = Column(String(30), default=StoryCategory.FEATURE.value)
 
-    # Estimativa
-    story_points = Column(Integer, default=0)  # Fibonacci: 1,2,3,5,8,13,21
+    # Estimativa - Issue #184: Fibonacci points com validação
+    story_points = Column(Integer, default=0)  # Fibonacci: 0,1,2,3,5,8,13,21
     complexity = Column(String(20), default=StoryComplexity.MEDIUM.value)
     estimated_hours = Column(Float, default=0.0)
 
@@ -846,12 +849,14 @@ class Story(Base):
     deleted_by = Column(String(100), nullable=True)
 
     # Indices compostos para multi-tenancy (Issue #81)
+    # Issue #184: CheckConstraint para story_points Fibonacci
     __table_args__ = (
         Index('ix_stories_tenant_status', 'tenant_id', 'status'),
         Index('ix_stories_tenant_project', 'tenant_id', 'project_id'),
         Index('ix_stories_tenant_sprint', 'tenant_id', 'sprint_id'),
         Index('ix_stories_tenant_epic', 'tenant_id', 'epic_id'),
         Index('ix_stories_tenant_assignee', 'tenant_id', 'assignee'),
+        CheckConstraint('story_points IN (0, 1, 2, 3, 5, 8, 13, 21)', name='ck_stories_fibonacci_points'),
     )
 
     # Relacionamentos
@@ -873,6 +878,19 @@ class Story(Base):
         self.is_deleted = False
         self.deleted_at = None
         self.deleted_by = None
+
+    @staticmethod
+    def validate_story_points(points: int) -> bool:
+        """
+        Valida se story_points é um valor Fibonacci válido - Issue #184
+
+        Args:
+            points: valor de story points a validar
+
+        Returns:
+            True se válido, False caso contrário
+        """
+        return points in FIBONACCI_POINTS
 
     def to_dict(self):
         return {
