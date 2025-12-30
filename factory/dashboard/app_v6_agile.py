@@ -5613,19 +5613,6 @@ HTML_TEMPLATE = """
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
                     <h2 class="text-lg font-semibold">Nova User Story</h2>
                     <div class="flex items-center gap-3">
-                        <!-- Issue #155: Voice Input Button -->
-                        <button @click="toggleVoiceInput"
-                                :class="['flex items-center gap-1 px-3 py-1 rounded transition-all',
-                                         voiceRecording ? 'bg-red-500 animate-pulse' : 'bg-white/20 hover:bg-white/30']"
-                                :title="voiceRecording ? 'Parar gravacao' : 'Gravar por voz'">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path v-if="!voiceRecording" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-                                <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-                            </svg>
-                            <span class="text-sm">{{ voiceRecording ? 'Parar' : 'Voz' }}</span>
-                        </button>
                         <span class="text-sm opacity-80">Template:</span>
                         <select v-model="selectedTemplate" @change="applyTemplate"
                                 class="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white">
@@ -5636,6 +5623,65 @@ HTML_TEMPLATE = """
                             <option value="spike">Spike/Pesquisa</option>
                             <option value="improvement">Melhoria</option>
                         </select>
+                    </div>
+                </div>
+                <!-- Issue #195: Omnichannel Input Selector -->
+                <div class="p-4 bg-gray-50 border-b border-gray-200 dark:bg-gray-700">
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mb-2">Escolha o metodo de entrada:</div>
+                    <div class="flex gap-2">
+                        <button @click="inputMethod = 'text'"
+                                :class="['flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                                         inputMethod === 'text' ? 'bg-[#003B4A] text-white shadow-md' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100']">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Texto
+                        </button>
+                        <button @click="inputMethod = 'voice'; if(inputMethod === 'voice' && !voiceRecording) toggleVoiceInput()"
+                                :class="['flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                                         inputMethod === 'voice' ? 'bg-[#FF6C00] text-white shadow-md' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100',
+                                         voiceRecording ? 'animate-pulse' : '']">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                            {{ voiceRecording ? 'Gravando...' : 'Voz' }}
+                        </button>
+                        <button @click="inputMethod = 'file'; $refs.omnichannelFileInput?.click()"
+                                :class="['flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                                         inputMethod === 'file' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100']">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                            Arquivo
+                        </button>
+                        <button @click="inputMethod = 'whatsapp'"
+                                :class="['flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                                         inputMethod === 'whatsapp' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100']">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.211l4.343-1.407A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-2.168 0-4.183-.639-5.875-1.734l-.421-.253-4.368 1.141 1.165-4.269-.276-.439A9.776 9.776 0 012.182 12c0-5.423 4.395-9.818 9.818-9.818S21.818 6.577 21.818 12s-4.395 9.818-9.818 9.818z"/></svg>
+                            WhatsApp
+                        </button>
+                    </div>
+                    <input type="file" ref="omnichannelFileInput" class="hidden" @change="processOmnichannelFile" accept=".pdf,.doc,.docx,.txt,.xlsx,.xls,.csv">
+                </div>
+                <!-- WhatsApp Instructions (Issue #195) -->
+                <div v-if="inputMethod === 'whatsapp'" class="p-4 bg-green-50 border-b border-green-200">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-green-800">Criar Story via WhatsApp</h4>
+                            <p class="text-sm text-green-700 mt-1">Envie uma mensagem para nosso numero do WhatsApp descrevendo sua necessidade:</p>
+                            <div class="mt-2 bg-white p-3 rounded-lg border border-green-200">
+                                <div class="font-mono text-lg text-green-800">+55 (11) 99999-9999</div>
+                                <p class="text-xs text-gray-500 mt-1">Exemplo: "Preciso de um sistema de login com email e senha, onde o usuario possa recuperar a senha..."</p>
+                            </div>
+                            <p class="text-xs text-green-600 mt-2">A IA ira processar sua mensagem e criar a User Story automaticamente.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- File Processing Feedback (Issue #195) -->
+                <div v-if="inputMethod === 'file' && omnichannelFileProcessing" class="p-4 bg-purple-50 border-b border-purple-200">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 animate-spin text-purple-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm text-purple-700">Processando documento... Extraindo requisitos com IA</span>
                     </div>
                 </div>
                 <!-- Voice Recording Status -->
@@ -7418,6 +7464,10 @@ HTML_TEMPLATE = """
             let voiceAudioChunks = [];
             let voiceRecordingTimer = null;
 
+            // Issue #195: Omnichannel Input Selector
+            const inputMethod = ref('text');
+            const omnichannelFileProcessing = ref(false);
+
             // Test Generation
             const generatingTests = ref(null);
             const showGeneratedTestsModal = ref(false);
@@ -8168,6 +8218,52 @@ HTML_TEMPLATE = """
                         console.error('Microphone access error:', e);
                         addToast('error', 'Erro de microfone', 'Permita acesso ao microfone nas configuracoes do navegador');
                     }
+                }
+            };
+
+            // Issue #195: Process Omnichannel File Input
+            const processOmnichannelFile = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                omnichannelFileProcessing.value = true;
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const res = await fetch('/api/v1/inputs/document', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.stories && data.stories.length > 0) {
+                            const story = data.stories[0];
+                            newStory.value.title = story.title || '';
+                            newStory.value.persona = story.persona || '';
+                            newStory.value.action = story.action || '';
+                            newStory.value.benefit = story.benefit || '';
+                            if (story.acceptance_criteria?.length) {
+                                newStoryCriteria.value = story.acceptance_criteria.join('\\n');
+                            }
+                            if (story.story_points) newStory.value.story_points = story.story_points;
+                            if (story.priority) newStory.value.priority = story.priority;
+
+                            addToast('success', 'Documento processado', `Extraida ${data.stories.length} story de ${file.name}`);
+                            inputMethod.value = 'text'; // Switch to text to show filled form
+                        } else {
+                            addToast('warning', 'Sem requisitos', 'Nenhum requisito foi extraido do documento');
+                        }
+                    } else {
+                        addToast('error', 'Erro', 'Falha ao processar documento');
+                    }
+                } catch (e) {
+                    console.error('Document processing error:', e);
+                    addToast('error', 'Erro', 'Falha ao processar documento: ' + e.message);
+                } finally {
+                    omnichannelFileProcessing.value = false;
+                    event.target.value = ''; // Reset file input
                 }
             };
 
@@ -9546,6 +9642,8 @@ Process ${data.status}`);
                 contextMenu, isLoading,
                 // Issue #155: Voice Input
                 voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,
+                // Issue #195: Omnichannel Input
+                inputMethod, omnichannelFileProcessing, processOmnichannelFile,
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, filteredStoriesCount, searchQuery, searchInput, toasts,
