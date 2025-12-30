@@ -8,7 +8,7 @@ Multi-Tenancy v5.0 (Issues #81, #82):
 - Soft delete com deleted_at e deleted_by para auditoria
 - Relacionamentos corretos entre Tenant e demais entidades
 """
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, Date, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint, CheckConstraint
 
 # Issue #184: Valores válidos de Story Points (Fibonacci)
 FIBONACCI_POINTS = [0, 1, 2, 3, 5, 8, 13, 21]
@@ -4282,6 +4282,152 @@ class PlanningVote(Base):
             "vote_value": self.vote_value if self.is_revealed else None,
             "has_voted": self.vote_value is not None,
             "is_revealed": self.is_revealed
+        }
+
+
+# =============================================================================
+# SPRINT RETROSPECTIVE - Issue #240
+# =============================================================================
+
+class RetrospectiveStatus(str, Enum):
+    """Status of a Retrospective session"""
+    DRAFT = "draft"
+    COLLECTING = "collecting"
+    GROUPING = "grouping"
+    VOTING = "voting"
+    DISCUSSING = "discussing"
+    ACTION_ITEMS = "action_items"
+    COMPLETED = "completed"
+
+
+class Retrospective(Base, TenantMixin):
+    """Sprint Retrospective session"""
+    __tablename__ = "retrospectives"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    retro_id = Column(String(50), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+    sprint_id = Column(String(50), ForeignKey("sprints.sprint_id", ondelete="SET NULL"), nullable=True, index=True)
+    template = Column(String(50), default="start_stop_continue")
+    name = Column(String(200), nullable=False)
+    status = Column(String(20), default=RetrospectiveStatus.DRAFT.value, index=True)
+    facilitator_id = Column(String(100), nullable=False, index=True)
+    columns = Column(JSON, default=list)
+    phase_timer = Column(Integer, default=0)
+    current_phase = Column(String(20), default="collecting")
+    votes_per_person = Column(Integer, default=3)
+    anonymous_mode = Column(Boolean, default=True)
+    participants = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    items = relationship("RetroItem", back_populates="retrospective", cascade="all, delete-orphan")
+    action_items = relationship("RetroActionItem", back_populates="retrospective", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "retro_id": self.retro_id,
+            "sprint_id": self.sprint_id,
+            "template": self.template,
+            "name": self.name,
+            "status": self.status,
+            "facilitator_id": self.facilitator_id,
+            "columns": self.columns or [],
+            "current_phase": self.current_phase,
+            "votes_per_person": self.votes_per_person,
+            "anonymous_mode": self.anonymous_mode,
+            "participants": self.participants or [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
+        }
+
+
+class RetroItem(Base):
+    """Item in a Retrospective board"""
+    __tablename__ = "retro_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_id = Column(String(50), unique=True, nullable=False, index=True)
+    retro_id = Column(String(50), ForeignKey("retrospectives.retro_id", ondelete="CASCADE"), nullable=False, index=True)
+    column_id = Column(String(50), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    author_id = Column(String(100), nullable=False)
+    author_name = Column(String(100), nullable=True)
+    anonymous = Column(Boolean, default=False)
+    vote_count = Column(Integer, default=0)
+    group_id = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    retrospective = relationship("Retrospective", back_populates="items")
+    votes = relationship("RetroVote", back_populates="item", cascade="all, delete-orphan")
+
+    def to_dict(self, show_author=True):
+        return {
+            "item_id": self.item_id,
+            "column_id": self.column_id,
+            "content": self.content,
+            "author_id": self.author_id if show_author and not self.anonymous else None,
+            "author_name": self.author_name if show_author and not self.anonymous else "Anonimo",
+            "anonymous": self.anonymous,
+            "vote_count": self.vote_count,
+            "group_id": self.group_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class RetroVote(Base):
+    """Vote on a Retrospective item"""
+    __tablename__ = "retro_votes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vote_id = Column(String(50), unique=True, nullable=False, index=True)
+    item_id = Column(String(50), ForeignKey("retro_items.item_id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    item = relationship("RetroItem", back_populates="votes")
+
+
+class RetroActionItemStatus(str, Enum):
+    """Status of an action item"""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    DONE = "done"
+    CANCELLED = "cancelled"
+
+
+class RetroActionItem(Base):
+    """Action item from a Retrospective"""
+    __tablename__ = "retro_action_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    action_id = Column(String(50), unique=True, nullable=False, index=True)
+    retro_id = Column(String(50), ForeignKey("retrospectives.retro_id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    assignee_id = Column(String(100), nullable=True)
+    assignee_name = Column(String(100), nullable=True)
+    due_date = Column(Date, nullable=True)
+    status = Column(String(20), default=RetroActionItemStatus.PENDING.value)
+    source_item_id = Column(String(50), nullable=True)
+    task_id = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    retrospective = relationship("Retrospective", back_populates="action_items")
+
+    def to_dict(self):
+        return {
+            "action_id": self.action_id,
+            "content": self.content,
+            "assignee_id": self.assignee_id,
+            "assignee_name": self.assignee_name,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "status": self.status,
+            "source_item_id": self.source_item_id,
+            "task_id": self.task_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }
 
 

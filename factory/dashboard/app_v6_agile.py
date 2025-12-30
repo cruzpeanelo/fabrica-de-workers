@@ -691,6 +691,14 @@ try:
 except ImportError as e:
     print(f"[Agile] Planning Poker not available: {e}")
 
+# Sprint Retrospective (Issue #240)
+try:
+    from factory.dashboard.sprint_retrospective import register_retrospective_routes
+    register_retrospective_routes(app)
+    print("[Agile] Sprint Retrospective loaded: /api/retrospectives/*")
+except ImportError as e:
+    print(f"[Agile] Sprint Retrospective not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
