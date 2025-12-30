@@ -617,8 +617,9 @@ def generate_admin_users_html(tenant_id: str) -> str:
                 <button class="btn btn-secondary" onclick="openInviteModal()">
                     Convidar Usuario
                 </button>
-                <button class="btn btn-primary" onclick="openCreateModal()">
-                    Criar Usuario
+                <!-- Issue #295: Added add-user-btn class and data-testid for test compatibility -->
+                <button class="btn btn-primary add-user-btn" id="btn-add-user" data-testid="add-user-btn" onclick="openCreateModal()">
+                    + Adicionar Usuario
                 </button>
             </div>
         </div>
@@ -664,10 +665,11 @@ def generate_admin_users_html(tenant_id: str) -> str:
                     <option value="viewer">Viewer</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label class="filter-label">Buscar</label>
-                <input type="text" class="filter-input" id="filter-search"
-                    placeholder="Nome ou email..." onkeyup="debounceSearch()">
+            <!-- Issue #295: Added search-users class and data-testid for test compatibility -->
+            <div class="filter-group search-container">
+                <label class="filter-label" for="search-users">Buscar</label>
+                <input type="text" class="filter-input search-input search-users" id="search-users"
+                    data-testid="search-users" placeholder="Buscar usuarios..." onkeyup="debounceSearch()">
             </div>
         </div>
 
@@ -847,7 +849,8 @@ def generate_admin_users_html(tenant_id: str) -> str:
         async function loadUsers() {{
             const status = document.getElementById('filter-status').value;
             const role = document.getElementById('filter-role').value;
-            const search = document.getElementById('filter-search').value;
+            // Issue #295: Updated to use new search-users ID
+            const search = document.getElementById('search-users').value;
 
             const params = new URLSearchParams({{
                 tenant_id: TENANT_ID,
