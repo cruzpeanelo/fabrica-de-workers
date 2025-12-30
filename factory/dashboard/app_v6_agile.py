@@ -2179,6 +2179,199 @@ def global_search(
 
 
 # =============================================================================
+# API ENDPOINTS - STORY TEMPLATES (Issue #223)
+# =============================================================================
+
+STORY_TEMPLATES = [
+    {
+        "id": "feature",
+        "name": "Feature",
+        "icon": "✨",
+        "description": "Nova funcionalidade",
+        "color": "#10B981",
+        "data": {
+            "title": "[Feature] ",
+            "persona": "Como um usuário",
+            "action": "eu quero ",
+            "benefit": "para que ",
+            "acceptance_criteria": [
+                "Dado que {contexto}, quando {ação}, então {resultado}",
+                "A funcionalidade deve ser acessível via interface web",
+                "Deve haver feedback visual de sucesso/erro"
+            ],
+            "definition_of_done": [
+                "Código implementado e revisado",
+                "Testes unitários com cobertura > 80%",
+                "Documentação atualizada",
+                "Deploy em staging realizado"
+            ],
+            "story_points": 5,
+            "complexity": "medium",
+            "priority": "medium",
+            "category": "feature"
+        }
+    },
+    {
+        "id": "bugfix",
+        "name": "Bug Fix",
+        "icon": "🐛",
+        "description": "Correção de problema",
+        "color": "#EF4444",
+        "data": {
+            "title": "[Bug] ",
+            "persona": "Como um usuário",
+            "action": "eu quero que o sistema funcione corretamente",
+            "benefit": "para que o problema seja resolvido",
+            "acceptance_criteria": [
+                "O bug não deve mais ocorrer no cenário reportado",
+                "Testes de regressão devem passar",
+                "Nenhum efeito colateral em funcionalidades existentes"
+            ],
+            "definition_of_done": [
+                "Bug reproduzido e causa identificada",
+                "Correção implementada",
+                "Teste específico para o bug criado",
+                "Verificado em ambiente de staging"
+            ],
+            "story_points": 3,
+            "complexity": "low",
+            "priority": "high",
+            "category": "bug"
+        }
+    },
+    {
+        "id": "tech_debt",
+        "name": "Tech Debt",
+        "icon": "🔧",
+        "description": "Refatoração e melhorias",
+        "color": "#8B5CF6",
+        "data": {
+            "title": "[Tech Debt] ",
+            "persona": "Como desenvolvedor",
+            "action": "eu quero refatorar ",
+            "benefit": "para melhorar a manutenibilidade e qualidade do código",
+            "acceptance_criteria": [
+                "Código refatorado segue padrões do projeto",
+                "Performance não degradou",
+                "Todos os testes existentes passam"
+            ],
+            "definition_of_done": [
+                "Refatoração completa",
+                "Code review aprovado",
+                "Documentação técnica atualizada",
+                "Métricas de qualidade melhoradas"
+            ],
+            "story_points": 8,
+            "complexity": "high",
+            "priority": "low",
+            "category": "tech_debt"
+        }
+    },
+    {
+        "id": "integration",
+        "name": "Integração",
+        "icon": "🔗",
+        "description": "Conectar com sistemas externos",
+        "color": "#3B82F6",
+        "data": {
+            "title": "[Integration] Integrar com ",
+            "persona": "Como um usuário",
+            "action": "eu quero integrar com ",
+            "benefit": "para sincronizar dados e automatizar processos",
+            "acceptance_criteria": [
+                "Autenticação com sistema externo funciona",
+                "Dados são sincronizados corretamente",
+                "Erros são tratados e logados adequadamente",
+                "Retry automático em caso de falha"
+            ],
+            "definition_of_done": [
+                "Documentação da API revisada",
+                "Credenciais configuradas de forma segura",
+                "Testes de integração passando",
+                "Monitoramento configurado"
+            ],
+            "story_points": 13,
+            "complexity": "very_high",
+            "priority": "medium",
+            "category": "integration"
+        }
+    },
+    {
+        "id": "ui_improvement",
+        "name": "UI/UX",
+        "icon": "🎨",
+        "description": "Melhorias de interface",
+        "color": "#F59E0B",
+        "data": {
+            "title": "[UI] Melhorar ",
+            "persona": "Como usuário",
+            "action": "eu quero uma interface mais intuitiva",
+            "benefit": "para ter uma melhor experiência de uso",
+            "acceptance_criteria": [
+                "Design aprovado pelo time",
+                "Acessibilidade WCAG 2.1 AA",
+                "Responsivo para mobile",
+                "Performance: LCP < 2.5s"
+            ],
+            "definition_of_done": [
+                "Mockup/protótipo aprovado",
+                "Implementação fiel ao design",
+                "Testes de usabilidade realizados",
+                "Cross-browser testado"
+            ],
+            "story_points": 5,
+            "complexity": "medium",
+            "priority": "medium",
+            "category": "improvement"
+        }
+    },
+    {
+        "id": "documentation",
+        "name": "Documentação",
+        "icon": "📚",
+        "description": "Criar ou atualizar docs",
+        "color": "#6366F1",
+        "data": {
+            "title": "[Docs] ",
+            "persona": "Como desenvolvedor/usuário",
+            "action": "eu quero documentação atualizada",
+            "benefit": "para entender como usar/desenvolver a funcionalidade",
+            "acceptance_criteria": [
+                "Documentação clara e completa",
+                "Exemplos de uso incluídos",
+                "Screenshots/diagramas quando aplicável"
+            ],
+            "definition_of_done": [
+                "Conteúdo revisado por pares",
+                "Formatação consistente",
+                "Links funcionais",
+                "Publicado/atualizado"
+            ],
+            "story_points": 2,
+            "complexity": "low",
+            "priority": "low",
+            "category": "documentation"
+        }
+    }
+]
+
+
+@app.get("/api/templates")
+def list_story_templates():
+    """Issue #223: List available story templates"""
+    return STORY_TEMPLATES
+
+
+@app.get("/api/templates/{template_id}")
+def get_story_template(template_id: str):
+    """Issue #223: Get specific template by ID"""
+    for template in STORY_TEMPLATES:
+        if template["id"] == template_id:
+            return template
+    raise HTTPException(404, f"Template not found: {template_id}")
+
+
+# =============================================================================
 # API ENDPOINTS - PROJECTS
 # =============================================================================
 
@@ -4477,6 +4670,182 @@ HTML_TEMPLATE = """
                 display: none;
             }
         }
+
+        /* ========== ISSUE #223 - STORY TEMPLATES ========== */
+        .template-selector {
+            padding: 16px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .dark .template-selector {
+            border-color: #374151;
+        }
+        .template-selector-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+        .dark .template-selector-header {
+            color: #E5E7EB;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        @media (max-width: 640px) {
+            .template-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .template-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 16px 12px;
+            background: #F9FAFB;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .dark .template-card {
+            background: #1F2937;
+        }
+        .template-card:hover {
+            background: #F3F4F6;
+            border-color: #D1D5DB;
+        }
+        .dark .template-card:hover {
+            background: #374151;
+            border-color: #4B5563;
+        }
+        .template-card.selected {
+            border-color: #FF6C00;
+            background: #FFF7ED;
+        }
+        .dark .template-card.selected {
+            border-color: #FF6C00;
+            background: rgba(255, 108, 0, 0.1);
+        }
+        .template-icon {
+            font-size: 28px;
+            line-height: 1;
+        }
+        .template-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1F2937;
+        }
+        .dark .template-name {
+            color: #F9FAFB;
+        }
+        .template-desc {
+            font-size: 11px;
+            color: #6B7280;
+            line-height: 1.3;
+        }
+        .template-blank {
+            border-style: dashed;
+            border-color: #D1D5DB;
+        }
+        .dark .template-blank {
+            border-color: #4B5563;
+        }
+        .template-applied-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #FFF7ED;
+            border: 1px solid #FDBA74;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #EA580C;
+            margin-bottom: 12px;
+        }
+        .dark .template-applied-badge {
+            background: rgba(255, 108, 0, 0.1);
+            border-color: #FF6C00;
+            color: #FF8533;
+        }
+        .template-applied-badge button {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        .template-applied-badge button:hover {
+            opacity: 1;
+        }
+        .template-selector-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .template-selector-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .dark .template-selector-title {
+            color: #E5E7EB;
+        }
+        .template-skip-btn {
+            font-size: 12px;
+            color: #6B7280;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        .template-skip-btn:hover {
+            color: #374151;
+            background: #F3F4F6;
+        }
+        .dark .template-skip-btn:hover {
+            color: #E5E7EB;
+            background: #374151;
+        }
+        .template-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px;
+            color: #6B7280;
+            font-size: 13px;
+        }
+        .dark .template-loading {
+            color: #9CA3AF;
+        }
+        .template-selected-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
+            border-bottom: 1px solid #FDBA74;
+        }
+        .dark .template-selected-banner {
+            background: linear-gradient(135deg, rgba(255,108,0,0.1) 0%, rgba(251,191,36,0.1) 100%);
+            border-color: #92400E;
+        }
+        .template-selected-banner .font-medium {
+            color: #92400E;
+            font-size: 14px;
+        }
+        .dark .template-selected-banner .font-medium {
+            color: #FCD34D;
+        }
         </style>
 </head>
 <body class="bg-gray-100">
@@ -6518,18 +6887,42 @@ HTML_TEMPLATE = """
             <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800">
                 <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
                     <h2 class="text-lg font-semibold">Nova User Story</h2>
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm opacity-80">Template:</span>
-                        <select v-model="selectedTemplate" @change="applyTemplate"
-                                class="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white">
-                            <option value="">Selecionar...</option>
-                            <option value="feature">Feature</option>
-                            <option value="bugfix">Bug Fix</option>
-                            <option value="tech_debt">Tech Debt</option>
-                            <option value="spike">Spike/Pesquisa</option>
-                            <option value="improvement">Melhoria</option>
-                        </select>
+                    <button @click="showNewStoryModal = false" class="text-white/80 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <!-- Issue #223: Template Selector -->
+                <div class="template-selector" v-if="showTemplateSelector">
+                    <div class="template-selector-header">
+                        <span class="template-selector-title">Escolha um template para comecar</span>
+                        <button class="template-skip-btn" @click="showTemplateSelector = false">Pular</button>
                     </div>
+                    <div class="template-grid" v-if="!templatesLoading">
+                        <button v-for="tmpl in availableTemplates" :key="tmpl.id"
+                                class="template-card"
+                                :class="{ 'selected': selectedTemplate === tmpl.id }"
+                                @click="applyTemplate(tmpl.id)"
+                                :style="{ '--template-color': tmpl.color }">
+                            <span class="template-icon">{{ tmpl.icon }}</span>
+                            <span class="template-name">{{ tmpl.name }}</span>
+                            <span class="template-desc">{{ tmpl.description }}</span>
+                        </button>
+                    </div>
+                    <div v-else class="template-loading">
+                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span>Carregando templates...</span>
+                    </div>
+                </div>
+                <!-- Selected Template Indicator -->
+                <div v-else-if="selectedTemplate" class="template-selected-banner">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">{{ availableTemplates.find(t => t.id === selectedTemplate)?.icon }}</span>
+                        <span class="font-medium">{{ availableTemplates.find(t => t.id === selectedTemplate)?.name }}</span>
+                    </div>
+                    <button @click="clearTemplate" class="text-sm text-[#003B4A] hover:underline">Trocar template</button>
                 </div>
                 <!-- Issue #195: Omnichannel Input Selector -->
                 <div class="p-4 bg-gray-50 border-b border-gray-200 dark:bg-gray-700">
@@ -8986,9 +9379,38 @@ HTML_TEMPLATE = """
             const currentDesign = ref(null);
             const drawioFrame = ref(null);
 
-            // Story Templates
+            // Story Templates (Issue #223)
             const selectedTemplate = ref('');
-            const storyTemplates = {
+            const availableTemplates = ref([]);
+            const templatesLoading = ref(false);
+            const showTemplateSelector = ref(true);
+
+            // Load templates from API
+            const loadTemplates = async () => {
+                templatesLoading.value = true;
+                try {
+                    const response = await fetch('/api/templates');
+                    if (response.ok) {
+                        availableTemplates.value = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load templates:', error);
+                    // Fallback to local templates
+                    availableTemplates.value = [
+                        { id: 'feature', name: 'Feature', icon: '✨', description: 'Nova funcionalidade', color: '#10B981' },
+                        { id: 'bugfix', name: 'Bug Fix', icon: '🐛', description: 'Correcao de bug', color: '#EF4444' },
+                        { id: 'tech_debt', name: 'Tech Debt', icon: '🔧', description: 'Debito tecnico', color: '#F59E0B' },
+                        { id: 'integration', name: 'Integracao', icon: '🔗', description: 'Integracao externa', color: '#8B5CF6' },
+                        { id: 'ui_improvement', name: 'UI/UX', icon: '🎨', description: 'Melhoria visual', color: '#EC4899' },
+                        { id: 'documentation', name: 'Documentacao', icon: '📚', description: 'Documentacao', color: '#6B7280' }
+                    ];
+                } finally {
+                    templatesLoading.value = false;
+                }
+            };
+
+            // Local template data for form population
+            const storyTemplatesData = {
                 feature: {
                     title: '[Feature] ',
                     persona: 'usuario do sistema',
@@ -9025,35 +9447,49 @@ HTML_TEMPLATE = """
                     complexity: 'high',
                     category: 'tech_debt'
                 },
-                spike: {
-                    title: '[Spike] ',
-                    persona: 'time de desenvolvimento',
-                    action: 'pesquisar e documentar',
-                    benefit: 'tenhamos informacao para decisoes',
-                    description: '## Objetivo da pesquisa\\n\\n## Perguntas a responder\\n1. \\n2. \\n\\n## Timebox\\n\\n## Entregaveis\\n- Documentacao\\n- POC (se aplicavel)',
-                    criteria: 'Pesquisa documentada\\nRecomendacoes claras\\nPOC funcionando (se aplicavel)\\nApresentacao para o time',
-                    story_points: 3,
+                integration: {
+                    title: '[Integracao] ',
+                    persona: 'sistema',
+                    action: 'integrar com servico externo',
+                    benefit: 'tenhamos dados sincronizados',
+                    description: '## Sistema externo\\n\\n## Endpoints/APIs\\n\\n## Autenticacao\\n\\n## Mapeamento de dados\\n',
+                    criteria: 'Integracao funcionando\\nTestes de integracao passando\\nDocumentacao da API\\nMonitoramento configurado',
+                    story_points: 8,
                     priority: 'medium',
-                    complexity: 'low',
-                    category: 'spike'
+                    complexity: 'high',
+                    category: 'integration'
                 },
-                improvement: {
-                    title: '[Melhoria] ',
-                    persona: 'usuario do sistema',
-                    action: 'ter acesso a funcionalidade melhorada',
-                    benefit: 'tenha uma experiencia mais eficiente',
-                    description: '## Situacao atual\\n\\n## Melhoria proposta\\n\\n## Beneficios esperados\\n',
-                    criteria: 'Melhoria implementada\\nTestes atualizados\\nUsuarios notificados',
+                ui_improvement: {
+                    title: '[UI/UX] ',
+                    persona: 'usuario',
+                    action: 'ter uma interface melhorada',
+                    benefit: 'tenha uma experiencia mais agradavel',
+                    description: '## Componente atual\\n\\n## Problema de UX\\n\\n## Solucao proposta\\n\\n## Mockups/Referencias\\n',
+                    criteria: 'UI implementada conforme design\\nResponsivo\\nAcessibilidade verificada\\nTestes visuais passando',
                     story_points: 3,
                     priority: 'medium',
                     complexity: 'medium',
-                    category: 'improvement'
+                    category: 'ui'
+                },
+                documentation: {
+                    title: '[Doc] ',
+                    persona: 'desenvolvedor/usuario',
+                    action: 'ter documentacao atualizada',
+                    benefit: 'possa entender e usar o sistema',
+                    description: '## Tipo de documentacao\\n\\n## Publico alvo\\n\\n## Topicos a cobrir\\n\\n## Referencias\\n',
+                    criteria: 'Documentacao criada\\nRevisada por pares\\nPublicada\\nLinks atualizados',
+                    story_points: 2,
+                    priority: 'low',
+                    complexity: 'low',
+                    category: 'documentation'
                 }
             };
 
-            const applyTemplate = () => {
-                const template = storyTemplates[selectedTemplate.value];
+            const applyTemplate = (templateId = null) => {
+                const id = templateId || selectedTemplate.value;
+                const template = storyTemplatesData[id];
                 if (template) {
+                    selectedTemplate.value = id;
                     newStory.value = {
                         ...newStory.value,
                         title: template.title,
@@ -9067,8 +9503,15 @@ HTML_TEMPLATE = """
                         category: template.category
                     };
                     newStoryCriteria.value = template.criteria;
-                    addToast('info', 'Template aplicado', 'Formulario preenchido com template ' + selectedTemplate.value);
+                    showTemplateSelector.value = false;
+                    const tmpl = availableTemplates.value.find(t => t.id === id);
+                    addToast('info', 'Template aplicado', 'Formulario preenchido com ' + (tmpl?.name || id));
                 }
+            };
+
+            const clearTemplate = () => {
+                selectedTemplate.value = '';
+                showTemplateSelector.value = true;
             };
 
             // Dark Mode
@@ -10791,6 +11234,7 @@ Process ${data.status}`);
                 initTerminal();
                 loadTenants(); // Load tenants first - Multi-Tenancy
                 loadProjects();
+                loadTemplates(); // Issue #223 - Load story templates
                 loadDarkMode();
                 loadNotificationSoundPreference();
                 loadOnboardingState(); // Issue #132 - Load onboarding state
@@ -11174,7 +11618,8 @@ Process ${data.status}`);
                 addToast, removeToast, getToastIcon, handleUndo,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
-                selectedTemplate, applyTemplate, isDarkMode, toggleDarkMode,
+                selectedTemplate, applyTemplate, availableTemplates, templatesLoading, showTemplateSelector, clearTemplate,
+                isDarkMode, toggleDarkMode,
                 showBurndownModal, burndownData, updateBurndownChart,
                 bulkSelectMode, selectedStories, toggleBulkSelectMode, toggleBulkSelect,
                 cancelBulkSelect, bulkMoveStories, bulkDeleteStories,
