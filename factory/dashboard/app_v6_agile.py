@@ -501,6 +501,13 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Keyboard Shortcuts not available: {e}")
 
+# Filter Persistence (Issue #235)
+try:
+    from factory.dashboard.filter_persistence import register_filter_persistence
+    register_filter_persistence(app)
+except ImportError as e:
+    print(f"[Dashboard] Filter Persistence not available: {e}")
+
 # Custom Kanban Columns (Issue #252)
 try:
     from factory.dashboard.custom_kanban_columns import register_custom_columns
