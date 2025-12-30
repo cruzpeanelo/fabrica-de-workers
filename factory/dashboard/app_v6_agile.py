@@ -243,6 +243,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Kanban WIP Limits router not available: {e}")
 
+# WebSocket Collaboration Routes (Issue #242)
+try:
+    from factory.websocket.routes import router as websocket_router
+    app.include_router(websocket_router)
+    print("[Dashboard] WebSocket Collaboration router loaded")
+except ImportError as e:
+    print(f"[Dashboard] WebSocket Collaboration router not available: {e}")
+
 # Worker Monitoring Dashboard (Issue #88)
 try:
     from factory.dashboard.worker_monitoring import register_monitoring_endpoints
@@ -4727,6 +4735,229 @@ HTML_TEMPLATE = """
             }
         }
 
+        /* Issue #204: Simplified Mode & Glossary */
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px;
+            background: #F3F4F6;
+            border-radius: 8px;
+            font-size: 0.75rem;
+        }
+        .mode-toggle-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .mode-toggle-btn:hover {
+            color: #374151;
+        }
+        .mode-toggle-btn.active {
+            background: white;
+            color: #003B4A;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .term-help {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+        .term-help-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            color: #6B7280;
+            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+            transition: all 0.2s;
+        }
+        .term-help-icon:hover {
+            background: #003B4A;
+            color: white;
+        }
+        .term-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1F2937;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            min-width: 200px;
+            max-width: 280px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .term-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #1F2937;
+        }
+        .term-help:hover .term-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .term-tooltip-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #FF6C00;
+        }
+        .term-tooltip-simple {
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .term-tooltip-example {
+            font-size: 0.75rem;
+            color: #9CA3AF;
+            font-style: italic;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .simplified-label {
+            background: linear-gradient(135deg, #E0F2FE, #DBEAFE);
+            color: #0369A1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .glossary-panel {
+            position: fixed;
+            bottom: 160px;
+            right: 24px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 300px;
+            max-height: 400px;
+            z-index: 998;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        .glossary-panel.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .glossary-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #F9FAFB;
+            border-radius: 12px 12px 0 0;
+        }
+        .glossary-title {
+            font-weight: 600;
+            color: #003B4A;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .glossary-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .glossary-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #F3F4F6;
+        }
+        .glossary-item:last-child {
+            border-bottom: none;
+        }
+        .glossary-term {
+            font-weight: 600;
+            color: #003B4A;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .glossary-simple {
+            color: #FF6C00;
+            font-size: 0.85rem;
+        }
+        .glossary-desc {
+            color: #6B7280;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+        .glossary-example {
+            color: #9CA3AF;
+            font-size: 0.75rem;
+            font-style: italic;
+            margin-top: 6px;
+        }
+        .glossary-toggle {
+            position: fixed;
+            bottom: 160px;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #F3F4F6;
+            border: 1px solid #E5E7EB;
+            color: #6B7280;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            z-index: 997;
+        }
+        .glossary-toggle:hover {
+            background: #003B4A;
+            color: white;
+            border-color: #003B4A;
+        }
+        @media (max-width: 480px) {
+            .glossary-panel {
+                right: 16px;
+                left: 16px;
+                width: auto;
+                bottom: 140px;
+            }
+            .glossary-toggle {
+                bottom: 140px;
+                right: 16px;
+            }
+            .mode-toggle {
+                display: none;
+            }
+        }
+
         /* Search Box */
         .search-box {
             position: relative;
@@ -7130,6 +7361,18 @@ HTML_TEMPLATE = """
                             <button :class="['view-mode-btn', viewMode === 'executive' ? 'active' : '']"
                                     @click="viewMode = 'executive'" title="Visao Executiva">
                                 Executivo
+                            </button>
+                        </div>
+
+                        <!-- Issue #204: Simplified Mode Toggle -->
+                        <div class="mode-toggle hide-on-mobile" v-if="selectedProjectId" data-testid="simplified-mode-toggle">
+                            <button :class="['mode-toggle-btn', { 'active': !simplifiedMode }]"
+                                    @click="setSimplifiedMode(false)" title="Mostra todos os termos tecnicos">
+                                Avancado
+                            </button>
+                            <button :class="['mode-toggle-btn', { 'active': simplifiedMode }]"
+                                    @click="setSimplifiedMode(true)" title="Usa linguagem simplificada">
+                                Simples
                             </button>
                         </div>
 
@@ -10674,6 +10917,36 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
+        <!-- Issue #204: Glossary Panel -->
+        <button @click="toggleGlossary" class="glossary-toggle" data-testid="glossary-toggle" title="Glossario">
+            <span>❓</span>
+        </button>
+
+        <div :class="['glossary-panel', { 'open': showGlossary }]" data-testid="glossary-panel">
+            <div class="glossary-header">
+                <h3 class="glossary-title">
+                    <span>📖</span>
+                    {{ t('glossary.title') || 'Glossario' }}
+                </h3>
+                <button @click="closeGlossary" class="activity-feed-close" aria-label="Fechar">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="glossary-content">
+                <div v-for="(term, key) in glossaryTerms" :key="key" class="glossary-item">
+                    <div class="glossary-term">
+                        <span>{{ term.icon }}</span>
+                        {{ term.term }}
+                        <span class="glossary-simple">= {{ term.simple }}</span>
+                    </div>
+                    <div class="glossary-desc">{{ term.description }}</div>
+                    <div v-if="term.example" class="glossary-example">{{ term.example }}</div>
+                </div>
+            </div>
+        </div>
+
         <!-- TOAST CONTAINER -->
         <div class="toast-container">
             <div v-for="toast in toasts" :key="toast.id"
@@ -12156,6 +12429,69 @@ HTML_TEMPLATE = """
                 });
 
                 return groups;
+            });
+
+            // Issue #204: Simplified Mode & Glossary State
+            const simplifiedMode = ref(localStorage.getItem('simplifiedMode') === 'true');
+            const showGlossary = ref(false);
+
+            const glossaryTerms = ref({
+                worker: {
+                    icon: '🤖',
+                    term: 'Worker',
+                    simple: 'Aplicacao automatica',
+                    description: 'Um programa que executa tarefas automaticamente sem intervencao humana',
+                    example: 'Ex: Um worker pode enviar emails toda manha'
+                },
+                job: {
+                    icon: '📋',
+                    term: 'Job',
+                    simple: 'Tarefa',
+                    description: 'Uma execucao unica de um worker',
+                    example: 'Ex: O envio de email das 9h e um job'
+                },
+                story: {
+                    icon: '📝',
+                    term: 'Story',
+                    simple: 'Funcionalidade',
+                    description: 'Uma descricao do que o sistema deve fazer do ponto de vista do usuario',
+                    example: 'Ex: "Como usuario, quero fazer login com email"'
+                },
+                sprint: {
+                    icon: '🏃',
+                    term: 'Sprint',
+                    simple: 'Ciclo de desenvolvimento',
+                    description: 'Periodo curto (1-4 semanas) para desenvolver funcionalidades',
+                    example: 'Ex: Sprint 5 - 2 semanas para entregar o modulo de pagamentos'
+                },
+                deploy: {
+                    icon: '🚀',
+                    term: 'Deploy',
+                    simple: 'Publicacao',
+                    description: 'Disponibilizar o sistema para uso pelos usuarios finais',
+                    example: 'Ex: Fazer deploy = colocar o site no ar'
+                },
+                backlog: {
+                    icon: '📚',
+                    term: 'Backlog',
+                    simple: 'Lista de pendencias',
+                    description: 'Lista de todas as funcionalidades que ainda precisam ser desenvolvidas',
+                    example: 'Ex: O backlog tem 50 itens pendentes'
+                },
+                api: {
+                    icon: '🔌',
+                    term: 'API',
+                    simple: 'Conexao',
+                    description: 'Interface que permite sistemas se comunicarem entre si',
+                    example: 'Ex: A API do banco permite consultar o saldo'
+                },
+                webhook: {
+                    icon: '🔔',
+                    term: 'Webhook',
+                    simple: 'Notificacao automatica',
+                    description: 'Aviso automatico enviado quando algo acontece no sistema',
+                    example: 'Ex: Webhook avisa quando um pagamento e aprovado'
+                }
             });
 
             // Issue #203: Error Message Mapping (technical -> user-friendly)
@@ -14264,6 +14600,37 @@ Data: ${new Date().toISOString()}`;
                 activities.value.unshift(newActivity);
             };
 
+            // Issue #204: Simplified Mode & Glossary Functions
+            const setSimplifiedMode = (enabled) => {
+                simplifiedMode.value = enabled;
+                localStorage.setItem('simplifiedMode', enabled.toString());
+                if (enabled) {
+                    addToast('info', 'Modo Simplificado Ativado', 'Termos tecnicos serao traduzidos para linguagem comum');
+                } else {
+                    addToast('info', 'Modo Avancado Ativado', 'Termos tecnicos serao exibidos');
+                }
+            };
+
+            const toggleGlossary = () => {
+                showGlossary.value = !showGlossary.value;
+            };
+
+            const closeGlossary = () => {
+                showGlossary.value = false;
+            };
+
+            const getSimplifiedTerm = (technicalTerm) => {
+                const term = glossaryTerms.value[technicalTerm.toLowerCase()];
+                if (simplifiedMode.value && term) {
+                    return term.simple;
+                }
+                return technicalTerm;
+            };
+
+            const getTermDefinition = (technicalTerm) => {
+                return glossaryTerms.value[technicalTerm.toLowerCase()] || null;
+            };
+
             // WebSocket Functions
             const connectWebSocket = () => {
                 if (ws && ws.readyState === WebSocket.OPEN) return;
@@ -15204,6 +15571,9 @@ Process ${data.status}`);
                 toggleActivityFeed, closeActivityFeed, loadActivities, loadMoreActivities,
                 handleActivityScroll, getActivityIcon, formatActivityText, formatTimeAgo,
                 handleActivityClick, addActivity,
+                // Issue #204: Simplified Mode & Glossary
+                simplifiedMode, showGlossary, glossaryTerms,
+                setSimplifiedMode, toggleGlossary, closeGlossary, getSimplifiedTerm, getTermDefinition,
                 cancelConfirm, executeConfirm, deleteStoryWithConfirm, deleteTaskWithConfirm,
                 showContextMenu, hideContextMenu, contextMenuAction, moveToNextColumn,
                 selectedTemplate, applyTemplate, availableTemplates, templatesLoading, showTemplateSelector, clearTemplate,
@@ -15247,6 +15617,9 @@ Process ${data.status}`);
     <script src="/static/pwa-init.js" defer></script>
     <script src="/static/offline-db.js" defer></script>
     <script src="/static/offline-ui.js" defer></script>
+
+    <!-- Real-time Collaboration (Issue #242) -->
+    <script src="/static/collaboration.js" defer></script>
 
     <script>
     // Service Worker Registration

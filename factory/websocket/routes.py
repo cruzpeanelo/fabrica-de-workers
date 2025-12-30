@@ -29,6 +29,7 @@ from .events import (
     create_heartbeat_event,
     WebSocketEvent
 )
+from .collaboration import collab_manager, UserStatus, EventType as CollabEventType
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -353,3 +354,229 @@ async def broadcast_message(
 
     count = await ws_manager.broadcast_event(event_enum, data, project_id)
     return {"sent_to": count}
+
+
+# =============================================================================
+# COLABORACAO EM TEMPO REAL - Issue #242
+# =============================================================================
+
+@router.websocket("/ws/collaboration/{project_id}")
+async def websocket_collaboration(
+    websocket: WebSocket,
+    project_id: str,
+    user_id: str = Query(...),
+    username: str = Query(...),
+    avatar_url: Optional[str] = Query(None)
+):
+    """
+    WebSocket endpoint para colaboracao em tempo real estilo Figma/Google Docs.
+
+    Permite:
+    - Ver quem esta online no projeto
+    - Cursores em tempo real de outros usuarios
+    - Indicadores de quem esta visualizando/editando cada story
+    - Locks otimistas para evitar conflitos de edicao
+
+    Args:
+        websocket: Conexao WebSocket
+        project_id: ID do projeto
+        user_id: ID do usuario
+        username: Nome do usuario
+        avatar_url: URL do avatar (opcional)
+
+    Mensagens do cliente:
+    - {"type": "cursor_move", "x": 100, "y": 200, "element_id": "story-123"}
+    - {"type": "view_start", "entity_type": "story", "entity_id": "STR-001"}
+    - {"type": "view_end"}
+    - {"type": "edit_start", "entity_type": "story", "entity_id": "STR-001"}
+    - {"type": "edit_end", "entity_type": "story", "entity_id": "STR-001"}
+    - {"type": "status_change", "status": "away|busy|online"}
+    - "ping"
+
+    Eventos do servidor:
+    - {"type": "sync", "users": [...], "locks": [...]}
+    - {"type": "join", "user": {...}}
+    - {"type": "leave", "user": {...}}
+    - {"type": "cursor_move", "user_id": "...", "cursor": {...}}
+    - {"type": "view_start", "user_id": "...", "entity_type": "...", "entity_id": "..."}
+    - {"type": "edit_start", "user_id": "...", "lock": {...}}
+    - {"type": "edit_conflict", "lock": {...}, "message": "..."}
+
+    Exemplo JavaScript:
+        const ws = new WebSocket(
+            'ws://localhost:9001/ws/collaboration/PROJ-001?user_id=user1&username=Joao'
+        );
+        ws.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'cursor_move') {
+                updateCursor(msg.user_id, msg.cursor);
+            }
+        };
+        // Mover cursor
+        ws.send(JSON.stringify({type: 'cursor_move', x: 100, y: 200}));
+    """
+    await websocket.accept()
+
+    try:
+        # Entrar no room
+        user_presence = await collab_manager.join_room(
+            websocket, project_id, user_id, username, avatar_url
+        )
+
+        # Loop de mensagens
+        while True:
+            try:
+                data = await asyncio.wait_for(
+                    websocket.receive_text(),
+                    timeout=30  # Heartbeat a cada 30s
+                )
+
+                # Ping simples
+                if data == "ping":
+                    await websocket.send_json({
+                        "type": CollabEventType.PONG.value,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    continue
+
+                # Parse JSON
+                try:
+                    msg = json.loads(data)
+                    msg_type = msg.get("type", "")
+
+                    if msg_type == "ping":
+                        await websocket.send_json({
+                            "type": CollabEventType.PONG.value,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+
+                    elif msg_type == "cursor_move":
+                        await collab_manager.update_cursor(
+                            websocket,
+                            x=msg.get("x", 0),
+                            y=msg.get("y", 0),
+                            element_id=msg.get("element_id")
+                        )
+
+                    elif msg_type == "view_start":
+                        await collab_manager.start_viewing(
+                            websocket,
+                            entity_type=msg.get("entity_type", "story"),
+                            entity_id=msg.get("entity_id", "")
+                        )
+
+                    elif msg_type == "view_end":
+                        await collab_manager.stop_viewing(websocket)
+
+                    elif msg_type == "edit_start":
+                        success, lock = await collab_manager.acquire_lock(
+                            websocket,
+                            entity_type=msg.get("entity_type", "story"),
+                            entity_id=msg.get("entity_id", "")
+                        )
+                        if success:
+                            await websocket.send_json({
+                                "type": "lock_acquired",
+                                "lock": lock.to_dict() if lock else None
+                            })
+
+                    elif msg_type == "edit_end":
+                        await collab_manager.release_lock(
+                            websocket,
+                            entity_type=msg.get("entity_type", "story"),
+                            entity_id=msg.get("entity_id", "")
+                        )
+
+                    elif msg_type == "status_change":
+                        status_str = msg.get("status", "online")
+                        try:
+                            status = UserStatus(status_str)
+                            await collab_manager.update_status(websocket, status)
+                        except ValueError:
+                            pass
+
+                except json.JSONDecodeError:
+                    pass
+
+            except asyncio.TimeoutError:
+                # Enviar heartbeat
+                try:
+                    await websocket.send_json({
+                        "type": CollabEventType.PING.value,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                except:
+                    break
+
+            except WebSocketDisconnect:
+                break
+
+            except Exception as e:
+                print(f"[Collaboration] Erro: {e}")
+                continue
+
+    except WebSocketDisconnect:
+        pass
+
+    finally:
+        await collab_manager.leave_room(websocket)
+
+
+# =============================================================================
+# REST ENDPOINTS PARA COLABORACAO - Issue #242
+# =============================================================================
+
+@router.get("/api/collaboration/{project_id}/presence")
+async def get_project_presence(project_id: str):
+    """
+    Retorna lista de usuarios online no projeto.
+
+    Returns:
+        Lista com informacoes de presenca de cada usuario
+    """
+    return {
+        "project_id": project_id,
+        "users": collab_manager.get_room_presence(project_id)
+    }
+
+
+@router.get("/api/collaboration/{project_id}/viewers/{entity_type}/{entity_id}")
+async def get_entity_viewers(project_id: str, entity_type: str, entity_id: str):
+    """
+    Retorna usuarios visualizando uma entidade especifica.
+
+    Args:
+        project_id: ID do projeto
+        entity_type: Tipo da entidade (story, task)
+        entity_id: ID da entidade
+
+    Returns:
+        Lista de usuarios visualizando
+    """
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "viewers": collab_manager.get_viewers(entity_type, entity_id)
+    }
+
+
+@router.get("/api/collaboration/{project_id}/lock/{entity_type}/{entity_id}")
+async def get_entity_lock(project_id: str, entity_type: str, entity_id: str):
+    """
+    Retorna lock de edicao de uma entidade.
+
+    Args:
+        project_id: ID do projeto
+        entity_type: Tipo da entidade (story, task)
+        entity_id: ID da entidade
+
+    Returns:
+        Lock ativo ou null se nao houver
+    """
+    lock = collab_manager.get_lock(entity_type, entity_id)
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "lock": lock,
+        "is_locked": lock is not None
+    }
