@@ -455,6 +455,20 @@ try:
 except ImportError as e:
     print(f"[Dashboard] User Preferences not available: {e}")
 
+# User Mode - Basic/Advanced (Issue #204)
+try:
+    from factory.dashboard.user_mode import register_user_mode_endpoints
+    register_user_mode_endpoints(app)
+except ImportError as e:
+    print(f"[Dashboard] User Mode not available: {e}")
+
+# Onboarding Tour (Issue #204)
+try:
+    from factory.dashboard.tour import register_tour_endpoints
+    register_tour_endpoints(app)
+except ImportError as e:
+    print(f"[Dashboard] Onboarding Tour not available: {e}")
+
 # Custom Kanban Columns (Issue #252)
 try:
     from factory.dashboard.custom_kanban_columns import register_custom_columns
