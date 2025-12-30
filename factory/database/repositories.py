@@ -52,7 +52,9 @@ from .models import (
     StoryDocumentation, DocType,
     ChatMessage, MessageRole,
     Attachment, Epic, Sprint,
-    ExecutionLog, ExecutionStatus
+    ExecutionLog, ExecutionStatus,
+    # Issue #316: Novos modelos
+    Agent, AgentStatus, Skill, SkillType, Template, FactoryEvent
 )
 
 # Issue #301: Tenant isolation helper
@@ -1671,6 +1673,222 @@ class ExecutionLogRepository:
 
 
 # =============================================================================
+# AGENT REPOSITORY (Issue #316)
+# =============================================================================
+
+class AgentRepository:
+    """
+    Repositorio para gerenciamento de Agentes IA (Issue #316).
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, data: Dict[str, Any]) -> Agent:
+        """Cria novo agente"""
+        agent = Agent(**data)
+        self.db.add(agent)
+        self.db.commit()
+        self.db.refresh(agent)
+        return agent
+
+    def get_by_id(self, agent_id: str) -> Optional[Agent]:
+        """Busca agente por ID"""
+        return self.db.query(Agent).filter(Agent.agent_id == agent_id).first()
+
+    def get_all(self, enabled_only: bool = False) -> List[Agent]:
+        """Lista todos os agentes"""
+        query = self.db.query(Agent)
+        if enabled_only:
+            query = query.filter(Agent.enabled == True)
+        return query.all()
+
+    def update(self, agent_id: str, data: Dict[str, Any]) -> Optional[Agent]:
+        """Atualiza agente"""
+        agent = self.get_by_id(agent_id)
+        if agent:
+            for key, value in data.items():
+                if hasattr(agent, key):
+                    setattr(agent, key, value)
+            self.db.commit()
+            self.db.refresh(agent)
+        return agent
+
+    def delete(self, agent_id: str) -> bool:
+        """Remove agente"""
+        agent = self.get_by_id(agent_id)
+        if agent:
+            self.db.delete(agent)
+            self.db.commit()
+            return True
+        return False
+
+
+# =============================================================================
+# SKILL REPOSITORY (Issue #316)
+# =============================================================================
+
+class SkillRepository:
+    """
+    Repositorio para gerenciamento de Skills (Issue #316).
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, data: Dict[str, Any]) -> Skill:
+        """Cria nova skill"""
+        skill = Skill(**data)
+        self.db.add(skill)
+        self.db.commit()
+        self.db.refresh(skill)
+        return skill
+
+    def get_by_id(self, skill_id: str) -> Optional[Skill]:
+        """Busca skill por ID"""
+        return self.db.query(Skill).filter(Skill.skill_id == skill_id).first()
+
+    def get_all(self, enabled_only: bool = False) -> List[Skill]:
+        """Lista todas as skills"""
+        query = self.db.query(Skill)
+        if enabled_only:
+            query = query.filter(Skill.enabled == True)
+        return query.all()
+
+    def get_by_type(self, skill_type: str) -> List[Skill]:
+        """Lista skills por tipo"""
+        return self.db.query(Skill).filter(Skill.skill_type == skill_type).all()
+
+    def update(self, skill_id: str, data: Dict[str, Any]) -> Optional[Skill]:
+        """Atualiza skill"""
+        skill = self.get_by_id(skill_id)
+        if skill:
+            for key, value in data.items():
+                if hasattr(skill, key):
+                    setattr(skill, key, value)
+            self.db.commit()
+            self.db.refresh(skill)
+        return skill
+
+    def delete(self, skill_id: str) -> bool:
+        """Remove skill"""
+        skill = self.get_by_id(skill_id)
+        if skill:
+            self.db.delete(skill)
+            self.db.commit()
+            return True
+        return False
+
+
+# =============================================================================
+# TEMPLATE REPOSITORY (Issue #316)
+# =============================================================================
+
+class TemplateRepository:
+    """
+    Repositorio para gerenciamento de Templates (Issue #316).
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, data: Dict[str, Any]) -> Template:
+        """Cria novo template"""
+        template = Template(**data)
+        self.db.add(template)
+        self.db.commit()
+        self.db.refresh(template)
+        return template
+
+    def get_by_id(self, template_id: str) -> Optional[Template]:
+        """Busca template por ID"""
+        return self.db.query(Template).filter(Template.template_id == template_id).first()
+
+    def get_all(self, enabled_only: bool = False) -> List[Template]:
+        """Lista todos os templates"""
+        query = self.db.query(Template)
+        if enabled_only:
+            query = query.filter(Template.enabled == True)
+        return query.all()
+
+    def get_by_project_type(self, project_type: str) -> List[Template]:
+        """Lista templates por tipo de projeto"""
+        return self.db.query(Template).filter(Template.project_type == project_type).all()
+
+    def update(self, template_id: str, data: Dict[str, Any]) -> Optional[Template]:
+        """Atualiza template"""
+        template = self.get_by_id(template_id)
+        if template:
+            for key, value in data.items():
+                if hasattr(template, key):
+                    setattr(template, key, value)
+            self.db.commit()
+            self.db.refresh(template)
+        return template
+
+    def delete(self, template_id: str) -> bool:
+        """Remove template"""
+        template = self.get_by_id(template_id)
+        if template:
+            self.db.delete(template)
+            self.db.commit()
+            return True
+        return False
+
+
+# =============================================================================
+# FACTORY_EVENT REPOSITORY (Issue #316)
+# =============================================================================
+
+class FactoryEventRepository:
+    """
+    Repositorio para gerenciamento de Eventos da Fabrica (Issue #316).
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, data: Dict[str, Any]) -> FactoryEvent:
+        """Cria novo evento"""
+        event = FactoryEvent(**data)
+        self.db.add(event)
+        self.db.commit()
+        self.db.refresh(event)
+        return event
+
+    def get_by_id(self, event_id: str) -> Optional[FactoryEvent]:
+        """Busca evento por ID"""
+        return self.db.query(FactoryEvent).filter(FactoryEvent.event_id == event_id).first()
+
+    def get_all(self, limit: int = 100) -> List[FactoryEvent]:
+        """Lista eventos mais recentes"""
+        return self.db.query(FactoryEvent).order_by(
+            desc(FactoryEvent.timestamp)
+        ).limit(limit).all()
+
+    def get_by_type(self, event_type: str, limit: int = 100) -> List[FactoryEvent]:
+        """Lista eventos por tipo"""
+        return self.db.query(FactoryEvent).filter(
+            FactoryEvent.event_type == event_type
+        ).order_by(desc(FactoryEvent.timestamp)).limit(limit).all()
+
+    def get_by_project(self, project_id: str, limit: int = 100) -> List[FactoryEvent]:
+        """Lista eventos de um projeto"""
+        return self.db.query(FactoryEvent).filter(
+            FactoryEvent.project_id == project_id
+        ).order_by(desc(FactoryEvent.timestamp)).limit(limit).all()
+
+    def delete(self, event_id: str) -> bool:
+        """Remove evento"""
+        event = self.get_by_id(event_id)
+        if event:
+            self.db.delete(event)
+            self.db.commit()
+            return True
+        return False
+
+
+# =============================================================================
 # EXPORTS
 # =============================================================================
 
@@ -1690,4 +1908,9 @@ __all__ = [
     "EpicRepository",
     "SprintRepository",
     "ExecutionLogRepository",
+    # Issue #316: Novos repositorios
+    "AgentRepository",
+    "SkillRepository",
+    "TemplateRepository",
+    "FactoryEventRepository",
 ]

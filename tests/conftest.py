@@ -28,7 +28,9 @@ from factory.database.connection import Base
 from factory.database.models import (
     Project, Story, Task, ActivityLog,
     User, Sprint, Worker, Job, StoryTask,
-    ProjectStatus, TaskStatus, JobStatus, WorkerStatus
+    ProjectStatus, TaskStatus, JobStatus, WorkerStatus,
+    # Issue #316: Novos modelos
+    Agent, AgentStatus, Skill, SkillType, Template, FactoryEvent
 )
 
 
@@ -194,6 +196,60 @@ def sample_sprint(db_session, sample_project):
     db_session.commit()
     db_session.refresh(sprint)
     return sprint
+
+
+@pytest.fixture
+def sample_agent(db_session):
+    """Create a sample agent (Issue #316)"""
+    agent = Agent(
+        agent_id=generate_unique_id("AG"),
+        name="Developer Agent",
+        role="Backend Developer",
+        domain="technology",
+        status=AgentStatus.STANDBY.value,
+        capabilities=["python", "fastapi", "sql"],
+        enabled=True
+    )
+    db_session.add(agent)
+    db_session.commit()
+    db_session.refresh(agent)
+    return agent
+
+
+@pytest.fixture
+def sample_skill(db_session):
+    """Create a sample skill (Issue #316)"""
+    skill = Skill(
+        skill_id=generate_unique_id("SKILL"),
+        name="Code Generation",
+        description="Generates code from specifications",
+        skill_type=SkillType.CORE.value,
+        category="development",
+        enabled=True
+    )
+    db_session.add(skill)
+    db_session.commit()
+    db_session.refresh(skill)
+    return skill
+
+
+@pytest.fixture
+def sample_template(db_session):
+    """Create a sample template (Issue #316)"""
+    template = Template(
+        template_id=generate_unique_id("TPL"),
+        name="FastAPI Starter",
+        description="A FastAPI starter template",
+        project_type="api-service",
+        category="backend",
+        stack={"backend": "fastapi", "database": "postgresql"},
+        required_skills=["python", "api"],
+        enabled=True
+    )
+    db_session.add(template)
+    db_session.commit()
+    db_session.refresh(template)
+    return template
 
 
 @pytest.fixture

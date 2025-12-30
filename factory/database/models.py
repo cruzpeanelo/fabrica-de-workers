@@ -407,6 +407,222 @@ class Worker(Base):
 
 
 # =============================================================================
+# AGENT - Agentes IA (Issue #316)
+# =============================================================================
+
+class AgentStatus(str, Enum):
+    """Status do Agente"""
+    STANDBY = "STANDBY"
+    READY = "READY"
+    EXECUTING = "EXECUTING"
+    ERROR = "ERROR"
+
+
+class Agent(Base):
+    """
+    Modelo para Agentes IA (Issue #316)
+    Representa um agente especializado da fabrica.
+    """
+    __tablename__ = "agents"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    agent_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Identificacao
+    name = Column(String(200), nullable=False)
+    role = Column(String(100), nullable=True)
+    domain = Column(String(100), nullable=True)
+    description = Column(Text, nullable=True)
+
+    # Status
+    status = Column(String(30), default=AgentStatus.STANDBY.value, index=True)
+    enabled = Column(Boolean, default=True)
+
+    # Capacidades
+    capabilities = Column(JSON, default=list)
+    preferred_model = Column(String(50), default="claude-sonnet-4-20250514")
+
+    # Metricas
+    tasks_completed = Column(Integer, default=0)
+    tasks_failed = Column(Integer, default=0)
+    total_execution_time = Column(Integer, default=0)
+    avg_task_duration = Column(Float, default=0.0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_active_at = Column(DateTime, nullable=True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "role": self.role,
+            "domain": self.domain,
+            "description": self.description,
+            "status": self.status,
+            "enabled": self.enabled,
+            "capabilities": self.capabilities or [],
+            "preferred_model": self.preferred_model,
+            "metrics": {
+                "tasks_completed": self.tasks_completed,
+                "tasks_failed": self.tasks_failed,
+                "total_execution_time": self.total_execution_time,
+                "avg_task_duration": self.avg_task_duration,
+            },
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_active_at": self.last_active_at.isoformat() if self.last_active_at else None,
+        }
+
+    def __repr__(self):
+        return f"<Agent {self.agent_id}: {self.name} [{self.status}]>"
+
+
+# =============================================================================
+# SKILL - Habilidades dos Agentes (Issue #316)
+# =============================================================================
+
+class SkillType(str, Enum):
+    """Tipos de Skill"""
+    CORE = "core"
+    MCP = "mcp"
+    VESSEL = "vessel"
+    CUSTOM = "custom"
+
+
+class Skill(Base):
+    """
+    Modelo para Skills/Habilidades dos Agentes (Issue #316)
+    """
+    __tablename__ = "skills"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    skill_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Identificacao
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    skill_type = Column(String(30), default=SkillType.CORE.value)
+    category = Column(String(100), nullable=True)
+
+    # Configuracao
+    config = Column(JSON, default=dict)
+    enabled = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "skill_id": self.skill_id,
+            "name": self.name,
+            "description": self.description,
+            "skill_type": self.skill_type,
+            "category": self.category,
+            "config": self.config or {},
+            "enabled": self.enabled,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f"<Skill {self.skill_id}: {self.name} [{self.skill_type}]>"
+
+
+# =============================================================================
+# TEMPLATE - Templates de Projetos (Issue #316)
+# =============================================================================
+
+class Template(Base):
+    """
+    Modelo para Templates de Projetos (Issue #316)
+    """
+    __tablename__ = "templates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    template_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Identificacao
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    project_type = Column(String(50), nullable=False)
+    category = Column(String(100), nullable=True)
+
+    # Stack tecnologica
+    stack = Column(JSON, default=dict)
+    required_skills = Column(JSON, default=list)
+
+    # Configuracao
+    config = Column(JSON, default=dict)
+    enabled = Column(Boolean, default=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "template_id": self.template_id,
+            "name": self.name,
+            "description": self.description,
+            "project_type": self.project_type,
+            "category": self.category,
+            "stack": self.stack or {},
+            "required_skills": self.required_skills or [],
+            "config": self.config or {},
+            "enabled": self.enabled,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f"<Template {self.template_id}: {self.name} [{self.project_type}]>"
+
+
+# =============================================================================
+# FACTORY_EVENT - Eventos da Fabrica (Issue #316)
+# =============================================================================
+
+class FactoryEvent(Base):
+    """
+    Modelo para Eventos da Fabrica (Issue #316)
+    """
+    __tablename__ = "factory_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Evento
+    event_type = Column(String(50), nullable=False, index=True)
+    source = Column(String(100), nullable=True)
+    message = Column(Text, nullable=True)
+    level = Column(String(20), default="info")
+
+    # Contexto
+    context = Column(JSON, default=dict)
+    project_id = Column(String(50), nullable=True, index=True)
+    agent_id = Column(String(50), nullable=True, index=True)
+
+    # Timestamps
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "event_id": self.event_id,
+            "event_type": self.event_type,
+            "source": self.source,
+            "message": self.message,
+            "level": self.level,
+            "context": self.context or {},
+            "project_id": self.project_id,
+            "agent_id": self.agent_id,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+        }
+
+    def __repr__(self):
+        return f"<FactoryEvent {self.event_id}: {self.event_type} [{self.level}]>"
+
+
+# =============================================================================
 # FAILURE_HISTORY - Historico de Falhas
 # =============================================================================
 
