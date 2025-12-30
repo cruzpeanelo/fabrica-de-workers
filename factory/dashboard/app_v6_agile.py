@@ -1443,13 +1443,20 @@ def generate_docs_template(story_data: dict, doc_type: str) -> dict:
 def get_chat_history(
     project_id: Optional[str] = None,
     story_id: Optional[str] = None,
+    tenant_id: Optional[str] = None,
     limit: int = 50
 ):
     """Retorna historico de mensagens"""
     db = SessionLocal()
     try:
         repo = ChatMessageRepository(db)
-        messages = repo.get_history(project_id, story_id, limit)
+        # Issue #297: Use named arguments to avoid parameter confusion
+        messages = repo.get_history(
+            project_id=project_id,
+            story_id=story_id,
+            tenant_id=tenant_id,
+            limit=limit
+        )
         return [m.to_dict() for m in messages]
     finally:
         db.close()
@@ -1978,12 +1985,21 @@ ARQUIVOS E DOCUMENTOS:
 
 
 @app.delete("/api/chat/history")
-def clear_chat_history(project_id: Optional[str] = None, story_id: Optional[str] = None):
+def clear_chat_history(
+    project_id: Optional[str] = None,
+    story_id: Optional[str] = None,
+    tenant_id: Optional[str] = None
+):
     """Limpa historico de chat"""
     db = SessionLocal()
     try:
         repo = ChatMessageRepository(db)
-        count = repo.clear_history(project_id, story_id)
+        # Issue #297: Use named arguments for clarity
+        count = repo.clear_history(
+            project_id=project_id,
+            story_id=story_id,
+            tenant_id=tenant_id
+        )
         return {"cleared": count}
     finally:
         db.close()
