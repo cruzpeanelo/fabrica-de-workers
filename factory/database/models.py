@@ -4208,6 +4208,84 @@ class TimeEntry(Base):
 
 
 # =============================================================================
+# PLANNING POKER - Issue #244
+# =============================================================================
+
+class PlanningSessionStatus(str, Enum):
+    """Status of a Planning Poker session"""
+    CREATED = "created"
+    VOTING = "voting"
+    REVEALED = "revealed"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class PlanningSession(Base, TenantMixin):
+    """Planning Poker session for story estimation"""
+    __tablename__ = "planning_sessions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(50), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+    name = Column(String(200), nullable=False)
+    status = Column(String(20), default=PlanningSessionStatus.CREATED.value, index=True)
+    facilitator_id = Column(String(100), nullable=False, index=True)
+    scale_type = Column(String(20), default="fibonacci")
+    scale_values = Column(JSON, default=lambda: ["1", "2", "3", "5", "8", "13", "21", "?"])
+    story_ids = Column(JSON, default=list)
+    current_story_index = Column(Integer, default=0)
+    participants = Column(JSON, default=list)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    votes = relationship("PlanningVote", back_populates="session", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "session_id": self.session_id,
+            "name": self.name,
+            "status": self.status,
+            "facilitator_id": self.facilitator_id,
+            "scale_type": self.scale_type,
+            "scale_values": self.scale_values or [],
+            "story_ids": self.story_ids or [],
+            "current_story_index": self.current_story_index,
+            "participants": self.participants or [],
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class PlanningVote(Base):
+    """Vote in a Planning Poker session"""
+    __tablename__ = "planning_votes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vote_id = Column(String(50), unique=True, nullable=False, index=True)
+    session_id = Column(String(50), ForeignKey("planning_sessions.session_id", ondelete="CASCADE"), nullable=False, index=True)
+    story_id = Column(String(50), nullable=False, index=True)
+    user_id = Column(String(100), nullable=False, index=True)
+    vote_value = Column(String(10), nullable=True)
+    is_revealed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    session = relationship("PlanningSession", back_populates="votes")
+
+    def to_dict(self):
+        return {
+            "vote_id": self.vote_id,
+            "session_id": self.session_id,
+            "story_id": self.story_id,
+            "user_id": self.user_id,
+            "vote_value": self.vote_value if self.is_revealed else None,
+            "has_voted": self.vote_value is not None,
+            "is_revealed": self.is_revealed
+        }
+
+
+# =============================================================================
 # DEPRECATED MODELS (mantidos para compatibilidade durante migracao)
 # =============================================================================
 

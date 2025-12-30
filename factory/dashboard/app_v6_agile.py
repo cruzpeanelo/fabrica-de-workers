@@ -683,6 +683,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Dark Mode not available: {e}")
 
+# Planning Poker (Issue #244)
+try:
+    from factory.dashboard.planning_poker import register_planning_poker_routes
+    register_planning_poker_routes(app)
+    print("[Agile] Planning Poker loaded: /api/planning-poker/*")
+except ImportError as e:
+    print(f"[Agile] Planning Poker not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
@@ -7888,6 +7896,13 @@ HTML_TEMPLATE = """
                                 class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded">
                             + Novo Sprint
                         </button>
+                        <button @click="showPlanningPokerModal = true"
+                                class="w-full text-left px-3 py-2 text-sm text-[#003B4A] hover:bg-blue-50 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Planning Poker
+                        </button>
                     </div>
 
                     <!-- Analytics (Issue #65) -->
@@ -10448,6 +10463,200 @@ HTML_TEMPLATE = """
                             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
                     <button @click="createDoc"
                             class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">Criar Doc</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Planning Poker (Issue #244) -->
+        <div v-if="showPlanningPokerModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg w-[800px] max-h-[90vh] overflow-hidden">
+                <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-[#003B4A] to-[#005566]">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Planning Poker
+                        </h2>
+                        <button @click="showPlanningPokerModal = false" class="text-white/70 hover:text-white">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Session List / Create -->
+                <div v-if="!activePokerSession" class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-medium text-gray-700">Sessoes de Estimativa</h3>
+                        <button @click="showCreatePokerSession = true"
+                                class="px-3 py-1.5 bg-[#FF6C00] text-white text-sm rounded-lg hover:bg-orange-600">
+                            + Nova Sessao
+                        </button>
+                    </div>
+
+                    <!-- Create Session Form -->
+                    <div v-if="showCreatePokerSession" class="bg-blue-50 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Sessao</label>
+                                <input v-model="newPokerSession.name" type="text"
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                       placeholder="Ex: Sprint 5 Planning">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Escala</label>
+                                <select v-model="newPokerSession.scale_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                    <option value="fibonacci">Fibonacci (1,2,3,5,8,13,21)</option>
+                                    <option value="modified_fibonacci">Fibonacci Modificado</option>
+                                    <option value="tshirt">T-Shirt (XS,S,M,L,XL)</option>
+                                    <option value="powers_of_2">Potencias de 2</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Stories para Estimar</label>
+                            <div class="max-h-32 overflow-y-auto border rounded-lg p-2 bg-white">
+                                <label v-for="story in storiesForPoker" :key="story.story_id"
+                                       class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input type="checkbox" v-model="newPokerSession.story_ids" :value="story.story_id"
+                                           class="rounded border-gray-300 text-[#FF6C00]">
+                                    <span class="text-sm">{{ story.story_id }} - {{ story.title }}</span>
+                                    <span v-if="story.story_points" class="text-xs text-gray-500">({{ story.story_points }} pts)</span>
+                                </label>
+                                <p v-if="storiesForPoker.length === 0" class="text-sm text-gray-500 p-2">
+                                    Nenhuma story sem estimativa
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button @click="showCreatePokerSession = false"
+                                    class="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">Cancelar</button>
+                            <button @click="createPokerSession"
+                                    class="px-3 py-1.5 bg-[#003B4A] text-white rounded-lg text-sm hover:bg-[#004d5e]">
+                                Criar Sessao
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sessions List -->
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        <div v-for="session in pokerSessions" :key="session.session_id"
+                             class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                             @click="joinPokerSession(session.session_id)">
+                            <div>
+                                <p class="font-medium">{{ session.name }}</p>
+                                <p class="text-xs text-gray-500">{{ session.story_count }} stories | {{ session.participant_count }} participantes</p>
+                            </div>
+                            <span :class="['px-2 py-1 text-xs rounded-full',
+                                   session.status === 'voting' ? 'bg-green-100 text-green-700' :
+                                   session.status === 'completed' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-700']">
+                                {{ session.status }}
+                            </span>
+                        </div>
+                        <p v-if="pokerSessions.length === 0 && !showCreatePokerSession" class="text-center text-gray-500 py-4">
+                            Nenhuma sessao ativa. Crie uma nova sessao para comecar.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Active Session -->
+                <div v-else class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-medium text-gray-700">{{ activePokerSession.name }}</h3>
+                            <p class="text-sm text-gray-500">Story {{ activePokerSession.current_story_index + 1 }} de {{ activePokerSession.story_ids.length }}</p>
+                        </div>
+                        <button @click="leavePokerSession" class="text-sm text-gray-500 hover:text-gray-700">
+                            Sair da Sessao
+                        </button>
+                    </div>
+
+                    <!-- Current Story -->
+                    <div v-if="currentPokerStory" class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <p class="text-xs text-gray-500 mb-1">{{ currentPokerStory.story_id }}</p>
+                        <h4 class="font-medium text-lg mb-2">{{ currentPokerStory.title }}</h4>
+                        <p class="text-sm text-gray-600">{{ currentPokerStory.persona }} {{ currentPokerStory.action }} {{ currentPokerStory.benefit }}</p>
+                    </div>
+
+                    <!-- Voting Cards -->
+                    <div v-if="activePokerSession.status === 'voting'" class="mb-6">
+                        <p class="text-sm text-gray-600 mb-3">Selecione sua estimativa:</p>
+                        <div class="flex flex-wrap gap-2 justify-center">
+                            <button v-for="value in activePokerSession.scale_values" :key="value"
+                                    @click="submitPokerVote(value)"
+                                    :class="['w-14 h-20 rounded-lg border-2 font-bold text-lg transition',
+                                             myVote === value ? 'border-[#FF6C00] bg-orange-50 text-[#FF6C00]' :
+                                             'border-gray-300 hover:border-[#003B4A] hover:bg-blue-50']">
+                                {{ value }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Participants & Votes -->
+                    <div class="mb-6">
+                        <p class="text-sm font-medium text-gray-700 mb-2">Participantes:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <div v-for="p in activePokerSession.participants" :key="p.user_id"
+                                 class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
+                                <span class="w-2 h-2 rounded-full"
+                                      :class="pokerVotes[p.user_id] ? 'bg-green-500' : 'bg-gray-400'"></span>
+                                <span class="text-sm">{{ p.user_name }}</span>
+                                <span v-if="activePokerSession.status === 'revealed' && pokerVotes[p.user_id]"
+                                      class="font-bold text-[#FF6C00]">{{ pokerVotes[p.user_id] }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results (when revealed) -->
+                    <div v-if="activePokerSession.status === 'revealed' && pokerStats" class="bg-blue-50 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2">Resultados</h4>
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div>
+                                <p class="text-2xl font-bold text-[#003B4A]">{{ pokerStats.average || '-' }}</p>
+                                <p class="text-xs text-gray-500">Media</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold">{{ pokerStats.min || '-' }}</p>
+                                <p class="text-xs text-gray-500">Minimo</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold">{{ pokerStats.max || '-' }}</p>
+                                <p class="text-xs text-gray-500">Maximo</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold" :class="pokerStats.consensus ? 'text-green-600' : 'text-orange-500'">
+                                    {{ pokerStats.consensus ? 'Sim' : 'Nao' }}
+                                </p>
+                                <p class="text-xs text-gray-500">Consenso</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            {{ Object.keys(pokerVotes).length }} de {{ activePokerSession.participants.length }} votaram
+                        </div>
+                        <div class="flex gap-2">
+                            <button v-if="activePokerSession.status === 'voting'"
+                                    @click="revealPokerVotes"
+                                    class="px-4 py-2 bg-[#003B4A] text-white rounded-lg hover:bg-[#004d5e]">
+                                Revelar Votos
+                            </button>
+                            <button v-if="activePokerSession.status === 'revealed'"
+                                    @click="savePokerEstimate"
+                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                Salvar ({{ selectedPokerEstimate || pokerStats?.average || '?' }} pts)
+                            </button>
+                            <button v-if="activePokerSession.status === 'revealed'"
+                                    @click="nextPokerStory"
+                                    class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">
+                                Proxima Story
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -13195,6 +13404,22 @@ HTML_TEMPLATE = """
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
 
+            // Planning Poker (Issue #244)
+            const showPlanningPokerModal = ref(false);
+            const showCreatePokerSession = ref(false);
+            const pokerSessions = ref([]);
+            const activePokerSession = ref(null);
+            const currentPokerStory = ref(null);
+            const myVote = ref(null);
+            const pokerVotes = ref({});
+            const pokerStats = ref(null);
+            const selectedPokerEstimate = ref(null);
+            const newPokerSession = ref({
+                name: '',
+                scale_type: 'fibonacci',
+                story_ids: []
+            });
+
             // Issue #308: Modal open method - will be properly initialized after all refs are defined
             let openNewStoryModal = null;
 
@@ -14594,6 +14819,233 @@ HTML_TEMPLATE = """
                     addToast('error', 'Erro ao criar sprint', 'Verifique os dados e tente novamente');
                 }
             };
+
+            // Planning Poker Methods (Issue #244)
+            const storiesForPoker = computed(() => {
+                return storyBoard.value.filter(s => !s.story_points || s.story_points === 0);
+            });
+
+            const loadPokerSessions = async () => {
+                try {
+                    const res = await fetch('/api/planning-poker/sessions');
+                    if (res.ok) {
+                        const data = await res.json();
+                        pokerSessions.value = data.sessions || [];
+                    }
+                } catch (e) {
+                    console.error('Error loading poker sessions:', e);
+                }
+            };
+
+            const createPokerSession = async () => {
+                try {
+                    const currentUser = localStorage.getItem('user_id') || 'user';
+                    const res = await fetch('/api/planning-poker/sessions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            ...newPokerSession.value,
+                            facilitator_id: currentUser,
+                            tenant_id: selectedProjectId.value
+                        })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        addToast('success', 'Sessao criada', data.session_id);
+                        showCreatePokerSession.value = false;
+                        newPokerSession.value = { name: '', scale_type: 'fibonacci', story_ids: [] };
+                        await loadPokerSessions();
+                        await joinPokerSession(data.session_id);
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao criar sessao', e.message);
+                }
+            };
+
+            const joinPokerSession = async (sessionId) => {
+                try {
+                    const currentUser = localStorage.getItem('user_id') || 'user';
+                    const userName = localStorage.getItem('user_name') || 'Usuario';
+
+                    // Join session
+                    await fetch(`/api/planning-poker/sessions/${sessionId}/join`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: currentUser, user_name: userName })
+                    });
+
+                    // Get session details
+                    const res = await fetch(`/api/planning-poker/sessions/${sessionId}`);
+                    if (res.ok) {
+                        activePokerSession.value = await res.json();
+                        myVote.value = null;
+                        pokerVotes.value = {};
+                        pokerStats.value = null;
+
+                        // Load current story
+                        if (activePokerSession.value.current_story_id) {
+                            await loadCurrentPokerStory();
+                        }
+
+                        // Start voting if not already
+                        if (activePokerSession.value.status === 'created') {
+                            await fetch(`/api/planning-poker/sessions/${sessionId}/start`, { method: 'POST' });
+                            activePokerSession.value.status = 'voting';
+                        }
+
+                        // Load existing votes
+                        await loadPokerVotes();
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao entrar na sessao', e.message);
+                }
+            };
+
+            const loadCurrentPokerStory = async () => {
+                if (!activePokerSession.value?.current_story_id) return;
+                const story = storyBoard.value.find(s => s.story_id === activePokerSession.value.current_story_id);
+                if (story) {
+                    currentPokerStory.value = story;
+                } else {
+                    try {
+                        const res = await fetch(`/api/stories/${activePokerSession.value.current_story_id}`);
+                        if (res.ok) {
+                            currentPokerStory.value = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Error loading story:', e);
+                    }
+                }
+            };
+
+            const loadPokerVotes = async () => {
+                if (!activePokerSession.value) return;
+                try {
+                    const res = await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/votes?story_id=${activePokerSession.value.current_story_id}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const votesMap = {};
+                        data.votes.forEach(v => {
+                            if (v.vote_value !== null) {
+                                votesMap[v.user_id] = v.vote_value;
+                            }
+                        });
+                        pokerVotes.value = votesMap;
+                    }
+                } catch (e) {
+                    console.error('Error loading votes:', e);
+                }
+            };
+
+            const submitPokerVote = async (value) => {
+                if (!activePokerSession.value) return;
+                try {
+                    const currentUser = localStorage.getItem('user_id') || 'user';
+                    await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/votes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: currentUser,
+                            story_id: activePokerSession.value.current_story_id,
+                            vote_value: value
+                        })
+                    });
+                    myVote.value = value;
+                    pokerVotes.value[currentUser] = value;
+                    addToast('success', 'Voto registrado', value);
+                } catch (e) {
+                    addToast('error', 'Erro ao votar', e.message);
+                }
+            };
+
+            const revealPokerVotes = async () => {
+                if (!activePokerSession.value) return;
+                try {
+                    const res = await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/reveal?story_id=${activePokerSession.value.current_story_id}`, {
+                        method: 'POST'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        activePokerSession.value.status = 'revealed';
+                        pokerStats.value = data.statistics;
+
+                        // Update votes with revealed values
+                        data.votes.forEach(v => {
+                            pokerVotes.value[v.user_id] = v.vote_value;
+                        });
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao revelar votos', e.message);
+                }
+            };
+
+            const savePokerEstimate = async () => {
+                if (!activePokerSession.value || !currentPokerStory.value) return;
+                try {
+                    const estimate = selectedPokerEstimate.value || Math.round(pokerStats.value?.average || 0);
+                    await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/estimate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            story_id: currentPokerStory.value.story_id,
+                            final_estimate: estimate
+                        })
+                    });
+                    addToast('success', 'Estimativa salva', `${estimate} pontos`);
+
+                    // Update local story
+                    const idx = storyBoard.value.findIndex(s => s.story_id === currentPokerStory.value.story_id);
+                    if (idx !== -1) {
+                        storyBoard.value[idx].story_points = estimate;
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao salvar estimativa', e.message);
+                }
+            };
+
+            const nextPokerStory = async () => {
+                if (!activePokerSession.value) return;
+                try {
+                    const res = await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/next`, {
+                        method: 'POST'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.completed) {
+                            addToast('success', 'Sessao concluida', 'Todas as stories foram estimadas!');
+                            leavePokerSession();
+                        } else {
+                            activePokerSession.value.current_story_index = data.current_story_index;
+                            activePokerSession.value.current_story_id = data.current_story_id;
+                            activePokerSession.value.status = 'voting';
+                            myVote.value = null;
+                            pokerVotes.value = {};
+                            pokerStats.value = null;
+                            selectedPokerEstimate.value = null;
+                            await loadCurrentPokerStory();
+                        }
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro ao avancar', e.message);
+                }
+            };
+
+            const leavePokerSession = () => {
+                activePokerSession.value = null;
+                currentPokerStory.value = null;
+                myVote.value = null;
+                pokerVotes.value = {};
+                pokerStats.value = null;
+                selectedPokerEstimate.value = null;
+                loadPokerSessions();
+            };
+
+            // Load poker sessions when modal opens
+            watch(showPlanningPokerModal, (val) => {
+                if (val) {
+                    loadPokerSessions();
+                }
+            });
 
             const createDoc = async () => {
                 try {
@@ -16483,6 +16935,12 @@ Process ${data.status}`);
                 executeQuickAction, clearChatHistory, updateChatContext,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 openNewStoryModal, // Issue #308: method for better Vue reactivity
+                // Planning Poker (Issue #244)
+                showPlanningPokerModal, showCreatePokerSession, pokerSessions, activePokerSession,
+                currentPokerStory, myVote, pokerVotes, pokerStats, selectedPokerEstimate,
+                newPokerSession, storiesForPoker, loadPokerSessions, createPokerSession,
+                joinPokerSession, loadCurrentPokerStory, loadPokerVotes, submitPokerVote,
+                revealPokerVotes, savePokerEstimate, nextPokerStory, leavePokerSession,
                 showShortcutsModal, showConfirmModal, confirmModal,
                 // Issue #216: Command Palette
                 showCommandPalette, commandPaletteQuery, commandPaletteIndex, commandPaletteResults,
