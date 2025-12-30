@@ -21,6 +21,179 @@ from fastapi.responses import HTMLResponse, Response
 executive_router = APIRouter(prefix="/api/executive", tags=["Executive"])
 
 
+def register_executive_endpoints(app, SessionLocal, Story, Sprint):
+    """Registra os endpoints do dashboard executivo no app FastAPI.
+
+    Endpoints registrados:
+    - GET /executive - Pagina do Dashboard Executivo
+    - GET /api/executive/kpis - KPIs de alto nivel com tendencias
+    - GET /api/executive/metrics - Metricas detalhadas
+    - GET /api/executive/export/csv - Export de stories
+    """
+    from datetime import timedelta
+    from fastapi import HTTPException
+
+    @app.get("/api/executive/kpis")
+    def get_executive_kpis(project_id: Optional[str] = None, days: int = 30):
+        """
+        Retorna KPIs executivos de alto nivel para o dashboard executivo.
+        Inclui metricas principais, tendencias e comparacao com periodo anterior.
+        """
+        db = SessionLocal()
+        try:
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+            prev_start = start_date - timedelta(days=days)
+
+            # Query stories
+            query = db.query(Story)
+            if project_id:
+                query = query.filter(Story.project_id == project_id)
+            all_stories = query.all()
+
+            # Periodo atual
+            current_completed = [s for s in all_stories if s.status == 'done' and s.completed_at and s.completed_at >= start_date]
+            current_in_progress = [s for s in all_stories if s.status == 'in_progress']
+
+            # Periodo anterior
+            prev_completed = [s for s in all_stories if s.status == 'done' and s.completed_at and prev_start <= s.completed_at < start_date]
+
+            # KPIs principais
+            total_stories = len(all_stories)
+            completed_stories = len([s for s in all_stories if s.status == 'done'])
+            completion_rate = (completed_stories / total_stories * 100) if total_stories > 0 else 0
+
+            # Velocity - pontos entregues
+            current_points = sum(s.story_points or 0 for s in current_completed)
+            prev_points = sum(s.story_points or 0 for s in prev_completed)
+            total_points = sum(s.story_points or 0 for s in all_stories)
+            done_points = sum(s.story_points or 0 for s in all_stories if s.status == 'done')
+
+            # Velocity media por sprint
+            sprints = db.query(Sprint).filter(Sprint.status == 'completed').order_by(Sprint.end_date.desc()).limit(5).all()
+            velocities = [s.velocity for s in sprints if s.velocity and s.velocity > 0]
+            avg_velocity = sum(velocities) / len(velocities) if velocities else (current_points / max(1, days / 7))
+
+            # Lead time medio (dias desde criacao ate conclusao)
+            lead_times = []
+            for s in [st for st in all_stories if st.status == 'done' and st.completed_at and st.created_at]:
+                lead_times.append((s.completed_at - s.created_at).days)
+            avg_lead_time = sum(lead_times) / len(lead_times) if lead_times else 0
+
+            # Cycle time medio (dias desde inicio ate conclusao)
+            cycle_times = []
+            for s in [st for st in all_stories if st.status == 'done' and st.completed_at and st.started_at]:
+                cycle_times.append((s.completed_at - s.started_at).days)
+            avg_cycle_time = sum(cycle_times) / len(cycle_times) if cycle_times else 0
+
+            # Throughput (stories por semana)
+            weeks = max(1, days / 7)
+            throughput = len(current_completed) / weeks
+            prev_throughput = len(prev_completed) / weeks if prev_completed else 0
+
+            # Comparacao com periodo anterior
+            velocity_change = ((current_points - prev_points) / prev_points * 100) if prev_points > 0 else (100 if current_points > 0 else 0)
+            throughput_change = ((throughput - prev_throughput) / prev_throughput * 100) if prev_throughput > 0 else (100 if throughput > 0 else 0)
+
+            # Health score (0-100)
+            health_factors = []
+            if completion_rate > 0:
+                health_factors.append(min(100, completion_rate))
+            if avg_cycle_time > 0:
+                health_factors.append(max(0, 100 - (avg_cycle_time - 5) * 5))
+            if len(current_in_progress) <= 5:
+                health_factors.append(100)
+            else:
+                health_factors.append(max(0, 100 - (len(current_in_progress) - 5) * 10))
+            health_score = sum(health_factors) / len(health_factors) if health_factors else 50
+
+            # Status distribution
+            status_dist = {}
+            for s in all_stories:
+                status_dist[s.status] = status_dist.get(s.status, 0) + 1
+
+            # Trend data (ultimos N dias agrupados por semana)
+            trend_data = []
+            for i in range(min(12, max(1, days // 7))):
+                week_start = end_date - timedelta(days=(i + 1) * 7)
+                week_end = end_date - timedelta(days=i * 7)
+                week_stories = [s for s in all_stories if s.status == 'done' and s.completed_at and week_start <= s.completed_at < week_end]
+                week_points = sum(s.story_points or 0 for s in week_stories)
+                trend_data.insert(0, {
+                    "week": i + 1,
+                    "label": week_start.strftime("%d/%m"),
+                    "stories": len(week_stories),
+                    "points": week_points
+                })
+
+            return {
+                "kpis": {
+                    "completion_rate": round(completion_rate, 1),
+                    "avg_velocity": round(avg_velocity, 1),
+                    "avg_lead_time": round(avg_lead_time, 1),
+                    "avg_cycle_time": round(avg_cycle_time, 1),
+                    "throughput": round(throughput, 2),
+                    "health_score": round(health_score, 0),
+                    "total_stories": total_stories,
+                    "completed_stories": completed_stories,
+                    "in_progress": len(current_in_progress),
+                    "total_points": total_points,
+                    "done_points": done_points,
+                    "wip_count": len(current_in_progress)
+                },
+                "comparison": {
+                    "velocity_change": round(velocity_change, 1),
+                    "throughput_change": round(throughput_change, 1),
+                    "current_period_points": current_points,
+                    "previous_period_points": prev_points,
+                    "current_period_stories": len(current_completed),
+                    "previous_period_stories": len(prev_completed)
+                },
+                "distribution": status_dist,
+                "trend": trend_data,
+                "period": {
+                    "days": days,
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat()
+                },
+                "generated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            raise HTTPException(500, f"Erro ao calcular KPIs: {str(e)}")
+        finally:
+            db.close()
+
+    @app.get("/api/executive/metrics")
+    def get_executive_metrics(project_id: Optional[str] = None, period: str = "month", epic_id: Optional[str] = None):
+        """Retorna metricas executivas detalhadas."""
+        db = SessionLocal()
+        try:
+            return get_executive_metrics_data(db, Story, Sprint, project_id, period, epic_id)
+        finally:
+            db.close()
+
+    @app.get("/api/executive/export/csv")
+    def export_csv(project_id: Optional[str] = None):
+        """Exporta stories para CSV."""
+        db = SessionLocal()
+        try:
+            csv_content = export_stories_csv(db, Story, project_id)
+            return Response(
+                content=csv_content,
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename=stories_{datetime.utcnow().strftime('%Y%m%d')}.csv"}
+            )
+        finally:
+            db.close()
+
+    @app.get("/executive", response_class=HTMLResponse)
+    def executive_dashboard_page():
+        """Pagina do Dashboard Executivo com KPIs de alto nivel"""
+        return EXECUTIVE_KPI_TEMPLATE
+
+    print("[Dashboard] Executive Dashboard endpoints loaded: /executive, /api/executive/kpis, /api/executive/metrics")
+
+
 def get_executive_metrics_data(db, Story, Sprint, project_id=None, period="month", epic_id=None):
     """Calcula metricas executivas"""
     now = datetime.utcnow()
@@ -402,3 +575,224 @@ EXECUTIVE_TEMPLATE = '''<!DOCTYPE html>
 def get_executive_template():
     """Returns the executive dashboard HTML template"""
     return EXECUTIVE_TEMPLATE
+
+
+# Template HTML do Dashboard Executivo com KPIs de Alto Nivel
+EXECUTIVE_KPI_TEMPLATE = '''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Executivo - Fabrica de Agentes</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        :root { --belgo-blue: #003B4A; --belgo-orange: #FF6C00; }
+        body { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh; }
+        .kpi-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15); }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+        .kpi-card.primary::before { background: linear-gradient(90deg, #003B4A, #005566); }
+        .kpi-card.success::before { background: linear-gradient(90deg, #10B981, #059669); }
+        .kpi-card.warning::before { background: linear-gradient(90deg, #F59E0B, #D97706); }
+        .kpi-card.info::before { background: linear-gradient(90deg, #3B82F6, #2563EB); }
+        .kpi-card.orange::before { background: linear-gradient(90deg, #FF6C00, #E56000); }
+        .kpi-value { font-size: 2.5rem; font-weight: 700; color: #003B4A; line-height: 1; }
+        .kpi-label { font-size: 0.875rem; color: #6B7280; margin-top: 8px; }
+        .kpi-change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; margin-top: 12px; }
+        .kpi-change.positive { background: #D1FAE5; color: #059669; }
+        .kpi-change.negative { background: #FEE2E2; color: #DC2626; }
+        .kpi-change.neutral { background: #F3F4F6; color: #6B7280; }
+        .chart-container { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .chart-title { font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .health-indicator { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; position: relative; }
+        .health-indicator::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: white; }
+        .health-indicator span { position: relative; z-index: 1; color: #003B4A; }
+        .health-good { background: conic-gradient(#10B981 var(--health-pct), #E5E7EB 0); }
+        .health-warning { background: conic-gradient(#F59E0B var(--health-pct), #E5E7EB 0); }
+        .health-danger { background: conic-gradient(#EF4444 var(--health-pct), #E5E7EB 0); }
+        .period-selector { display: flex; gap: 8px; background: white; padding: 4px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .period-btn { padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: #6B7280; cursor: pointer; transition: all 0.2s; border: none; background: transparent; }
+        .period-btn:hover { background: #F3F4F6; }
+        .period-btn.active { background: #003B4A; color: white; }
+        .comparison-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #E5E7EB; }
+        .comparison-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <header class="bg-gradient-to-r from-[#003B4A] to-[#005566] text-white py-6 px-8 shadow-lg">
+            <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold">Dashboard Executivo</h1>
+                    <p class="text-sm opacity-80 mt-1">Visao de alto nivel do projeto</p>
+                </div>
+                <div class="flex items-center gap-4 flex-wrap">
+                    <div class="period-selector">
+                        <button :class="['period-btn', selectedDays === 7 ? 'active' : '']" @click="loadKPIs(7)">7 dias</button>
+                        <button :class="['period-btn', selectedDays === 14 ? 'active' : '']" @click="loadKPIs(14)">14 dias</button>
+                        <button :class="['period-btn', selectedDays === 30 ? 'active' : '']" @click="loadKPIs(30)">30 dias</button>
+                        <button :class="['period-btn', selectedDays === 90 ? 'active' : '']" @click="loadKPIs(90)">90 dias</button>
+                    </div>
+                    <a href="/" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        Voltar
+                    </a>
+                </div>
+            </div>
+        </header>
+        <div v-if="loading" class="flex items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-[#003B4A] border-t-transparent"></div>
+        </div>
+        <main v-else class="max-w-7xl mx-auto px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+                <div class="kpi-card primary">
+                    <div class="kpi-value">{{ kpis.completion_rate }}%</div>
+                    <div class="kpi-label">Taxa de Conclusao</div>
+                    <div class="text-xs text-gray-400 mt-2">{{ kpis.completed_stories }} de {{ kpis.total_stories }} stories</div>
+                </div>
+                <div class="kpi-card orange">
+                    <div class="kpi-value">{{ kpis.avg_velocity }}</div>
+                    <div class="kpi-label">Velocity Media</div>
+                    <div :class="['kpi-change', comparison.velocity_change > 0 ? 'positive' : comparison.velocity_change < 0 ? 'negative' : 'neutral']">
+                        <span v-if="comparison.velocity_change > 0">+</span>{{ comparison.velocity_change }}% vs anterior
+                    </div>
+                </div>
+                <div class="kpi-card info">
+                    <div class="kpi-value">{{ kpis.avg_lead_time }}</div>
+                    <div class="kpi-label">Lead Time Medio</div>
+                    <div class="text-xs text-gray-400 mt-2">dias (criacao ate entrega)</div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-value">{{ kpis.avg_cycle_time }}</div>
+                    <div class="kpi-label">Cycle Time Medio</div>
+                    <div class="text-xs text-gray-400 mt-2">dias (inicio ate entrega)</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-value">{{ kpis.throughput }}</div>
+                    <div class="kpi-label">Throughput</div>
+                    <div :class="['kpi-change', comparison.throughput_change > 0 ? 'positive' : comparison.throughput_change < 0 ? 'negative' : 'neutral']">
+                        <span v-if="comparison.throughput_change > 0">+</span>{{ comparison.throughput_change }}% vs anterior
+                    </div>
+                </div>
+                <div class="kpi-card primary">
+                    <div class="flex items-center gap-4">
+                        <div :class="['health-indicator', kpis.health_score >= 70 ? 'health-good' : kpis.health_score >= 40 ? 'health-warning' : 'health-danger']" :style="{'--health-pct': kpis.health_score + '%'}">
+                            <span>{{ kpis.health_score }}</span>
+                        </div>
+                        <div>
+                            <div class="kpi-label">Health Score</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ kpis.health_score >= 70 ? 'Saudavel' : kpis.health_score >= 40 ? 'Atencao' : 'Critico' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <svg class="w-5 h-5 text-[#FF6C00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        Tendencia de Velocity
+                    </div>
+                    <canvas id="velocityChart" height="250"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <svg class="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Stories Completadas por Semana
+                    </div>
+                    <canvas id="completionChart" height="250"></canvas>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <svg class="w-5 h-5 text-[#003B4A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/></svg>
+                        Distribuicao por Status
+                    </div>
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <svg class="w-5 h-5 text-[#3B82F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Comparacao com Periodo Anterior
+                    </div>
+                    <div class="space-y-3 mt-4">
+                        <div class="comparison-row"><span class="text-gray-600">Stories Completadas</span><div class="flex items-center gap-2"><span class="font-semibold">{{ comparison.current_period_stories }}</span><span class="text-gray-400 text-sm">vs {{ comparison.previous_period_stories }}</span></div></div>
+                        <div class="comparison-row"><span class="text-gray-600">Pontos Entregues</span><div class="flex items-center gap-2"><span class="font-semibold">{{ comparison.current_period_points }}</span><span class="text-gray-400 text-sm">vs {{ comparison.previous_period_points }}</span></div></div>
+                        <div class="comparison-row"><span class="text-gray-600">Variacao Velocity</span><span :class="['font-semibold', comparison.velocity_change > 0 ? 'text-green-600' : comparison.velocity_change < 0 ? 'text-red-600' : 'text-gray-600']">{{ comparison.velocity_change > 0 ? '+' : '' }}{{ comparison.velocity_change }}%</span></div>
+                        <div class="comparison-row"><span class="text-gray-600">Variacao Throughput</span><span :class="['font-semibold', comparison.throughput_change > 0 ? 'text-green-600' : comparison.throughput_change < 0 ? 'text-red-600' : 'text-gray-600']">{{ comparison.throughput_change > 0 ? '+' : '' }}{{ comparison.throughput_change }}%</span></div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <svg class="w-5 h-5 text-[#FF6C00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        Resumo Rapido
+                    </div>
+                    <div class="space-y-4 mt-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"><span class="text-gray-600">Total de Pontos</span><span class="font-bold text-[#003B4A]">{{ kpis.total_points }}</span></div>
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg"><span class="text-gray-600">Pontos Entregues</span><span class="font-bold text-green-600">{{ kpis.done_points }}</span></div>
+                        <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg"><span class="text-gray-600">Em Progresso (WIP)</span><span class="font-bold text-yellow-600">{{ kpis.wip_count }}</span></div>
+                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg"><span class="text-gray-600">Periodo Analisado</span><span class="font-bold text-blue-600">{{ selectedDays }} dias</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 text-center text-sm text-gray-500"><p>Ultima atualizacao: {{ lastUpdate }}</p></div>
+        </main>
+    </div>
+    <script>
+    const { createApp, ref, onMounted, nextTick } = Vue;
+    createApp({
+        setup() {
+            const loading = ref(true);
+            const selectedDays = ref(30);
+            const kpis = ref({ completion_rate: 0, avg_velocity: 0, avg_lead_time: 0, avg_cycle_time: 0, throughput: 0, health_score: 0, total_stories: 0, completed_stories: 0, in_progress: 0, total_points: 0, done_points: 0, wip_count: 0 });
+            const comparison = ref({ velocity_change: 0, throughput_change: 0, current_period_points: 0, previous_period_points: 0, current_period_stories: 0, previous_period_stories: 0 });
+            const distribution = ref({});
+            const trend = ref([]);
+            const lastUpdate = ref('');
+            let velocityChart = null, completionChart = null, statusChart = null;
+            const loadKPIs = async (days) => {
+                loading.value = true;
+                selectedDays.value = days;
+                try {
+                    const res = await fetch(`/api/executive/kpis?days=${days}`);
+                    const data = await res.json();
+                    kpis.value = data.kpis;
+                    comparison.value = data.comparison;
+                    distribution.value = data.distribution;
+                    trend.value = data.trend;
+                    lastUpdate.value = new Date(data.generated_at).toLocaleString('pt-BR');
+                    await nextTick();
+                    renderCharts();
+                } catch (e) { console.error('Error loading KPIs:', e); }
+                finally { loading.value = false; }
+            };
+            const renderCharts = () => {
+                const velocityCtx = document.getElementById('velocityChart');
+                if (velocityCtx) {
+                    if (velocityChart) velocityChart.destroy();
+                    velocityChart = new Chart(velocityCtx, { type: 'line', data: { labels: trend.value.map(t => t.label), datasets: [{ label: 'Pontos', data: trend.value.map(t => t.points), borderColor: '#FF6C00', backgroundColor: 'rgba(255, 108, 0, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+                }
+                const completionCtx = document.getElementById('completionChart');
+                if (completionCtx) {
+                    if (completionChart) completionChart.destroy();
+                    completionChart = new Chart(completionCtx, { type: 'bar', data: { labels: trend.value.map(t => t.label), datasets: [{ label: 'Stories', data: trend.value.map(t => t.stories), backgroundColor: '#10B981', borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+                }
+                const statusCtx = document.getElementById('statusChart');
+                if (statusCtx) {
+                    if (statusChart) statusChart.destroy();
+                    const statusLabels = { 'backlog': 'Backlog', 'ready': 'Ready', 'in_progress': 'Em Progresso', 'review': 'Revisao', 'testing': 'Testes', 'done': 'Concluido' };
+                    const statusColors = { 'backlog': '#9CA3AF', 'ready': '#3B82F6', 'in_progress': '#F59E0B', 'review': '#8B5CF6', 'testing': '#EC4899', 'done': '#10B981' };
+                    statusChart = new Chart(statusCtx, { type: 'doughnut', data: { labels: Object.keys(distribution.value).map(k => statusLabels[k] || k), datasets: [{ data: Object.values(distribution.value), backgroundColor: Object.keys(distribution.value).map(k => statusColors[k] || '#6B7280'), borderWidth: 0 }] }, options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { padding: 16 } } } } });
+                }
+            };
+            onMounted(() => { loadKPIs(30); });
+            return { loading, selectedDays, kpis, comparison, distribution, trend, lastUpdate, loadKPIs };
+        }
+    }).mount('#app');
+    </script>
+</body>
+</html>'''

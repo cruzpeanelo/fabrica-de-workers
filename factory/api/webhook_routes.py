@@ -324,7 +324,8 @@ async def process_gitlab_webhook(event: WebhookEvent, tenant_id: str):
 @router.post("/jira")
 async def jira_webhook(
     request: Request,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    x_hub_signature: Optional[str] = Header(None, alias="X-Hub-Signature")
 ):
     """
     Endpoint para webhooks do Jira.
@@ -337,10 +338,22 @@ async def jira_webhook(
     - sprint_started
     - sprint_closed
 
+    Headers esperados:
+    - X-Hub-Signature: HMAC-SHA256 do payload (formato: sha256=<hex>)
+
     Configure no Jira: System > Webhooks
     """
     try:
+        # Ler payload como bytes para validacao HMAC
+        payload_bytes = await request.body()
         payload = await request.json()
+
+        # Validar assinatura HMAC se secret estiver configurado
+        if JIRA_WEBHOOK_SECRET:
+            from factory.integrations.jira_webhook import validate_jira_webhook
+            if not validate_jira_webhook(payload_bytes, x_hub_signature or "", JIRA_WEBHOOK_SECRET):
+                logger.warning("Jira webhook: assinatura HMAC invalida")
+                raise HTTPException(status_code=401, detail="Invalid signature")
 
         webhook_event = payload.get("webhookEvent", "unknown")
 
@@ -361,6 +374,8 @@ async def jira_webhook(
             "event_type": webhook_event
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erro no webhook Jira: {e}")
         webhook_registry.mark_processed("jira", False)

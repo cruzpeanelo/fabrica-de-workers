@@ -813,3 +813,82 @@ def get_admin_roles_html():
     </script>
 </body>
 </html>'''
+
+
+# =============================================================================
+# Issue #187 - Embedded RBAC Components for Main Dashboard
+# =============================================================================
+
+def get_rbac_sidebar_section() -> str:
+    """Returns HTML for the Admin section in sidebar. Only visible for ADMIN users."""
+    return '''
+                    <!-- Admin Section (Issue #187 - RBAC Integration) -->
+                    <div class="mt-6 pt-4 border-t border-gray-200" v-if="currentUserIsAdmin">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Administracao
+                        </h3>
+                        <button @click="showAdminRolesModal = true; loadRbacData()" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            Gerenciar Roles
+                        </button>
+                        <button @click="showAdminUsersModal = true; loadRbacUsers()" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                            Gerenciar Usuarios
+                        </button>
+                        <button @click="showAuditLogModal = true; loadAuditLogs()" class="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Log de Auditoria
+                        </button>
+                    </div>
+    '''
+
+
+def get_rbac_vue_state() -> str:
+    """Returns Vue.js state declarations for RBAC admin."""
+    return '''
+            // ========== ISSUE #187 - RBAC ADMIN STATE ==========
+            const currentUserIsAdmin = ref(true); // TODO: Get from auth context
+            const showAdminRolesModal = ref(false);
+            const showAdminUsersModal = ref(false);
+            const showAuditLogModal = ref(false);
+            const showNewRoleForm = ref(false);
+            const showAssignRoleForm = ref(false);
+            const selectedRoleForEdit = ref(null);
+            const rbacActiveTab = ref('roles');
+            const rbacLoading = ref(false);
+            const rbacRoles = ref([]);
+            const rbacResources = ref([]);
+            const rbacUserRoles = ref([]);
+            const rbacAuditLogs = ref([]);
+            const roleForm = ref({ name: '', description: '', level: 25, permissions: [], is_system: false });
+            const assignRoleForm = ref({ user_id: null, role_id: '', project_id: '' });
+    '''
+
+
+def get_rbac_vue_methods() -> str:
+    """Returns Vue.js methods for RBAC admin functionality."""
+    return '''
+            // ========== ISSUE #187 - RBAC ADMIN METHODS ==========
+            const loadRbacData = async () => { rbacLoading.value = true; try { const [rolesRes, permsRes] = await Promise.all([fetch('/api/rbac/roles'), fetch('/api/rbac/permissions')]); if (rolesRes.ok) rbacRoles.value = await rolesRes.json(); if (permsRes.ok) { const permsData = await permsRes.json(); rbacResources.value = permsData.resources || []; } } catch (e) { console.error('RBAC error:', e); } finally { rbacLoading.value = false; } };
+            const loadRbacUsers = async () => { rbacLoading.value = true; try { const res = await fetch('/api/admin/rbac/users'); if (res.ok) rbacUserRoles.value = await res.json(); } catch (e) { rbacUserRoles.value = []; } finally { rbacLoading.value = false; } };
+            const loadAuditLogs = async () => { rbacLoading.value = true; try { const res = await fetch('/api/rbac/audit?limit=50'); if (res.ok) rbacAuditLogs.value = await res.json(); } catch (e) { rbacAuditLogs.value = []; } finally { rbacLoading.value = false; } };
+            const selectRoleForEdit = (role) => { selectedRoleForEdit.value = role; roleForm.value = { name: role.name, description: role.description || '', level: role.level || 25, permissions: [...(role.permissions || [])], is_system: role.is_system || false }; };
+            const closeRoleForm = () => { showNewRoleForm.value = false; selectedRoleForEdit.value = null; roleForm.value = { name: '', description: '', level: 25, permissions: [], is_system: false }; };
+            const saveRbacRole = async () => { try { const isEdit = selectedRoleForEdit.value !== null; const url = isEdit ? `/api/rbac/roles/${selectedRoleForEdit.value.role_id}` : '/api/rbac/roles'; const res = await fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(roleForm.value) }); if (res.ok) { addToast('success', isEdit ? 'Role atualizada' : 'Role criada'); closeRoleForm(); loadRbacData(); } } catch (e) { addToast('error', 'Erro', e.message); } };
+            const deleteRbacRole = async (role) => { if (!confirm('Excluir role ' + role.name + '?')) return; try { const res = await fetch('/api/rbac/roles/' + role.role_id, { method: 'DELETE' }); if (res.ok) { addToast('success', 'Role excluida'); closeRoleForm(); loadRbacData(); } } catch (e) { addToast('error', 'Erro', e.message); } };
+            const assignRoleToUser = async () => { try { const data = { ...assignRoleForm.value }; if (!data.project_id) delete data.project_id; const res = await fetch('/api/rbac/users/' + data.user_id + '/roles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); if (res.ok) { addToast('success', 'Role atribuida'); showAssignRoleForm.value = false; assignRoleForm.value = { user_id: null, role_id: '', project_id: '' }; loadRbacUsers(); } } catch (e) { addToast('error', 'Erro', e.message); } };
+            const revokeUserRole = async (ur) => { if (!confirm('Revogar role?')) return; try { const res = await fetch('/api/rbac/users/' + ur.user_id + '/roles/' + ur.role_id, { method: 'DELETE' }); if (res.ok) { addToast('success', 'Role revogada'); loadRbacUsers(); } } catch (e) { addToast('error', 'Erro', e.message); } };
+            const hasRolePermission = (role, resource, actionLetter) => { const actionMap = { 'C': 'create', 'R': 'read', 'U': 'update', 'D': 'delete' }; const action = actionMap[actionLetter]; const perms = role.permissions || []; return perms.includes('*:*') || perms.includes(resource + ':*') || perms.includes(resource + ':' + action); };
+            const getActionLabel = (letter) => { return { 'C': 'Create', 'R': 'Read', 'U': 'Update', 'D': 'Delete' }[letter]; };
+            const formatRbacDateTime = (isoString) => { if (!isoString) return '-'; return new Date(isoString).toLocaleString('pt-BR'); };
+    '''
+
+
+def get_rbac_vue_return() -> str:
+    """Returns Vue.js return statement additions for RBAC admin."""
+    return '''
+                // Issue #187 - RBAC Admin
+                currentUserIsAdmin, showAdminRolesModal, showAdminUsersModal, showAuditLogModal, showNewRoleForm, showAssignRoleForm, selectedRoleForEdit, rbacActiveTab, rbacLoading, rbacRoles, rbacResources, rbacUserRoles, rbacAuditLogs, roleForm, assignRoleForm, loadRbacData, loadRbacUsers, loadAuditLogs, selectRoleForEdit, closeRoleForm, saveRbacRole, deleteRbacRole, assignRoleToUser, revokeUserRole, hasRolePermission, getActionLabel, formatRbacDateTime,'''

@@ -3772,6 +3772,136 @@ HTML_TEMPLATE = """
         .dark .integration-card p { color: #9CA3AF; }
         .dark .integrations-header h2 { color: #F9FAFB; }
         .dark .integrations-header { border-color: #374151; }
+
+        /* ========== ISSUE #220 - BREADCRUMB NAVIGATION ========== */
+        .breadcrumb-nav {
+            padding: 10px 16px;
+            background: #F9FAFB;
+            border-bottom: 1px solid #E5E7EB;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dark .breadcrumb-nav {
+            background: #1F2937;
+            border-color: #374151;
+        }
+        .breadcrumb-list {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .breadcrumb-link {
+            color: #6B7280;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+        .breadcrumb-link:hover {
+            color: #FF6C00;
+            background: rgba(255, 108, 0, 0.08);
+        }
+        .dark .breadcrumb-link {
+            color: #9CA3AF;
+        }
+        .dark .breadcrumb-link:hover {
+            color: #FF6C00;
+            background: rgba(255, 108, 0, 0.15);
+        }
+        .breadcrumb-link .bc-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .breadcrumb-separator {
+            color: #D1D5DB;
+            font-size: 11px;
+            user-select: none;
+        }
+        .dark .breadcrumb-separator {
+            color: #4B5563;
+        }
+        .breadcrumb-current {
+            color: #1F2937;
+            font-weight: 500;
+            padding: 4px 8px;
+            background: rgba(0, 59, 74, 0.06);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .dark .breadcrumb-current {
+            color: #F9FAFB;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .breadcrumb-current .bc-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .breadcrumb-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #E5E7EB;
+            color: #6B7280;
+            margin-left: 4px;
+        }
+        .dark .breadcrumb-badge {
+            background: #374151;
+            color: #9CA3AF;
+        }
+        .breadcrumb-badge.points {
+            background: #DBEAFE;
+            color: #1D4ED8;
+        }
+        .dark .breadcrumb-badge.points {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60A5FA;
+        }
+        /* Mobile: truncar itens intermediarios */
+        @media (max-width: 640px) {
+            .breadcrumb-nav {
+                padding: 8px 12px;
+            }
+            .breadcrumb-list {
+                font-size: 12px;
+            }
+            .breadcrumb-item.collapsible {
+                display: none;
+            }
+            .breadcrumb-ellipsis {
+                display: flex;
+                align-items: center;
+                color: #6B7280;
+                padding: 0 4px;
+            }
+            .breadcrumb-current {
+                max-width: 200px;
+            }
+        }
+        @media (min-width: 641px) {
+            .breadcrumb-ellipsis {
+                display: none;
+            }
+        }
         </style>
 </head>
 <body class="bg-gray-100">
@@ -3900,7 +4030,45 @@ HTML_TEMPLATE = """
             </div>
         </header>
 
-        <div class="flex main-content-mobile" style="height: calc(100vh - 64px);">
+        <!-- ISSUE #220 - BREADCRUMB NAVIGATION -->
+        <nav class="breadcrumb-nav" aria-label="Navegacao" v-if="breadcrumbItems.length > 1">
+            <ol class="breadcrumb-list">
+                <!-- Home sempre visivel -->
+                <li class="breadcrumb-item">
+                    <a href="javascript:void(0)" class="breadcrumb-link" @click="navigateBreadcrumb('home')">
+                        <span class="bc-icon">🏠</span>
+                        <span>Home</span>
+                    </a>
+                </li>
+
+                <!-- Itens do meio (collapsible no mobile) -->
+                <template v-for="(item, index) in breadcrumbItems.slice(1, -1)" :key="'bc-'+index">
+                    <li class="breadcrumb-separator" aria-hidden="true">›</li>
+                    <li class="breadcrumb-item collapsible">
+                        <a href="javascript:void(0)" class="breadcrumb-link" @click="navigateBreadcrumb(item.type, item.id)">
+                            <span v-if="item.icon" class="bc-icon">{{ item.icon }}</span>
+                            <span>{{ item.label }}</span>
+                            <span v-if="item.badge" :class="['breadcrumb-badge', item.badgeType]">{{ item.badge }}</span>
+                        </a>
+                    </li>
+                </template>
+
+                <!-- Ellipsis para mobile -->
+                <li v-if="breadcrumbItems.length > 2" class="breadcrumb-separator breadcrumb-ellipsis" aria-hidden="true">...</li>
+
+                <!-- Item atual (sempre visivel) -->
+                <li v-if="breadcrumbItems.length > 1" class="breadcrumb-separator" aria-hidden="true">›</li>
+                <li class="breadcrumb-item">
+                    <span class="breadcrumb-current" :aria-current="'page'">
+                        <span v-if="breadcrumbItems[breadcrumbItems.length - 1]?.icon" class="bc-icon">{{ breadcrumbItems[breadcrumbItems.length - 1].icon }}</span>
+                        <span>{{ breadcrumbItems[breadcrumbItems.length - 1]?.label }}</span>
+                        <span v-if="breadcrumbItems[breadcrumbItems.length - 1]?.badge" :class="['breadcrumb-badge', breadcrumbItems[breadcrumbItems.length - 1]?.badgeType]">{{ breadcrumbItems[breadcrumbItems.length - 1].badge }}</span>
+                    </span>
+                </li>
+            </ol>
+        </nav>
+
+        <div class="flex main-content-mobile" :style="{ height: breadcrumbItems.length > 1 ? 'calc(100vh - 100px)' : 'calc(100vh - 64px)' }">
             <!-- SIDEBAR -->
             <aside class="w-64 bg-white border-r border-gray-200 overflow-y-auto sidebar-desktop" :class="{ 'open': mobileMenuOpen }">
                 <div class="p-4">
@@ -6896,6 +7064,98 @@ HTML_TEMPLATE = """
                 }
             };
 
+            // ========== ISSUE #220 - BREADCRUMB NAVIGATION ==========
+            const breadcrumbItems = computed(() => {
+                const items = [];
+
+                // Home is always implicit (shown in template)
+
+                // Project level
+                if (selectedProjectId.value) {
+                    const project = projects.value.find(p => p.project_id === selectedProjectId.value);
+                    if (project) {
+                        items.push({
+                            type: 'project',
+                            id: project.project_id,
+                            label: project.name,
+                            icon: '📁',
+                            badge: project.project_type,
+                            badgeType: ''
+                        });
+                    }
+                }
+
+                // Sprint level (if selected)
+                if (selectedSprintId.value && sprints.value.length) {
+                    const sprint = sprints.value.find(s => s.sprint_id === selectedSprintId.value);
+                    if (sprint) {
+                        items.push({
+                            type: 'sprint',
+                            id: sprint.sprint_id,
+                            label: sprint.name,
+                            icon: '🏃',
+                            badge: sprint.status,
+                            badgeType: ''
+                        });
+                    }
+                }
+
+                // Epic filter (if selected)
+                if (selectedEpicId.value && epics.value.length) {
+                    const epic = epics.value.find(e => e.epic_id === selectedEpicId.value);
+                    if (epic) {
+                        items.push({
+                            type: 'epic',
+                            id: epic.epic_id,
+                            label: epic.title,
+                            icon: '🎯',
+                            badge: null,
+                            badgeType: ''
+                        });
+                    }
+                }
+
+                // Story detail (if viewing a story)
+                if (selectedStory.value) {
+                    items.push({
+                        type: 'story',
+                        id: selectedStory.value.story_id,
+                        label: selectedStory.value.story_id + ': ' + (selectedStory.value.title?.substring(0, 30) || 'Story'),
+                        icon: '📋',
+                        badge: selectedStory.value.story_points ? selectedStory.value.story_points + ' pts' : null,
+                        badgeType: 'points'
+                    });
+                }
+
+                return items;
+            });
+
+            const navigateBreadcrumb = (type, id = null) => {
+                switch (type) {
+                    case 'home':
+                        selectedProjectId.value = '';
+                        selectedSprintId.value = '';
+                        selectedEpicId.value = '';
+                        selectedStory.value = null;
+                        break;
+                    case 'project':
+                        selectedSprintId.value = '';
+                        selectedEpicId.value = '';
+                        selectedStory.value = null;
+                        break;
+                    case 'sprint':
+                        selectedEpicId.value = '';
+                        selectedStory.value = null;
+                        break;
+                    case 'epic':
+                        selectedStory.value = null;
+                        break;
+                    case 'story':
+                        // Already at story level
+                        break;
+                }
+            };
+
             // ========== ISSUE #133 - BUSINESS TERMS MAPPING ==========
             const businessTerms = {
                 'story': 'funcionalidade',
@@ -9836,6 +10096,8 @@ Process ${data.status}`);
                 // Issue #216: Command Palette
                 showCommandPalette, commandPaletteQuery, commandPaletteIndex, commandPaletteResults,
                 executeCommand, handleCommandPaletteKey,
+                // Issue #220: Breadcrumb Navigation
+                breadcrumbItems, navigateBreadcrumb,
                 contextMenu, isLoading,
                 // Issue #155: Voice Input
                 voiceRecording, voiceProcessing, voiceRecordingTime, toggleVoiceInput,
