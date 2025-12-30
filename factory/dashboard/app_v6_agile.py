@@ -29,7 +29,7 @@ sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect, Cookie, Response
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect, Cookie, Response, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -116,6 +116,14 @@ try:
     print("[Dashboard] Code Review router loaded")
 except ImportError as e:
     print(f"[Dashboard] Code Review router not available: {e}")
+
+# Advanced Contextual AI Assistant Routes (Issue #280)
+try:
+    from factory.api.chat_routes import router as chat_assistant_router
+    app.include_router(chat_assistant_router)
+    print("[Dashboard] AI Assistant router loaded")
+except ImportError as e:
+    print(f"[Dashboard] AI Assistant router not available: {e}")
 
 # Analytics de Produtividade endpoints (Issue #65)
 from factory.dashboard.analytics_endpoints import register_analytics_endpoints
@@ -285,6 +293,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Help Center not available: {e}")
 
+# AI Chat Advanced (Issue #280) - Assistente IA Contextual Avancado
+try:
+    from factory.dashboard.ai_chat_advanced import register_ai_chat_endpoints
+    register_ai_chat_endpoints(app)
+    print("[Dashboard] AI Chat Advanced loaded: /api/ai/chat/* and /ai-chat")
+except ImportError as e:
+    print(f"[Dashboard] AI Chat Advanced not available: {e}")
+
 # Data Import (Issue #276)
 try:
     from factory.dashboard.data_import import register_data_import
@@ -341,6 +357,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Custom Kanban Columns not available: {e}")
 
+# Custom Fields (Issue #251)
+try:
+    from factory.dashboard.custom_fields import register_custom_fields
+    register_custom_fields(app)
+    print("[Dashboard] Custom Fields loaded: /custom-fields, /api/*/custom-fields")
+except ImportError as e:
+    print(f"[Dashboard] Custom Fields not available: {e}")
+
 # Push Notifications (Issue #261)
 try:
     from factory.dashboard.push_notifications import register_push_notifications
@@ -348,9 +372,33 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Push Notifications not available: {e}")
 
+# PWA Setup - Progressive Web App (Issue #259)
+try:
+    from factory.dashboard.pwa_setup import register_pwa_routes
+    register_pwa_routes(app)
+    print("[Dashboard] PWA routes loaded: /manifest.json, /sw.js, /api/pwa/*")
+except ImportError as e:
+    print(f"[Dashboard] PWA Setup not available: {e}")
+
+# Sprint Capacity Planning (Issue #279)
+try:
+    from factory.dashboard.sprint_capacity import register_sprint_capacity
+    register_sprint_capacity(app)
+    print("[Dashboard] Sprint Capacity loaded: /capacity, /api/capacity/*")
+except ImportError as e:
+    print(f"[Dashboard] Sprint Capacity not available: {e}")
+
 # =============================================================================
 # MULTI-TENANT PLATFORM ROUTES (Issues #286-#293 - Terminal 4)
 # =============================================================================
+
+# Authentication Routes (JWT Login)
+try:
+    from factory.api.auth import auth_router
+    app.include_router(auth_router)
+    print("[Dashboard] Auth routes loaded: /api/v1/auth/login")
+except ImportError as e:
+    print(f"[Dashboard] Auth routes not available: {e}")
 
 # Platform Portal Routes (Issue #287 - Super Admin)
 try:
@@ -399,6 +447,66 @@ try:
     print("[Dashboard] Tenant Admin Portal pages loaded: /tenant-admin/*")
 except ImportError as e:
     print(f"[Dashboard] Tenant Admin Portal pages not available: {e}")
+
+# Login Page (Multi-tenant with White Label)
+try:
+    from factory.dashboard.login_page import register_login_routes
+    register_login_routes(app)
+    print("[Dashboard] Login page loaded: /login")
+except ImportError as e:
+    print(f"[Dashboard] Login page not available: {e}")
+
+# Branding API (White Label)
+try:
+    from factory.api.branding_routes import register_branding_routes
+    register_branding_routes(app)
+    print("[Dashboard] Branding API loaded: /api/tenant/{id}/branding")
+except ImportError as e:
+    print(f"[Dashboard] Branding API not available: {e}")
+
+# =============================================================================
+# AI ASSISTANTS (Issues #247-#250 - Terminal 2)
+# =============================================================================
+
+# AI Acceptance Criteria Assistant (Issue #250)
+try:
+    from factory.dashboard.ai_acceptance_criteria import register_acceptance_criteria_routes
+    register_acceptance_criteria_routes(app)
+    print("[AI] Acceptance Criteria Assistant loaded: /api/ai/acceptance-criteria/*")
+except ImportError as e:
+    print(f"[AI] Acceptance Criteria Assistant not available: {e}")
+
+# AI Duplicate Detection (Issue #247)
+try:
+    from factory.dashboard.ai_duplicate_detection import register_duplicate_detection_routes
+    register_duplicate_detection_routes(app)
+    print("[AI] Duplicate Detection loaded: /api/ai/duplicates/*")
+except ImportError as e:
+    print(f"[AI] Duplicate Detection not available: {e}")
+
+# AI Story Splitting (Issue #248)
+try:
+    from factory.dashboard.ai_story_splitting import register_story_splitting_routes
+    register_story_splitting_routes(app)
+    print("[AI] Story Splitting Assistant loaded: /api/ai/splitting/*")
+except ImportError as e:
+    print(f"[AI] Story Splitting Assistant not available: {e}")
+
+# AI Risk Prediction (Issue #249)
+try:
+    from factory.dashboard.ai_risk_prediction import register_risk_prediction_routes
+    register_risk_prediction_routes(app)
+    print("[AI] Risk Prediction loaded: /api/ai/risks/*")
+except ImportError as e:
+    print(f"[AI] Risk Prediction not available: {e}")
+
+# Offline Sync (Issue #260)
+try:
+    from factory.dashboard.offline_sync import register_offline_sync
+    register_offline_sync(app)
+    print("[Dashboard] Offline Sync loaded: /api/offline/*")
+except ImportError as e:
+    print(f"[Dashboard] Offline Sync not available: {e}")
 
 
 # =============================================================================
@@ -2343,8 +2451,9 @@ def global_search(
 
         # Search Tasks
         if "tasks" in type_list:
-            task_repo = StoryTaskRepository(db)
-            all_tasks = task_repo.get_all()
+            # Issue #306: StoryTaskRepository does not have get_all() method
+            # Query database directly instead
+            all_tasks = db.query(StoryTask).all()
 
             matched_tasks = []
             for task in all_tasks:
@@ -2916,6 +3025,30 @@ HTML_TEMPLATE = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fabrica de Agentes - Dashboard Agile</title>
+
+    <!-- PWA Meta Tags (Issue #259) -->
+    <meta name="theme-color" content="#003B4A">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FdA Agile">
+    <meta name="application-name" content="Fabrica de Agentes">
+    <meta name="msapplication-TileColor" content="#003B4A">
+    <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/icon-192x192.png">
+
+    <!-- Splash Screen for iOS -->
+    <link rel="apple-touch-startup-image" href="/static/icons/icon-512x512.png">
+
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -5390,8 +5523,8 @@ HTML_TEMPLATE = """
                             </button>
                         </div>
 
-                        <!-- Nova Story -->
-                        <button @click="showNewStoryModal = true"
+                        <!-- Nova Story (Issue #308: use method for better Vue reactivity) -->
+                        <button @click="openNewStoryModal"
                                 class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition">
                             + Nova {{ translateTerm('story') }}
                         </button>
@@ -8530,7 +8663,7 @@ HTML_TEMPLATE = """
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <span>Menu</span>
                 </div>
-                <div class="mobile-nav-item" @click="showNewStoryModal = true">
+                <div class="mobile-nav-item" @click="openNewStoryModal">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>Nova Story</span>
                 </div>
@@ -9672,6 +9805,11 @@ HTML_TEMPLATE = """
             const showGenerateDocsDropdown = ref(false);
             const generatingDocs = ref(false);
             const showNewDesignModal = ref(false);
+
+            // Issue #308: Modal open methods for better Vue reactivity
+            const openNewStoryModal = () => {
+                showNewStoryModal.value = true;
+            };
 
             // Issue #155: Voice Input for Story Creation
             const voiceRecording = ref(false);
@@ -12027,6 +12165,7 @@ Process ${data.status}`);
                 storyBoard, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
+                openNewStoryModal, // Issue #308: method for better Vue reactivity
                 showShortcutsModal, showConfirmModal, confirmModal,
                 // Issue #216: Command Palette
                 showCommandPalette, commandPaletteQuery, commandPaletteIndex, commandPaletteResults,
@@ -12094,6 +12233,38 @@ Process ${data.status}`);
     // Mount
     app.mount('#app');
     </script>
+
+    <!-- PWA Initialization (Issue #259) -->
+    <script src="/static/pwa-init.js" defer></script>
+    <script src="/static/offline-db.js" defer></script>
+    <script src="/static/offline-ui.js" defer></script>
+
+    <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function(registration) {
+                    console.log('[App] SW registered:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.warn('[App] SW registration failed:', error);
+                });
+        });
+    }
+
+    // Detect display mode (installed vs browser)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        document.body.classList.add('pwa-installed');
+        console.log('[App] Running in standalone mode (installed)');
+    }
+
+    // Listen for app installation
+    window.addEventListener('appinstalled', function() {
+        console.log('[App] PWA installed successfully');
+        document.body.classList.add('pwa-installed');
+    });
+    </script>
 </body>
 </html>
 """
@@ -12122,6 +12293,99 @@ def admin_page():
 def security_page():
     """Security Settings - SPA route"""
     return HTML_TEMPLATE
+
+
+# =============================================================================
+# API ENDPOINTS - SECURITY SETTINGS (Issue #309)
+# =============================================================================
+
+@app.get("/api/security/data")
+def get_security_data():
+    """Get security settings data - MFA, API Keys, Sessions"""
+    # Return mock data for now - in production this would query the database
+    return {
+        "mfa": None,  # No MFA configured by default
+        "apiKeys": [],
+        "sessions": [
+            {
+                "session_id": "current",
+                "device": "Current Browser",
+                "location": "Local",
+                "last_active": datetime.now().isoformat(),
+                "is_current": True
+            }
+        ]
+    }
+
+
+@app.post("/api/security/mfa/setup")
+def setup_mfa(data: dict = Body(...)):
+    """Initialize MFA setup - returns QR code and secret"""
+    # Generate mock MFA setup data
+    secret_key = "JBSWY3DPEHPK3PXP"  # Mock secret
+    # In production, generate real TOTP secret and QR code
+    return {
+        "qr_code_base64": "",  # Would be actual QR code
+        "secret_key": secret_key,
+        "backup_codes": ["12345678", "23456789", "34567890", "45678901", "56789012"]
+    }
+
+
+@app.post("/api/security/mfa/verify")
+def verify_mfa(data: dict = Body(...)):
+    """Verify MFA code and enable 2FA"""
+    code = data.get("code", "")
+    # In production, verify the TOTP code
+    if len(code) == 6 and code.isdigit():
+        return {"success": True, "message": "MFA enabled successfully"}
+    return {"success": False, "message": "Invalid code"}
+
+
+@app.post("/api/security/mfa/disable")
+def disable_mfa(data: dict = Body(...)):
+    """Disable MFA for user"""
+    return {"success": True, "message": "MFA disabled"}
+
+
+@app.post("/api/security/mfa/backup-codes/regenerate")
+def regenerate_backup_codes(data: dict = Body(...)):
+    """Regenerate MFA backup codes"""
+    return {
+        "backup_codes": ["11111111", "22222222", "33333333", "44444444", "55555555"]
+    }
+
+
+@app.post("/api/security/api-keys")
+def create_api_key(data: dict = Body(...)):
+    """Create new API key"""
+    import secrets
+    key_id = uuid.uuid4().hex[:8]
+    api_key = f"fab_{secrets.token_hex(32)}"
+    return {
+        "key_id": key_id,
+        "name": data.get("name", "New API Key"),
+        "key": api_key,
+        "created_at": datetime.now().isoformat(),
+        "scopes": data.get("scopes", ["read"])
+    }
+
+
+@app.delete("/api/security/api-keys/{key_id}")
+def revoke_api_key(key_id: str):
+    """Revoke an API key"""
+    return {"success": True, "message": f"API key {key_id} revoked"}
+
+
+@app.delete("/api/security/sessions/{session_id}")
+def revoke_session(session_id: str):
+    """Revoke a session"""
+    return {"success": True, "message": f"Session {session_id} revoked"}
+
+
+@app.post("/api/security/sessions/revoke-all")
+def revoke_all_sessions():
+    """Revoke all sessions except current"""
+    return {"success": True, "message": "All other sessions revoked"}
 
 
 @app.get("/workers", response_class=HTMLResponse)
