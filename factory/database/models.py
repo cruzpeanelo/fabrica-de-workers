@@ -2500,6 +2500,7 @@ class Tenant(Base):
     stories = relationship("Story", back_populates="tenant", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="tenant", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="tenant", cascade="all, delete-orphan")
+    objectives = relationship("Objective", back_populates="tenant", cascade="all, delete-orphan")  # Issue #281
 
     def soft_delete(self, deleted_by: str = "system"):
         """Marca o tenant como deletado (soft delete)"""
@@ -3177,6 +3178,366 @@ class ABACPolicy(Base):
 
     def __repr__(self):
         return f"<ABACPolicy {self.policy_id}: {self.name} [{self.effect}]>"
+
+
+# =============================================================================
+# OKR - OBJECTIVES AND KEY RESULTS (Issue #281)
+# =============================================================================
+
+class OKRPeriod(str, Enum):
+    """Period types for OKRs"""
+    QUARTERLY = "quarterly"
+    YEARLY = "yearly"
+    MONTHLY = "monthly"
+    CUSTOM = "custom"
+
+
+class OKRStatus(str, Enum):
+    """Status of an OKR"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class Objective(Base):
+    """
+    Modelo para Objectives (OKRs) - Issue #281
+
+    Objectives sao metas de alto nivel que podem ser associadas
+    a projetos e stories. Cada objetivo possui Key Results
+    que medem o progresso.
+
+    Multi-Tenancy:
+    - tenant_id para isolamento de dados
+    - Indices compostos para queries eficientes
+    """
+    __tablename__ = "objectives"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    objective_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Multi-Tenant
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # Dados principais
+    title = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Periodo
+    period = Column(String(20), default=OKRPeriod.QUARTERLY.value)
+    start_date = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True)
+
+    # Owner
+    owner_id = Column(String(100), nullable=True)
+    owner_name = Column(String(200), nullable=True)
+
+    # Status e progresso
+    status = Column(String(20), default=OKRStatus.DRAFT.value, index=True)
+    progress = Column(Float, default=0.0)  # 0-100, calculado dos key results
+
+    # Organizacao
+    parent_objective_id = Column(String(50), nullable=True, index=True)  # Hierarquia de OKRs
+    category = Column(String(100), nullable=True)
+    tags = Column(JSON, default=list)
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    # Soft Delete
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices compostos
+    __table_args__ = (
+        Index('ix_objectives_tenant_status', 'tenant_id', 'status'),
+        Index('ix_objectives_tenant_period', 'tenant_id', 'period'),
+        Index('ix_objectives_parent', 'parent_objective_id'),
+        Index('ix_objectives_owner', 'owner_id'),
+    )
+
+    # Relacionamentos
+    tenant = relationship("Tenant", back_populates="objectives")
+    key_results = relationship("KeyResult", back_populates="objective", cascade="all, delete-orphan")
+    linked_stories = relationship("OKRStoryLink", back_populates="objective", cascade="all, delete-orphan")
+    linked_projects = relationship("OKRProjectLink", back_populates="objective", cascade="all, delete-orphan")
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca o objetivo como deletado (soft delete)"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura um objetivo deletado"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
+
+    def calculate_progress(self):
+        """Calcula progresso baseado nos key results"""
+        if not self.key_results:
+            return 0.0
+        active_krs = [kr for kr in self.key_results if not kr.is_deleted]
+        if not active_krs:
+            return 0.0
+        total_progress = sum(kr.progress for kr in active_krs)
+        return total_progress / len(active_krs)
+
+    def to_dict(self):
+        return {
+            "objective_id": self.objective_id,
+            "tenant_id": self.tenant_id,
+            "title": self.title,
+            "description": self.description,
+            "period": self.period,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "owner_id": self.owner_id,
+            "owner_name": self.owner_name,
+            "status": self.status,
+            "progress": self.progress,
+            "parent_objective_id": self.parent_objective_id,
+            "category": self.category,
+            "tags": self.tags or [],
+            "key_results_count": len(self.key_results) if self.key_results else 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by,
+            "is_deleted": self.is_deleted
+        }
+
+    def __repr__(self):
+        return f"<Objective {self.objective_id}: {self.title[:30]} [{self.status}] {self.progress:.0f}%>"
+
+
+class KeyResult(Base):
+    """
+    Modelo para Key Results (OKRs) - Issue #281
+
+    Key Results sao metricas mensuraveis que indicam
+    o progresso em direcao a um objetivo.
+
+    Cada Key Result tem:
+    - Target (meta)
+    - Current (valor atual)
+    - Unit (unidade de medida)
+    """
+    __tablename__ = "key_results"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key_result_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Relacionamento com Objective
+    objective_id = Column(String(50), ForeignKey("objectives.objective_id", ondelete="CASCADE"), nullable=False, index=True)
+    objective = relationship("Objective", back_populates="key_results")
+
+    # Dados principais
+    title = Column(String(300), nullable=False)
+    description = Column(Text, nullable=True)
+
+    # Metricas
+    target = Column(Float, nullable=False)  # Meta
+    current = Column(Float, default=0.0)     # Valor atual
+    initial = Column(Float, default=0.0)     # Valor inicial (baseline)
+    unit = Column(String(50), default="units")  # Unidade (%, units, $, etc)
+
+    # Tipo de metrica
+    metric_type = Column(String(20), default="increase")  # increase, decrease, maintain
+
+    # Progresso calculado
+    progress = Column(Float, default=0.0)  # 0-100
+
+    # Peso para calculo de progresso do Objective
+    weight = Column(Float, default=1.0)
+
+    # Status
+    status = Column(String(20), default=OKRStatus.ACTIVE.value)
+
+    # Historico de valores
+    value_history = Column(JSON, default=list)  # [{date, value, note}]
+
+    # Owner especifico (pode ser diferente do objetivo)
+    owner_id = Column(String(100), nullable=True)
+    owner_name = Column(String(200), nullable=True)
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    # Soft Delete
+    is_deleted = Column(Boolean, default=False, index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(String(100), nullable=True)
+
+    # Indices
+    __table_args__ = (
+        Index('ix_key_results_objective', 'objective_id'),
+        Index('ix_key_results_status', 'status'),
+        Index('ix_key_results_owner', 'owner_id'),
+    )
+
+    def soft_delete(self, deleted_by: str = "system"):
+        """Marca o key result como deletado"""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = deleted_by
+
+    def restore(self):
+        """Restaura um key result deletado"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.deleted_by = None
+
+    def calculate_progress(self):
+        """Calcula progresso do key result baseado no tipo de metrica"""
+        if self.target == self.initial:
+            return 100.0 if self.current == self.target else 0.0
+
+        if self.metric_type == "decrease":
+            # Para metricas de reducao, inverter logica
+            if self.current <= self.target:
+                return 100.0
+            progress = ((self.initial - self.current) / (self.initial - self.target)) * 100
+        else:
+            # Para metricas de aumento
+            if self.current >= self.target:
+                return 100.0
+            progress = ((self.current - self.initial) / (self.target - self.initial)) * 100
+
+        return max(0.0, min(100.0, progress))
+
+    def update_value(self, new_value: float, note: str = None):
+        """Atualiza valor atual e adiciona ao historico"""
+        self.current = new_value
+        self.progress = self.calculate_progress()
+
+        if self.value_history is None:
+            self.value_history = []
+
+        self.value_history.append({
+            "date": datetime.utcnow().isoformat(),
+            "value": new_value,
+            "note": note
+        })
+        self.updated_at = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            "key_result_id": self.key_result_id,
+            "objective_id": self.objective_id,
+            "title": self.title,
+            "description": self.description,
+            "target": self.target,
+            "current": self.current,
+            "initial": self.initial,
+            "unit": self.unit,
+            "metric_type": self.metric_type,
+            "progress": self.progress,
+            "weight": self.weight,
+            "status": self.status,
+            "value_history": self.value_history or [],
+            "owner_id": self.owner_id,
+            "owner_name": self.owner_name,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by,
+            "is_deleted": self.is_deleted
+        }
+
+    def __repr__(self):
+        return f"<KeyResult {self.key_result_id}: {self.title[:30]} [{self.current}/{self.target} {self.unit}]>"
+
+
+class OKRStoryLink(Base):
+    """
+    Modelo para vincular Stories a Objectives - Issue #281
+
+    Permite rastrear quais stories contribuem para
+    cada objetivo estrategico.
+    """
+    __tablename__ = "okr_story_links"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    objective_id = Column(String(50), ForeignKey("objectives.objective_id", ondelete="CASCADE"), nullable=False, index=True)
+    story_id = Column(String(50), ForeignKey("stories.story_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Relacionamentos
+    objective = relationship("Objective", back_populates="linked_stories")
+    story = relationship("Story", backref="okr_links")
+
+    # Contribuicao estimada
+    contribution = Column(Float, default=1.0)  # Peso da contribuicao (0-1)
+    notes = Column(Text, nullable=True)
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    __table_args__ = (
+        UniqueConstraint('objective_id', 'story_id', name='uq_okr_story_link'),
+        Index('ix_okr_story_links_objective', 'objective_id'),
+        Index('ix_okr_story_links_story', 'story_id'),
+    )
+
+    def to_dict(self):
+        return {
+            "objective_id": self.objective_id,
+            "story_id": self.story_id,
+            "contribution": self.contribution,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_by": self.created_by
+        }
+
+
+class OKRProjectLink(Base):
+    """
+    Modelo para vincular Projects a Objectives - Issue #281
+
+    Permite rastrear quais projetos contribuem para
+    cada objetivo estrategico.
+    """
+    __tablename__ = "okr_project_links"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    objective_id = Column(String(50), ForeignKey("objectives.objective_id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(String(50), ForeignKey("projects.project_id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Relacionamentos
+    objective = relationship("Objective", back_populates="linked_projects")
+    project = relationship("Project", backref="okr_links")
+
+    # Contribuicao estimada
+    contribution = Column(Float, default=1.0)  # Peso da contribuicao (0-1)
+    notes = Column(Text, nullable=True)
+
+    # Metadados
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(100), default="system")
+
+    __table_args__ = (
+        UniqueConstraint('objective_id', 'project_id', name='uq_okr_project_link'),
+        Index('ix_okr_project_links_objective', 'objective_id'),
+        Index('ix_okr_project_links_project', 'project_id'),
+    )
+
+    def to_dict(self):
+        return {
+            "objective_id": self.objective_id,
+            "project_id": self.project_id,
+            "contribution": self.contribution,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_by": self.created_by
+        }
 
 
 # =============================================================================
