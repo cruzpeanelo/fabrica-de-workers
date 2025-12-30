@@ -128,16 +128,32 @@ class SSOConfig(BaseModel):
     default_role: str = Field(default="VIEWER", description="Default role for new SSO users")
     auto_provision: bool = Field(default=True, description="Auto-create users on first SSO login")
     update_on_login: bool = Field(default=True, description="Update user info on each login")
+    # Issue #148: Mapeamento de grupos do IdP para roles locais
+    group_role_mapping: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Mapping from IdP group names to local roles"
+    )
 
     @classmethod
     def from_env(cls) -> "SSOConfig":
         """Load all SSO configuration from environment"""
+        # Issue #148: Carregar mapeamento de grupos para roles
+        # Formato: SSO_GROUP_MAPPING=grupo1:ADMIN,grupo2:DEVELOPER,grupo3:MANAGER
+        group_mapping = {}
+        mapping_str = os.getenv("SSO_GROUP_MAPPING", "")
+        if mapping_str:
+            for item in mapping_str.split(","):
+                if ":" in item:
+                    group, role = item.strip().split(":", 1)
+                    group_mapping[group.strip()] = role.strip().upper()
+
         return cls(
             saml=SAMLConfig.from_env(),
             azure_ad=AzureADConfig.from_env(),
             default_role=os.getenv("SSO_DEFAULT_ROLE", "VIEWER"),
             auto_provision=os.getenv("SSO_AUTO_PROVISION", "true").lower() == "true",
-            update_on_login=os.getenv("SSO_UPDATE_ON_LOGIN", "true").lower() == "true"
+            update_on_login=os.getenv("SSO_UPDATE_ON_LOGIN", "true").lower() == "true",
+            group_role_mapping=group_mapping
         )
 
 
@@ -190,6 +206,53 @@ def cleanup_expired_states():
 # USER PROVISIONING
 # =============================================================================
 
+# Issue #148: Role priority for group mapping (higher = more privileged)
+ROLE_PRIORITY = {
+    "ADMIN": 100,
+    "MANAGER": 80,
+    "DEVELOPER": 60,
+    "VIEWER": 40,
+}
+
+
+def determine_role_from_groups(groups: List[str], config: "SSOConfig") -> str:
+    """
+    Issue #148: Determina o role baseado nos grupos do IdP.
+
+    Args:
+        groups: Lista de grupos do usuário vindos do IdP
+        config: Configuração SSO com mapeamento de grupos
+
+    Returns:
+        Role mais privilegiado baseado nos grupos, ou default_role se nenhum match
+
+    O role é determinado pela seguinte lógica:
+    1. Para cada grupo do usuário, verificar se existe mapeamento
+    2. Se houver múltiplos matches, usar o role mais privilegiado
+    3. Se nenhum match, usar default_role
+    """
+    if not groups or not config.group_role_mapping:
+        return config.default_role
+
+    matched_roles = []
+    for group in groups:
+        # Verificar match exato
+        if group in config.group_role_mapping:
+            matched_roles.append(config.group_role_mapping[group])
+        # Verificar match case-insensitive
+        else:
+            for mapping_group, role in config.group_role_mapping.items():
+                if group.lower() == mapping_group.lower():
+                    matched_roles.append(role)
+                    break
+
+    if not matched_roles:
+        return config.default_role
+
+    # Retornar role mais privilegiado
+    return max(matched_roles, key=lambda r: ROLE_PRIORITY.get(r, 0))
+
+
 def provision_sso_user(
     username: str,
     email: str,
@@ -214,6 +277,9 @@ def provision_sso_user(
             (User.username == username) | (User.email == email)
         ).first()
 
+        # Issue #148: Determinar role baseado nos grupos do IdP
+        assigned_role = determine_role_from_groups(groups or [], config)
+
         if user:
             # Update existing user if configured
             if config.update_on_login:
@@ -227,6 +293,15 @@ def provision_sso_user(
                 user.quotas["sso_provider_id"] = provider_id
                 user.quotas["sso_groups"] = groups or []
                 user.quotas["sso_last_login"] = datetime.utcnow().isoformat()
+
+                # Issue #148: Atualizar role se grupos mudaram e há mapeamento
+                if config.group_role_mapping and groups:
+                    old_role = user.role
+                    if assigned_role != old_role:
+                        user.role = assigned_role
+                        user.quotas["sso_role_updated_at"] = datetime.utcnow().isoformat()
+                        user.quotas["sso_role_previous"] = old_role
+
                 db.commit()
         else:
             # Create new user if auto-provision is enabled
@@ -243,7 +318,7 @@ def provision_sso_user(
                 username=username,
                 email=email,
                 password_hash=get_password_hash(random_password),
-                role=config.default_role,
+                role=assigned_role,  # Issue #148: Usar role baseado em grupos
                 active=True,
                 quotas={
                     "max_jobs_per_day": 10,
@@ -254,7 +329,8 @@ def provision_sso_user(
                     "sso_provider_id": provider_id,
                     "sso_groups": groups or [],
                     "sso_display_name": display_name,
-                    "sso_created_at": datetime.utcnow().isoformat()
+                    "sso_created_at": datetime.utcnow().isoformat(),
+                    "sso_role_assigned_by": "group_mapping" if config.group_role_mapping else "default"
                 },
                 created_at=datetime.utcnow(),
                 last_login=datetime.utcnow()
