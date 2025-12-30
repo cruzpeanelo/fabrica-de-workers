@@ -372,6 +372,15 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Push Notifications not available: {e}")
 
+# Notification Center (Issue #227) - Bell icon with dropdown panel
+try:
+    from factory.dashboard.notification_center import register_notification_center, register_notification_center_page
+    register_notification_center(app)
+    register_notification_center_page(app)
+    print("[Dashboard] Notification Center loaded: /api/notifications/*, /notification-center")
+except ImportError as e:
+    print(f"[Dashboard] Notification Center not available: {e}")
+
 # PWA Setup - Progressive Web App (Issue #259)
 try:
     from factory.dashboard.pwa_setup import register_pwa_routes
@@ -507,6 +516,14 @@ try:
     print("[Dashboard] Offline Sync loaded: /api/offline/*")
 except ImportError as e:
     print(f"[Dashboard] Offline Sync not available: {e}")
+
+# Dark Mode (Issue #217)
+try:
+    from factory.dashboard.dark_mode import register_dark_mode
+    register_dark_mode(app)
+    print("[Dashboard] Dark Mode loaded: /api/user/preferences/theme")
+except ImportError as e:
+    print(f"[Dashboard] Dark Mode not available: {e}")
 
 
 # =============================================================================
@@ -3850,50 +3867,201 @@ HTML_TEMPLATE = """
             transition: width 0.5s ease;
         }
 
-        /* Dark Mode */
-        .dark {
-            --bg-primary: #1F2937;
-            --bg-secondary: #374151;
-            --bg-card: #1F2937;
-            --text-primary: #F9FAFB;
-            --text-secondary: #D1D5DB;
-            --border-color: #4B5563;
+        /* =================================================================
+           DARK MODE CSS - Issue #217
+           Enhanced with CSS variables, smooth transitions, and system preference
+           ================================================================= */
+
+        /* Light Mode (Default) CSS Variables */
+        :root {
+            /* Background colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f4f6;
+            --bg-tertiary: #e5e7eb;
+            --bg-card: #ffffff;
+            --bg-hover: #f9fafb;
+            --bg-active: #f3f4f6;
+
+            /* Text colors */
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --text-inverse: #ffffff;
+
+            /* Border colors */
+            --border-primary: #e5e7eb;
+            --border-secondary: #d1d5db;
+            --border-focus: #003B4A;
+
+            /* Brand colors (Belgo) */
+            --accent-primary: #003B4A;
+            --accent-secondary: #FF6C00;
+
+            /* Status colors */
+            --color-success: #10B981;
+            --color-success-bg: #D1FAE5;
+            --color-warning: #F59E0B;
+            --color-warning-bg: #FEF3C7;
+            --color-error: #EF4444;
+            --color-error-bg: #FEE2E2;
+            --color-info: #3B82F6;
+            --color-info-bg: #DBEAFE;
         }
-        .dark body, html.dark body { background-color: #111827 !important; }
+
+        /* Dark Mode CSS Variables */
+        .dark, [data-theme="dark"], html.dark {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --bg-card: #1f2937;
+            --bg-hover: #374151;
+            --bg-active: #4b5563;
+
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #9ca3af;
+            --text-inverse: #1f2937;
+
+            --border-primary: #374151;
+            --border-secondary: #4b5563;
+            --border-focus: #60a5fa;
+
+            --accent-primary: #60a5fa;
+            --accent-secondary: #f97316;
+
+            --color-success: #34D399;
+            --color-success-bg: rgba(16, 185, 129, 0.2);
+            --color-warning: #FBBF24;
+            --color-warning-bg: rgba(245, 158, 11, 0.2);
+            --color-error: #F87171;
+            --color-error-bg: rgba(239, 68, 68, 0.2);
+            --color-info: #60A5FA;
+            --color-info-bg: rgba(59, 130, 246, 0.2);
+        }
+
+        /* Smooth theme transition */
+        *, *::before, *::after {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease;
+        }
+
+        /* Dark mode body */
+        .dark body, html.dark body { background-color: var(--bg-primary) !important; }
+
+        /* Dark mode backgrounds */
         .dark .bg-white { background-color: var(--bg-card) !important; }
-        .dark .bg-gray-100 { background-color: #111827 !important; }
+        .dark .bg-gray-100 { background-color: var(--bg-primary) !important; }
         .dark .bg-gray-50 { background-color: var(--bg-secondary) !important; }
+
+        /* Dark mode text */
         .dark .text-gray-900 { color: var(--text-primary) !important; }
-        .dark .text-gray-700 { color: var(--text-secondary) !important; }
-        .dark .text-gray-600 { color: #9CA3AF !important; }
-        .dark .text-gray-500 { color: #9CA3AF !important; }
-        .dark .border-gray-200 { border-color: var(--border-color) !important; }
-        .dark .border-gray-300 { border-color: var(--border-color) !important; }
+        .dark .text-gray-700, .dark .text-gray-600, .dark .text-gray-500 { color: var(--text-secondary) !important; }
+
+        /* Dark mode borders */
+        .dark .border-gray-200, .dark .border-gray-300 { border-color: var(--border-primary) !important; }
         .dark .hover\\:bg-gray-100:hover { background-color: var(--bg-secondary) !important; }
-        .dark .story-card { background-color: var(--bg-card) !important; border-color: var(--border-color) !important; }
+
+        /* Dark mode components */
+        .dark .story-card { background-color: var(--bg-card) !important; border-color: var(--border-primary) !important; }
+        .dark .story-card:hover { border-color: var(--accent-primary) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; }
         .dark .narrative-box { background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); }
         .dark .kanban-column { background-color: var(--bg-secondary) !important; }
+
+        /* Dark mode forms */
         .dark input, .dark textarea, .dark select {
             background-color: var(--bg-secondary) !important;
-            border-color: var(--border-color) !important;
+            border-color: var(--border-secondary) !important;
             color: var(--text-primary) !important;
         }
-        .dark .kbd {
-            background: #374151;
-            border-color: #4B5563;
-            color: #E5E7EB;
+        .dark input::placeholder, .dark textarea::placeholder { color: var(--text-tertiary) !important; }
+        .dark input:focus, .dark textarea:focus, .dark select:focus {
+            border-color: var(--border-focus) !important;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
         }
+
+        /* Dark mode keyboard shortcuts */
+        .dark .kbd { background: #374151; border-color: #4B5563; color: #E5E7EB; }
+
+        /* Dark mode modals */
+        .dark .modal-content, .dark [class*="modal"] > div:not(.modal-backdrop) {
+            background-color: var(--bg-card) !important;
+            border-color: var(--border-primary) !important;
+        }
+
+        /* Dark mode dropdowns */
+        .dark .dropdown-menu, .dark [class*="dropdown"]:not(button) {
+            background-color: var(--bg-card) !important;
+            border-color: var(--border-primary) !important;
+        }
+
+        /* Dark mode scrollbars */
+        .dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+        .dark ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        .dark ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+        /* Dark Mode Toggle Button - Enhanced (Issue #217) */
         .dark-mode-toggle {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 6px;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
-        .dark-mode-toggle:hover { background: rgba(255,255,255,0.1); }
-        .dark-mode-icon { font-size: 1.1rem; }
+        .dark-mode-toggle:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        .dark-mode-toggle:active { transform: scale(0.95); }
+        .dark-mode-toggle:focus-visible { outline: 2px solid #FF6C00; outline-offset: 2px; }
+
+        /* Icon wrapper for animation */
+        .dark-mode-icon-wrapper {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Sun icon (Light mode indicator) */
+        .sun-icon {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            color: #FCD34D;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+        }
+        .dark .sun-icon, [data-theme="dark"] .sun-icon {
+            transform: rotate(90deg) scale(0);
+            opacity: 0;
+        }
+
+        /* Moon icon (Dark mode indicator) */
+        .moon-icon {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            color: #93C5FD;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+            transform: rotate(-90deg) scale(0);
+            opacity: 0;
+        }
+        .dark .moon-icon, [data-theme="dark"] .moon-icon {
+            transform: rotate(0) scale(1);
+            opacity: 1;
+        }
+
+        /* Legacy emoji icons - still supported */
+        .dark-mode-icon { font-size: 1.1rem; transition: transform 0.3s ease; }
+        .dark-mode-toggle:hover .dark-mode-icon { transform: rotate(15deg); }
 
         /* ===================== ENHANCED FILE UPLOAD - Issue #185 ===================== */
         .upload-dropzone {
@@ -11506,19 +11674,29 @@ HTML_TEMPLATE = """
                 nextTick(() => scrollChatToBottom());
             };
 
+            // Issue #280: Enhanced sendMessage with context
             const sendMessage = async () => {
-                if (!chatInput.value.trim()) return;
+                if (!chatInput.value.trim() || chatLoading.value) return;
 
                 const messageContent = chatInput.value;
                 chatInput.value = ''; // Clear immediately for better UX
+                chatLoading.value = true;
 
                 try {
+                    // Issue #280: Build context object
+                    const pageContext = selectedStory.value ? 'story-detail' : 'kanban';
+                    const selectedStoryId = selectedStory.value?.story_id || null;
+
                     const res = await fetch('/api/chat/message', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             project_id: selectedProjectId.value,
-                            content: messageContent
+                            content: messageContent,
+                            // Issue #280: Enhanced context fields
+                            page_context: pageContext,
+                            selected_story_id: selectedStoryId,
+                            filter_status: filterPriority.value || null
                         })
                     });
 
@@ -11534,6 +11712,11 @@ HTML_TEMPLATE = """
                         chatHistory.value.push(data.assistant_message);
                     }
                     nextTick(() => scrollChatToBottom());
+
+                    // Issue #280: Refresh data if actions were executed
+                    if (data.assistant_message?.actions?.length > 0) {
+                        loadProjectData();
+                    }
                 } catch (error) {
                     console.error('Chat error:', error);
                     // Show error message
@@ -11544,8 +11727,64 @@ HTML_TEMPLATE = """
                         created_at: new Date().toISOString()
                     });
                     nextTick(() => scrollChatToBottom());
+                } finally {
+                    chatLoading.value = false;
                 }
             };
+
+            // Issue #280: Execute quick action from chat panel
+            const executeQuickAction = (action) => {
+                chatInput.value = action.action;
+                sendMessage();
+            };
+
+            // Issue #280: Clear chat history
+            const clearChatHistory = async () => {
+                try {
+                    await fetch(`/api/chat/history?project_id=${selectedProjectId.value}`, {
+                        method: 'DELETE'
+                    });
+                    chatHistory.value = [];
+                    addToast('success', 'Historico limpo');
+                } catch (error) {
+                    console.error('Error clearing chat history:', error);
+                    addToast('error', 'Erro ao limpar historico');
+                }
+            };
+
+            // Issue #280: Update quick actions based on context
+            const updateChatContext = () => {
+                if (selectedStory.value) {
+                    chatPageContext.value = 'story-detail';
+                    chatQuickActions.value = [
+                        { label: 'Executar', action: `executar story ${selectedStory.value.story_id}`, icon: '>' },
+                        { label: 'Tasks', action: `listar tasks de ${selectedStory.value.story_id}`, icon: '#' },
+                        { label: 'Docs', action: `gerar documentacao para ${selectedStory.value.story_id}`, icon: 'D' }
+                    ];
+                    chatSuggestions.value = [
+                        `Qual o status de ${selectedStory.value.story_id}?`,
+                        `Gerar testes para ${selectedStory.value.story_id}`,
+                        `Mover ${selectedStory.value.story_id} para testing`
+                    ];
+                } else {
+                    chatPageContext.value = 'kanban';
+                    chatQuickActions.value = [
+                        { label: 'Nova Story', action: 'criar nova story', icon: '+' },
+                        { label: 'Status', action: 'status do projeto', icon: 'i' },
+                        { label: 'Ajuda', action: 'o que voce pode fazer', icon: '?' }
+                    ];
+                    chatSuggestions.value = [
+                        'Listar todas as stories',
+                        'Criar uma nova story',
+                        'Qual o status do projeto?'
+                    ];
+                }
+            };
+
+            // Watch for story selection changes to update chat context
+            watch(selectedStory, () => {
+                updateChatContext();
+            });
 
             const scrollChatToBottom = () => {
                 if (chatMessages.value) {
@@ -12497,6 +12736,10 @@ Process ${data.status}`);
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, kanbanStatuses, epics, sprints, selectedStory, activeTab,
                 chatHistory, chatInput, chatMessages,
+                // Issue #280: Enhanced contextual AI chat
+                chatLoading, chatPageContext, chatQuickActions, chatSuggestions,
+                chatContextLabel, chatWelcomeMessage, chatPlaceholder,
+                executeQuickAction, clearChatHistory, updateChatContext,
                 showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
                 openNewStoryModal, // Issue #308: method for better Vue reactivity
                 showShortcutsModal, showConfirmModal, confirmModal,
