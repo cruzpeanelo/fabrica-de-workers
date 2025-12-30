@@ -3861,20 +3861,76 @@ HTML_TEMPLATE = """
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
         }
+        /* Issue #218: Enhanced Skeleton Loaders */
         .skeleton {
             background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
             background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+            animation: skeleton-shimmer 1.5s infinite;
             border-radius: 4px;
         }
-        @keyframes shimmer {
+        .dark .skeleton {
+            background: linear-gradient(90deg, #374151 25%, #4B5563 50%, #374151 75%);
+            background-size: 200% 100%;
+        }
+        @keyframes skeleton-shimmer {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
-        .skeleton-card {
-            height: 120px;
-            margin-bottom: 8px;
+
+        /* Skeleton Variants */
+        .skeleton-text { height: 1em; margin-bottom: 0.5em; }
+        .skeleton-text:last-child { width: 60%; }
+        .skeleton-circle { border-radius: 50%; }
+        .skeleton-button { height: 36px; width: 100px; border-radius: 6px; }
+
+        /* Story Card Skeleton */
+        .skeleton-card, .story-card-skeleton {
+            background: white;
+            border: 1px solid #E5E7EB;
             border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .dark .skeleton-card, .dark .story-card-skeleton {
+            background: #1F2937;
+            border-color: #374151;
+        }
+        .skeleton-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .skeleton-footer { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Kanban Skeleton */
+        .kanban-skeleton { display: flex; gap: 16px; overflow-x: auto; padding: 16px 0; }
+        .column-skeleton { flex: 0 0 280px; background: #F9FAFB; border-radius: 8px; padding: 12px; }
+        .dark .column-skeleton { background: #111827; }
+
+        /* Table Skeleton */
+        .table-skeleton { width: 100%; }
+        .skeleton-row { display: flex; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #E5E7EB; }
+        .dark .skeleton-row { border-color: #374151; }
+        .skeleton-row.header { background: #F9FAFB; }
+        .dark .skeleton-row.header { background: #111827; }
+
+        /* Chart Skeleton */
+        .chart-skeleton { height: 200px; display: flex; flex-direction: column; }
+        .chart-skeleton-bars { flex: 1; display: flex; align-items: flex-end; gap: 8px; padding: 0 16px; }
+        .chart-skeleton-bars .skeleton { flex: 1; border-radius: 4px 4px 0 0; }
+
+        /* Profile Skeleton */
+        .profile-skeleton { display: flex; gap: 16px; align-items: center; }
+        .profile-skeleton .profile-info { flex: 1; }
+
+        /* Loading Container with Skeleton */
+        .skeleton-loading { position: relative; overflow: hidden; }
+        .skeleton-loading::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: inherit;
+            animation: skeleton-pulse 1s infinite;
+        }
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         /* Enhanced Drag and Drop */
@@ -6480,7 +6536,21 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 80px);">
-                    <div v-if="analyticsLoading" class="flex items-center justify-center py-12"><div class="spinner"></div><span class="ml-3">Carregando...</span></div>
+                    <!-- Issue #218: Skeleton loader for analytics -->
+                    <div v-if="analyticsLoading" class="space-y-6">
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                            <div v-for="i in 6" :key="'kpi-skel-'+i" class="skeleton-card" style="height: 80px; padding: 16px;">
+                                <div class="skeleton" style="width: 60px; height: 24px; margin-bottom: 8px;"></div>
+                                <div class="skeleton skeleton-text" style="width: 80%;"></div>
+                            </div>
+                        </div>
+                        <div class="chart-skeleton">
+                            <div class="chart-skeleton-bars">
+                                <div v-for="i in 7" :key="'bar-'+i" class="skeleton" :style="{height: (30 + Math.random()*60) + '%'}"></div>
+                            </div>
+                            <div class="skeleton" style="width: 100%; height: 20px; margin-top: 12px;"></div>
+                        </div>
+                    </div>
                     <div v-else-if="analyticsData">
                         <!-- Alerts -->
                         <div v-if="analyticsData.alerts?.length" class="mb-6"><div v-for="(alert, i) in analyticsData.alerts" :key="i" :class="['p-4 rounded-lg mb-2', alert.type === 'danger' ? 'bg-red-50' : alert.type === 'warning' ? 'bg-yellow-50' : 'bg-blue-50']"><h4 class="font-semibold">{{ alert.title }}</h4><p class="text-sm">{{ alert.message }}</p></div></div>
@@ -8127,12 +8197,13 @@ HTML_TEMPLATE = """
                             <span class="template-desc">{{ tmpl.description }}</span>
                         </button>
                     </div>
-                    <div v-else class="template-loading">
-                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        <span>Carregando templates...</span>
+                    <!-- Issue #218: Skeleton loader for templates -->
+                    <div v-else class="template-grid">
+                        <div v-for="i in 6" :key="'tmpl-skel-'+i" class="template-card skeleton-loading" style="min-height: 80px;">
+                            <div class="skeleton skeleton-circle" style="width: 32px; height: 32px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100px; opacity: 0.6;"></div>
+                        </div>
                     </div>
                 </div>
                 <!-- Selected Template Indicator -->
