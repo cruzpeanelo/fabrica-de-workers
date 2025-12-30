@@ -832,7 +832,197 @@ def generate_admin_portal_html(admin_level: str = "platform") -> str:
                     <iframe src="/api/monitoring/dashboard" style="width: 100%; height: calc(100vh - 120px); border: none;"></iframe>
                 </section>
 
-                <!-- Other sections would go here -->
+                <!-- Issue #296: Metrics Section -->
+                <section id="section-metrics" style="display: none;" class="config-section">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Metricas da Plataforma</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">0</div>
+                                    <div class="metric-label">Requisicoes/hora</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">0ms</div>
+                                    <div class="metric-label">Latencia Media</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">0%</div>
+                                    <div class="metric-label">Taxa de Erro</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">0%</div>
+                                    <div class="metric-label">CPU Uso</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Issue #296: Audit Section -->
+                <section id="section-audit" style="display: none;" class="config-section">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Logs de Auditoria</h3>
+                            <div class="header-actions">
+                                <select class="filter-select">
+                                    <option value="">Todos os tipos</option>
+                                    <option value="login">Login</option>
+                                    <option value="create">Criacao</option>
+                                    <option value="update">Atualizacao</option>
+                                    <option value="delete">Exclusao</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="panel-body" style="padding: 0;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Usuario</th>
+                                        <th>Acao</th>
+                                        <th>Recurso</th>
+                                        <th>IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; color: var(--text-secondary);">
+                                            Nenhum log encontrado
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Issue #296: Settings Section with Forms and Config Sections -->
+                <section id="section-settings" style="display: none;">
+                    <div class="tabs">
+                        <button class="tab active" onclick="showSettingsTab('general')">Geral</button>
+                        <button class="tab" onclick="showSettingsTab('branding')">Branding</button>
+                        <button class="tab" onclick="showSettingsTab('notifications')">Notificacoes</button>
+                        <button class="tab" onclick="showSettingsTab('integrations')">Integracoes</button>
+                    </div>
+
+                    <!-- General Settings -->
+                    <div id="settings-general" class="config-section" data-testid="config-section">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Configuracoes Gerais</h3>
+                            </div>
+                            <div class="panel-body">
+                                <form id="general-settings-form" class="settings-form" data-testid="settings-form">
+                                    <div class="form-group">
+                                        <label class="form-label">Nome da Plataforma</label>
+                                        <input type="text" class="form-input" name="platform_name" value="Fabrica de Agentes">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Email de Suporte</label>
+                                        <input type="email" class="form-input" name="support_email" placeholder="suporte@exemplo.com">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Timezone Padrao</label>
+                                        <select class="form-select" name="timezone">
+                                            <option value="America/Sao_Paulo">America/Sao_Paulo (BRT)</option>
+                                            <option value="UTC">UTC</option>
+                                            <option value="America/New_York">America/New_York (EST)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <input type="checkbox" name="maintenance_mode"> Modo de Manutencao
+                                        </label>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Salvar Configuracoes</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Branding Settings -->
+                    <div id="settings-branding" class="config-section" style="display: none;">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Branding</h3>
+                            </div>
+                            <div class="panel-body">
+                                <form id="branding-settings-form" class="settings-form">
+                                    <div class="form-group">
+                                        <label class="form-label">Logo URL</label>
+                                        <input type="url" class="form-input" name="logo_url" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Cor Primaria</label>
+                                        <input type="color" name="primary_color" value="#003B4A">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Cor Secundaria</label>
+                                        <input type="color" name="secondary_color" value="#FF6C00">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Salvar Branding</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div id="settings-notifications" class="config-section" style="display: none;">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Notificacoes</h3>
+                            </div>
+                            <div class="panel-body">
+                                <form id="notification-settings-form" class="settings-form">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <input type="checkbox" name="email_notifications" checked> Notificacoes por Email
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <input type="checkbox" name="slack_notifications"> Notificacoes no Slack
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Webhook URL</label>
+                                        <input type="url" class="form-input" name="webhook_url" placeholder="https://...">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Salvar Notificacoes</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Integration Settings -->
+                    <div id="settings-integrations" class="config-section" style="display: none;">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3 class="panel-title">Integracoes</h3>
+                            </div>
+                            <div class="panel-body">
+                                <form id="integration-settings-form" class="settings-form">
+                                    <div class="form-group">
+                                        <label class="form-label">GitHub Token</label>
+                                        <input type="password" class="form-input" name="github_token" placeholder="ghp_...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Jira URL</label>
+                                        <input type="url" class="form-input" name="jira_url" placeholder="https://your-org.atlassian.net">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Azure DevOps Organization</label>
+                                        <input type="text" class="form-input" name="azure_org" placeholder="your-organization">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Salvar Integracoes</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -947,6 +1137,26 @@ def generate_admin_portal_html(admin_level: str = "platform") -> str:
             } catch (error) {
                 console.error('Error loading tenants:', error);
             }
+        }
+
+        // Issue #296: Settings tabs navigation
+        function showSettingsTab(tabId) {
+            // Hide all settings tabs
+            document.querySelectorAll('[id^="settings-"]').forEach(tab => {
+                tab.style.display = 'none';
+            });
+
+            // Show selected tab
+            const tab = document.getElementById('settings-' + tabId);
+            if (tab) {
+                tab.style.display = 'block';
+            }
+
+            // Update tab buttons
+            document.querySelectorAll('#section-settings .tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
 
         // Refresh data
