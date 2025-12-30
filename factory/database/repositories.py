@@ -1099,24 +1099,30 @@ class ChatMessageRepository:
         return self.db.query(ChatMessage).filter(ChatMessage.message_id == message_id).first()
 
     def get_history(self, project_id: str = None, story_id: str = None,
-                    limit: int = 50) -> List[ChatMessage]:
-        """Lista historico de mensagens"""
+                    tenant_id: str = None, limit: int = 50) -> List[ChatMessage]:
+        """Lista historico de mensagens (Issue #152: filtra por tenant)"""
         query = self.db.query(ChatMessage)
+        if tenant_id:
+            query = query.filter(ChatMessage.tenant_id == tenant_id)
         if project_id:
             query = query.filter(ChatMessage.project_id == project_id)
         if story_id:
             query = query.filter(ChatMessage.story_id == story_id)
         return query.order_by(ChatMessage.created_at).limit(limit).all()
 
-    def get_recent(self, limit: int = 20) -> List[ChatMessage]:
-        """Lista mensagens recentes"""
-        return self.db.query(ChatMessage).order_by(
-            desc(ChatMessage.created_at)
-        ).limit(limit).all()
-
-    def clear_history(self, project_id: str = None, story_id: str = None) -> int:
-        """Limpa historico de mensagens"""
+    def get_recent(self, tenant_id: str = None, limit: int = 20) -> List[ChatMessage]:
+        """Lista mensagens recentes (Issue #152: filtra por tenant)"""
         query = self.db.query(ChatMessage)
+        if tenant_id:
+            query = query.filter(ChatMessage.tenant_id == tenant_id)
+        return query.order_by(desc(ChatMessage.created_at)).limit(limit).all()
+
+    def clear_history(self, project_id: str = None, story_id: str = None,
+                       tenant_id: str = None) -> int:
+        """Limpa historico de mensagens (Issue #152: filtra por tenant)"""
+        query = self.db.query(ChatMessage)
+        if tenant_id:
+            query = query.filter(ChatMessage.tenant_id == tenant_id)
         if project_id:
             query = query.filter(ChatMessage.project_id == project_id)
         if story_id:
