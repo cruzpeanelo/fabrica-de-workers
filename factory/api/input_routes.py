@@ -338,10 +338,88 @@ async def handle_whatsapp_message(
         raise HTTPException(status_code=500, detail=f"WhatsApp processing failed: {e}")
 
 
+# =============================================================================
+# TWILIO SIGNATURE VALIDATION - Issue #139
+# =============================================================================
+
+import os
+import hmac
+import hashlib
+import base64
+from urllib.parse import urlencode
+
+# Twilio Auth Token (from environment)
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_SIGNATURE_VALIDATION = os.getenv("TWILIO_SIGNATURE_VALIDATION", "true").lower() == "true"
+
+
+def _validate_twilio_signature(request: Request, form_data: dict) -> bool:
+    """
+    Issue #139: Valida assinatura X-Twilio-Signature do webhook.
+
+    A assinatura é calculada como:
+    1. Pegar a URL completa do request
+    2. Ordenar os parâmetros POST alfabeticamente
+    3. Concatenar URL + parâmetros
+    4. Calcular HMAC-SHA1 com auth token
+    5. Base64 encode
+
+    Args:
+        request: FastAPI Request object
+        form_data: Dados do formulário parseados
+
+    Returns:
+        True se assinatura válida, False caso contrário
+    """
+    # Em desenvolvimento, pode desabilitar validação
+    if not TWILIO_SIGNATURE_VALIDATION:
+        logger.warning("[WhatsApp] Signature validation disabled - development mode only!")
+        return True
+
+    if not TWILIO_AUTH_TOKEN:
+        logger.error("[WhatsApp] TWILIO_AUTH_TOKEN not configured - rejecting request")
+        return False
+
+    # Obter assinatura do header
+    signature = request.headers.get("X-Twilio-Signature", "")
+    if not signature:
+        logger.warning("[WhatsApp] Missing X-Twilio-Signature header")
+        return False
+
+    # Construir URL completa
+    # Em produção, pode precisar usar X-Forwarded-* headers se atrás de proxy
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    host = request.headers.get("X-Forwarded-Host", request.url.netloc)
+    url = f"{scheme}://{host}{request.url.path}"
+
+    # Ordenar parâmetros e concatenar
+    sorted_params = sorted(form_data.items())
+    data_string = url + "".join([f"{k}{v}" for k, v in sorted_params])
+
+    # Calcular HMAC-SHA1
+    computed_signature = base64.b64encode(
+        hmac.new(
+            TWILIO_AUTH_TOKEN.encode("utf-8"),
+            data_string.encode("utf-8"),
+            hashlib.sha1
+        ).digest()
+    ).decode("utf-8")
+
+    # Comparar de forma segura
+    is_valid = hmac.compare_digest(signature, computed_signature)
+
+    if not is_valid:
+        logger.warning(f"[WhatsApp] Invalid signature. Expected: {computed_signature[:20]}..., Got: {signature[:20]}...")
+
+    return is_valid
+
+
 @router.post("/webhooks/whatsapp")
 async def whatsapp_webhook(request: Request):
     """
     Twilio WhatsApp Webhook endpoint.
+
+    Issue #139: Now validates X-Twilio-Signature to prevent message injection.
 
     Configure this URL in your Twilio WhatsApp sandbox or
     WhatsApp Business API settings.
@@ -353,6 +431,17 @@ async def whatsapp_webhook(request: Request):
 
         # Parse Twilio form data
         form = await request.form()
+        form_dict = dict(form)
+
+        # Issue #139: Validate Twilio signature
+        if not _validate_twilio_signature(request, form_dict):
+            logger.warning(f"[WhatsApp] Rejected webhook - invalid signature from {request.client.host}")
+            return Response(
+                content='<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+                media_type="application/xml",
+                status_code=403
+            )
+
         from_number = form.get("From", "")
         message = form.get("Body", "")
         media_url = form.get("MediaUrl0")  # Optional voice/image
