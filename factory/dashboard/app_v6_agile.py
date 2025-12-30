@@ -11252,6 +11252,21 @@ HTML_TEMPLATE = """
                         operationSuccess: 'Operacao concluida com sucesso',
                         connectionError: 'Erro de conexao',
                         networkError: 'Erro de rede'
+                    },
+                    // Issue #233: Activity Feed
+                    activity: {
+                        title: 'Atividades Recentes',
+                        empty: 'Nenhuma atividade recente',
+                        loadMore: 'Carregar mais',
+                        all: 'Todas', stories: 'Stories', tasks: 'Tarefas', workers: 'Workers',
+                        actions: {
+                            created: 'criou', moved: 'moveu para', assigned: 'foi atribuido a',
+                            completed: 'completou', commented: 'comentou em', started: 'iniciou',
+                            finished: 'finalizou', merged: 'fez merge de'
+                        },
+                        timeAgo: {
+                            now: 'agora mesmo', minutes: 'min', hours: 'h', days: 'dias'
+                        }
                     }
                 },
                 en_US: {
