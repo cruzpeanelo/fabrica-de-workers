@@ -2439,15 +2439,27 @@ class Tenant(Base):
     email = Column(String(255), nullable=False)
     phone = Column(String(50), nullable=True)
 
+    # Dados adicionais para billing (Issue #317)
+    legal_name = Column(String(300), nullable=True)  # Razao social
+    document = Column(String(20), nullable=True)  # CNPJ/CPF
+    admin_email = Column(String(255), nullable=True)  # Email do admin principal
+    admin_name = Column(String(200), nullable=True)  # Nome do admin principal
+    stripe_customer_id = Column(String(100), nullable=True, unique=True, index=True)
+
     # Endereco (para faturamento)
     address = Column(JSON, default=dict)
 
     # Status e Plano
     status = Column(String(30), default=TenantStatus.TRIAL.value, index=True)
     plan = Column(String(30), default=TenantPlan.FREE.value)
+    is_active = Column(Boolean, default=True, index=True)  # Issue #317
 
     # Trial
+    trial_started_at = Column(DateTime, nullable=True)  # Issue #317
     trial_ends_at = Column(DateTime, nullable=True)
+
+    # Limites customizados para billing (Issue #317)
+    custom_limits = Column(JSON, default=dict)
 
     # Configuracoes
     timezone = Column(String(50), default="America/Sao_Paulo")
@@ -2502,6 +2514,9 @@ class Tenant(Base):
     jobs = relationship("Job", back_populates="tenant", cascade="all, delete-orphan")
     objectives = relationship("Objective", back_populates="tenant", cascade="all, delete-orphan")  # Issue #281
 
+    # Issue #317: Relacionamentos com billing sao definidos em billing/models.py
+    # usando ForeignKey para tenant_id sem back_populates para evitar imports circulares
+
     def soft_delete(self, deleted_by: str = "system"):
         """Marca o tenant como deletado (soft delete)"""
         self.is_deleted = True
@@ -2542,12 +2557,35 @@ class Tenant(Base):
             data["address"] = self.address
             data["primary_domain"] = self.primary_domain
             data["tenant_metadata"] = self.tenant_metadata
+            # Issue #317: billing fields
+            data["legal_name"] = self.legal_name
+            data["document"] = self.document
+            data["admin_email"] = self.admin_email
+            data["admin_name"] = self.admin_name
+            data["stripe_customer_id"] = self.stripe_customer_id
+            data["custom_limits"] = self.custom_limits or {}
+            data["trial_started_at"] = self.trial_started_at.isoformat() if self.trial_started_at else None
+            data["activated_at"] = self.activated_at.isoformat() if self.activated_at else None
 
         return data
 
-    def is_active(self) -> bool:
-        """Verifica se tenant esta ativo"""
+    def is_status_active(self) -> bool:
+        """Verifica se tenant esta ativo baseado no status"""
         return self.status in [TenantStatus.ACTIVE.value, TenantStatus.TRIAL.value] and not self.is_deleted
+
+    def is_trial_active(self) -> bool:
+        """Verifica se o trial ainda esta ativo (Issue #317)"""
+        if self.status != TenantStatus.TRIAL.value:
+            return False
+        if not self.trial_ends_at:
+            return False
+        return datetime.utcnow() < self.trial_ends_at
+
+    def get_effective_limit(self, limit_name: str, plan_limits: Dict) -> int:
+        """Retorna o limite efetivo - custom_limits tem precedencia (Issue #317)"""
+        if self.custom_limits and limit_name in self.custom_limits:
+            return self.custom_limits[limit_name]
+        return plan_limits.get(limit_name, 0)
 
     def has_feature(self, feature_name: str) -> bool:
         """Verifica se tenant tem feature habilitada"""

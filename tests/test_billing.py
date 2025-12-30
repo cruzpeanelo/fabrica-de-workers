@@ -17,14 +17,18 @@ from datetime import datetime, date, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# Importar modelos e servicos
+# Issue #317: Importar Base e modelos consolidados
+from factory.database.connection import Base
+
+# Importar modelos de billing (Tenant agora vem de database.models)
 from factory.billing.models import (
-    Base, Tenant, TenantStatus, Plan, PlanType, Subscription, SubscriptionStatus,
+    TenantStatus, Plan, PlanType, Subscription, SubscriptionStatus,
     Usage, UsageMetric, UsageEvent, UsageAggregate, UsageEventType,
-    Invoice, InvoiceItem, InvoiceStatus, PricingTier, BillingPeriod
+    Invoice, InvoiceItem, InvoiceStatus, PricingTier, BillingPeriod,
+    Tenant
 )
 from factory.billing.usage_service import UsageService
 from factory.billing.invoice_service import InvoiceService
@@ -36,9 +40,16 @@ from factory.billing.invoice_service import InvoiceService
 
 @pytest.fixture
 def engine():
-    """Cria engine SQLite em memoria para testes."""
+    """
+    Cria engine SQLite em memoria para testes.
+    Issue #317: Usa Base.metadata.create_all() com modelos consolidados.
+    """
     engine = create_engine("sqlite:///:memory:", echo=False)
+
+    # Issue #317: Criar todas as tabelas usando os modelos SQLAlchemy
+    # Agora que Tenant esta consolidado, nao ha mais duplicacao
     Base.metadata.create_all(engine)
+
     return engine
 
 
@@ -54,11 +65,13 @@ def session(engine):
 @pytest.fixture
 def sample_tenant(session):
     """Cria tenant de exemplo."""
+    # Issue #317: Tenant consolidado requer email (campo principal)
     tenant = Tenant(
         tenant_id="TEN-TEST123456",
         name="Empresa Teste",
         slug="empresa-teste",
-        admin_email="admin@teste.com",
+        email="admin@teste.com",  # Campo obrigatorio no Tenant consolidado
+        admin_email="admin@teste.com",  # Campo opcional de billing
         status=TenantStatus.ACTIVE.value,
         is_active=True
     )
@@ -70,12 +83,13 @@ def sample_tenant(session):
 @pytest.fixture
 def sample_plan(session):
     """Cria plano de exemplo."""
+    # Issue #317: Campos do Plan sao price_monthly e price_yearly (em centavos)
     plan = Plan(
         plan_id="PLN-PRO123456",
         name="Professional",
         plan_type=PlanType.PROFESSIONAL.value,
-        price_monthly_cents=9900,
-        price_yearly_cents=99900,
+        price_monthly=9900,  # Em centavos (R$ 99,00)
+        price_yearly=99900,  # Em centavos (R$ 999,00)
         limits={
             "max_users": 10,
             "max_projects": 25,

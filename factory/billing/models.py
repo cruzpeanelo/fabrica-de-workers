@@ -24,24 +24,22 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional, List, Dict, Any
 
-# Import Base do projeto
+# Import Base e Tenant consolidado do projeto (Issue #317)
 try:
     from ..database.connection import Base
+    from ..database.models import Tenant, TenantStatus as BaseTenantStatus
 except ImportError:
     from factory.database.connection import Base
+    from factory.database.models import Tenant, TenantStatus as BaseTenantStatus
 
 
 # =============================================================================
 # ENUMS
 # =============================================================================
 
-class TenantStatus(str, Enum):
-    """Status do Tenant"""
-    ACTIVE = "active"
-    TRIAL = "trial"
-    SUSPENDED = "suspended"
-    CANCELLED = "cancelled"
-    PENDING = "pending"
+# Issue #317: TenantStatus importado de database.models como BaseTenantStatus
+# Alias para compatibilidade retroativa
+TenantStatus = BaseTenantStatus
 
 
 class PlanType(str, Enum):
@@ -114,133 +112,16 @@ class BillingPeriod(str, Enum):
 
 
 # =============================================================================
-# TENANT - Organizacao/Empresa Cliente
+# TENANT - Issue #317: Consolidado em factory/database/models.py
 # =============================================================================
-
-class Tenant(Base):
-    """
-    Modelo para Tenant (Inquilino)
-    Representa uma organizacao/empresa cliente da plataforma SaaS.
-
-    Cada tenant tem:
-    - Dados isolados (projetos, usuarios, agentes)
-    - Plano de assinatura
-    - Limites de uso
-    - Configuracoes proprias
-
-    Exemplo de subdominio: empresa.fabricadeagentes.com
-    """
-    __tablename__ = "tenants"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(String(50), unique=True, nullable=False, index=True)
-
-    # Identificacao
-    name = Column(String(200), nullable=False)
-    slug = Column(String(100), unique=True, nullable=False, index=True)  # subdominio
-    legal_name = Column(String(300), nullable=True)  # Razao social
-    document = Column(String(20), nullable=True)  # CNPJ/CPF
-
-    # Status
-    status = Column(String(20), default=TenantStatus.PENDING.value, index=True)
-    is_active = Column(Boolean, default=True, index=True)
-
-    # Contato Principal
-    admin_email = Column(String(255), nullable=False, index=True)
-    admin_name = Column(String(200), nullable=True)
-    phone = Column(String(20), nullable=True)
-
-    # Endereco
-    address = Column(JSON, default=dict)  # {street, city, state, zip, country}
-
-    # Stripe
-    stripe_customer_id = Column(String(100), nullable=True, unique=True, index=True)
-
-    # Configuracoes do Tenant
-    config = Column(JSON, default=dict)
-    """
-    Exemplo de config:
-    {
-        "branding": {"logo_url": "...", "primary_color": "#003B4A"},
-        "features": ["custom_agents", "api_access"],
-        "notifications": {"email": true, "slack": false},
-        "security": {"mfa_required": false, "ip_whitelist": []}
-    }
-    """
-
-    # Limites customizados (override do plano)
-    custom_limits = Column(JSON, default=dict)
-    """
-    Exemplo:
-    {
-        "max_users": 50,  # Override do plano
-        "max_tokens": 500000  # Override do plano
-    }
-    """
-
-    # Metadados extras (nao usar 'metadata' - reservado pelo SQLAlchemy)
-    extra_data = Column(JSON, default=dict)
-
-    # Trial
-    trial_started_at = Column(DateTime, nullable=True)
-    trial_ends_at = Column(DateTime, nullable=True)
-
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    activated_at = Column(DateTime, nullable=True)
-    suspended_at = Column(DateTime, nullable=True)
-
-    # Relacionamentos
-    subscriptions = relationship("Subscription", back_populates="tenant", cascade="all, delete-orphan")
-    usages = relationship("Usage", back_populates="tenant", cascade="all, delete-orphan")
-    invoices = relationship("Invoice", back_populates="tenant", cascade="all, delete-orphan")
-    payment_methods = relationship("PaymentMethod", back_populates="tenant", cascade="all, delete-orphan")
-
-    # Indices compostos
-    __table_args__ = (
-        Index('ix_tenant_status_active', 'status', 'is_active'),
-    )
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "tenant_id": self.tenant_id,
-            "name": self.name,
-            "slug": self.slug,
-            "legal_name": self.legal_name,
-            "document": self.document,
-            "status": self.status,
-            "is_active": self.is_active,
-            "admin_email": self.admin_email,
-            "admin_name": self.admin_name,
-            "phone": self.phone,
-            "address": self.address or {},
-            "stripe_customer_id": self.stripe_customer_id,
-            "config": self.config or {},
-            "custom_limits": self.custom_limits or {},
-            "trial_started_at": self.trial_started_at.isoformat() if self.trial_started_at else None,
-            "trial_ends_at": self.trial_ends_at.isoformat() if self.trial_ends_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "activated_at": self.activated_at.isoformat() if self.activated_at else None,
-        }
-
-    def is_trial_active(self) -> bool:
-        """Verifica se o trial ainda esta ativo"""
-        if self.status != TenantStatus.TRIAL.value:
-            return False
-        if not self.trial_ends_at:
-            return False
-        return datetime.utcnow() < self.trial_ends_at
-
-    def get_effective_limit(self, limit_name: str, plan_limits: Dict) -> int:
-        """Retorna o limite efetivo (custom_limits tem precedencia)"""
-        if self.custom_limits and limit_name in self.custom_limits:
-            return self.custom_limits[limit_name]
-        return plan_limits.get(limit_name, 0)
-
-    def __repr__(self):
-        return f"<Tenant {self.tenant_id}: {self.name} [{self.status}]>"
+# O modelo Tenant agora é importado de factory.database.models para evitar
+# duplicação de tabelas e conflitos de MetaData no SQLAlchemy.
+#
+# Campos de billing adicionados ao Tenant principal:
+# - legal_name, document, admin_email, admin_name, stripe_customer_id
+# - trial_started_at, custom_limits
+# - Relacionamentos: subscriptions, usages, invoices, payment_methods
+# =============================================================================
 
 
 # =============================================================================
@@ -375,7 +256,7 @@ class Subscription(Base):
 
     # Relacionamentos
     tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    tenant = relationship("Tenant", back_populates="subscriptions")
+    tenant = relationship("Tenant")  # Issue #317: sem back_populates para evitar imports circulares
 
     plan_id = Column(String(50), ForeignKey("plans.plan_id"), nullable=False, index=True)
     plan = relationship("Plan", back_populates="subscriptions")
@@ -494,7 +375,7 @@ class Usage(Base):
 
     # Relacionamento
     tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    tenant = relationship("Tenant", back_populates="usages")
+    tenant = relationship("Tenant")  # Issue #317: sem back_populates para evitar imports circulares
 
     # Periodo (YYYY-MM-DD ou YYYY-MM para agregacao mensal)
     period = Column(Date, nullable=False, index=True)
@@ -577,7 +458,7 @@ class Invoice(Base):
 
     # Relacionamento
     tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    tenant = relationship("Tenant", back_populates="invoices")
+    tenant = relationship("Tenant")  # Issue #317: sem back_populates para evitar imports circulares
 
     subscription_id = Column(String(50), ForeignKey("subscriptions.subscription_id"), nullable=True)
 
@@ -694,6 +575,71 @@ class Invoice(Base):
 
 
 # =============================================================================
+# INVOICE_ITEM - Itens de Fatura (Issue #317)
+# =============================================================================
+
+class InvoiceItem(Base):
+    """
+    Modelo para Itens de Fatura - Issue #317
+    Representa itens individuais dentro de uma fatura.
+    """
+    __tablename__ = "invoice_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Relacionamento com Invoice
+    invoice_id = Column(String(50), ForeignKey("invoices.invoice_id"), nullable=False, index=True)
+    invoice = relationship("Invoice", backref="items")
+
+    # Descricao do item
+    description = Column(String(500), nullable=False)
+    item_type = Column(String(50), default="usage")  # usage, subscription, discount, tax
+
+    # Valores
+    quantity = Column(Integer, default=1)
+    unit_price_cents = Column(Integer, default=0)  # Preco unitario em centavos
+    amount_cents = Column(Integer, default=0)  # Total do item em centavos
+    discount_cents = Column(Integer, default=0)
+
+    # Metadados extras
+    metadata_json = Column(JSON, default=dict)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Indices
+    __table_args__ = (
+        Index('ix_invoice_item_invoice', 'invoice_id'),
+    )
+
+    def __init__(self, **kwargs):
+        # Suporte para 'metadata' como alias
+        if 'metadata' in kwargs:
+            kwargs['metadata_json'] = kwargs.pop('metadata')
+        super().__init__(**kwargs)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "item_id": self.item_id,
+            "invoice_id": self.invoice_id,
+            "description": self.description,
+            "item_type": self.item_type,
+            "quantity": self.quantity,
+            "unit_price_cents": self.unit_price_cents,
+            "unit_price_formatted": f"R$ {self.unit_price_cents / 100:.2f}",
+            "amount_cents": self.amount_cents,
+            "amount_formatted": f"R$ {self.amount_cents / 100:.2f}",
+            "discount_cents": self.discount_cents,
+            "metadata": self.metadata_json or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    def __repr__(self):
+        return f"<InvoiceItem {self.item_id}: {self.description} R${self.amount_cents/100:.2f}>"
+
+
+# =============================================================================
 # PAYMENT_METHOD - Metodos de Pagamento
 # =============================================================================
 
@@ -709,7 +655,7 @@ class PaymentMethod(Base):
 
     # Relacionamento
     tenant_id = Column(String(50), ForeignKey("tenants.tenant_id"), nullable=False, index=True)
-    tenant = relationship("Tenant", back_populates="payment_methods")
+    tenant = relationship("Tenant")  # Issue #317: sem back_populates para evitar imports circulares
 
     # Stripe
     stripe_payment_method_id = Column(String(100), nullable=True, unique=True)
