@@ -81,6 +81,9 @@ class AutonomousLoop:
         self._project_path: Optional[Path] = None
         self._sandbox_executor = None
         self._resource_limiter = None
+        self._claude_client = None  # Inicializado em run()
+        self._model = None
+        self._on_step_update = None
         self._init_sandbox()
 
     def _init_sandbox(self):
@@ -534,9 +537,21 @@ class AutonomousLoop:
             self._create_project_structure(structure)
 
             # Gerar arquivos base dependendo do tech_stack
-            if "fastapi" in str(tech_stack).lower() or "python" in str(tech_stack).lower():
+            # Verifica tanto o dict quanto a estrutura do projeto
+            tech_stack_str = str(tech_stack).lower()
+            structure_type = structure.get("type", "").lower() if isinstance(structure, dict) else ""
+            backend = tech_stack.get("backend", "").lower() if isinstance(tech_stack, dict) else ""
+
+            is_python = ("fastapi" in tech_stack_str or "python" in tech_stack_str or
+                         "flask" in tech_stack_str or "django" in tech_stack_str or
+                         structure_type == "python")
+            is_node = ("react" in tech_stack_str or "node" in tech_stack_str or
+                       "express" in tech_stack_str or "express" in backend or
+                       structure_type == "node")
+
+            if is_python:
                 self._generate_python_project(requirements)
-            elif "react" in str(tech_stack).lower() or "node" in str(tech_stack).lower():
+            elif is_node:
                 self._generate_node_project(requirements)
             else:
                 self._generate_generic_project(requirements)
@@ -868,7 +883,8 @@ class AutonomousLoop:
         """Determina estrutura de pastas baseado no tech stack"""
         tech_stack_lower = str(tech_stack).lower() if tech_stack else ""
 
-        if "fastapi" in tech_stack_lower or "python" in tech_stack_lower:
+        if "fastapi" in tech_stack_lower or "python" in tech_stack_lower or \
+           "flask" in tech_stack_lower or "django" in tech_stack_lower:
             return {
                 "type": "python",
                 "folders": ["app", "app/api", "app/models", "app/services", "tests"],
@@ -879,6 +895,12 @@ class AutonomousLoop:
                 "type": "react",
                 "folders": ["src", "src/components", "src/pages", "public", "tests"],
                 "files": ["package.json", "README.md", "tsconfig.json"]
+            }
+        elif "node" in tech_stack_lower or "express" in tech_stack_lower:
+            return {
+                "type": "node",
+                "folders": ["routes", "middleware", "tests"],
+                "files": ["package.json", "index.js", "README.md"]
             }
         else:
             return {

@@ -8,6 +8,7 @@ import asyncio
 import os
 import socket
 import time
+import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any
 from pathlib import Path
@@ -39,8 +40,8 @@ class ClaudeWorker:
         model: str = None,
         mcp_tools: list = None
     ):
-        # ID do worker
-        self.worker_id = worker_id or f"worker-{socket.gethostname()}-{os.getpid()}"
+        # ID do worker (inclui UUID para garantir unicidade)
+        self.worker_id = worker_id or f"worker-{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         self.model = model or CLAUDE_MODEL
         self.mcp_tools = mcp_tools or ["filesystem", "bash"]
 

@@ -146,7 +146,8 @@ class DetailedStory:
 def generate_story_id() -> str:
     """Gera ID unico para story"""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    unique = str(uuid.uuid4())[:4].upper()
+    # Issue #355: Aumentar para 8 caracteres para evitar colisoes sob carga
+    unique = uuid.uuid4().hex[:8].upper()
     return f"US-{timestamp}-{unique}"
 
 

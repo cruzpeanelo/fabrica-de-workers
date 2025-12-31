@@ -279,17 +279,19 @@ class TestWorkerInitialization:
         """Testa inicializacao quando Redis nao esta disponivel"""
         worker = ClaudeWorker(worker_id="test-worker")
 
-        # Mock get_queue para usar SQLite
-        with patch('factory.core.worker.get_queue') as mock_get_queue:
-            mock_queue = AsyncMock()
-            mock_queue.register_worker = AsyncMock(return_value={
-                "worker_id": "test-worker",
-                "status": "idle"
-            })
-            mock_get_queue.return_value = mock_queue
+        # Mock get_queue (importado dentro do metodo de job_queue)
+        mock_queue = AsyncMock()
+        mock_queue.register_worker = AsyncMock(return_value={
+            "worker_id": "test-worker",
+            "status": "idle"
+        })
 
-            # Mock cliente Anthropic
-            with patch('factory.core.worker.Anthropic') as mock_anthropic:
+        async def mock_get_queue():
+            return mock_queue
+
+        # Mock cliente Anthropic (importado de anthropic)
+        with patch('factory.core.job_queue.get_queue', mock_get_queue):
+            with patch('anthropic.Anthropic') as mock_anthropic:
                 mock_anthropic.return_value = MagicMock()
 
                 await worker.initialize()
@@ -743,7 +745,7 @@ class TestErrorHandling:
         }
 
         # Mock do AutonomousLoop para falhar
-        with patch('factory.core.worker.AutonomousLoop') as MockLoop:
+        with patch('factory.core.autonomous_loop.AutonomousLoop') as MockLoop:
             mock_loop_instance = AsyncMock()
             mock_loop_instance.run = AsyncMock(return_value={
                 "success": False,
@@ -800,7 +802,7 @@ class TestErrorHandling:
         assert parsed == {}
 
     @pytest.mark.asyncio
-    async def test_recovery_after_step_failure(self, temp_project_dir, mock_claude_client):
+    async def test_recovery_after_step_failure(self, temp_project_dir):
         """Testa recovery apos falha em um step"""
         config = LoopConfig(
             max_attempts=3,
@@ -813,7 +815,7 @@ class TestErrorHandling:
         )
 
         loop = AutonomousLoop(config)
-        loop._claude_client = mock_claude_client
+        # Nao definir _claude_client para usar _step_generate
         loop._model = "claude-sonnet-4-20250514"
 
         # Contador para simular falha na primeira tentativa
@@ -1094,7 +1096,7 @@ class TestIntegration:
         }
 
         # Mock do AutonomousLoop
-        with patch('factory.core.worker.AutonomousLoop') as MockLoop:
+        with patch('factory.core.autonomous_loop.AutonomousLoop') as MockLoop:
             mock_loop = MagicMock()
 
             async def mock_run(**kwargs):
@@ -1188,7 +1190,7 @@ class TestWorkerFailureRecovery:
             "tech_stack": "python"
         }
 
-        with patch('factory.core.worker.AutonomousLoop') as MockLoop:
+        with patch('factory.core.autonomous_loop.AutonomousLoop') as MockLoop:
             MockLoop.return_value.run = AsyncMock(
                 side_effect=Exception("Simulated crash")
             )
