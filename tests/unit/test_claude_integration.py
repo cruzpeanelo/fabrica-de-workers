@@ -168,30 +168,44 @@ class TestAgentBrain:
 
     @pytest.mark.unit
     def test_think_unavailable(self):
-        """Test thinking when Claude is unavailable"""
+        """Test thinking when Claude is unavailable - Issue #210"""
         brain = AgentBrain(
             agent_id="AG-001",
             agent_role="Developer",
             agent_capabilities=["python"]
         )
-        brain.claude = ClaudeClient(api_key=None)
+
+        # Issue #210: Mock ClaudeClient.is_available() para retornar False
+        mock_claude = Mock()
+        mock_claude.is_available.return_value = False
+        brain.claude = mock_claude
 
         response = brain.think("How to solve this?")
 
         assert response.success is False
+        assert "nao disponivel" in response.error.lower()
 
     @pytest.mark.unit
     def test_decide_unavailable(self):
-        """Test decision making when unavailable"""
+        """Test decision making when unavailable - Issue #210"""
         brain = AgentBrain(
             agent_id="AG-001",
             agent_role="Developer",
             agent_capabilities=[]
         )
-        brain.claude = ClaudeClient(api_key=None)
+
+        # Issue #210: Mock ClaudeClient.chat() para simular falha
+        mock_claude = Mock()
+        mock_claude.chat.return_value = ClaudeResponse(
+            success=False,
+            content="",
+            error="API unavailable"
+        )
+        brain.claude = mock_claude
 
         response = brain.decide(["Option A", "Option B"])
 
+        # O decide usa o retorno do chat diretamente
         assert response.success is False
 
     @pytest.mark.unit
