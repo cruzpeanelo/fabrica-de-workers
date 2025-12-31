@@ -250,12 +250,25 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         role = user.get("role", "VIEWER")
         tenant_id = get_tenant_id()
 
+        # Issue #353: Fallback to user's tenant_id if global context not set
+        if not tenant_id:
+            tenant_id = user.get("tenant_id")
+            if tenant_id:
+                logger.debug(f"[Issue #353] Using tenant_id from user context: {tenant_id}")
+
         context = {
             "tenant_id": tenant_id,
             "user_id": user.get("user_id"),
             "path": path,
             "method": method
         }
+
+        # Issue #353 DEBUG: Log context for admin roles
+        if role.upper() in ["ADMIN", "SUPER_ADMIN", "PLATFORM_ADMIN"]:
+            logger.info(
+                f"[Issue #353 DEBUG] Authorization check: role={role} "
+                f"resource={resource} action={action} tenant_id={tenant_id}"
+            )
 
         # Check permission
         has_permission = check_access(role, resource, action, context)

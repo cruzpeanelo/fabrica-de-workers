@@ -491,12 +491,21 @@ class PermissionChecker:
         Returns:
             True se tem permissao
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         persona = self.registry.get_persona(persona_type)
         if not persona:
+            logger.warning(f"[Issue #353 DEBUG] Persona not found: {persona_type}")
             return False
 
         # Verificar permissao basica
-        if not persona.has_permission(resource, action):
+        has_perm = persona.has_permission(resource, action)
+        if not has_perm:
+            logger.warning(
+                f"[Issue #353 DEBUG] No permission: {persona_type.value} "
+                f"resource={resource} action={action} perms={list(persona.get_all_permissions())[:5]}..."
+            )
             return False
 
         # Verificar restricoes de escopo
@@ -505,12 +514,20 @@ class PermissionChecker:
 
             if scope == "tenant":
                 # Deve ter tenant_id no contexto
-                if not context.get("tenant_id"):
+                tenant_id = context.get("tenant_id")
+                if not tenant_id:
+                    logger.warning(
+                        f"[Issue #353 DEBUG] Scope check FAILED: scope=tenant but tenant_id is None/empty. "
+                        f"persona={persona_type.value} context={context}"
+                    )
                     return False
 
             elif scope == "project":
                 # Deve ter project_id no contexto
                 if not context.get("project_id"):
+                    logger.warning(
+                        f"[Issue #353 DEBUG] Scope check FAILED: scope=project but project_id is None"
+                    )
                     return False
 
         return True
@@ -667,10 +684,23 @@ def check_access(
     Returns:
         True se tem acesso
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
         ptype = PersonaType(persona_type.lower())
-        return permission_checker.check_permission(ptype, resource, action, context)
-    except ValueError:
+        result = permission_checker.check_permission(ptype, resource, action, context)
+
+        # Issue #353 DEBUG: Log permission checks for admin roles
+        if persona_type.upper() in ["ADMIN", "SUPER_ADMIN", "PLATFORM_ADMIN"]:
+            logger.info(
+                f"[Issue #353 DEBUG] check_access: role={persona_type} "
+                f"resource={resource} action={action} context={context} result={result}"
+            )
+
+        return result
+    except ValueError as e:
+        logger.warning(f"[Issue #353 DEBUG] Invalid persona_type: {persona_type} - {e}")
         return False
 
 
