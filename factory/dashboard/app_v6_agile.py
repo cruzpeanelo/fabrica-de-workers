@@ -340,6 +340,14 @@ try:
 except ImportError as e:
     print(f"[Security] Mobile Auth routes not available: {e}")
 
+# Security Routes (Issues #57, #359) - SAST + Event Notifications
+try:
+    from factory.api.security_routes import router as security_router
+    app.include_router(security_router)
+    print("[Security] Security routes loaded: /api/security/*, /api/projects/*/security-scan")
+except ImportError as e:
+    print(f"[Security] Security routes not available: {e}")
+
 # Webhook Routes (#139) - T0-FIX
 try:
     from factory.api.webhook_routes import router as webhook_router
@@ -653,6 +661,14 @@ try:
     print("[Dashboard] Auth routes loaded: /api/v1/auth/login")
 except ImportError as e:
     print(f"[Dashboard] Auth routes not available: {e}")
+
+# OAuth 2.0 Routes (#137) - T0-FIX
+try:
+    from factory.api.v1.oauth import router as oauth_router
+    app.include_router(oauth_router, prefix="/api/oauth")
+    print("[API] OAuth 2.0 routes loaded: /api/oauth/*")
+except ImportError as e:
+    print(f"[API] OAuth 2.0 routes not available: {e}")
 
 # MFA Routes (Issue #403 - Two-Factor Authentication)
 try:
