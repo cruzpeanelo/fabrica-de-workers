@@ -63,6 +63,55 @@ from .encryption import (
 )
 from .encryption_routes import router as encryption_router
 
+# Brute Force Protection (Issue #402)
+from .brute_force import (
+    BruteForceProtection,
+    record_login_attempt,
+    check_brute_force,
+    is_blocked,
+    unlock_account,
+    whitelist_ip,
+)
+
+# CORS Multi-tenant (Issue #399)
+from .cors_config import (
+    CORSService,
+    CORSConfig,
+    get_cors_config,
+    set_cors_config,
+    add_allowed_origin,
+    is_origin_allowed,
+    get_cors_headers,
+)
+
+# CSRF Protection (Issue #411)
+from .csrf import (
+    CSRFService,
+    generate_csrf_token,
+    validate_csrf_token,
+    get_csrf_cookie_options,
+    CSRF_HEADER_NAME,
+    CSRF_COOKIE_NAME,
+)
+
+# Rate Limiting (Issue #393)
+from .rate_limiter import (
+    RateLimiter,
+    RateLimitRule,
+    RateLimitScope,
+    RateLimitResult,
+    check_rate_limit,
+    get_rate_limiter,
+)
+
+# Security Headers (Issue #396)
+from .security_headers import (
+    SecurityHeadersConfig,
+    CSPConfig,
+    build_security_headers,
+    get_security_headers_config,
+)
+
 __all__ = [
     "VaultClient",
     "TenantIsolation",
@@ -101,4 +150,38 @@ __all__ = [
     "initialize_encryption",
     "is_encryption_available",
     "encryption_router",
+    # Brute Force Protection (Issue #402)
+    "BruteForceProtection",
+    "record_login_attempt",
+    "check_brute_force",
+    "is_blocked",
+    "unlock_account",
+    "whitelist_ip",
+    # CORS Multi-tenant (Issue #399)
+    "CORSService",
+    "CORSConfig",
+    "get_cors_config",
+    "set_cors_config",
+    "add_allowed_origin",
+    "is_origin_allowed",
+    "get_cors_headers",
+    # CSRF Protection (Issue #411)
+    "CSRFService",
+    "generate_csrf_token",
+    "validate_csrf_token",
+    "get_csrf_cookie_options",
+    "CSRF_HEADER_NAME",
+    "CSRF_COOKIE_NAME",
+    # Rate Limiting (Issue #393)
+    "RateLimiter",
+    "RateLimitRule",
+    "RateLimitScope",
+    "RateLimitResult",
+    "check_rate_limit",
+    "get_rate_limiter",
+    # Security Headers (Issue #396)
+    "SecurityHeadersConfig",
+    "CSPConfig",
+    "build_security_headers",
+    "get_security_headers_config",
 ]
