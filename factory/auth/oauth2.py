@@ -1145,9 +1145,41 @@ async def authorize(
             }
         )
 
-    # In development, auto-approve with simulated user
-    # In production, redirect to login/consent page
-    user_id = "admin"  # Simulated authenticated user
+    # Issue #137 FIX: Remove hardcoded admin user
+    # In development mode only, allow simulated user with explicit env check
+    import os
+    environment = os.getenv("ENVIRONMENT", "development")
+
+    if environment.lower() in ("production", "prod", "staging"):
+        # In production: redirect to login page with auth request
+        from urllib.parse import urlencode
+        login_params = urlencode({
+            "oauth_request": "pending",
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "scope": scope,
+            "state": state or "",
+            "response_type": response_type
+        })
+        return RedirectResponse(url=f"/login?{login_params}")
+
+    # Development only: require explicit DEV_OAUTH_AUTO_APPROVE=true
+    if os.getenv("DEV_OAUTH_AUTO_APPROVE", "false").lower() != "true":
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "login_required",
+                "error_description": "User authentication required. Set DEV_OAUTH_AUTO_APPROVE=true for development auto-approve."
+            }
+        )
+
+    # Development with explicit auto-approve enabled
+    user_id = os.getenv("DEV_OAUTH_USER", "dev_user")  # Not "admin" by default
+    import logging
+    logging.getLogger(__name__).warning(
+        f"[OAuth] DEV MODE: Auto-approving OAuth request as user '{user_id}'. "
+        "This should NEVER happen in production!"
+    )
 
     code = service.generate_authorization_code(
         client_id=client_id,
