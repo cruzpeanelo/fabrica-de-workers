@@ -26,7 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from sqlalchemy import text
-from factory.database.connection import get_engine, get_session
+from factory.database.connection import engine, SessionLocal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 def upgrade():
     """Adiciona campos de integracao externa"""
-    engine = get_engine()
+    # Usa engine importado do connection module
 
     # Campos a adicionar
     new_columns = [

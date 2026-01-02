@@ -141,6 +141,25 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def get_session() -> Session:
+    """
+    Get a new database session (backward compatibility).
+
+    Returns a new Session instance. Caller is responsible for closing it.
+    For FastAPI dependencies, use get_db() instead.
+    """
+    return SessionLocal()
+
+
+def get_engine():
+    """
+    Get the sync database engine (backward compatibility).
+
+    Returns the SQLAlchemy sync engine for direct operations.
+    """
+    return sync_engine
+
+
 # Issue #182: Context manager síncrono com transaction boundaries
 from contextlib import contextmanager
 
