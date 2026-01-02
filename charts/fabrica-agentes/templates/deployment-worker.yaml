@@ -1,0 +1,93 @@
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fabrica-agentes.fullname" . }}-worker
+  labels:
+    {{- include "fabrica-agentes.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fabrica-agentes.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+      labels:
+        {{- include "fabrica-agentes.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fabrica-agentes.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
+      containers:
+        - name: worker
+          securityContext:
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          command: ["python", "-m", "factory.core.worker_pool"]
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          env:
+            - name: DATABASE_URL
+              value: {{ include "fabrica-agentes.databaseUrl" . }}
+            - name: REDIS_URL
+              value: {{ include "fabrica-agentes.redisUrl" . }}
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: database-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: redis-password
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fabrica-agentes.fullname" . }}-secrets
+                  key: anthropic-api-key
+            {{- range .Values.worker.env }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "fabrica-agentes.fullname" . }}-config
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /app/projects
+              subPath: projects
+            {{- end }}
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "fabrica-agentes.fullname" . }}-data
+        {{- end }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -10,11 +10,9 @@
 #   docker-compose --profile observability up -d
 #
 # Acessos:
-#   - Prometheus: http://localhost:9090
+#   - Prometheus: http://localhost:9092
 #   - Grafana:    http://localhost:3000 (admin/admin)
 # =============================================================================
-
-version: '3.8'
 
 services:
   # ===========================================================================
