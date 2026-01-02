@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional, Dict, List
 import logging
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -499,7 +499,7 @@ async def require_role(required_role: str):
 # AUTH ROUTES (para incluir no app)
 # =============================================================================
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -631,6 +631,54 @@ async def refresh_token(user: TokenData = Depends(get_current_user)):
         access_token=new_token,
         token_type="bearer",
         expires_at=expires_at.isoformat()
+    )
+
+
+# =============================================================================
+# LOGOUT - Issue #358 JWT Blacklist
+# =============================================================================
+
+class LogoutResponse(BaseModel):
+    """Resposta de logout"""
+    message: str
+    token_revoked: bool = True
+
+
+@auth_router.post("/logout", response_model=LogoutResponse)
+async def logout(
+    request: Request,
+    user: TokenData = Depends(get_current_user)
+):
+    """
+    Logout - revoga o token JWT atual.
+
+    Issue #358: Implementa logout com blacklist de token.
+    """
+    try:
+        # Extrair token do header
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+
+            # Revogar token usando blacklist
+            from factory.auth.token_blacklist import revoke_token
+            revoke_token(token, user.username, reason="logout")
+
+            logger.info(f"[Auth] Logout: user={user.username} token revoked")
+
+            return LogoutResponse(
+                message="Logout successful. Token has been revoked.",
+                token_revoked=True
+            )
+    except ImportError:
+        logger.warning("[Auth] token_blacklist module not available")
+    except Exception as e:
+        logger.error(f"[Auth] Logout error: {e}")
+
+    # Even if blacklist fails, return success (token will expire naturally)
+    return LogoutResponse(
+        message="Logout successful.",
+        token_revoked=False
     )
 
 
