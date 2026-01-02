@@ -261,6 +261,50 @@ try:
 except ImportError as e:
     print(f"[Dashboard] WebSocket Collaboration router not available: {e}")
 
+# =============================================================================
+# SECURITY ROUTES (Issue #414)
+# =============================================================================
+
+# Session Management Routes (#409)
+try:
+    from factory.api.session_routes import router as session_router
+    app.include_router(session_router)
+    print("[Security] Session Management routes loaded")
+except ImportError as e:
+    print(f"[Security] Session Management routes not available: {e}")
+
+# CSRF Protection Routes (#411)
+try:
+    from factory.api.csrf_routes import router as csrf_router
+    app.include_router(csrf_router)
+    print("[Security] CSRF Protection routes loaded")
+except ImportError as e:
+    print(f"[Security] CSRF Protection routes not available: {e}")
+
+# Brute Force Protection Routes (#402)
+try:
+    from factory.api.brute_force_routes import router as brute_force_router
+    app.include_router(brute_force_router)
+    print("[Security] Brute Force Protection routes loaded")
+except ImportError as e:
+    print(f"[Security] Brute Force Protection routes not available: {e}")
+
+# CORS Management Routes (#399)
+try:
+    from factory.api.cors_routes import router as cors_router
+    app.include_router(cors_router)
+    print("[Security] CORS Management routes loaded")
+except ImportError as e:
+    print(f"[Security] CORS Management routes not available: {e}")
+
+# Rate Limit Management Routes (#393)
+try:
+    from factory.api.rate_limit_routes import router as rate_limit_router
+    app.include_router(rate_limit_router)
+    print("[Security] Rate Limit Management routes loaded")
+except ImportError as e:
+    print(f"[Security] Rate Limit Management routes not available: {e}")
+
 # Worker Monitoring Dashboard (Issue #88)
 try:
     from factory.dashboard.worker_monitoring import register_monitoring_endpoints
