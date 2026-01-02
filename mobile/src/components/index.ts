@@ -1,6 +1,6 @@
 /**
  * Components Index - Exporta todos os componentes reutilizaveis
- * Issue #423, #426, #427, #428 - Mobile Components
+ * Issue #423, #426, #427, #428, #429 - Mobile Components
  */
 
 // Cards
@@ -67,3 +67,19 @@ export {
 
 // Interactive Components (Issue #428)
 export { Swipeable, SwipeableListItem, SwipeToDelete } from './Swipeable';
+
+// Date & Time Components (Issue #429)
+export { DatePicker, TimePicker, DateTimePicker, DateRangePicker } from './DatePicker';
+
+// Media Components (Issue #429)
+export { ImagePicker, ImageViewer, AvatarPicker } from './ImagePicker';
+export { Carousel, BannerCarousel, CardCarousel } from './Carousel';
+
+// Scroll Components (Issue #429)
+export {
+  PullToRefresh,
+  InfiniteScroll,
+  LoadMoreButton,
+  ScrollToTop,
+  Pagination,
+} from './ScrollComponents';
