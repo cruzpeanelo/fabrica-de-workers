@@ -2724,6 +2724,7 @@ class Tenant(Base):
     # Relacionamentos com cascade delete (Issue #82)
     settings = relationship("TenantSettings", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     branding = relationship("BrandingConfig", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
+    config = relationship("TenantConfig", back_populates="tenant", uselist=False, cascade="all, delete-orphan")
     members = relationship("TenantMember", back_populates="tenant", cascade="all, delete-orphan")
     invites = relationship("TenantInvite", back_populates="tenant", cascade="all, delete-orphan")
     usage_logs = relationship("TenantUsageLog", back_populates="tenant", cascade="all, delete-orphan")
@@ -3207,6 +3208,56 @@ class TenantInvite(Base):
 
     def __repr__(self):
         return f"<TenantInvite {self.invite_id}: {self.email} [{self.status}]>"
+
+
+class TenantConfig(Base):
+    """
+    Configuracoes Gerais do Tenant (Issue #387)
+
+    Features habilitadas, idioma padrao, modo de usuario, etc.
+    """
+    __tablename__ = "tenant_config"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamento
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    tenant = relationship("Tenant", back_populates="config")
+
+    # Features
+    features_enabled = Column(JSON, default=lambda: ["stories", "kanban", "chat"])
+
+    # Defaults
+    default_language = Column(String(10), default="pt-BR")
+    default_user_mode = Column(String(20), default="basic")  # basic, advanced
+    show_onboarding = Column(Boolean, default=True)
+
+    # Limits (override TenantSettings if specified)
+    max_users = Column(Integer, nullable=True)
+    max_projects = Column(Integer, nullable=True)
+    max_storage_gb = Column(Integer, nullable=True)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "tenant_id": self.tenant_id,
+            "features_enabled": self.features_enabled,
+            "default_language": self.default_language,
+            "default_user_mode": self.default_user_mode,
+            "show_onboarding": self.show_onboarding,
+            "max_users": self.max_users,
+            "max_projects": self.max_projects,
+            "max_storage_gb": self.max_storage_gb,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def __repr__(self):
+        return f"<TenantConfig {self.tenant_id}>"
 
 
 class TenantUsageLog(Base):
