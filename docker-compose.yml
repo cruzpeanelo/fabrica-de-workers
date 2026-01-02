@@ -10,8 +10,6 @@
 #
 # Issue #123 - Setup Local Completo com Docker Compose
 
-version: '3.8'
-
 services:
   # =============================================================================
   # APP - Fabrica de Agentes Application
