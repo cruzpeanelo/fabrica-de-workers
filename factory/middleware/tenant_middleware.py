@@ -370,7 +370,7 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
 
     async def _extract_auth(self, request: Request) -> Optional[tuple]:
         """
-        Extract tenant and user from JWT or headers.
+        Extract tenant and user from JWT, headers, or subdomain.
 
         Returns:
             Tuple (tenant_data, user_data) or None
@@ -386,6 +386,70 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         if tenant_id:
             tenant_data = await self._resolve_tenant(tenant_id)
             return (tenant_data, None) if tenant_data else None
+
+        # Issue #368 T0-FIX: Mobile apps can send subdomain in header
+        tenant_subdomain = request.headers.get("X-Tenant-Subdomain")
+        if tenant_subdomain:
+            logger.debug(f"[Issue #368] Mobile tenant header: {tenant_subdomain}")
+            tenant_data = await self._resolve_tenant_by_subdomain(tenant_subdomain)
+            if tenant_data:
+                return (tenant_data, None)
+
+        # Issue #413 T0-FIX: Extract from subdomain (e.g., tenant1.app.com)
+        host = request.headers.get("Host", "")
+        if host:
+            subdomain = self._extract_subdomain(host)
+            if subdomain:
+                logger.debug(f"[Issue #413] Extracted subdomain: {subdomain} from host: {host}")
+                tenant_data = await self._resolve_tenant_by_subdomain(subdomain)
+                if tenant_data:
+                    return (tenant_data, None)
+
+        return None
+
+    def _extract_subdomain(self, host: str) -> Optional[str]:
+        """Extract subdomain from host header. Issue #413 fix."""
+        # Remove port if present
+        if ":" in host:
+            host = host.split(":")[0]
+
+        # Skip localhost and IP addresses
+        if host in ("localhost", "127.0.0.1") or host.startswith("192.168.") or host.startswith("10."):
+            return None
+
+        # Extract subdomain (first part before main domain)
+        parts = host.split(".")
+        # Need at least 3 parts for subdomain (e.g., tenant.example.com)
+        if len(parts) >= 3:
+            subdomain = parts[0]
+            # Skip common non-tenant subdomains
+            if subdomain not in ("www", "api", "app", "admin", "mail", "ftp"):
+                return subdomain
+
+        return None
+
+    async def _resolve_tenant_by_subdomain(self, subdomain: str) -> Optional[Dict]:
+        """Resolve tenant by subdomain. Issue #413 fix."""
+        try:
+            from factory.database.connection import SessionLocal
+            from factory.database.tenant_models import Tenant
+
+            with SessionLocal() as db:
+                tenant = db.query(Tenant).filter(
+                    Tenant.subdomain == subdomain,
+                    Tenant.is_active == True
+                ).first()
+
+                if tenant:
+                    return {
+                        "tenant_id": str(tenant.id),
+                        "tenant_name": tenant.name,
+                        "subdomain": tenant.subdomain,
+                        "plan": getattr(tenant, "plan", "free"),
+                        "status": getattr(tenant, "status", "active")
+                    }
+        except Exception as e:
+            logger.warning(f"[Issue #413] Failed to resolve tenant by subdomain '{subdomain}': {e}")
 
         return None
 
