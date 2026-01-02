@@ -259,7 +259,9 @@ redis:
   enabled: false  # Desativar se usar managed service
   architecture: standalone
   auth:
-    enabled: false
+    enabled: true  # SECURITY: Always enable auth (Issue #165)
+    password: ""   # Set via --set redis.auth.password or existingSecret
+    existingSecret: ""
   master:
     persistence:
       enabled: true

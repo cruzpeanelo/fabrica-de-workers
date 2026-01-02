@@ -151,9 +151,9 @@ jobs:
       - name: Test Docker image
         run: |
           docker build -t ${{ env.DOCKER_IMAGE }}:test .
-          docker run -d --name test-container -p 9000:9000 ${{ env.DOCKER_IMAGE }}:test
-          sleep 10
-          curl -f http://localhost:9000/api/agents || exit 1
+          docker run -d --name test-container -p 9001:9001 ${{ env.DOCKER_IMAGE }}:test
+          sleep 15
+          curl -f http://localhost:9001/health || exit 1
           docker stop test-container
 
   # Deploy (only on main branch)
