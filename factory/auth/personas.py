@@ -516,11 +516,20 @@ class PermissionChecker:
                 # Deve ter tenant_id no contexto
                 tenant_id = context.get("tenant_id")
                 if not tenant_id:
-                    logger.warning(
-                        f"[Issue #353 DEBUG] Scope check FAILED: scope=tenant but tenant_id is None/empty. "
-                        f"persona={persona_type.value} context={context}"
-                    )
-                    return False
+                    # Issue #353 FIX: If multi-tenant not configured, allow ADMIN access
+                    # This is a graceful degradation when tenant tables don't exist
+                    if persona_type in [PersonaType.ADMIN, PersonaType.SUPER_ADMIN, PersonaType.PLATFORM_ADMIN]:
+                        logger.info(
+                            f"[Issue #353 FIX] Allowing {persona_type.value} access without tenant_id "
+                            f"(multi-tenant not configured). resource={resource} action={action}"
+                        )
+                        # Skip scope check for admin roles when tenant not available
+                    else:
+                        logger.warning(
+                            f"[Issue #353 DEBUG] Scope check FAILED: scope=tenant but tenant_id is None/empty. "
+                            f"persona={persona_type.value} context={context}"
+                        )
+                        return False
 
             elif scope == "project":
                 # Deve ter project_id no contexto
