@@ -85,7 +85,7 @@ class ValidationConfig:
     check_path_traversal: bool = True
     sanitize_html: bool = True
     log_suspicious: bool = True
-    block_suspicious: bool = False  # Set True in production
+    block_suspicious: bool = True  # T0-FIX #357: Block XSS/SQL injection attempts
 
 
 @dataclass
