@@ -1,6 +1,6 @@
 /**
  * Components Index - Exporta todos os componentes reutilizaveis
- * Issue #423, #426, #427 - Mobile Components
+ * Issue #423, #426, #427, #428 - Mobile Components
  */
 
 // Cards
@@ -19,6 +19,11 @@ export { Checkbox, CheckboxGroup } from './Checkbox';
 export { RadioButton, RadioGroup, RadioCard } from './Radio';
 export { TextArea, MentionTextArea } from './TextArea';
 
+// Form Components - Utility (Issue #428)
+export { Slider, RangeSlider } from './Slider';
+export { Stepper, QuantityStepper, InlineStepper } from './Stepper';
+export { Rating, RatingDisplay, LabeledRating } from './Rating';
+
 // Display Components
 export { Badge, StatusBadge, PriorityBadge, StoryPointsBadge } from './Badge';
 export { Avatar, AvatarGroup } from './Avatar';
@@ -35,6 +40,13 @@ export {
   SkeletonListItem,
 } from './LoadingSpinner';
 export { Toast, ToastProvider, useToast } from './Toast';
+export {
+  AlertDialog,
+  ConfirmDialog,
+  PromptDialog,
+  DeleteDialog,
+} from './AlertDialog';
+export { Tooltip, InfoTooltip, LabelWithTooltip } from './Tooltip';
 
 // Navigation Components
 export { FloatingActionButton, ExpandableFAB } from './FloatingActionButton';
@@ -52,3 +64,6 @@ export {
   ListItemBadge,
   MenuListItem,
 } from './ListItem';
+
+// Interactive Components (Issue #428)
+export { Swipeable, SwipeableListItem, SwipeToDelete } from './Swipeable';
