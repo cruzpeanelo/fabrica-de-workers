@@ -255,6 +255,12 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
     def _extract_from_subdomain(self, host: str) -> Optional[str]:
         """Extract tenant from subdomain"""
         import re
+        # Issue #210: Verificar se ha pelo menos 3 partes (subdomain.domain.tld)
+        # Exemplo: acme.fabrica.com tem subdomain, fabrica.com nao tem
+        parts = host.split('.')
+        if len(parts) < 3:
+            return None
+
         # Pattern: tenant.domain.com
         match = re.match(r'^([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\.', host)
         if match:
