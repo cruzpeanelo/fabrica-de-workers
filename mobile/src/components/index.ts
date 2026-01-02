@@ -1,16 +1,24 @@
 /**
  * Components Index - Exporta todos os componentes reutilizaveis
- * Issue #423 - Mobile Components
+ * Issue #423, #426 - Mobile Components
  */
 
 // Cards
 export { StoryCard } from './StoryCard';
+export { Card, CardHeader, CardBody, CardFooter, CardActions } from './Card';
 
-// UI Components
+// Form Components
 export { Button } from './Button';
 export { Input } from './Input';
+export { SearchBar, SearchWithSuggestions } from './SearchBar';
+export { Chip, ChipGroup, FilterChip } from './Chip';
+
+// Display Components
 export { Badge, StatusBadge, PriorityBadge, StoryPointsBadge } from './Badge';
 export { Avatar, AvatarGroup } from './Avatar';
+export { ProgressBar, CircularProgress } from './ProgressBar';
+
+// Feedback Components
 export { EmptyState, NoResultsState, ErrorState, OfflineState } from './EmptyState';
 export {
   LoadingSpinner,
@@ -20,3 +28,11 @@ export {
   SkeletonCard,
   SkeletonListItem,
 } from './LoadingSpinner';
+export { Toast, ToastProvider, useToast } from './Toast';
+
+// Navigation Components
+export { FloatingActionButton, ExpandableFAB } from './FloatingActionButton';
+export { BottomSheet, ActionSheet } from './BottomSheet';
+
+// Layout Components
+export { Divider, ListDivider, SectionDivider, Spacer } from './Divider';
