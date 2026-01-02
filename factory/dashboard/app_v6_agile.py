@@ -85,12 +85,24 @@ app = FastAPI(
     version="6.0.0"
 )
 
-# CORS
+# CORS - Issue #399 Fix: Never use * with credentials=true
+# Get allowed origins from environment or use secure defaults
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else [
+    "http://localhost:9001",
+    "http://localhost:9000",
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:9001",
+    "http://127.0.0.1:9000",
+]
+# Filter empty strings
+CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
