@@ -41,6 +41,17 @@ from .llm_manager import (
     clear_client_cache
 )
 
+# Story Categorizer (Issue #246)
+from .categorizer import (
+    StoryCategorizer,
+    StoryType,
+    CategorizationResult,
+    categorize_story,
+    suggest_story_type,
+    suggest_story_labels,
+    get_categorizer
+)
+
 __all__ = [
     # Legacy Claude integration
     "ClaudeClient",
@@ -65,5 +76,13 @@ __all__ = [
     "register_provider",
     "get_default_provider",
     "set_default_provider",
-    "clear_client_cache"
+    "clear_client_cache",
+    # Story Categorizer (Issue #246)
+    "StoryCategorizer",
+    "StoryType",
+    "CategorizationResult",
+    "categorize_story",
+    "suggest_story_type",
+    "suggest_story_labels",
+    "get_categorizer"
 ]

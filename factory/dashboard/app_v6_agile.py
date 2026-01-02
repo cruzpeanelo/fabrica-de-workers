@@ -798,6 +798,14 @@ try:
 except ImportError as e:
     print(f"[AI] Risk Prediction not available: {e}")
 
+# AI Story Categorizer (Issue #246)
+try:
+    from factory.api.categorizer_routes import register_categorizer_routes
+    register_categorizer_routes(app)
+    print("[AI] Story Categorizer loaded: /api/ai/categorize/*")
+except ImportError as e:
+    print(f"[AI] Story Categorizer not available: {e}")
+
 # Offline Sync (Issue #260)
 try:
     from factory.dashboard.offline_sync import register_offline_sync

@@ -2728,6 +2728,7 @@ class Tenant(Base):
     members = relationship("TenantMember", back_populates="tenant", cascade="all, delete-orphan")
     invites = relationship("TenantInvite", back_populates="tenant", cascade="all, delete-orphan")
     usage_logs = relationship("TenantUsageLog", back_populates="tenant", cascade="all, delete-orphan")
+    audit_logs = relationship("TenantAuditLog", back_populates="tenant", cascade="all, delete-orphan")
 
     # Relacionamentos com entidades principais (Issue #81)
     projects = relationship("Project", back_populates="tenant", cascade="all, delete-orphan")
@@ -3325,6 +3326,81 @@ class TenantUsageLog(Base):
 
     def __repr__(self):
         return f"<TenantUsageLog {self.tenant_id}: {self.period_start.date()} - ${self.cost_total:.2f}>"
+
+
+class TenantAuditLog(Base):
+    """
+    Log de Auditoria do Tenant (Issue #430)
+
+    Registra operacoes e acessos por tenant para compliance e seguranca.
+    """
+    __tablename__ = "tenant_audit_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamento
+    tenant_id = Column(String(50), ForeignKey("tenants.tenant_id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant = relationship("Tenant", back_populates="audit_logs")
+
+    # Usuario que realizou a acao
+    user_id = Column(String(50), nullable=True, index=True)
+    user_name = Column(String(200), nullable=True)
+    user_email = Column(String(200), nullable=True)
+
+    # Detalhes da acao
+    action = Column(String(50), nullable=False, index=True)  # create, read, update, delete, login, logout, etc
+    resource_type = Column(String(100), nullable=False, index=True)  # story, project, user, tenant, etc
+    resource_id = Column(String(100), nullable=True)
+
+    # Contexto
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    request_path = Column(String(500), nullable=True)
+    request_method = Column(String(10), nullable=True)
+
+    # Resultado
+    status = Column(String(20), default="success")  # success, failure, blocked
+    error_message = Column(Text, nullable=True)
+
+    # Dados adicionais
+    old_value = Column(JSON, nullable=True)  # Valor anterior (para updates)
+    new_value = Column(JSON, nullable=True)  # Novo valor (para creates/updates)
+    extra_data = Column(JSON, default=dict)  # Informacoes extras
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Indices
+    __table_args__ = (
+        Index('ix_tenant_audit_tenant_action', 'tenant_id', 'action'),
+        Index('ix_tenant_audit_created', 'tenant_id', 'created_at'),
+        Index('ix_tenant_audit_resource', 'tenant_id', 'resource_type', 'resource_id'),
+    )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "tenant_id": self.tenant_id,
+            "user_id": self.user_id,
+            "user_name": self.user_name,
+            "user_email": self.user_email,
+            "action": self.action,
+            "resource_type": self.resource_type,
+            "resource_id": self.resource_id,
+            "ip_address": self.ip_address,
+            "user_agent": self.user_agent,
+            "request_path": self.request_path,
+            "request_method": self.request_method,
+            "status": self.status,
+            "error_message": self.error_message,
+            "old_value": self.old_value,
+            "new_value": self.new_value,
+            "extra_data": self.extra_data,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+    def __repr__(self):
+        return f"<TenantAuditLog {self.tenant_id}: {self.action} {self.resource_type} @ {self.created_at}>"
 
 
 class ProjectRole(str, Enum):

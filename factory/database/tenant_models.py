@@ -30,6 +30,7 @@ from factory.database.models import (
     TenantMember,
     TenantInvite,
     TenantUsageLog,
+    TenantAuditLog,  # Issue #430: Audit log para compliance
     ProjectMember,
 )
 
@@ -52,6 +53,7 @@ __all__ = [
     "TenantMember",
     "TenantInvite",
     "TenantUsageLog",
+    "TenantAuditLog",  # Issue #430
     "ProjectMember",
 ]
 
