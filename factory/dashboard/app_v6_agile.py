@@ -137,6 +137,16 @@ except ImportError as e:
 except Exception as e:
     print(f"[Security] Failed to load security headers: {e}")
 
+# Issue #357: Input Validation Middleware (XSS/SQL Injection Prevention)
+try:
+    from factory.middleware.input_validation import InputValidationMiddleware
+    app.add_middleware(InputValidationMiddleware)
+    print("[Security] Input validation middleware enabled (XSS protection)")
+except ImportError as e:
+    print(f"[Security] Input validation not available: {e}")
+except Exception as e:
+    print(f"[Security] Failed to load input validation: {e}")
+
 # Issue #209: Observability (Distributed Tracing + Error Tracking)
 try:
     from factory.observability import setup_observability
@@ -610,6 +620,14 @@ try:
     print("[Dashboard] Auth routes loaded: /api/v1/auth/login")
 except ImportError as e:
     print(f"[Dashboard] Auth routes not available: {e}")
+
+# MFA Routes (Issue #403 - Two-Factor Authentication)
+try:
+    from factory.api.mfa_routes import mfa_router
+    app.include_router(mfa_router)
+    print("[Dashboard] MFA routes loaded: /api/mfa/*")
+except ImportError as e:
+    print(f"[Dashboard] MFA routes not available: {e}")
 
 # Platform Portal Routes (Issue #287 - Super Admin)
 try:
