@@ -34,7 +34,11 @@ from .jira_sync import (
 from .scheduler import (
     SyncScheduler,
     SyncJob,
-    get_scheduler
+    JobStatus,
+    JobFrequency,
+    JobResult,
+    get_scheduler,
+    reset_scheduler
 )
 
 __all__ = [
@@ -59,5 +63,9 @@ __all__ = [
     # Scheduler
     "SyncScheduler",
     "SyncJob",
-    "get_scheduler"
+    "JobStatus",
+    "JobFrequency",
+    "JobResult",
+    "get_scheduler",
+    "reset_scheduler"
 ]
