@@ -743,6 +743,13 @@ try:
 except ImportError as e:
     print(f"[Agile] Sprint Retrospective not available: {e}")
 
+# Issue #421: Enterprise Components CSS - Terminal C
+try:
+    from factory.dashboard.enterprise_components import register_enterprise_components
+    register_enterprise_components(app)
+except ImportError as e:
+    print(f"[Dashboard] Enterprise Components not available: {e}")
+
 
 # =============================================================================
 # WEBSOCKET CONNECTION MANAGER
