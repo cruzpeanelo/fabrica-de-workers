@@ -315,6 +315,39 @@ try:
 except ImportError as e:
     print(f"[Security] Rate Limit Management routes not available: {e}")
 
+# MFA Routes (#403) - T0-FIX
+try:
+    from factory.api.mfa_routes import mfa_router
+    app.include_router(mfa_router)
+    print("[Security] MFA routes loaded: /api/v1/mfa/*")
+except ImportError as e:
+    print(f"[Security] MFA routes not available: {e}")
+
+# Billing API Routes (#136) - T0-FIX
+try:
+    from factory.api.billing_routes import router as billing_router, admin_router as billing_admin_router
+    app.include_router(billing_router)
+    app.include_router(billing_admin_router)
+    print("[API] Billing routes loaded: /api/v1/billing/*, /api/v1/admin/billing/*")
+except ImportError as e:
+    print(f"[API] Billing routes not available: {e}")
+
+# Mobile Auth Routes (#384) - T0-FIX
+try:
+    from factory.api.mobile_auth_routes import router as mobile_auth_router
+    app.include_router(mobile_auth_router)
+    print("[Security] Mobile Auth routes loaded: /api/auth/*")
+except ImportError as e:
+    print(f"[Security] Mobile Auth routes not available: {e}")
+
+# Webhook Routes (#139) - T0-FIX
+try:
+    from factory.api.webhook_routes import router as webhook_router
+    app.include_router(webhook_router)
+    print("[API] Webhook routes loaded: /api/webhooks/*")
+except ImportError as e:
+    print(f"[API] Webhook routes not available: {e}")
+
 # Worker Monitoring Dashboard (Issue #88)
 try:
     from factory.dashboard.worker_monitoring import register_monitoring_endpoints
