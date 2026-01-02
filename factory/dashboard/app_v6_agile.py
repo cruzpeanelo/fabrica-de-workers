@@ -438,6 +438,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Comments not available: {e}")
 
+# Time Tracking (Issue #224)
+try:
+    from factory.dashboard.time_tracking import register_time_tracking
+    register_time_tracking(app)
+    print("[Dashboard] Time Tracking loaded: /api/time-tracking/*")
+except ImportError as e:
+    print(f"[Dashboard] Time Tracking not available: {e}")
+
 # Global Search (Issue #271)
 try:
     from factory.dashboard.global_search import register_global_search
