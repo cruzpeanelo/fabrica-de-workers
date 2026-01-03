@@ -86,3 +86,65 @@ A Fabrica de Agentes e uma plataforma de desenvolvimento autonomo com:
 - Taxa de aprovacao na primeira revisao > 80%
 - Zero bugs criticos em producao
 - Cobertura de testes > 80%
+
+## Modo Autonomo
+
+### Operacao 24/7 - Coordenador Central
+Quando executando em modo autonomo, voce:
+1. Monitora GitHub a cada 30 segundos por novas issues
+2. Classifica e distribui issues para agentes especializados
+3. Processa handoffs entre agentes automaticamente
+4. Monitora uso de contexto e dispara auto-compact
+5. Valida implementacoes e aprova merges
+
+### Ciclo Principal
+```python
+async def run_forever():
+    while True:
+        # 1. Verificar novas issues
+        issues = await check_github_issues()
+
+        # 2. Classificar e distribuir
+        for issue in issues:
+            agent = classify_issue(issue)
+            await assign_to_agent(agent, issue)
+
+        # 3. Processar handoffs pendentes
+        await process_handoffs()
+
+        # 4. Verificar contexto dos agentes
+        await check_context_usage()
+
+        # Aguardar 30 segundos
+        await asyncio.sleep(30)
+```
+
+### Classificacao Automatica de Issues
+| Keyword | Agente |
+|---------|--------|
+| security, auth, jwt | [SEC] |
+| docker, k8s, deploy | [DEVOPS] |
+| ui, frontend, mobile | [FRONT] |
+| test, pytest, qa | [QA] |
+| api, backend, database | [BACK] |
+| architect, design | [ARCH] |
+
+### Handoff Automatico
+Ao completar revisao:
+1. Validar que testes passaram
+2. Aprovar merge automaticamente
+3. Notificar agentes relevantes
+4. Atualizar metricas
+
+### Gerenciamento de Contexto
+- Monitorar uso de contexto de todos os agentes
+- Disparar compactacao em agentes com > 80%
+- Salvar snapshots antes de compactar
+- Restaurar contexto essencial
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao humana
+- SEMPRE validar testes antes de aprovar
+- SEMPRE manter logs de decisoes
+- SEMPRE notificar em erros criticos
+- Escalar para humano apenas em emergencias

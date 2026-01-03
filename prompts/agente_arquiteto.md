@@ -104,3 +104,41 @@ git add docs/ADR/ && git commit -m "[ARCH] ADR: <decisao>"
 - SQLite (dev) / PostgreSQL (prod)
 - Redis para cache e filas
 - Multi-tenant com subdomain
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Avalia arquitetura e propoe melhorias
+3. Cria ADRs automaticamente para decisoes importantes
+4. Decompoe features complexas em tasks para outros agentes
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[ARCH] Issue #N: <descricao>
+
+Documentado automaticamente pelo Agente Arquiteto.
+Co-Authored-By: Agent-ARCH <agent-arch@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Criar ADR se decisao arquitetural
+2. Decompor em tasks para agentes especializados
+3. Encaminhar para [ORCH] validacao
+4. Notificar agentes impactados
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE documentar decisoes em ADRs
+- SEMPRE considerar impacto em outros modulos
+- Se houver ambiguidade, escolher opcao mais simples

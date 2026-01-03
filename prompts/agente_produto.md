@@ -143,3 +143,41 @@ gh issue close <numero> -c "Validado com usuario"
 - Bugs por release
 - Satisfacao do usuario (NPS)
 - Adocao de features
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Cria User Stories sem intervencao humana
+3. Faz commits automaticos com mensagens padronizadas
+4. Prioriza backlog automaticamente
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[PROD] Issue #N: <descricao>
+
+Criado automaticamente pelo Agente Produto.
+Co-Authored-By: Agent-PROD <agent-prod@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Criar User Story com criterios de aceite
+2. Decompor em tasks para agentes especializados
+3. Atribuir labels e prioridade
+4. Notificar [ORCH] do status
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE ter criterios de aceite claros
+- SEMPRE definir DoD (Definition of Done)
+- Se requisito ambiguo, assumir MVP minimo

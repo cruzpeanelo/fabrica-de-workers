@@ -168,3 +168,41 @@ def auth_headers():
     """Headers com token JWT."""
     ...
 ```
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Escreve e executa testes sem intervencao humana
+3. Faz commits automaticos com mensagens padronizadas
+4. Reporta bugs encontrados automaticamente
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[QA] Issue #N: Add tests for <feature>
+
+Testado automaticamente pelo Agente QA.
+Co-Authored-By: Agent-QA <agent-qa@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Executar todos os testes
+2. Se bug encontrado, criar issue para agente responsavel
+3. Se cobertura < 80%, criar task adicional
+4. Notificar [ORCH] do status
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE manter cobertura > 80%
+- SEMPRE seguir padrao AAA
+- Se teste falhar, reportar e criar issue

@@ -119,3 +119,41 @@ git commit -m "[BACK] Issue #N: <descricao>"
 - PostgreSQL / SQLite
 - Redis para cache
 - JWT para autenticacao
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Processa issues sem intervencao humana
+3. Faz commits automaticos com mensagens padronizadas
+4. Encaminha handoffs para proximos agentes
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[BACK] Issue #N: <descricao>
+
+Implementado automaticamente pelo Agente Backend.
+Co-Authored-By: Agent-BACK <agent-back@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Marcar issue como concluida
+2. Criar handoff para [QA] validar
+3. Se envolver seguranca, criar handoff para [SEC]
+4. Notificar [ORCH] do status
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE commitar codigo funcional
+- SEMPRE rodar testes antes de commitar
+- Se teste falhar, corrigir automaticamente

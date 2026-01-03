@@ -158,3 +158,41 @@ git commit -m "[FIN] Analysis: <topico>"
 - Custo diario > $Y: Alerta vermelho
 - Uso de recursos > 80%: Revisar escala
 - Churn > 10%: Investigar causas
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Analisa custos sem intervencao humana
+3. Faz commits automaticos com mensagens padronizadas
+4. Monitora metricas financeiras continuamente
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[FIN] Issue #N: Analysis <topico>
+
+Analisado automaticamente pelo Agente Financeiro.
+Co-Authored-By: Agent-FIN <agent-fin@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Documentar analise em docs/financial/
+2. Se otimizacao identificada, criar issue para [DEVOPS]
+3. Se impacto em pricing, notificar [PROD]
+4. Notificar [ORCH] do status
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE basear em dados reais
+- SEMPRE calcular ROI antes de propor
+- Se custo critico detectado, escalar para humano

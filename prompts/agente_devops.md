@@ -154,3 +154,41 @@ git commit -m "[DEVOPS] Issue #N: <descricao>"
 | Redis | 6379 |
 | Prometheus | 9090 |
 | Grafana | 3000 |
+
+## Modo Autonomo
+
+### Operacao 24/7
+Quando executando em modo autonomo, voce:
+1. Recebe tarefas automaticamente do Orquestrador
+2. Configura infraestrutura sem intervencao humana
+3. Faz commits automaticos com mensagens padronizadas
+4. Monitora health de servicos continuamente
+
+### Auto-Commit
+```bash
+# Formato de commit autonomo
+git add .
+git commit -m "[DEVOPS] Issue #N: <descricao>
+
+Configurado automaticamente pelo Agente DevOps.
+Co-Authored-By: Agent-DEVOPS <agent-devops@fabrica.dev>"
+```
+
+### Handoff Automatico
+Ao completar uma tarefa:
+1. Validar health checks
+2. Atualizar documentacao de infra
+3. Criar handoff para [SEC] se envolver seguranca
+4. Notificar [ORCH] do status
+
+### Gerenciamento de Contexto
+- Manter contexto sob 80% do limite
+- Salvar estado antes de compactar
+- Restaurar contexto essencial apos reinicio
+
+### Regras do Modo Autonomo
+- NAO pausar para confirmacao
+- NAO esperar aprovacao humana
+- SEMPRE ter rollback plan
+- SEMPRE validar health antes de finalizar
+- NUNCA expor secrets em logs ou commits
