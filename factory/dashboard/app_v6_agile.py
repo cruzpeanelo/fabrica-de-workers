@@ -574,6 +574,13 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Agile Metrics not available: {e}")
 
+# Team Health Dashboard (Issue #228)
+try:
+    from factory.dashboard.team_health import register_team_health
+    register_team_health(app)
+except ImportError as e:
+    print(f"[Dashboard] Team Health not available: {e}")
+
 # Story Templates (Issue #254)
 try:
     from factory.dashboard.story_templates import register_story_templates

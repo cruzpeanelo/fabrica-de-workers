@@ -1,0 +1,383 @@
+/**
+ * Team Health Dashboard Styles (Issue #228)
+ * =========================================
+ *
+ * Estilos específicos para o Team Health Dashboard seguindo:
+ * - Design System Belgo (Azul #003B4A, Laranja #FF6C00)
+ * - Mobile-first approach
+ * - WCAG 2.1 AA compliance
+ * - Design Tokens do sistema
+ */
+
+/* =============================================================================
+   KPI CARDS
+   ============================================================================= */
+
+.team-health-dashboard .kpi-card {
+  background: var(--dt-bg-surface, #ffffff);
+  border-radius: var(--dt-border-radius-xl, 0.75rem);
+  box-shadow: var(--dt-shadow-md);
+  padding: var(--dt-space-6, 1.5rem);
+  transition: var(--dt-transition-shadow);
+}
+
+.team-health-dashboard .kpi-card:hover {
+  box-shadow: var(--dt-shadow-lg);
+}
+
+.team-health-dashboard .kpi-value {
+  font-size: var(--dt-font-size-3xl, 1.875rem);
+  font-weight: var(--dt-font-weight-bold, 700);
+  line-height: var(--dt-line-height-tight, 1.25);
+}
+
+.team-health-dashboard .kpi-label {
+  font-size: var(--dt-font-size-sm, 0.875rem);
+  color: var(--dt-text-secondary, #6B7280);
+  margin-top: var(--dt-space-1, 0.25rem);
+}
+
+.team-health-dashboard .kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--dt-space-1, 0.25rem) var(--dt-space-2, 0.5rem);
+  border-radius: var(--dt-border-radius, 0.25rem);
+  font-size: var(--dt-font-size-xs, 0.75rem);
+  font-weight: var(--dt-font-weight-semibold, 600);
+}
+
+.team-health-dashboard .kpi-trend.up {
+  background-color: var(--dt-color-success-100, #D1FAE5);
+  color: var(--dt-color-success-700, #047857);
+}
+
+.team-health-dashboard .kpi-trend.stable {
+  background-color: var(--dt-color-neutral-100, #F3F4F6);
+  color: var(--dt-color-neutral-600, #4B5563);
+}
+
+.team-health-dashboard .kpi-trend.down {
+  background-color: var(--dt-color-error-100, #FEE2E2);
+  color: var(--dt-color-error-700, #B91C1C);
+}
+
+/* =============================================================================
+   WORKLOAD BAR
+   ============================================================================= */
+
+.team-health-dashboard .workload-bar {
+  position: relative;
+  height: 2rem;
+  background-color: var(--dt-color-neutral-100, #F3F4F6);
+  border-radius: var(--dt-border-radius-lg, 0.5rem);
+  overflow: hidden;
+}
+
+.team-health-dashboard .workload-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--dt-font-size-xs, 0.75rem);
+  font-weight: var(--dt-font-weight-semibold, 600);
+  color: white;
+  transition: width 0.3s ease;
+}
+
+.team-health-dashboard .workload-bar-fill.ok {
+  background-color: var(--dt-color-success-500, #10B981);
+}
+
+.team-health-dashboard .workload-bar-fill.overloaded {
+  background-color: var(--dt-color-error-500, #EF4444);
+}
+
+.team-health-dashboard .workload-bar-fill.underutilized {
+  background-color: var(--dt-color-warning-500, #F59E0B);
+}
+
+/* =============================================================================
+   INDICATORS & ALERTS
+   ============================================================================= */
+
+.team-health-dashboard .indicator {
+  padding: var(--dt-space-4, 1rem);
+  border-radius: var(--dt-border-radius-lg, 0.5rem);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--dt-space-3, 0.75rem);
+}
+
+.team-health-dashboard .indicator.alert {
+  background-color: var(--dt-color-error-50, #FEF2F2);
+  border-left: 4px solid var(--dt-color-error-500, #EF4444);
+}
+
+.team-health-dashboard .indicator.warning {
+  background-color: var(--dt-color-warning-50, #FFFBEB);
+  border-left: 4px solid var(--dt-color-warning-500, #F59E0B);
+}
+
+.team-health-dashboard .indicator.positive {
+  background-color: var(--dt-color-success-50, #ECFDF5);
+  border-left: 4px solid var(--dt-color-success-500, #10B981);
+}
+
+.team-health-dashboard .indicator-icon {
+  font-size: var(--dt-font-size-2xl, 1.5rem);
+  flex-shrink: 0;
+}
+
+.team-health-dashboard .indicator-message {
+  font-weight: var(--dt-font-weight-semibold, 600);
+}
+
+.team-health-dashboard .indicator.alert .indicator-message {
+  color: var(--dt-color-error-800, #991B1B);
+}
+
+.team-health-dashboard .indicator.warning .indicator-message {
+  color: var(--dt-color-warning-800, #92400E);
+}
+
+.team-health-dashboard .indicator.positive .indicator-message {
+  color: var(--dt-color-success-800, #065F46);
+}
+
+.team-health-dashboard .indicator-recommendation {
+  font-size: var(--dt-font-size-sm, 0.875rem);
+  margin-top: var(--dt-space-1, 0.25rem);
+}
+
+.team-health-dashboard .indicator.alert .indicator-recommendation {
+  color: var(--dt-color-error-700, #B91C1C);
+}
+
+.team-health-dashboard .indicator.warning .indicator-recommendation {
+  color: var(--dt-color-warning-700, #B45309);
+}
+
+.team-health-dashboard .indicator.positive .indicator-recommendation {
+  color: var(--dt-color-success-700, #047857);
+}
+
+/* =============================================================================
+   MOOD TRACKER
+   ============================================================================= */
+
+.team-health-dashboard .mood-bar {
+  position: relative;
+  height: 1.5rem;
+  background-color: var(--dt-color-neutral-100, #F3F4F6);
+  border-radius: var(--dt-border-radius-full, 9999px);
+  overflow: hidden;
+}
+
+.team-health-dashboard .mood-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.team-health-dashboard .mood-bar-fill.positive {
+  background-color: var(--dt-color-success-500, #10B981);
+}
+
+.team-health-dashboard .mood-bar-fill.neutral {
+  background-color: var(--dt-color-warning-500, #F59E0B);
+}
+
+.team-health-dashboard .mood-bar-fill.negative {
+  background-color: var(--dt-color-error-500, #EF4444);
+}
+
+.team-health-dashboard .mood-summary {
+  background-color: var(--dt-color-success-50, #ECFDF5);
+  padding: var(--dt-space-4, 1rem);
+  border-radius: var(--dt-border-radius-lg, 0.5rem);
+}
+
+.team-health-dashboard .mood-summary-score {
+  font-weight: var(--dt-font-weight-semibold, 600);
+  color: var(--dt-color-success-800, #065F46);
+}
+
+.team-health-dashboard .mood-summary-message {
+  font-size: var(--dt-font-size-sm, 0.875rem);
+  color: var(--dt-color-success-700, #047857);
+  margin-top: var(--dt-space-1, 0.25rem);
+}
+
+/* =============================================================================
+   LEAD TIME BREAKDOWN
+   ============================================================================= */
+
+.team-health-dashboard .lead-time-stage {
+  padding-left: var(--dt-space-4, 1rem);
+  padding-top: var(--dt-space-2, 0.5rem);
+  padding-bottom: var(--dt-space-2, 0.5rem);
+}
+
+.team-health-dashboard .lead-time-stage.backlog {
+  border-left: 4px solid var(--dt-color-info-500, #3B82F6);
+}
+
+.team-health-dashboard .lead-time-stage.ready {
+  border-left: 4px solid var(--dt-color-warning-500, #F59E0B);
+}
+
+.team-health-dashboard .lead-time-stage.in-progress {
+  border-left: 4px solid var(--dt-color-secondary-500, #FF6C00);
+}
+
+.team-health-dashboard .lead-time-stage.review {
+  border-left: 4px solid var(--dt-color-primary-500, #003B4A);
+}
+
+.team-health-dashboard .lead-time-stage-label {
+  font-size: var(--dt-font-size-sm, 0.875rem);
+  color: var(--dt-text-secondary, #6B7280);
+}
+
+.team-health-dashboard .lead-time-stage-value {
+  font-weight: var(--dt-font-weight-semibold, 600);
+  color: var(--dt-text-primary, #111827);
+}
+
+/* =============================================================================
+   CHART CONTAINERS
+   ============================================================================= */
+
+.team-health-dashboard .chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .team-health-dashboard .chart-container {
+    height: 250px;
+  }
+}
+
+/* =============================================================================
+   LOADING STATE
+   ============================================================================= */
+
+.team-health-dashboard .loading-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--dt-z-modal, 1050);
+}
+
+.team-health-dashboard .loading-spinner {
+  animation: spin 1s linear infinite;
+  border-radius: var(--dt-border-radius-full, 9999px);
+  height: 2rem;
+  width: 2rem;
+  border: 2px solid transparent;
+  border-bottom-color: var(--dt-color-primary-600, #00526A);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+   ============================================================================= */
+
+/* Mobile: Default styles above */
+
+/* Tablet (768px+) */
+@media (min-width: 768px) {
+  .team-health-dashboard .kpi-value {
+    font-size: var(--dt-font-size-4xl, 2.25rem);
+  }
+
+  .team-health-dashboard .chart-container {
+    height: 320px;
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .team-health-dashboard .kpi-value {
+    font-size: var(--dt-font-size-3xl, 1.875rem);
+  }
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+/* Focus visible for keyboard navigation */
+.team-health-dashboard button:focus-visible,
+.team-health-dashboard select:focus-visible {
+  outline: 2px solid var(--dt-color-primary-500, #003B4A);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .team-health-dashboard .kpi-card {
+    border: 2px solid currentColor;
+  }
+
+  .team-health-dashboard .indicator {
+    border-width: 2px;
+    border-style: solid;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .team-health-dashboard * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Screen reader only content */
+.team-health-dashboard .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  .team-health-dashboard .no-print {
+    display: none !important;
+  }
+
+  .team-health-dashboard .kpi-card {
+    break-inside: avoid;
+  }
+
+  .team-health-dashboard {
+    color: black;
+    background: white;
+  }
+}
