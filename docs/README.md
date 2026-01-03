@@ -1,16 +1,19 @@
-# 📚 Documentação da Fábrica de Agentes
+# Documentação da Fábrica de Agentes
 
 Bem-vindo à documentação completa da **Fábrica de Agentes v7.0**!
+
+> Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 
 ---
 
 ## 📋 Índice
 
-### ⭐ Destaques - Comece Aqui
+### Destaques - Comece Aqui
 
 | Documento | Descrição | Público |
 |-----------|-----------|---------|
 | [VISAO_NEGOCIOS.md](VISAO_NEGOCIOS.md) | **Visão para Negócios** - ROI, benefícios, casos de sucesso | Executivos, Clientes |
+| [ARQUITETURA_DETALHADA.md](ARQUITETURA_DETALHADA.md) | **Arquitetura Detalhada** - Decisões técnicas e justificativas | Arquitetos, TI |
 | [TECHNICAL_OVERVIEW.md](TECHNICAL_OVERVIEW.md) | **Visão Técnica Completa** - Arquitetura, módulos, APIs | TI, Desenvolvedores |
 | [FUNCIONALIDADES_POR_PERFIL.md](FUNCIONALIDADES_POR_PERFIL.md) | **Por Perfil** - 9 personas com dashboards e permissões distintas | Todos |
 | [FEATURES.md](FEATURES.md) | **Funcionalidades** - Catálogo completo de features | Todos |
@@ -35,13 +38,14 @@ Bem-vindo à documentação completa da **Fábrica de Agentes v7.0**!
 | [DOCUMENTACAO_NEGOCIOS.md](DOCUMENTACAO_NEGOCIOS.md) | Visão geral de negócio (legado) |
 | [BUSINESS_VALUE.md](BUSINESS_VALUE.md) | Proposta de valor (legado) |
 
-### 🔧 Documentação Técnica
+### Documentação Técnica
 
 | Documento | Descrição |
 |-----------|-----------|
-| [TECHNICAL_OVERVIEW.md](TECHNICAL_OVERVIEW.md) | ⭐ **Visão técnica completa** - Módulos, APIs, implementação |
+| [ARQUITETURA_DETALHADA.md](ARQUITETURA_DETALHADA.md) | **Arquitetura Detalhada** - Decisões, padrões, justificativas |
+| [TECHNICAL_OVERVIEW.md](TECHNICAL_OVERVIEW.md) | **Visão técnica completa** - Módulos, APIs, implementação |
 | [FEATURES.md](FEATURES.md) | Catálogo detalhado de funcionalidades |
-| [ARQUITETURA.md](ARQUITETURA.md) | Arquitetura detalhada do sistema |
+| [ARQUITETURA.md](ARQUITETURA.md) | Arquitetura básica do sistema |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture overview (EN) |
 | [DOCUMENTACAO_TECNICA.md](DOCUMENTACAO_TECNICA.md) | Detalhes técnicos (legado) |
 | [API_REFERENCE.md](API_REFERENCE.md) | Referência completa da API REST |
@@ -91,11 +95,11 @@ Bem-vindo à documentação completa da **Fábrica de Agentes v7.0**!
 
 ### Se você é **Desenvolvedor / TI**
 
-1. 🔧 Configure o ambiente seguindo o [Quick Start](../README.md#-quick-start)
-2. 📐 Leia a [Visão Técnica](TECHNICAL_OVERVIEW.md)
-3. 🏗️ Explore a [Arquitetura](ARQUITETURA.md)
-4. 📚 Consulte a [Referência da API](API_REFERENCE.md)
-5. 🤝 Siga o [Guia de Contribuição](CONTRIBUTING.md)
+1. Configure o ambiente seguindo o [Quick Start](../README.md#-quick-start)
+2. Leia a [Visão Técnica](TECHNICAL_OVERVIEW.md)
+3. Explore a [Arquitetura Detalhada](ARQUITETURA_DETALHADA.md) - decisões e justificativas
+4. Consulte a [Referência da API](API_REFERENCE.md)
+5. Siga o [Guia de Contribuição](CONTRIBUTING.md)
 
 ### Se você é **DevOps / SRE**
 
@@ -113,10 +117,12 @@ docs/
 ├── README.md                        # Este índice
 │
 ├── # Documentação Principal (v7.0)
-├── VISAO_NEGOCIOS.md               # ⭐ Visão para negócios
-├── TECHNICAL_OVERVIEW.md           # ⭐ Visão técnica completa
-├── FEATURES.md                     # ⭐ Catálogo de funcionalidades
-├── ROADMAP.md                      # ⭐ Roadmap (negócio + técnico)
+├── VISAO_NEGOCIOS.md               # Visão para negócios - ROI, casos de sucesso
+├── ARQUITETURA_DETALHADA.md        # Arquitetura - decisões e justificativas
+├── TECHNICAL_OVERVIEW.md           # Visão técnica completa
+├── FUNCIONALIDADES_POR_PERFIL.md   # 9 personas com dashboards distintos
+├── FEATURES.md                     # Catálogo de funcionalidades
+├── ROADMAP.md                      # Roadmap (negócio + técnico)
 │
 ├── # Documentação de Referência
 ├── ARQUITETURA.md                   # Arquitetura técnica detalhada
@@ -147,15 +153,17 @@ docs/
 
 ---
 
-## 📊 Versão Atual
+## Versão Atual
 
 | Item | Valor |
 |------|-------|
 | **Versão** | v7.0 |
-| **Data** | Dezembro 2025 |
+| **Data** | Janeiro 2026 |
 | **Módulos Python** | 200+ |
-| **Integrações** | 10+ |
-| **Issues Resolvidos** | 110+ |
+| **Integrações** | 15+ |
+| **Issues Resolvidos** | 430+ |
+| **Personas/Perfis** | 9 |
+| **Arquitetura** | Clean Architecture + DDD |
 
 ---
 
@@ -187,4 +195,4 @@ Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 
 ---
 
-*Última atualização: 2025-12-30*
+*Última atualização: 2026-01-03*

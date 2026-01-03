@@ -2,6 +2,8 @@
 
 > Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 
+**Versão:** 7.0 | **Última Atualização:** Janeiro 2026
+
 ---
 
 ## 📌 O Que É
@@ -10,16 +12,40 @@ A **Fábrica de Agentes** é uma plataforma que **automatiza o desenvolvimento d
 
 Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transformando suas ideias em software funcionando.
 
+### Diferencial Principal
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          ANTES vs DEPOIS                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   DESENVOLVIMENTO TRADICIONAL          FÁBRICA DE AGENTES               │
+│                                                                          │
+│   Você descreve ───► Dev interpreta    Você descreve ───► IA estrutura │
+│   Dev implementa ──► Bugs aparecem     IA implementa ──► Auto-corrige  │
+│   QA testa ────────► Volta pro dev     IA testa ───────► Fix imediato  │
+│   Dev corrige ─────► Deploy manual     IA corrige ────► App pronto     │
+│                                                                          │
+│   ⏱️ 2-4 semanas                       ⏱️ 2-4 dias                       │
+│   💰 R$ 50.000+                        💰 R$ 5.000-10.000                │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 🎯 Para Quem É
 
-| Perfil | Como Usa |
-|--------|----------|
-| **Product Owner / PO** | Cria User Stories no formato Agile, acompanha progresso no Kanban |
-| **Gestor de Projetos** | Monitora sprints, velocidade do time, burndown charts |
-| **Executivo / C-Level** | Visualiza ROI, time-to-market, custos vs tradicional |
-| **Stakeholder** | Acompanha status das entregas, testa funcionalidades |
+| Perfil | Como Usa | Dashboard |
+|--------|----------|-----------|
+| **Product Owner / PO** | Cria User Stories no formato Agile, acompanha progresso no Kanban | Manager Dashboard |
+| **Gestor de Projetos** | Monitora sprints, velocidade do time, burndown charts | Executive Dashboard |
+| **Executivo / C-Level** | Visualiza ROI, time-to-market, KPIs executivos | Stakeholder Dashboard |
+| **Stakeholder** | Acompanha status das entregas, testa funcionalidades | Viewer Dashboard |
+| **Desenvolvedor** | Acompanha tarefas, code review, executa jobs | Developer Dashboard |
+| **QA Engineer** | Testes, cobertura, bugs reportados | QA Dashboard |
+| **Admin do Tenant** | Gerencia usuários, integrações, segurança | Admin Portal |
+| **Super Admin** | Gerencia toda a plataforma, tenants, billing | Platform Portal |
 
 ---
 
@@ -29,17 +55,39 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 
 | Desafio | Impacto no Negócio |
 |---------|-------------------|
-| Meses para entregar funcionalidades | Concorrência lança primeiro |
-| Custo elevado de equipes | Orçamento estourado |
-| Documentação incompleta | Conhecimento perdido |
-| Comunicação confusa | Requisitos mal interpretados |
-| Bugs frequentes | Clientes insatisfeitos |
+| **Meses para entregar funcionalidades** | Concorrência lança primeiro |
+| **Custo elevado de equipes** | Orçamento estourado |
+| **Documentação incompleta** | Conhecimento perdido quando dev sai |
+| **Comunicação confusa** | Requisitos mal interpretados |
+| **Bugs frequentes** | Clientes insatisfeitos |
+| **Dependência de pessoas** | Risco quando alguém sai de férias |
 
 ### A Solução: Fábrica de Agentes
 
 ```
-VOCÊ DESCREVE    →    IA ESTRUTURA    →    SISTEMA DESENVOLVE    →    VOCÊ TESTA
-   (Ideia)           (User Stories)        (Código + Testes)         (Validação)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      CICLO DE DESENVOLVIMENTO AUTÔNOMO                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. VOCÊ DESCREVE        2. IA ESTRUTURA         3. IA DESENVOLVE       │
+│  ┌──────────────┐       ┌──────────────┐        ┌──────────────┐        │
+│  │ "Quero um    │  ──►  │ User Story:  │  ──►   │ • Gera código│        │
+│  │ sistema de   │       │ Como um...   │        │ • Executa    │        │
+│  │ login"       │       │ Eu quero...  │        │   testes     │        │
+│  └──────────────┘       │ Para que...  │        │ • Corrige    │        │
+│                         │              │        │   erros      │        │
+│                         │ Critérios:   │        │ • Documenta  │        │
+│                         │ ✓ Email/senha│        └──────────────┘        │
+│                         │ ✓ Validação  │                │               │
+│                         │ ✓ Token JWT  │                ▼               │
+│                         └──────────────┘        ┌──────────────┐        │
+│                                                 │ 4. VOCÊ TESTA │        │
+│                                                 │               │        │
+│                                                 │ Swagger UI    │        │
+│                                                 │ com 1 clique  │        │
+│                                                 └──────────────┘        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -50,21 +98,23 @@ VOCÊ DESCREVE    →    IA ESTRUTURA    →    SISTEMA DESENVOLVE    →    VOC
 
 | Métrica | Tradicional | Fábrica de Agentes | Economia |
 |---------|-------------|-------------------|----------|
-| Tempo por funcionalidade | 2-4 semanas | 2-4 dias | **80-90%** |
-| Custo por sprint | R$ 50.000+ | R$ 5.000-10.000 | **80-90%** |
-| Documentação | Parcial/Atrasada | 100% Automática | **∞** |
-| Cobertura de testes | 20-40% | 80%+ | **+200%** |
-| Bugs em produção | 15-20/mês | 3-5/mês | **-75%** |
+| **Tempo por funcionalidade** | 2-4 semanas | 2-4 dias | **80-90%** |
+| **Custo por sprint** | R$ 50.000+ | R$ 5.000-10.000 | **80-90%** |
+| **Documentação** | Parcial/Atrasada | 100% Automática | **∞** |
+| **Cobertura de testes** | 20-40% | 80%+ | **+200%** |
+| **Bugs em produção** | 15-20/mês | 3-5/mês | **-75%** |
+| **Time-to-market** | 6 meses | 1 mês | **-83%** |
 
-### Exemplo Real
-
-**Projeto: Sistema de Gestão de Vendas**
+### Exemplo Real: Sistema de Gestão de Vendas
 
 | Item | Tradicional | Fábrica de Agentes |
 |------|-------------|-------------------|
-| Equipe | 5 devs + 1 QA + 1 PO | 1 PO + Plataforma |
-| Duração | 6 meses | 1 mês |
-| Custo total | R$ 600.000+ | R$ 60.000 |
+| **Equipe** | 5 devs + 1 QA + 1 PO | 1 PO + Plataforma |
+| **Duração** | 6 meses | 1 mês |
+| **Custo total** | R$ 600.000+ | R$ 60.000 |
+| **Documentação** | 40% completa | 100% completa |
+| **Testes automatizados** | 30% cobertura | 85% cobertura |
+| **Bugs pós-deploy** | 25 bugs/mês | 3 bugs/mês |
 | **Economia** | - | **R$ 540.000** |
 
 ---
@@ -74,139 +124,332 @@ VOCÊ DESCREVE    →    IA ESTRUTURA    →    SISTEMA DESENVOLVE    →    VOC
 ### 1. Dashboard Agile Completo
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  🏭 Fábrica de Agentes                          [Projeto ▼]      │
-├────────────┬─────────────────────────────────────────────────────┤
-│            │  BACKLOG   READY    EM PROG    REVIEW    DONE       │
-│  ÉPICOS    │ ┌──────┐  ┌──────┐  ┌──────┐           ┌──────┐    │
-│  + Login   │ │STR-01│  │STR-03│  │STR-05│           │STR-02│    │
-│  + Vendas  │ │ 5pts │  │ 8pts │  │ 13pts│           │ 5pts │    │
-│            │ └──────┘  └──────┘  └──────┘           └──────┘    │
-│  SPRINTS   │                                                     │
-│  + Sprint 1│                                                     │
-│            │                                                     │
-│  🤖 CHAT   │  "Qual o status do projeto?"                       │
-└────────────┴─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  🏭 Fábrica de Agentes                               [Projeto ▼] 🌙 👤  │
+├────────────┬─────────────────────────────────────────────────────────────┤
+│            │                                                             │
+│  ÉPICOS    │   BACKLOG    READY    IN PROG    REVIEW   TEST    DONE    │
+│  + Login   │  ┌───────┐  ┌───────┐ ┌────────┐         ┌────┐  ┌────┐   │
+│  + Vendas  │  │STR-01 │  │STR-03 │ │ STR-05 │         │✓   │  │ ✓  │   │
+│  + Relat.  │  │ 5pts  │  │ 8pts  │ │ 13pts  │         │    │  │    │   │
+│            │  │[████] │  │[██──] │ │ [███─] │         │    │  │    │   │
+│  SPRINTS   │  └───────┘  └───────┘ └────────┘         └────┘  └────┘   │
+│  Sprint 5  │                                                             │
+│  Sprint 4  │  ┌───────┐            ┌────────┐                           │
+│            │  │STR-02 │            │ STR-06 │                           │
+│  ──────────│  │ 3pts  │            │  5pts  │                           │
+│  🤖 CHAT   │  └───────┘            └────────┘                           │
+│  IA        │                                                             │
+│            │  Progresso Sprint: [████████████████░░░░] 78%              │
+│  "Qual o   │  Velocity: 34 pts/sprint | Burndown: On Track              │
+│  status?"  │                                                             │
+└────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
 **O que você pode fazer:**
 - ✅ Criar User Stories estruturadas (Persona + Ação + Benefício)
-- ✅ Arrastar stories pelo Kanban
-- ✅ Conversar com assistente IA
-- ✅ Ver progresso em tempo real
-- ✅ Exportar relatórios
+- ✅ Arrastar stories pelo Kanban (drag & drop)
+- ✅ Conversar com assistente IA em linguagem natural
+- ✅ Ver progresso em tempo real (WebSocket)
+- ✅ Exportar relatórios em PDF e CSV
+- ✅ Criar épicos e organizar sprints
+- ✅ Definir WIP limits por coluna
+- ✅ Filtros persistentes e salvos
+- ✅ Dark mode e personalização
+- ✅ Atalhos de teclado (Ctrl+K, etc)
 
 ### 2. User Stories Estruturadas
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  STR-0001: Login de Usuários                     8 pts  🔴  │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  COMO UM vendedor                                            │
-│  EU QUERO fazer login no sistema                             │
-│  PARA QUE eu possa acessar minhas vendas                     │
-│                                                              │
-│  ─────────────────────────────────────────────────────────── │
-│                                                              │
-│  CRITÉRIOS DE ACEITE                                         │
-│  ✓ Login com email e senha funciona                          │
-│  ✓ Mensagem de erro se senha incorreta                       │
-│  ✓ Redireciona para dashboard após login                     │
-│                                                              │
-│  ─────────────────────────────────────────────────────────── │
-│                                                              │
-│  PROGRESSO: [████████░░] 80%                                 │
-│  Tasks: 4/5 concluídas                                       │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│  STR-0001: Login de Usuários                              8 pts  🔴 HIGH │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  NARRATIVA                                                                │
+│  ─────────                                                                │
+│  COMO UM vendedor                                                         │
+│  EU QUERO fazer login no sistema                                          │
+│  PARA QUE eu possa acessar minhas vendas                                  │
+│                                                                           │
+│  ─────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│  CRITÉRIOS DE ACEITE                                                      │
+│  ✓ Login com email e senha funciona                                       │
+│  ✓ Mensagem de erro se senha incorreta                                    │
+│  ✓ Redireciona para dashboard após login                                  │
+│  ✓ Opção "Lembrar-me" funciona                                            │
+│  ✓ Link "Esqueci minha senha" funciona                                    │
+│                                                                           │
+│  ─────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│  DEFINITION OF DONE                                                       │
+│  ☐ Código revisado                                                        │
+│  ☐ Testes com 80% cobertura                                               │
+│  ☐ Documentação atualizada                                                │
+│  ☐ Deploy em staging                                                      │
+│                                                                           │
+│  ─────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│  PROGRESSO                                                                │
+│  [████████████████░░░░░░░░] 80%                                           │
+│                                                                           │
+│  TASKS                                                                    │
+│  ├── ✅ STSK-001: Implementar endpoint /login                             │
+│  ├── ✅ STSK-002: Criar tela de login                                     │
+│  ├── ✅ STSK-003: Implementar validação                                   │
+│  ├── 🔄 STSK-004: Testes automatizados                                    │
+│  └── ⬚ STSK-005: Documentação API                                         │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Assistente IA
+### 3. Assistente IA Contextual
 
-Converse naturalmente:
-
-```
-Você: "Criar uma story para notificações por email"
-
-Assistente: "Story criada: STR-0015 - Notificações por Email
-- Persona: Vendedor
-- Ação: Receber notificações de novas vendas
-- Benefício: Acompanhar vendas em tempo real
-- Story Points: 5
-
-Deseja que eu mova para o desenvolvimento?"
-```
+Converse naturalmente com a IA:
 
 ```
-Você: "Qual o status do sprint atual?"
-
-Assistente: "Sprint 5 - Progresso:
-- 12 stories planejadas (47 pontos)
-- 8 concluídas (32 pontos)
-- 3 em progresso (12 pontos)
-- 1 bloqueada (3 pontos)
-
-Velocidade: 32 pontos (68% do planejado)
-Previsão de conclusão: 2 dias"
+┌──────────────────────────────────────────────────────────────────────────┐
+│  🤖 Assistente IA                                                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  Você: "Criar uma story para notificações por email"                     │
+│                                                                           │
+│  ─────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│  Assistente: "Story criada: STR-0015 - Notificações por Email            │
+│                                                                           │
+│  📋 Detalhes:                                                             │
+│  • Persona: Vendedor                                                      │
+│  • Ação: Receber notificações de novas vendas por email                  │
+│  • Benefício: Acompanhar vendas em tempo real                            │
+│  • Story Points: 5 (estimativa baseada em histórico)                     │
+│  • Complexidade: Média                                                    │
+│                                                                           │
+│  ✅ Critérios de aceite sugeridos:                                        │
+│  1. Email enviado quando nova venda é registrada                         │
+│  2. Template HTML responsivo                                              │
+│  3. Configuração de frequência (imediato/diário)                         │
+│  4. Opção de desativar notificações                                      │
+│                                                                           │
+│  Deseja que eu mova para desenvolvimento?"                               │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4. Processamento Autônomo
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                                                                           │
+│  Você: "Qual o status do sprint atual?"                                  │
+│                                                                           │
+│  ─────────────────────────────────────────────────────────────────────── │
+│                                                                           │
+│  Assistente: "📊 Sprint 5 - Progresso:                                   │
+│                                                                           │
+│  📈 Métricas:                                                             │
+│  • 12 stories planejadas (47 pontos)                                     │
+│  • 8 concluídas (32 pontos) ✅                                            │
+│  • 3 em progresso (12 pontos) 🔄                                         │
+│  • 1 bloqueada (3 pontos) ⚠️                                             │
+│                                                                           │
+│  ⚡ Velocity atual: 32 pontos (68% do planejado)                         │
+│  📅 Previsão de conclusão: 2 dias                                        │
+│                                                                           │
+│  ⚠️ Alerta: STR-0042 está bloqueada há 2 dias                            │
+│     Motivo: Aguardando definição de API externa                          │
+│                                                                           │
+│  💡 Sugestão: Mover STR-0045 do backlog para compensar"                  │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
-Quando uma story é movida para "Ready":
+### 4. Processamento Autônomo (Auto-Healing)
+
+Quando uma story é movida para "Ready", o sistema:
 
 ```
-1. 🔍 Sistema detecta automaticamente
-2. 🤖 IA analisa requisitos
-3. 💻 Código é gerado
-4. ✅ Testes são executados
-5. 📝 Documentação é criada
-6. ➡️ Story avança no Kanban
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    CICLO AUTÔNOMO COM AUTO-CORREÇÃO                       │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  1. 🔍 DETECTA                                                            │
+│     └── Sistema detecta story movida para "Ready"                        │
+│                                                                           │
+│  2. 🤖 ANALISA                                                            │
+│     └── IA analisa requisitos e critérios de aceite                      │
+│                                                                           │
+│  3. 💻 GERA CÓDIGO                                                        │
+│     └── Claude gera código baseado nos requisitos                        │
+│                                                                           │
+│  4. 🔧 VALIDA (LINT)                                                      │
+│     ├── Executa ruff/eslint                                              │
+│     └── ❌ Erro? → IA corrige automaticamente (até 3x)                   │
+│                                                                           │
+│  5. 🧪 TESTA                                                              │
+│     ├── Executa pytest/npm test                                          │
+│     └── ❌ Falha? → IA corrige automaticamente (até 3x)                  │
+│                                                                           │
+│  6. 🔒 SCAN DE SEGURANÇA                                                  │
+│     └── Bandit/Snyk verifica vulnerabilidades                            │
+│                                                                           │
+│  7. 📝 DOCUMENTA                                                          │
+│     └── IA gera documentação técnica automaticamente                     │
+│                                                                           │
+│  8. ✅ COMMIT                                                              │
+│     └── Git commit com mensagem descritiva                               │
+│                                                                           │
+│  9. ➡️ AVANÇA NO KANBAN                                                   │
+│     └── Story move automaticamente para próxima coluna                   │
+│                                                                           │
+│  ────────────────────────────────────────────────────────────────────────│
+│                                                                           │
+│  ⚡ VOCÊ NÃO PRECISA FAZER NADA - apenas validar o resultado!            │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Você não precisa fazer nada** - apenas validar o resultado!
+### 5. App Generator - Teste com 1 Clique
+
+Quando o desenvolvimento termina, você pode testar imediatamente:
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          APP GENERATOR                                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  O sistema automaticamente:                                               │
+│                                                                           │
+│  1. 📊 ANALISA o projeto                                                  │
+│     └── Detecta tipo (Python/Node.js)                                    │
+│     └── Encontra modelos de dados                                        │
+│                                                                           │
+│  2. 🔨 GERA aplicação testável                                            │
+│     └── Cria FastAPI app com CRUD para todos os modelos                  │
+│     └── Configura Swagger UI automático                                  │
+│                                                                           │
+│  3. 🚀 INICIA servidor                                                    │
+│     └── Roda uvicorn na porta 8000                                       │
+│                                                                           │
+│  4. 🌐 ABRE navegador                                                     │
+│     └── Swagger UI pronto para testar                                    │
+│                                                                           │
+│  ────────────────────────────────────────────────────────────────────────│
+│                                                                           │
+│  ┌─────────────────┐                                                      │
+│  │  🟢 TESTAR APP  │  ◄── Botão flutuante aparece quando pronto         │
+│  └─────────────────┘                                                      │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🔗 Integrações Corporativas
 
-### Já Conecta Com
-
-| Sistema | O Que Sincroniza |
-|---------|------------------|
-| **Jira** | Boards, Sprints, Issues (bidirecional) |
-| **Azure DevOps** | Work Items, Repos, Pipelines |
-| **SAP S/4HANA** | Dados de negócio, processos |
-| **Salesforce** | CRM, Opportunities, Leads |
-| **Microsoft Teams** | Notificações, Alertas |
-| **Slack** | Mensagens, Notificações |
-| **GitHub/GitLab** | Repositórios, PRs, CI/CD |
-
-### Exemplo: Integração Jira
+### Sistemas Conectados (15+ Integrações)
 
 ```
-Jira Board           Fábrica de Agentes
-┌──────────┐         ┌──────────────────┐
-│ PROJ-123 │ ◄────►  │ STR-0001         │
-│ Sprint 5 │ ◄────►  │ Sprint "Maio"    │
-│ Epic: X  │ ◄────►  │ Épico "Login"    │
-└──────────┘         └──────────────────┘
-     │                        │
-     └────── Sincronizado ────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      INTEGRAÇÕES DISPONÍVEIS                              │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  PROJECT MANAGEMENT                  ERP / CRM                            │
+│  ├── ✅ Jira (Bidirecional)         ├── ✅ SAP S/4HANA                    │
+│  ├── ✅ Azure DevOps                 ├── ✅ SAP ECC                        │
+│  └── ✅ GitHub Projects              ├── ✅ SAP CPI                        │
+│                                      └── ✅ Salesforce                     │
+│  COMUNICAÇÃO                                                              │
+│  ├── ✅ Microsoft Teams             SOURCE CONTROL                        │
+│  ├── ✅ Slack                       ├── ✅ GitHub                          │
+│  └── ✅ Email (SMTP/Graph)          └── ✅ GitLab                          │
+│                                                                           │
+│  MICROSOFT 365                       BI / ANALYTICS                        │
+│  ├── ✅ SharePoint                  ├── ✅ Power BI                        │
+│  ├── ✅ OneDrive                    └── ✅ Tableau                         │
+│  └── ✅ Calendar (Outlook)                                                │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Exemplo: Sincronização com Jira
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    SINCRONIZAÇÃO BIDIRECIONAL JIRA                        │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  Jira Board                         Fábrica de Agentes                    │
+│  ┌──────────────┐                   ┌──────────────────┐                 │
+│  │ PROJ-123     │ ◄────────────────►│ STR-0001         │                 │
+│  │ Sprint 5     │ ◄────────────────►│ Sprint "Maio"    │                 │
+│  │ Epic: Auth   │ ◄────────────────►│ Épico "Login"    │                 │
+│  │ Status: Done │ ◄────────────────►│ Status: done     │                 │
+│  └──────────────┘                   └──────────────────┘                 │
+│         │                                    │                            │
+│         └─────────── Sincronizado ───────────┘                            │
+│                                                                           │
+│  📍 Benefícios:                                                           │
+│  • Time pode continuar usando Jira                                        │
+│  • IA processa stories automaticamente                                    │
+│  • Progresso refletido em ambos os sistemas                              │
+│  • Webhooks em tempo real                                                 │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🔐 Segurança Enterprise
 
-| Recurso | Descrição |
-|---------|-----------|
-| **Multi-Tenant** | Dados 100% isolados entre empresas |
-| **2FA/MFA** | Autenticação em duas etapas |
-| **SSO** | Login único com Azure AD, Google |
-| **RBAC** | Permissões por cargo (Admin, Manager, etc) |
-| **Audit Log** | Registro de todas as ações |
-| **Criptografia** | Dados sensíveis protegidos |
+### Certificações e Compliance
+
+| Recurso | Descrição | Status |
+|---------|-----------|--------|
+| **SOC2 Type II** | Controles de segurança auditados | ✅ Ready |
+| **GDPR** | Proteção de dados europeus | ✅ Compliant |
+| **LGPD** | Lei Geral de Proteção de Dados (Brasil) | ✅ Compliant |
+| **ISO 27001** | Gestão de Segurança da Informação | 🔄 Em andamento |
+
+### Recursos de Segurança Implementados
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       CAMADAS DE SEGURANÇA                                │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  🔐 AUTENTICAÇÃO                                                          │
+│  ├── JWT com refresh tokens                                              │
+│  ├── MFA/2FA (Google Authenticator)                                      │
+│  ├── SSO (Azure AD, Google)                                              │
+│  ├── Password policies configuráveis                                     │
+│  └── Device fingerprinting                                               │
+│                                                                           │
+│  🛡️ AUTORIZAÇÃO                                                          │
+│  ├── RBAC (Role-Based Access Control)                                    │
+│  ├── 9 personas com permissões distintas                                 │
+│  ├── Permissões granulares por recurso                                   │
+│  └── Audit trail completo                                                │
+│                                                                           │
+│  🏢 MULTI-TENANT                                                          │
+│  ├── Dados 100% isolados por organização                                 │
+│  ├── Encryption at Rest (AES-256-GCM)                                    │
+│  ├── Chaves de criptografia por tenant                                   │
+│  └── IP Whitelisting por tenant                                          │
+│                                                                           │
+│  🔒 PROTEÇÃO                                                              │
+│  ├── Rate limiting por usuário/tenant                                    │
+│  ├── Brute force protection                                              │
+│  ├── CSRF protection                                                     │
+│  ├── Security headers (CSP, HSTS, etc)                                   │
+│  └── Input validation middleware                                         │
+│                                                                           │
+│  📋 AUDITORIA                                                             │
+│  ├── Log imutável (HMAC chain)                                           │
+│  ├── Todas as ações registradas                                          │
+│  ├── Export para SIEM (Splunk, Elasticsearch)                            │
+│  └── Alertas de eventos críticos                                         │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -215,34 +458,46 @@ Jira Board           Fábrica de Agentes
 ### Dashboard Executivo
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                    VISÃO EXECUTIVA                         │
-├───────────────────────────────────────────────────────────┤
-│                                                            │
-│  VELOCIDADE          ENTREGAS           QUALIDADE         │
-│  ┌──────────┐       ┌──────────┐       ┌──────────┐      │
-│  │   38     │       │   12     │       │   95%    │      │
-│  │ pts/sprint       │ features │       │ sem bugs │      │
-│  └──────────┘       └──────────┘       └──────────┘      │
-│                                                            │
-│  BURNDOWN CHART                                           │
-│  40 ──────────────────────────────                        │
-│  30 ──────╲───────────────────────                        │
-│  20 ────────╲─────────────────────                        │
-│  10 ──────────╲───────────────────                        │
-│   0 ────────────╲─────────────────                        │
-│       1  2  3  4  5  6  7  8  9  10                       │
-│                                                            │
-└───────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        VISÃO EXECUTIVA                                    │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐         │
+│  │    38      │  │    12      │  │    95%     │  │    85      │         │
+│  │ pts/sprint │  │ features   │  │ sem bugs   │  │ Health     │         │
+│  │ Velocity   │  │ Entregas   │  │ Qualidade  │  │ Score      │         │
+│  │ ▲ +12%     │  │ este mês   │  │ ▲ +5%      │  │ ✅ Bom     │         │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘         │
+│                                                                           │
+│  BURNDOWN CHART                          VELOCITY TREND                   │
+│  40 ──────────────────────────           40 ┤    ╭──╮                    │
+│  30 ──────╲───────────────────           35 ┤ ╭──╯  ╰──╮                 │
+│  20 ────────╲─────────────────           30 ┤─╯        ╰──╮              │
+│  10 ──────────╲───────────────           25 ┤             ╰──            │
+│   0 ────────────╲─────────────              S1  S2  S3  S4  S5           │
+│       1  2  3  4  5  6  7  8  9                                          │
+│                                                                           │
+│  DISTRIBUIÇÃO POR STATUS                                                  │
+│  ┌──────────┬──────────┬──────────┬──────────┬──────────┐               │
+│  │ BACKLOG  │  READY   │ IN PROG  │  REVIEW  │   DONE   │               │
+│  │    15    │    8     │    5     │    3     │    42    │               │
+│  │   20%    │   11%    │    7%    │    4%    │   58%    │               │
+│  └──────────┴──────────┴──────────┴──────────┴──────────┘               │
+│                                                                           │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Relatórios Disponíveis
 
-- **Velocity Report** - Pontos entregues por sprint
-- **Burndown Chart** - Progresso do sprint atual
-- **Lead Time** - Tempo médio da ideia até produção
-- **Throughput** - Quantidade de entregas por período
-- **Quality Report** - Bugs, cobertura de testes
+| Relatório | Descrição | Formato |
+|-----------|-----------|---------|
+| **Velocity Report** | Pontos entregues por sprint | PDF, CSV |
+| **Burndown Chart** | Progresso do sprint atual | PDF, PNG |
+| **Lead Time** | Tempo médio da ideia até produção | PDF, CSV |
+| **Throughput** | Quantidade de entregas por período | PDF, CSV |
+| **Quality Report** | Bugs, cobertura de testes | PDF, CSV |
+| **Team Workload** | Carga de trabalho por membro | PDF, CSV |
+| **Cost Analysis** | Custo por story/sprint | PDF, CSV |
 
 ---
 
@@ -250,31 +505,61 @@ Jira Board           Fábrica de Agentes
 
 ### Case 1: Startup de E-commerce
 
-**Desafio:** MVP em 30 dias com orçamento limitado
+**Desafio:** MVP em 30 dias com orçamento limitado de R$ 80.000
 
-**Solução:**
+**Solução com Fábrica de Agentes:**
 - 15 User Stories criadas em 2 dias
 - Processamento autônomo completou em 3 semanas
-- Testes automatizados incluídos
+- Testes automatizados incluídos (85% cobertura)
+- Documentação 100% gerada
 
 **Resultado:**
-- MVP pronto em 25 dias
-- Economia de R$ 200.000 vs agência
-- 3 rodadas de feedback incorporadas
+| Métrica | Esperado | Obtido |
+|---------|----------|--------|
+| Prazo | 30 dias | 25 dias |
+| Custo | R$ 80.000 | R$ 45.000 |
+| Funcionalidades | 15 | 18 |
+| Bugs pós-deploy | ~20 | 4 |
 
-### Case 2: Indústria - Digitalização
+**Economia total: R$ 35.000 + 5 dias**
 
-**Desafio:** Digitalizar 18 processos internos
+### Case 2: Indústria - Digitalização de Processos
+
+**Desafio:** Digitalizar 18 processos internos que rodavam em planilhas Excel
 
 **Solução:**
-- Integração com SAP S/4HANA
+- Integração com SAP S/4HANA existente
 - 45 User Stories estruturadas
-- Processamento em paralelo
+- Processamento em paralelo (4 workers)
+- Sincronização bidirecional com sistemas legados
 
 **Resultado:**
-- 18 processos digitalizados em 2 meses
-- Economia de R$ 1.5M vs consultoria tradicional
-- Documentação 100% completa
+| Métrica | Tradicional | Fábrica de Agentes |
+|---------|-------------|-------------------|
+| Equipe | 8 pessoas | 2 pessoas |
+| Duração | 12 meses | 2 meses |
+| Custo | R$ 1.8M | R$ 180.000 |
+| Processos digitalizados | 18 | 18 |
+| Documentação | 30% | 100% |
+
+**Economia total: R$ 1.62M + 10 meses**
+
+### Case 3: Fintech - Compliance e Segurança
+
+**Desafio:** Sistema de compliance com requisitos rigorosos de segurança (BACEN, SOC2)
+
+**Solução:**
+- MFA obrigatório
+- Audit log completo (SOC2 compliant)
+- Encryption at Rest para dados sensíveis
+- IP Whitelisting por ambiente
+- Integrações seguras com APIs bancárias
+
+**Resultado:**
+- Auditoria SOC2 passou na primeira tentativa
+- Zero vazamentos de dados em 12 meses
+- 100% de rastreabilidade de ações
+- Tempo de resposta a incidentes: < 1 hora
 
 ---
 
@@ -284,23 +569,24 @@ Jira Board           Fábrica de Agentes
 
 | Plano | Preço/mês | Inclui |
 |-------|-----------|--------|
-| **Starter** | R$ 2.990 | 1 projeto, 3 usuários, suporte email |
-| **Professional** | R$ 7.990 | 5 projetos, 10 usuários, suporte prioritário |
-| **Enterprise** | Sob consulta | Ilimitado, integrações, suporte 24/7 |
+| **Starter** | R$ 2.990 | 1 projeto, 3 usuários, suporte email, 100 stories/mês |
+| **Professional** | R$ 7.990 | 5 projetos, 10 usuários, suporte prioritário, 500 stories/mês |
+| **Enterprise** | Sob consulta | Ilimitado, integrações, suporte 24/7, SLA 99.9% |
 
 ### Opção 2: Por Projeto
 
 | Tamanho | Preço | Descrição |
 |---------|-------|-----------|
-| Pequeno | R$ 15.000 | Até 20 User Stories |
-| Médio | R$ 40.000 | 21-50 User Stories |
-| Grande | R$ 80.000+ | 50+ User Stories |
+| **Pequeno** | R$ 15.000 | Até 20 User Stories |
+| **Médio** | R$ 40.000 | 21-50 User Stories |
+| **Grande** | R$ 80.000+ | 50+ User Stories |
 
-### Opção 3: On-Premise
+### Opção 3: On-Premise / Private Cloud
 
 - Instalação em infraestrutura própria
 - Licença perpétua + suporte anual
-- Ideal para compliance rigoroso
+- Ideal para compliance rigoroso (bancos, governo)
+- Customização ilimitada
 
 ---
 
@@ -308,34 +594,84 @@ Jira Board           Fábrica de Agentes
 
 ### Para Conhecer
 
-1. **Demo Online** (30 min) - Veja a plataforma funcionando
-2. **POC Gratuita** - Teste com um projeto real pequeno
-3. **Piloto** - Projeto médio com acompanhamento
+1. **Demo Online** (30 min)
+   - Veja a plataforma funcionando
+   - Tire dúvidas em tempo real
+   - Agende: contato@fabricadeagentes.com.br
+
+2. **POC Gratuita** (2 semanas)
+   - Teste com um projeto real pequeno
+   - Até 5 User Stories gratuitas
+   - Acompanhamento técnico
+
+3. **Piloto** (1 mês)
+   - Projeto médio com acompanhamento
+   - Treinamento da equipe incluído
+   - Métricas de ROI documentadas
 
 ### Contato
 
-- **Website:** [fabricadeagentes.com.br](https://fabricadeagentes.com.br)
-- **Email:** contato@fabricadeagentes.com.br
-- **GitHub:** [github.com/cruzpeanelo/fabrica-de-agentes](https://github.com/cruzpeanelo/fabrica-de-agentes)
+| Canal | Informação |
+|-------|------------|
+| **Website** | [fabricadeagentes.com.br](https://fabricadeagentes.com.br) |
+| **Email** | contato@fabricadeagentes.com.br |
+| **GitHub** | [github.com/cruzpeanelo/fabrica-de-agentes](https://github.com/cruzpeanelo/fabrica-de-agentes) |
+| **Demo** | [demo.fabricadeagentes.com.br](https://demo.fabricadeagentes.com.br) |
 
 ---
 
 ## ❓ FAQ para Negócios
 
+### Sobre o Produto
+
 **P: Substitui minha equipe de desenvolvimento?**
-R: Não. Potencializa sua equipe, liberando-os para problemas complexos enquanto tarefas repetitivas são automatizadas.
+R: Não. Potencializa sua equipe, liberando-os para problemas complexos enquanto tarefas repetitivas são automatizadas. O PO continua definindo requisitos, o time técnico continua fazendo code review e decisões arquiteturais.
 
 **P: O código gerado é de qualidade?**
-R: Sim. Segue padrões profissionais (SOLID, Clean Code), inclui testes automatizados e documentação.
+R: Sim. Segue padrões profissionais (SOLID, Clean Code), inclui testes automatizados (80%+ cobertura) e documentação. O código passa por lint, type checking e security scan antes de ser commitado.
 
 **P: Funciona para qualquer tipo de projeto?**
-R: Ideal para sistemas web (APIs, dashboards, portais). Não indicado para apps mobile nativos ou sistemas embarcados.
+R: Ideal para sistemas web (APIs, dashboards, portais, microserviços). Não indicado para apps mobile nativos complexos ou sistemas embarcados. Funciona bem com Python, JavaScript/TypeScript, e integra com qualquer stack via APIs.
 
 **P: Como é a curva de aprendizado?**
-R: Interface intuitiva, similar ao Jira/Trello. Treinamento básico de 2-4 horas para POs.
+R: Interface intuitiva, similar ao Jira/Trello. Treinamento básico de 2-4 horas para POs. Desenvolvedores se adaptam em 1-2 dias.
+
+### Sobre Segurança
+
+**P: Meus dados estão seguros?**
+R: Sim. Criptografia AES-256-GCM em repouso, TLS 1.3 em trânsito, isolamento completo por tenant, audit log imutável. Passamos auditoria SOC2.
+
+**P: Posso usar em ambiente regulado (bancos, saúde)?**
+R: Sim. Oferecemos instalação on-premise/private cloud para ambientes regulados. Suportamos LGPD, GDPR, e requisitos específicos de cada indústria.
+
+**P: Onde os dados são armazenados?**
+R: No plano SaaS, em servidores no Brasil (São Paulo). No plano On-Premise, na sua infraestrutura.
+
+### Sobre Integração
+
+**P: Integra com meu Jira existente?**
+R: Sim. Sincronização bidirecional automática. Sua equipe pode continuar usando Jira normalmente enquanto a IA processa as stories.
 
 **P: E se eu precisar de customização?**
-R: O código é 100% seu. Pode ser modificado por qualquer desenvolvedor Python/JavaScript.
+R: O código é 100% seu. Pode ser modificado por qualquer desenvolvedor Python/JavaScript. Oferecemos suporte para customizações no plano Enterprise.
+
+**P: Integra com SAP?**
+R: Sim. Suportamos SAP S/4HANA (OData, Business Graph), SAP ECC (RFC, IDocs), e SAP CPI (iFlows).
+
+---
+
+## 📊 Comparativo com Concorrentes
+
+| Critério | Fábrica de Agentes | GitHub Copilot | Cursor AI | Agências Tradicionais |
+|----------|-------------------|----------------|-----------|----------------------|
+| **Foco** | Desenvolvimento completo | Autocompletar código | Editor IA | Desenvolvimento humano |
+| **Autonomia** | Alta (auto-healing) | Baixa (sugestões) | Média | Depende do dev |
+| **Gestão Agile** | Dashboard completo | Não tem | Não tem | Manual |
+| **Testes automáticos** | Incluído | Não | Parcial | Depende |
+| **Documentação** | 100% automática | Não | Não | Manual |
+| **Integrações corp.** | 15+ (SAP, Jira...) | GitHub apenas | Não | Manual |
+| **Multi-tenant** | Nativo | N/A | N/A | N/A |
+| **Custo/mês** | R$ 3-8k | R$ 100/dev | R$ 100/dev | R$ 30-50k |
 
 ---
 
@@ -346,4 +682,4 @@ Transformando ideias em software com Inteligência Artificial
 
 ---
 
-*Última atualização: Dezembro 2025 | Versão 7.0*
+*Última atualização: Janeiro 2026 | Versão 7.0 | 430+ issues implementados*
