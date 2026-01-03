@@ -119,10 +119,12 @@ class Orchestrator:
         if self.config.skills_enabled:
             try:
                 from factory.skills.skill_manager import SkillManager
-                self.skill_manager = SkillManager(str(self.base_path))
+                self.skill_manager = SkillManager()  # Nao aceita argumentos
                 print("  [OK] Skills carregadas")
-            except ImportError:
-                print("  [--] Skills nao disponiveis")
+            except ImportError as e:
+                print(f"  [--] Skills nao disponiveis: {e}")
+            except Exception as e:
+                print(f"  [!!] Erro ao carregar Skills: {e}")
 
         # Tentar carregar Hook Manager
         if self.config.hooks_enabled:
@@ -130,8 +132,10 @@ class Orchestrator:
                 from factory.hooks.hook_manager import HookManager
                 self.hook_manager = HookManager(str(self.base_path))
                 print("  [OK] Hooks carregados")
-            except ImportError:
-                print("  [--] Hooks nao disponiveis")
+            except ImportError as e:
+                print(f"  [--] Hooks nao disponiveis: {e}")
+            except Exception as e:
+                print(f"  [!!] Erro ao carregar Hooks: {e}")
 
         # Tentar carregar MCP Manager
         if self.config.mcp_enabled:
@@ -139,37 +143,33 @@ class Orchestrator:
                 from factory.mcp.mcp_manager import MCPManager
                 self.mcp_manager = MCPManager(str(self.base_path))
                 print("  [OK] MCP carregado")
-            except ImportError:
-                print("  [--] MCP nao disponivel")
+            except ImportError as e:
+                print(f"  [--] MCP nao disponivel: {e}")
+            except Exception as e:
+                print(f"  [!!] Erro ao carregar MCP: {e}")
 
     def trigger_hook(self, event: str, context: Dict = None):
         """Dispara um hook se disponivel."""
         if self.hook_manager:
             self.hook_manager.trigger(event, context or {})
 
-    def execute_skill(self, skill_name: str, args: str = "") -> bool:
+    def execute_skill(self, skill_id: str, params: Dict = None) -> Dict:
         """Executa uma skill se disponivel."""
         if self.skill_manager:
-            return self.skill_manager.execute(skill_name, args)
-        return False
+            return self.skill_manager.execute_skill(skill_id, params)
+        return {"success": False, "error": "SkillManager nao disponivel"}
 
     def print_banner(self):
         """Exibe banner do orquestrador."""
         banner = """
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║   ███████╗ █████╗ ██████╗ ██████╗ ██╗ ██████╗ █████╗         ║
-║   ██╔════╝██╔══██╗██╔══██╗██╔══██╗██║██╔════╝██╔══██╗        ║
-║   █████╗  ███████║██████╔╝██████╔╝██║██║     ███████║        ║
-║   ██╔══╝  ██╔══██║██╔══██╗██╔══██╗██║██║     ██╔══██║        ║
-║   ██║     ██║  ██║██████╔╝██║  ██║██║╚██████╗██║  ██║        ║
-║   ╚═╝     ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝        ║
-║                                                               ║
-║   DE AGENTES - Sistema de Desenvolvimento Autonomo            ║
-║                                                               ║
-║   [ORCH] ORQUESTRADOR - Tech Lead do Squad                   ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
++---------------------------------------------------------------+
+|                                                               |
+|   FABRICA DE AGENTES                                          |
+|   Sistema de Desenvolvimento Autonomo                         |
+|                                                               |
+|   [ORCH] ORQUESTRADOR - Tech Lead do Squad                    |
+|                                                               |
++---------------------------------------------------------------+
         """
         print(banner)
         print(f"  Iniciado em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -180,34 +180,32 @@ class Orchestrator:
     def select_mode_menu(self) -> str:
         """Exibe menu de selecao de modo e retorna o modo escolhido."""
         menu = """
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║              SELECIONE O MODO DE OPERACAO                     ║
-║                                                               ║
-╠═══════════════════════════════════════════════════════════════╣
-║                                                               ║
-║   [1] MODO AUTONOMO                                           ║
-║       • Agentes trabalham sem intervencao humana              ║
-║       • Commits automaticos apos cada task                    ║
-║       • Handoffs automaticos entre agentes                    ║
-║       • Monitoramento continuo de issues                      ║
-║       • Ideal para: desenvolvimento noturno/fim de semana     ║
-║                                                               ║
-║   [2] MODO SUPERVISIONADO                                     ║
-║       • Pede confirmacao antes de commits                     ║
-║       • Review antes de handoffs                              ║
-║       • Logs detalhados para auditoria                        ║
-║       • Pausas em acoes criticas                              ║
-║       • Ideal para: primeiras execucoes, debug                ║
-║                                                               ║
-║   [3] MODO INTERATIVO                                         ║
-║       • Menu manual para cada acao                            ║
-║       • Controle total do usuario                             ║
-║       • Spawn manual de agentes                               ║
-║       • Visualizacao de status em tempo real                  ║
-║       • Ideal para: aprendizado, tasks especificas            ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
++---------------------------------------------------------------+
+|              SELECIONE O MODO DE OPERACAO                     |
++---------------------------------------------------------------+
+
+   [1] MODO AUTONOMO
+       - Agentes trabalham sem intervencao humana
+       - Commits automaticos apos cada task
+       - Handoffs automaticos entre agentes
+       - Monitoramento continuo de issues
+       - Ideal para: desenvolvimento noturno/fim de semana
+
+   [2] MODO SUPERVISIONADO
+       - Pede confirmacao antes de commits
+       - Review antes de handoffs
+       - Logs detalhados para auditoria
+       - Pausas em acoes criticas
+       - Ideal para: primeiras execucoes, debug
+
+   [3] MODO INTERATIVO
+       - Menu manual para cada acao
+       - Controle total do usuario
+       - Spawn manual de agentes
+       - Visualizacao de status em tempo real
+       - Ideal para: aprendizado, tasks especificas
+
++---------------------------------------------------------------+
         """
         print(menu)
 
@@ -266,9 +264,13 @@ class Orchestrator:
 
         # Mostrar skills se disponiveis
         if self.skill_manager:
-            skills = self.skill_manager.list_skills()
-            if skills:
-                print("\n  Skills disponiveis:", ", ".join(skills))
+            try:
+                skills = self.skill_manager.get_all_skills()
+                if skills:
+                    skill_names = [s.get("name", s.get("skill_id", "?")) for s in skills[:5]]
+                    print(f"\n  Skills disponiveis: {len(skills)} ({', '.join(skill_names)}...)")
+            except Exception:
+                pass  # Ignora erros de skills
 
         # Mostrar MCPs se disponiveis
         if self.mcp_manager:
