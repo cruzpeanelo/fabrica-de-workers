@@ -10,6 +10,12 @@ Endpoints:
 - POST /api/orchestrator/terminate  - Terminar agente
 - GET  /api/orchestrator/mode       - Modo atual
 - PUT  /api/orchestrator/mode       - Alterar modo
+
+Runtime Duration Endpoints:
+- GET  /api/orchestrator/runtime/status  - Status do tempo de execucao
+- POST /api/orchestrator/runtime/extend  - Estender tempo de execucao
+- POST /api/orchestrator/runtime/stop    - Parar execucao graciosamente
+- GET  /api/orchestrator/runtime/presets - Listar durações pre-definidas
 """
 
 from flask import Blueprint, request, jsonify
@@ -21,6 +27,11 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from factory.core.terminal_spawner import get_spawner, AgentType
+from factory.core.runtime_manager import (
+    RuntimeManager, RuntimeConfig, RuntimeStatus,
+    parse_duration, format_duration, format_time_remaining,
+    DURATION_PRESETS, get_runtime_manager, reset_runtime_manager
+)
 
 orchestrator_bp = Blueprint('orchestrator', __name__, url_prefix='/api/orchestrator')
 
@@ -29,7 +40,11 @@ _orchestrator_state = {
     "running": False,
     "mode": "supervised",
     "started_at": None,
+    "runtime_duration": None,  # segundos ou None para ilimitado
 }
+
+# RuntimeManager global para controle de duracao
+_runtime: Optional[RuntimeManager] = None
 
 
 @orchestrator_bp.route('/status', methods=['GET'])
@@ -243,6 +258,225 @@ def set_mode():
         "success": True,
         "message": f"Modo alterado para {mode}",
         "data": {"mode": mode}
+    })
+
+
+# =============================================================================
+# Runtime Duration Endpoints
+# =============================================================================
+
+@orchestrator_bp.route('/runtime/status', methods=['GET'])
+def get_runtime_status():
+    """
+    Retorna status do tempo de execucao.
+
+    Returns:
+        JSON com status, tempo decorrido, tempo restante, progresso
+    """
+    global _runtime
+
+    if _runtime is None or not _runtime.is_running():
+        return jsonify({
+            "success": True,
+            "data": {
+                "status": "stopped",
+                "is_running": False,
+                "runtime_duration": _orchestrator_state.get("runtime_duration"),
+                "is_unlimited": _orchestrator_state.get("runtime_duration") is None,
+                "message": "Runtime nao iniciado"
+            }
+        })
+
+    status = _runtime.get_status_dict()
+    return jsonify({
+        "success": True,
+        "data": status
+    })
+
+
+@orchestrator_bp.route('/runtime/extend', methods=['POST'])
+def extend_runtime():
+    """
+    Estende tempo de execucao.
+
+    Body:
+        duration: Duracao adicional (ex: "1h", "30m", "3600")
+
+    Returns:
+        JSON com novo tempo de termino
+    """
+    global _runtime
+
+    if _runtime is None or not _runtime.is_running():
+        return jsonify({
+            "success": False,
+            "error": "Runtime nao esta em execucao"
+        }), 400
+
+    data = request.get_json() or {}
+    duration_str = data.get("duration", "1h")
+
+    additional_seconds = parse_duration(duration_str)
+    if additional_seconds is None or additional_seconds <= 0:
+        return jsonify({
+            "success": False,
+            "error": f"Duracao invalida: {duration_str}"
+        }), 400
+
+    _runtime.extend_duration(additional_seconds)
+
+    return jsonify({
+        "success": True,
+        "message": f"Runtime estendido em {format_duration(additional_seconds)}",
+        "data": {
+            "additional_seconds": additional_seconds,
+            "new_end_time": _runtime.end_time.isoformat() if _runtime.end_time else None,
+            "new_remaining": _runtime.check_time_remaining(),
+            "new_remaining_formatted": format_time_remaining(_runtime.check_time_remaining())
+        }
+    })
+
+
+@orchestrator_bp.route('/runtime/stop', methods=['POST'])
+def stop_runtime():
+    """
+    Para execucao graciosamente.
+
+    Returns:
+        JSON com resumo da sessao
+    """
+    global _runtime
+
+    if _runtime is None:
+        return jsonify({
+            "success": False,
+            "error": "Runtime nao iniciado"
+        }), 400
+
+    summary = _runtime.stop()
+
+    return jsonify({
+        "success": True,
+        "message": "Runtime parado graciosamente",
+        "data": summary
+    })
+
+
+@orchestrator_bp.route('/runtime/presets', methods=['GET'])
+def get_runtime_presets():
+    """
+    Lista durações pre-definidas disponiveis.
+
+    Returns:
+        JSON com lista de presets
+    """
+    presets = []
+    for name, seconds in DURATION_PRESETS.items():
+        presets.append({
+            "name": name,
+            "seconds": seconds,
+            "formatted": format_duration(seconds) if seconds else "ilimitado",
+            "is_unlimited": seconds is None
+        })
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "presets": presets,
+            "default": "unlimited"
+        }
+    })
+
+
+@orchestrator_bp.route('/runtime/start', methods=['POST'])
+def start_runtime():
+    """
+    Inicia runtime com duracao especificada.
+
+    Body:
+        duration: Duracao (ex: "2h", "8h", "unlimited")
+        graceful_delay: Segundos para shutdown gracioso (default: 60)
+
+    Returns:
+        JSON com status do runtime
+    """
+    global _runtime
+
+    # Parar runtime existente se houver
+    if _runtime and _runtime.is_running():
+        _runtime.stop()
+
+    data = request.get_json() or {}
+    duration_str = data.get("duration", "unlimited")
+    graceful_delay = data.get("graceful_delay", 60)
+
+    duration_seconds = parse_duration(duration_str)
+
+    # Criar configuracao
+    config = RuntimeConfig(
+        duration_seconds=duration_seconds,
+        graceful_shutdown_delay=graceful_delay,
+        warn_before_shutdown=300,
+        warn_intervals=[300, 60, 30, 10]
+    )
+
+    # Criar e iniciar runtime
+    _runtime = RuntimeManager(config)
+    _runtime.start()
+
+    # Atualizar estado global
+    _orchestrator_state["runtime_duration"] = duration_seconds
+
+    return jsonify({
+        "success": True,
+        "message": f"Runtime iniciado por {format_duration(duration_seconds)}",
+        "data": _runtime.get_status_dict()
+    })
+
+
+@orchestrator_bp.route('/runtime/pause', methods=['POST'])
+def pause_runtime():
+    """Pausa o runtime (tempo nao conta enquanto pausado)."""
+    global _runtime
+
+    if _runtime is None or not _runtime.is_running():
+        return jsonify({
+            "success": False,
+            "error": "Runtime nao esta em execucao"
+        }), 400
+
+    _runtime.pause()
+
+    return jsonify({
+        "success": True,
+        "message": "Runtime pausado",
+        "data": _runtime.get_status_dict()
+    })
+
+
+@orchestrator_bp.route('/runtime/resume', methods=['POST'])
+def resume_runtime():
+    """Retoma o runtime apos pausa."""
+    global _runtime
+
+    if _runtime is None:
+        return jsonify({
+            "success": False,
+            "error": "Runtime nao iniciado"
+        }), 400
+
+    if _runtime.status != RuntimeStatus.PAUSED:
+        return jsonify({
+            "success": False,
+            "error": "Runtime nao esta pausado"
+        }), 400
+
+    _runtime.resume()
+
+    return jsonify({
+        "success": True,
+        "message": "Runtime retomado",
+        "data": _runtime.get_status_dict()
     })
 
 

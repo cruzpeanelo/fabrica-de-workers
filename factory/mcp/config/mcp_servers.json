@@ -1,0 +1,19 @@
+{
+  "servers": [
+    {
+      "name": "playwright",
+      "command": "python",
+      "args": [
+        "C:\\Users\\lcruz\\Fabrica de Agentes\\factory\\mcp\\playwright\\server.py"
+      ],
+      "env": {
+        "HEADLESS": "true"
+      },
+      "cwd": null,
+      "auto_start": false,
+      "enabled": true,
+      "description": "Automacao de browser com Playwright"
+    }
+  ],
+  "updated_at": "2026-01-03T18:55:07.592383"
+}

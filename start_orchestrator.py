@@ -12,11 +12,14 @@ Este script inicia o Agente Orquestrador que:
 7. Gerencia o ciclo de vida dos terminais
 
 Uso:
-    python start_orchestrator.py                    # Pergunta modo ao iniciar
-    python start_orchestrator.py --mode autonomous  # Modo autonomo direto
-    python start_orchestrator.py --mode supervised  # Modo supervisionado
-    python start_orchestrator.py --mode interactive # Modo interativo
-    python start_orchestrator.py --spawn BACK       # Spawna agente especifico
+    python start_orchestrator.py                        # Pergunta modo ao iniciar
+    python start_orchestrator.py --mode autonomous      # Modo autonomo direto
+    python start_orchestrator.py --mode supervised      # Modo supervisionado
+    python start_orchestrator.py --mode interactive     # Modo interativo
+    python start_orchestrator.py --spawn BACK           # Spawna agente especifico
+    python start_orchestrator.py -m autonomous -d 2h    # Autonomo por 2 horas
+    python start_orchestrator.py -m autonomous -d 8h    # Autonomo por 8 horas
+    python start_orchestrator.py -m autonomous -d 24h   # Autonomo por 24 horas
 """
 
 import argparse
@@ -34,6 +37,11 @@ from dataclasses import dataclass, field
 sys.path.insert(0, str(Path(__file__).parent))
 
 from factory.core.terminal_spawner import TerminalSpawner, TaskMessage, create_task
+from factory.core.runtime_manager import (
+    RuntimeManager, RuntimeConfig, RuntimeStatus,
+    parse_duration, format_duration, format_time_remaining,
+    DURATION_PRESETS
+)
 
 
 # Diretorio base do projeto
@@ -94,6 +102,12 @@ class OrchestratorConfig:
     hooks_enabled: bool = True
     mcp_enabled: bool = True
 
+    # Runtime Duration - duracao da execucao autonoma
+    runtime_duration: Optional[int] = None  # segundos, None = ilimitado
+    graceful_shutdown_delay: int = 60  # segundos para cleanup
+    warn_before_shutdown: int = 300  # aviso 5 min antes
+    warn_intervals: List[int] = field(default_factory=lambda: [300, 60, 30, 10])
+
 
 class Orchestrator:
     """Agente Orquestrador - Coordenador do Squad."""
@@ -104,6 +118,9 @@ class Orchestrator:
         self.running = False
         self.config = config or OrchestratorConfig()
         self.mode = self.config.mode
+
+        # Runtime Manager para controle de duracao
+        self.runtime: Optional[RuntimeManager] = None
 
         # Managers (serao carregados se disponiveis)
         self.skill_manager = None
@@ -184,42 +201,57 @@ class Orchestrator:
 |              SELECIONE O MODO DE OPERACAO                     |
 +---------------------------------------------------------------+
 
-   [1] MODO AUTONOMO
-       - Agentes trabalham sem intervencao humana
-       - Commits automaticos apos cada task
-       - Handoffs automaticos entre agentes
-       - Monitoramento continuo de issues
-       - Ideal para: desenvolvimento noturno/fim de semana
+   [1] AUTONOMO por 1 hora
+   [2] AUTONOMO por 2 horas
+   [3] AUTONOMO por 4 horas
+   [4] AUTONOMO por 8 horas (jornada de trabalho)
+   [5] AUTONOMO por 12 horas
+   [6] AUTONOMO por 24 horas
+   [7] AUTONOMO ilimitado
 
-   [2] MODO SUPERVISIONADO
+   [8] SUPERVISIONADO
        - Pede confirmacao antes de commits
        - Review antes de handoffs
-       - Logs detalhados para auditoria
-       - Pausas em acoes criticas
-       - Ideal para: primeiras execucoes, debug
 
-   [3] MODO INTERATIVO
+   [9] INTERATIVO
        - Menu manual para cada acao
        - Controle total do usuario
-       - Spawn manual de agentes
-       - Visualizacao de status em tempo real
-       - Ideal para: aprendizado, tasks especificas
 
 +---------------------------------------------------------------+
         """
         print(menu)
 
         while True:
-            choice = input("\n  Escolha o modo [1/2/3]: ").strip()
+            choice = input("\n  Escolha o modo [1-9]: ").strip()
 
+            # Modos autonomos com duracao
             if choice == "1":
+                self.config.runtime_duration = 3600  # 1h
                 return OperationMode.AUTONOMOUS
             elif choice == "2":
-                return OperationMode.SUPERVISED
+                self.config.runtime_duration = 7200  # 2h
+                return OperationMode.AUTONOMOUS
             elif choice == "3":
+                self.config.runtime_duration = 14400  # 4h
+                return OperationMode.AUTONOMOUS
+            elif choice == "4":
+                self.config.runtime_duration = 28800  # 8h
+                return OperationMode.AUTONOMOUS
+            elif choice == "5":
+                self.config.runtime_duration = 43200  # 12h
+                return OperationMode.AUTONOMOUS
+            elif choice == "6":
+                self.config.runtime_duration = 86400  # 24h
+                return OperationMode.AUTONOMOUS
+            elif choice == "7":
+                self.config.runtime_duration = None  # ilimitado
+                return OperationMode.AUTONOMOUS
+            elif choice == "8":
+                return OperationMode.SUPERVISED
+            elif choice == "9":
                 return OperationMode.INTERACTIVE
             else:
-                print("  Opcao invalida. Digite 1, 2 ou 3.")
+                print("  Opcao invalida. Digite um numero de 1 a 9.")
 
     def confirm_action(self, action: str, details: str = "") -> bool:
         """Pede confirmacao do usuario no modo supervisionado."""
@@ -246,6 +278,14 @@ class Orchestrator:
         name, desc = mode_info.get(self.mode, ("DESCONHECIDO", ""))
         print(f"\n  Modo: {name}")
         print(f"  {desc}")
+
+        # Mostrar duracao se autonomo
+        if self.mode == OperationMode.AUTONOMOUS:
+            duration = self.config.runtime_duration
+            if duration:
+                print(f"  Duracao: {format_duration(duration)}")
+            else:
+                print("  Duracao: ILIMITADA (Ctrl+C para parar)")
         print()
 
     def print_status(self):
@@ -255,6 +295,12 @@ class Orchestrator:
         print("\n" + "="*60)
         print(" STATUS DOS AGENTES")
         print("="*60)
+
+        # Mostrar runtime info se disponivel
+        if self.runtime and self.runtime.is_running():
+            status = self.runtime.get_status_dict()
+            print(f"  {self.runtime.print_status_line()}")
+            print()
 
         if terminals:
             for agent, info in terminals.items():
@@ -553,22 +599,124 @@ class Orchestrator:
             else:
                 print(f"Falha ao parar {name}")
 
+    def _graceful_shutdown(self):
+        """Executa shutdown gracioso."""
+        print("\n" + "="*60)
+        print(" INICIANDO SHUTDOWN GRACIOSO")
+        print("="*60)
+
+        # Verificar agentes ativos
+        terminals = self.spawner.get_active_terminals()
+        if terminals:
+            print(f"\n  Aguardando {len(terminals)} agentes...")
+            delay = self.config.graceful_shutdown_delay
+
+            # Dar tempo para agentes terminarem
+            for i in range(delay):
+                remaining = self.spawner.get_active_terminals()
+                if not remaining:
+                    print("  Todos os agentes finalizados.")
+                    break
+                print(f"\r  Aguardando... {delay - i}s restantes", end="", flush=True)
+                time.sleep(1)
+
+            # Forcar termino se ainda houver agentes
+            remaining = self.spawner.get_active_terminals()
+            if remaining:
+                print(f"\n  Terminando {len(remaining)} agentes restantes...")
+                self.spawner.terminate_all()
+
+        # Salvar estado
+        if self.runtime:
+            summary = self.runtime.stop()
+            self._print_session_summary(summary)
+
+        # Trigger hook
+        self.trigger_hook("on_shutdown", {"graceful": True})
+
+    def _print_session_summary(self, summary: Dict):
+        """Imprime resumo da sessao."""
+        print("\n" + "="*60)
+        print(" RESUMO DA SESSAO")
+        print("="*60)
+        print(f"  Duracao configurada: {summary.get('duration_configured', 'N/A')}")
+        print(f"  Duracao real: {summary.get('duration_actual', 'N/A')}")
+        print(f"  Inicio: {summary.get('started_at', 'N/A')}")
+        print(f"  Fim: {summary.get('ended_at', 'N/A')}")
+
+        stats = summary.get('stats', {})
+        if stats:
+            print(f"\n  Ciclos executados: {stats.get('cycles_completed', 0)}")
+            print(f"  Tasks processadas: {stats.get('tasks_processed', 0)}")
+            print(f"  Issues tratadas: {stats.get('issues_handled', 0)}")
+            print(f"  Agentes spawnados: {stats.get('agents_spawned', 0)}")
+            print(f"  Erros: {stats.get('errors_count', 0)}")
+
+        print("="*60 + "\n")
+
     def run_autonomous(self):
-        """Executa modo autonomo."""
+        """Executa modo autonomo com controle de duracao."""
+        # Configurar RuntimeManager
+        runtime_config = RuntimeConfig(
+            duration_seconds=self.config.runtime_duration,
+            graceful_shutdown_delay=self.config.graceful_shutdown_delay,
+            warn_before_shutdown=self.config.warn_before_shutdown,
+            warn_intervals=self.config.warn_intervals,
+            state_file=str(STATE_PATH / "runtime_state.json")
+        )
+        self.runtime = RuntimeManager(runtime_config)
+
+        # Registrar callbacks
+        def on_warning(remaining: int):
+            duration_str = format_time_remaining(remaining)
+            print(f"\n  [!] AVISO: {duration_str} restantes para encerramento!")
+
+        self.runtime.on_warning(on_warning)
+
+        # Iniciar runtime
+        self.runtime.start()
+
+        # Exibir informacoes de inicio
         print("\n" + "="*60)
         print(" MODO AUTONOMO INICIADO")
-        print(" Pressione Ctrl+C para parar")
+        print("="*60)
+        print(f"  Inicio: {self.runtime.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+        if self.config.runtime_duration:
+            print(f"  Duracao: {format_duration(self.config.runtime_duration)}")
+            print(f"  Termino previsto: {self.runtime.end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            print("  Duracao: ILIMITADA")
+            print("  Pressione Ctrl+C para parar")
+
         print("="*60 + "\n")
 
         self.running = True
         poll_interval = self.config.poll_interval
+        cycle = 0
 
         try:
             while self.running:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Verificando...")
+                cycle += 1
+
+                # Verificar se deve encerrar por tempo
+                if self.runtime.should_shutdown():
+                    print("\n[!] Tempo de execucao atingido!")
+                    self._graceful_shutdown()
+                    break
+
+                # Verificar avisos de tempo
+                self.runtime.check_warnings()
+
+                # Log do ciclo
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                print(f"\n[{timestamp}] Ciclo #{cycle}")
 
                 # Trigger hook de ciclo
-                self.trigger_hook("on_cycle", {"timestamp": datetime.now().isoformat()})
+                self.trigger_hook("on_cycle", {
+                    "timestamp": datetime.now().isoformat(),
+                    "cycle": cycle
+                })
 
                 # Verificar resultados de agentes
                 self.check_results()
@@ -576,18 +724,29 @@ class Orchestrator:
                 # Limpar terminais completados
                 self.spawner.cleanup_completed()
 
-                # TODO: Aqui seria a integracao com GitHub para buscar issues
-                # Por enquanto, apenas monitora
+                # Atualizar estatisticas
+                self.runtime.increment_stat("cycles_completed")
 
+                # Mostrar status
                 self.print_status()
 
-                print(f"Proxima verificacao em {poll_interval}s...")
-                time.sleep(poll_interval)
+                # Aguardar proximo ciclo
+                remaining = self.runtime.check_time_remaining()
+                if remaining is not None and remaining < poll_interval:
+                    # Ajustar intervalo se proximo do fim
+                    wait_time = min(remaining, poll_interval)
+                else:
+                    wait_time = poll_interval
+
+                if wait_time > 0:
+                    print(f"Proxima verificacao em {wait_time}s...")
+                    time.sleep(wait_time)
 
         except KeyboardInterrupt:
-            print("\n\nModo autonomo interrompido pelo usuario")
+            print("\n\n[!] Interrompido pelo usuario")
             self.running = False
             self.trigger_hook("on_interrupt", {"reason": "keyboard_interrupt"})
+            self._graceful_shutdown()
 
     def run_supervised(self):
         """Executa modo supervisionado."""
@@ -705,13 +864,35 @@ Comece analisando as issues pendentes ou aguardando instrucoes.
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fabrica de Agentes - Orquestrador"
+        description="Fabrica de Agentes - Orquestrador",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Exemplos de uso:
+  python start_orchestrator.py                        # Menu interativo
+  python start_orchestrator.py -m autonomous -d 2h    # Autonomo por 2 horas
+  python start_orchestrator.py -m autonomous -d 8h    # Autonomo por 8 horas
+  python start_orchestrator.py -m autonomous -d 24h   # Autonomo por 24 horas
+  python start_orchestrator.py -m autonomous          # Autonomo ilimitado
+  python start_orchestrator.py --spawn BACK           # Spawnar agente BACK
+        """
     )
     parser.add_argument(
         "--mode", "-m",
         type=str,
         choices=["autonomous", "supervised", "interactive"],
         help="Modo de operacao (pula menu de selecao)"
+    )
+    parser.add_argument(
+        "--duration", "-d",
+        type=str,
+        default="unlimited",
+        help="Duracao da execucao autonoma (ex: 1h, 2h, 4h, 8h, 10h, 12h, 24h, 30m, ou segundos)"
+    )
+    parser.add_argument(
+        "--graceful-delay",
+        type=int,
+        default=60,
+        help="Segundos para shutdown gracioso (default: 60)"
     )
     parser.add_argument(
         "--spawn",
@@ -748,11 +929,16 @@ def main():
 
     args = parser.parse_args()
 
+    # Parse duracao
+    runtime_duration = parse_duration(args.duration)
+
     # Configuracao
     config = OrchestratorConfig(
         skills_enabled=not args.no_skills,
         hooks_enabled=not args.no_hooks,
-        mcp_enabled=not args.no_mcp
+        mcp_enabled=not args.no_mcp,
+        runtime_duration=runtime_duration,
+        graceful_shutdown_delay=args.graceful_delay
     )
 
     # Criar orquestrador

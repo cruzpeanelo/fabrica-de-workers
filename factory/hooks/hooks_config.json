@@ -1,0 +1,29 @@
+{
+  "hooks": [
+    {
+      "hook_id": "log_commits",
+      "event": "post_commit",
+      "name": "Log Commits",
+      "description": "Loga commits realizados",
+      "module": "factory.hooks.builtin.log_hook",
+      "function": "execute",
+      "command": "",
+      "enabled": true,
+      "priority": 100,
+      "created_at": "2026-01-03T18:55:07.538912"
+    },
+    {
+      "hook_id": "notify_errors",
+      "event": "on_error",
+      "name": "Notify Errors",
+      "description": "Notifica sobre erros",
+      "module": "factory.hooks.builtin.notify_hook",
+      "function": "execute",
+      "command": "",
+      "enabled": true,
+      "priority": 50,
+      "created_at": "2026-01-03T18:55:07.538923"
+    }
+  ],
+  "updated_at": "2026-01-03T18:55:07.538956"
+}

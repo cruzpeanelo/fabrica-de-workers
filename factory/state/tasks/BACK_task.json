@@ -1,0 +1,11 @@
+{
+  "task_id": "task_BACK_1767477444",
+  "agent_type": "BACK",
+  "issue_number": null,
+  "title": "Teste de API",
+  "description": "Criar endpoint de teste",
+  "priority": "medium",
+  "created_at": "2026-01-03T18:57:24.827225",
+  "status": "pending",
+  "context": {}
+}

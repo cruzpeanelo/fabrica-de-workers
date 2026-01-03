@@ -1,0 +1,10 @@
+{"timestamp": "2026-01-03T19:03:26.671801", "agent_type": "BACK", "activity_type": "agent_start", "title": "Backend iniciado", "description": "", "details": {}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.700650", "agent_type": "BACK", "activity_type": "task_start", "title": "Iniciando task", "description": "", "details": {}, "task_id": "TASK-001", "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.736872", "agent_type": "BACK", "activity_type": "thinking", "title": "Analisando requisitos", "description": "Verificando endpoints necessarios", "details": {}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.754241", "agent_type": "BACK", "activity_type": "code_generate", "title": "Criando endpoint /api/users", "description": "", "details": {"lines": 45}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.774264", "agent_type": "BACK", "activity_type": "file_write", "title": "Escrevendo routes.py", "description": "", "details": {"file": "factory/api/routes.py"}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.784712", "agent_type": "BACK", "activity_type": "test_run", "title": "Executando testes", "description": "", "details": {}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.796624", "agent_type": "BACK", "activity_type": "test_pass", "title": "Testes passaram", "description": "", "details": {"passed": 5, "failed": 0}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.807833", "agent_type": "BACK", "activity_type": "git_commit", "title": "Commit realizado", "description": "", "details": {"message": "feat: add users endpoint"}, "task_id": null, "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.837408", "agent_type": "BACK", "activity_type": "task_complete", "title": "Task concluida", "description": "", "details": {}, "task_id": "TASK-001", "duration_ms": null}
+{"timestamp": "2026-01-03T19:03:26.870342", "agent_type": "BACK", "activity_type": "handoff_out", "title": "Handoff para QA", "description": "", "details": {"target": "QA"}, "task_id": null, "duration_ms": null}
