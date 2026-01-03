@@ -18,9 +18,32 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-
 # Diretorio base do projeto
 BASE_PATH = Path(__file__).parent
+
+# Adicionar ao path para imports
+sys.path.insert(0, str(BASE_PATH))
+
+# Importar activity logger
+try:
+    from factory.core.activity_logger import (
+        log_agent_start, log_agent_stop, log_task_start, log_task_complete,
+        log_thinking, log_file_action, log_code_generate, log_error, log_activity
+    )
+    ACTIVITY_LOGGING = True
+except ImportError:
+    ACTIVITY_LOGGING = False
+    def log_activity(*args, **kwargs): pass
+    def log_agent_start(*args, **kwargs): pass
+    def log_agent_stop(*args, **kwargs): pass
+    def log_task_start(*args, **kwargs): pass
+    def log_task_complete(*args, **kwargs): pass
+    def log_thinking(*args, **kwargs): pass
+    def log_file_action(*args, **kwargs): pass
+    def log_code_generate(*args, **kwargs): pass
+    def log_error(*args, **kwargs): pass
+
+
 PROMPTS_PATH = BASE_PATH / "prompts"
 STATE_PATH = BASE_PATH / "factory" / "state"
 TASKS_PATH = STATE_PATH / "tasks"
@@ -151,11 +174,15 @@ def build_agent_prompt(agent_type: str, base_prompt: str, task: dict) -> str:
     return "\n".join(prompt_parts)
 
 
-def run_claude(prompt: str, agent_type: str) -> dict:
+def run_claude(prompt: str, agent_type: str, task_id: str = None) -> dict:
     """Executa Claude Code com o prompt do agente."""
     print(f"\n{'='*60}")
     print(f" AGENTE [{agent_type}] INICIANDO ")
     print(f"{'='*60}\n")
+
+    # Log inicio
+    log_activity(agent_type, "thinking", "Analisando task...",
+                 description="Preparando para executar Claude Code", task_id=task_id)
 
     # Salvar prompt em arquivo temporario
     prompt_file = STATE_PATH / f"prompt_{agent_type}.md"
@@ -164,12 +191,17 @@ def run_claude(prompt: str, agent_type: str) -> dict:
     with open(prompt_file, 'w', encoding='utf-8') as f:
         f.write(prompt)
 
+    log_file_action(agent_type, "write", str(prompt_file), task_id=task_id)
+
     # Construir comando
     cmd = [
         "claude",
         "--dangerously-skip-permissions",
         "-p", str(prompt_file),
     ]
+
+    log_activity(agent_type, "task_progress", "Executando Claude Code...",
+                 description="Processo Claude iniciado", task_id=task_id)
 
     try:
         # Executar Claude Code de forma interativa
@@ -180,16 +212,26 @@ def run_claude(prompt: str, agent_type: str) -> dict:
             # Nao capturar output para permitir interacao
         )
 
+        if result.returncode == 0:
+            log_activity(agent_type, "task_progress", "Claude Code finalizado com sucesso",
+                        task_id=task_id)
+        else:
+            log_activity(agent_type, "warning", f"Claude Code finalizou com codigo {result.returncode}",
+                        task_id=task_id)
+
         return {
             "success": result.returncode == 0,
             "returncode": result.returncode
         }
 
     except FileNotFoundError:
-        print("Erro: Claude CLI nao encontrado. Verifique se esta instalado.")
+        error_msg = "Claude CLI nao encontrado. Verifique se esta instalado."
+        print(f"Erro: {error_msg}")
+        log_error(agent_type, error_msg, task_id=task_id)
         return {"success": False, "error": "Claude CLI not found"}
     except Exception as e:
         print(f"Erro ao executar Claude: {e}")
+        log_error(agent_type, str(e), task_id=task_id)
         return {"success": False, "error": str(e)}
 
 
@@ -261,6 +303,9 @@ def main():
     print(f"#  Iniciando em: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'#'*60}\n")
 
+    # Log inicio do agente
+    log_agent_start(agent_type, args.task_id)
+
     # Carregar prompt base do agente
     base_prompt = load_prompt(agent_type)
     print(f"Prompt do agente carregado: {AGENT_PROMPTS[agent_type]}")
@@ -298,8 +343,12 @@ def main():
     # Construir prompt completo
     full_prompt = build_agent_prompt(agent_type, base_prompt, task)
 
+    # Log inicio da task
+    task_id = task.get("task_id")
+    log_task_start(agent_type, task_id, task.get("title", "Task"))
+
     # Executar Claude
-    execution_result = run_claude(full_prompt, agent_type)
+    execution_result = run_claude(full_prompt, agent_type, task_id)
 
     # Salvar resultado
     result = {
@@ -315,6 +364,15 @@ def main():
     }
 
     save_result(agent_type, result)
+
+    # Log conclusao
+    if execution_result.get("success"):
+        log_task_complete(agent_type, task_id)
+    else:
+        log_error(agent_type, execution_result.get("error", "Erro desconhecido"), task_id)
+
+    # Log fim do agente
+    log_agent_stop(agent_type)
 
     print(f"\n{'='*60}")
     print(f" AGENTE [{agent_type}] FINALIZADO ")
