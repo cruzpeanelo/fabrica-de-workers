@@ -11,4 +11,8 @@ tests\test_audit_logger.py ......................                        [ 10%]
 tests\test_billing.py ........................                           [ 15%]
 tests\test_collaboration.py ...................                          [ 19%]
 tests\test_e2e_dashboard.py E..EEEEF..EE.E                               [ 22%]
-tests\test_full_flow.py ....................................
+tests\test_full_flow.py ................................................ [ 32%]
+......                                                                   [ 33%]
+tests\test_mfa.py .......................                                [ 38%]
+tests\test_mobile_integration.py ..............                          [ 41%]
+tests\test_tenant_branding_api.py sssssEEEEEEEE
