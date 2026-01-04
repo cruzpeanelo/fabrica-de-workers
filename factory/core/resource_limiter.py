@@ -99,6 +99,34 @@ class ResourceLimiter:
         logger.info(f"[ResourceLimiter] Started tracking task {task_id}")
         return True
 
+    def get_usage(self, task_id: str) -> Optional[ResourceUsage]:
+        """
+        Get current resource usage for a task.
+        Returns None if task is not being tracked.
+
+        Issue #502: Add get_usage method for resource tracking
+        """
+        return self._task_usage.get(task_id)
+
+    def check_rate_limit(self, limit_type: str) -> bool:
+        """
+        Check if rate limit is exceeded for a given limit type.
+        Returns True if within limits, False if rate limit exceeded.
+
+        Supported limit types:
+        - 'tasks': Check max_tasks_per_minute limit
+        - 'api': Check max_api_calls_per_minute limit
+
+        Issue #503: Add public check_rate_limit method
+        """
+        if limit_type == "tasks":
+            return self._check_rate_limit("tasks", self.limits.max_tasks_per_minute)
+        elif limit_type == "api":
+            return self._check_rate_limit("api", self.limits.max_api_calls_per_minute)
+        else:
+            logger.warning(f"[ResourceLimiter] Unknown rate limit type: {limit_type}")
+            return True  # Unknown types are not limited
+
     def end_task(self, task_id: str) -> Optional[ResourceUsage]:
         """End tracking and return final usage"""
         usage = self._task_usage.pop(task_id, None)
