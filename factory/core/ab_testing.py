@@ -1175,6 +1175,34 @@ if __name__ == "__main__":
             self.db.rollback()
             print(f"Error saving AB test to DB: {e}")
 
+    def allocate_user(self, test_id: str, user_id: str) -> Optional[str]:
+        """
+        Allocate a user to a variant in an A/B test.
+
+        Uses consistent hashing to ensure the same user always gets the same variant.
+
+        Args:
+            test_id: ID of the A/B test
+            user_id: ID of the user to allocate
+
+        Returns:
+            The variant_id the user is allocated to, or None if test not found
+        """
+        ab_test = self._get_test(test_id)
+        if not ab_test:
+            return None
+
+        variants = ab_test.get("variants", [])
+        if not variants:
+            return None
+
+        # Use consistent hashing based on user_id and test_id
+        hash_input = f"{test_id}:{user_id}"
+        hash_value = hash(hash_input)
+        variant_index = abs(hash_value) % len(variants)
+
+        return variants[variant_index]["variant_id"]
+
     def _load_from_db(self, test_id: str) -> Optional[Dict]:
         """Carrega teste do banco de dados"""
         if not self.db:
@@ -1274,3 +1302,163 @@ def get_ab_test_status(test_id: str, db=None) -> Optional[Dict]:
     """
     manager = ABTestManager(db)
     return manager._get_test(test_id)
+
+
+# =============================================================================
+# CLASSES DE MODELO PARA COMPATIBILIDADE
+# =============================================================================
+
+class Variant:
+    """
+    Represents a variant in an A/B test.
+
+    This class provides a structured representation of a test variant
+    with its code, metrics, and test results.
+    """
+
+    def __init__(
+        self,
+        variant_id: str,
+        approach: str = VariantApproach.SIMPLE.value,
+        status: str = VariantStatus.PENDING.value,
+        code: Optional[str] = None,
+        metrics: Optional[Dict[str, Any]] = None,
+        test_results: Optional[Dict[str, Any]] = None,
+        score: float = 0.0
+    ):
+        self.variant_id = variant_id
+        self.approach = approach
+        self.status = status
+        self.code = code
+        self.metrics = metrics or {}
+        self.test_results = test_results or {}
+        self.score = score
+        self.created_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert variant to dictionary representation."""
+        return {
+            "variant_id": self.variant_id,
+            "approach": self.approach,
+            "status": self.status,
+            "code": self.code,
+            "metrics": self.metrics,
+            "test_results": self.test_results,
+            "score": self.score,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Variant":
+        """Create a Variant instance from a dictionary."""
+        variant = cls(
+            variant_id=data.get("variant_id", f"V-{uuid.uuid4().hex[:8]}"),
+            approach=data.get("approach", VariantApproach.SIMPLE.value),
+            status=data.get("status", VariantStatus.PENDING.value),
+            code=data.get("code"),
+            metrics=data.get("metrics", {}),
+            test_results=data.get("test_results", {}),
+            score=data.get("score", 0.0)
+        )
+        return variant
+
+
+class ABTest:
+    """
+    Represents an A/B test for code variants.
+
+    This class manages the lifecycle of an A/B test, including
+    creating variants, running tests, and selecting a winner.
+    """
+
+    def __init__(
+        self,
+        test_id: Optional[str] = None,
+        story_id: Optional[str] = None,
+        title: str = "",
+        description: str = "",
+        status: str = ABTestStatus.PENDING.value,
+        variants: Optional[List[Variant]] = None,
+        winner_id: Optional[str] = None,
+        recommendation: Optional[Dict[str, Any]] = None
+    ):
+        self.test_id = test_id or f"ABT-{uuid.uuid4().hex[:8].upper()}"
+        self.story_id = story_id
+        self.title = title
+        self.description = description
+        self.status = status
+        self.variants = variants or []
+        self.winner_id = winner_id
+        self.recommendation = recommendation
+        self.created_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+        self.completed_at: Optional[datetime] = None
+
+    def add_variant(self, variant: Variant) -> None:
+        """Add a variant to the test."""
+        self.variants.append(variant)
+        self.updated_at = datetime.utcnow()
+
+    def get_variant(self, variant_id: str) -> Optional[Variant]:
+        """Get a variant by ID."""
+        for variant in self.variants:
+            if variant.variant_id == variant_id:
+                return variant
+        return None
+
+    def select_winner(self, variant_id: str) -> bool:
+        """Select a winner variant."""
+        variant = self.get_variant(variant_id)
+        if not variant:
+            return False
+
+        self.winner_id = variant_id
+        self.status = ABTestStatus.WINNER_SELECTED.value
+        variant.status = VariantStatus.WINNER.value
+
+        for v in self.variants:
+            if v.variant_id != variant_id:
+                v.status = VariantStatus.DISCARDED.value
+
+        self.updated_at = datetime.utcnow()
+        return True
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ABTest to dictionary representation."""
+        return {
+            "test_id": self.test_id,
+            "story_id": self.story_id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status,
+            "variants": [v.to_dict() if isinstance(v, Variant) else v for v in self.variants],
+            "winner_id": self.winner_id,
+            "recommendation": self.recommendation,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ABTest":
+        """Create an ABTest instance from a dictionary."""
+        variants = []
+        for v_data in data.get("variants", []):
+            if isinstance(v_data, dict):
+                variants.append(Variant.from_dict(v_data))
+            elif isinstance(v_data, Variant):
+                variants.append(v_data)
+
+        test = cls(
+            test_id=data.get("test_id"),
+            story_id=data.get("story_id"),
+            title=data.get("title", ""),
+            description=data.get("description", ""),
+            status=data.get("status", ABTestStatus.PENDING.value),
+            variants=variants,
+            winner_id=data.get("winner_id"),
+            recommendation=data.get("recommendation")
+        )
+        return test
