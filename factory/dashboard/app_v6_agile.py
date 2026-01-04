@@ -3346,6 +3346,79 @@ def get_attachment(attachment_id: str):
 # API ENDPOINTS - EPICS & SPRINTS
 # =============================================================================
 
+@app.get("/api/projects/{project_id}/roadmap")
+def get_roadmap(project_id: str):
+    """
+    Retorna dados do roadmap para visualizacao timeline
+
+    Issue #230: [FRONT] Implementar Roadmap Timeline com visualizacao de epics
+    """
+    db = SessionLocal()
+    try:
+        epic_repo = EpicRepository(db)
+        sprint_repo = SprintRepository(db)
+        story_repo = StoryRepository(db)
+
+        epics = epic_repo.get_by_project(project_id)
+        sprints = sprint_repo.get_by_project(project_id)
+        stories = story_repo.get_all(project_id=project_id)
+
+        # Build epic data with progress
+        epic_data = []
+        for epic in epics:
+            # Get stories for this epic
+            epic_stories = [s for s in stories if s.epic_id == epic.epic_id]
+            total_points = sum(s.story_points or 0 for s in epic_stories)
+            done_points = sum(s.story_points or 0 for s in epic_stories
+                            if s.status and s.status.value == 'done')
+
+            progress = int((done_points / total_points * 100) if total_points > 0 else 0)
+
+            epic_data.append({
+                "id": epic.epic_id,
+                "name": epic.name,
+                "description": epic.description,
+                "icon": epic.icon or "📦",
+                "color": epic.color or "#3B82F6",
+                "start_date": epic.start_date.isoformat() if epic.start_date else None,
+                "target_date": epic.target_date.isoformat() if epic.target_date else None,
+                "stories_count": len(epic_stories),
+                "story_points": total_points,
+                "done_points": done_points,
+                "progress": progress,
+                "blocked": False,  # TODO: detect blocked epics
+                "owner": epic.owner_id
+            })
+
+        # Build milestone data from sprints with end dates
+        milestones = []
+        for sprint in sprints:
+            if sprint.end_date:
+                milestones.append({
+                    "id": sprint.sprint_id,
+                    "name": sprint.name or f"Sprint {sprint.sprint_id}",
+                    "date": sprint.end_date.isoformat(),
+                    "icon": "🎯",
+                    "status": "on_track"
+                })
+
+        # Build dependencies (placeholder - would need EpicDependency model)
+        dependencies = []
+
+        return {
+            "epics": epic_data,
+            "milestones": milestones,
+            "dependencies": dependencies,
+            "stats": {
+                "total_epics": len(epic_data),
+                "total_milestones": len(milestones),
+                "avg_progress": int(sum(e["progress"] for e in epic_data) / len(epic_data)) if epic_data else 0
+            }
+        }
+    finally:
+        db.close()
+
+
 @app.get("/api/projects/{project_id}/epics")
 def list_epics(project_id: str):
     """Lista epicos do projeto"""
