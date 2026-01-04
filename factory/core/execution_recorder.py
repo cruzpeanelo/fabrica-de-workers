@@ -389,6 +389,95 @@ class ExecutionRecorder:
         self.steps.append(step)
         return self._StepContext(self, step)
 
+    def start_step(self, step_type: StepType, description: str, attempt: int = 1) -> ExecutionStep:
+        """
+        Inicia gravacao de um step (API imperativa)
+
+        Esta e uma alternativa ao context manager step() para casos onde
+        o controle explicito de inicio/fim e preferido.
+
+        Args:
+            step_type: Tipo do step (StepType enum ou string)
+            description: Descricao do step
+            attempt: Numero da tentativa (se for retry)
+
+        Returns:
+            ExecutionStep criado e iniciado
+
+        Exemplo:
+            step = recorder.start_step(StepType.PARSING, "Parsing requirements")
+            try:
+                # ... executar parsing ...
+                step.output_data = {"requirements": {...}}
+                recorder.end_step(StepStatus.SUCCESS)
+            except Exception as e:
+                step.error_message = str(e)
+                recorder.end_step(StepStatus.FAILED)
+        """
+        self._step_counter += 1
+
+        step = ExecutionStep(
+            step_id=f"STEP-{self._step_counter:03d}",
+            step_number=self._step_counter,
+            step_type=step_type.value if isinstance(step_type, StepType) else step_type,
+            name=description,
+            attempt=attempt,
+            model=self.agent_model
+        )
+
+        self.steps.append(step)
+        self._current_step = step
+
+        # Callback de inicio
+        if self._on_step_start:
+            try:
+                self._on_step_start(step)
+            except Exception:
+                pass
+
+        return step
+
+    def end_step(self, status: StepStatus = StepStatus.SUCCESS, output: Dict = None, error: str = None) -> Optional[ExecutionStep]:
+        """
+        Finaliza o step atual (API imperativa)
+
+        Args:
+            status: Status final do step (StepStatus enum ou string)
+            output: Dados de saida opcionais
+            error: Mensagem de erro opcional
+
+        Returns:
+            ExecutionStep finalizado ou None se nao havia step ativo
+
+        Exemplo:
+            step = recorder.start_step(StepType.TESTING, "Running tests")
+            results = run_tests()
+            if results.passed:
+                recorder.end_step(StepStatus.SUCCESS, output={"passed": True})
+            else:
+                recorder.end_step(StepStatus.FAILED, error="Tests failed")
+        """
+        if not self._current_step:
+            return None
+
+        step = self._current_step
+
+        # Converter status se necessario
+        status_value = status.value if isinstance(status, StepStatus) else status
+
+        # Completar o step
+        step.complete(status=status_value, output=output, error=error)
+
+        # Callback de fim
+        if self._on_step_end:
+            try:
+                self._on_step_end(step)
+            except Exception:
+                pass
+
+        self._current_step = None
+        return step
+
     def add_step(
         self,
         name: str,
