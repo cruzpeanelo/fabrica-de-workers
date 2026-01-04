@@ -106,6 +106,38 @@ class FlowMetricsResponse(BaseModel):
 # WIP POLICY ENDPOINTS
 # =============================================================================
 
+@router.get("/policies", response_model=List[KanbanPolicyResponse])
+async def list_policies(
+    db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Lista todas as politicas de WIP configuradas.
+    Retorna lista de politicas com seus limites e configuracoes.
+
+    Issue #466 - Missing /api/kanban/policies endpoint
+    """
+    result = await db.execute(
+        select(KanbanPolicy).order_by(KanbanPolicy.created_at.desc())
+    )
+    policies = result.scalars().all()
+
+    return [
+        KanbanPolicyResponse(
+            policy_id=policy.policy_id,
+            project_id=policy.project_id,
+            wip_limits=policy.wip_limits or {},
+            wip_policy=policy.wip_policy,
+            alert_on_exceed=policy.alert_on_exceed,
+            notify_team=policy.notify_team,
+            track_cycle_time=policy.track_cycle_time,
+            track_lead_time=policy.track_lead_time,
+            created_at=policy.created_at.isoformat() if policy.created_at else None,
+            updated_at=policy.updated_at.isoformat() if policy.updated_at else None
+        )
+        for policy in policies
+    ]
+
+
 @router.post("/policies", response_model=KanbanPolicyResponse, status_code=201)
 async def create_or_update_policy(
     policy_data: KanbanPolicyCreate,
