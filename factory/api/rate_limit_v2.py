@@ -12,7 +12,7 @@ Sistema avancado de rate limiting com suporte a:
 import os
 import time
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Tuple, Dict
 from functools import wraps
 
