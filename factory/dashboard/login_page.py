@@ -333,7 +333,7 @@ LOGIN_PAGE_HTML = """
     <div id="app">
         <div class="login-container">
             <div class="login-header">
-                <img :src="branding.logo_url || '/static/logos/default.png'"
+                <img :src="branding.logo_url || '/static/logos/default.svg'"
                      alt="Logo"
                      class="login-logo"
                      onerror="this.style.display='none'">
@@ -450,7 +450,7 @@ LOGIN_PAGE_HTML = """
                 const branding = reactive({
                     display_name: 'Plataforma E',
                     tagline: 'Sistema de Desenvolvimento Autonomo',
-                    logo_url: '/static/logos/default.png',
+                    logo_url: '/static/logos/default.svg',
                     primary_color: '#003B4A',
                     secondary_color: '#FF6C00'
                 });

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50">
+  <rect width="180" height="50" rx="4" fill="#10B981"/>
+  <text x="90" y="32" font-family="Inter, -apple-system, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF" text-anchor="middle">StartupX</text>
+  <polygon points="160,15 175,35 145,35" fill="#F59E0B"/>
+</svg>

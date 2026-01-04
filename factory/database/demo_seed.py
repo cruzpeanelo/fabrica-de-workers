@@ -120,8 +120,8 @@ def create_demo_data():
                     "accent_color": "#10B981",
                     "background_color": "#F8FAFC",
                     "text_color": "#1E293B",
-                    "logo_url": "/static/logos/belgo.png",
-                    "favicon_url": "/static/favicons/belgo.ico",
+                    "logo_url": "/static/logos/belgo.svg",
+                    "favicon_url": "/static/favicons/belgo.svg",
                     "display_name": "Belgo Arames",
                     "tagline": "Solucoes em Arame"
                 }
@@ -147,8 +147,8 @@ def create_demo_data():
                     "accent_color": "#8B5CF6",
                     "background_color": "#F5F3FF",
                     "text_color": "#1E1B4B",
-                    "logo_url": "/static/logos/techcorp.png",
-                    "favicon_url": "/static/favicons/techcorp.ico",
+                    "logo_url": "/static/logos/techcorp.svg",
+                    "favicon_url": "/static/favicons/techcorp.svg",
                     "display_name": "TechCorp",
                     "tagline": "Innovation First"
                 }
@@ -172,8 +172,8 @@ def create_demo_data():
                     "accent_color": "#06B6D4",
                     "background_color": "#ECFDF5",
                     "text_color": "#064E3B",
-                    "logo_url": "/static/logos/startupx.png",
-                    "favicon_url": "/static/favicons/startupx.ico",
+                    "logo_url": "/static/logos/startupx.svg",
+                    "favicon_url": "/static/favicons/startupx.svg",
                     "display_name": "StartupX",
                     "tagline": "Move Fast"
                 }

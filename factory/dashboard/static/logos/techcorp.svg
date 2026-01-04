@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50">
+  <rect width="180" height="50" rx="4" fill="#6366F1"/>
+  <text x="90" y="32" font-family="Inter, -apple-system, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">TechCorp</text>
+  <circle cx="25" cy="25" r="12" fill="#EC4899" opacity="0.8"/>
+</svg>
