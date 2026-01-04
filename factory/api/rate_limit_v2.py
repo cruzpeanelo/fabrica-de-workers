@@ -32,9 +32,9 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 # Limites por tier (requests por minuto e por dia)
 TIER_LIMITS = {
     "free": {
-        "per_minute": 100,
+        "per_minute": 30,
         "per_day": 1000,
-        "burst": 20,  # Burst adicional permitido
+        "burst": 10,
     },
     "basic": {
         "per_minute": 500,
