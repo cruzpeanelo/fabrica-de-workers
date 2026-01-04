@@ -48209,8 +48209,10008 @@
       ],
       "timestamp": "2026-01-03 21:54:29",
       "status": "completed"
+    },
+    {
+      "cycle": 5001,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5002,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5003,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5004,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5005,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5006,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5007,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5008,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5009,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5010,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5011,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5012,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5013,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5014,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5015,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5016,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5017,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5018,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5019,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5020,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5021,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5022,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5023,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5024,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5025,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5026,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5027,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5028,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5029,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5030,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5031,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5032,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5033,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5034,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5035,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5036,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5037,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5038,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5039,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5040,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5041,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5042,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5043,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5044,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5045,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5046,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5047,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5048,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5049,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5050,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5051,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5052,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5053,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5054,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5055,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5056,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5057,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5058,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5059,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5060,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5061,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5062,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5063,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5064,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5065,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5066,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5067,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5068,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5069,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5070,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5071,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5072,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5073,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5074,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5075,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5076,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5077,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5078,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5079,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5080,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5081,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5082,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5083,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5084,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5085,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5086,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5087,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5088,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5089,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5090,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5091,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5092,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5093,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5094,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5095,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5096,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5097,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5098,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5099,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5100,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5101,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5102,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5103,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5104,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5105,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5106,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5107,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5108,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5109,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5110,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5111,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5112,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5113,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5114,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5115,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5116,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5117,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5118,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5119,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5120,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5121,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5122,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5123,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5124,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5125,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5126,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5127,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5128,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5129,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5130,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5131,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5132,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5133,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5134,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5135,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5136,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5137,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5138,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5139,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5140,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5141,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5142,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5143,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5144,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5145,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5146,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5147,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5148,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5149,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5150,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5151,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5152,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5153,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5154,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5155,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5156,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5157,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5158,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5159,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5160,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5161,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5162,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5163,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5164,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5165,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5166,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5167,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5168,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5169,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5170,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5171,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5172,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5173,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5174,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5175,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5176,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5177,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5178,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5179,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5180,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5181,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5182,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5183,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5184,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5185,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5186,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5187,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5188,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5189,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5190,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5191,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5192,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5193,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5194,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5195,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5196,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5197,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5198,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5199,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5200,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5201,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5202,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5203,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5204,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5205,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5206,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5207,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5208,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5209,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5210,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5211,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5212,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5213,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5214,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5215,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5216,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5217,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5218,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5219,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5220,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5221,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5222,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5223,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5224,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5225,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5226,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5227,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5228,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5229,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5230,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5231,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5232,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5233,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5234,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5235,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5236,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5237,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5238,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5239,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5240,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5241,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5242,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5243,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5244,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5245,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5246,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5247,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5248,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5249,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5250,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5251,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5252,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5253,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5254,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5255,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5256,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5257,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5258,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5259,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5260,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5261,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5262,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5263,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5264,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5265,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5266,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5267,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5268,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5269,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5270,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5271,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5272,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5273,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5274,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5275,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5276,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5277,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5278,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5279,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5280,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5281,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5282,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5283,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5284,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5285,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5286,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5287,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5288,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5289,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5290,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5291,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5292,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5293,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5294,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5295,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5296,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5297,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5298,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5299,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5300,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5301,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5302,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5303,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5304,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5305,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5306,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5307,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5308,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5309,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5310,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5311,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5312,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5313,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5314,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5315,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5316,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5317,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5318,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5319,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5320,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5321,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5322,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5323,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5324,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5325,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5326,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5327,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5328,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5329,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5330,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5331,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5332,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5333,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5334,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5335,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5336,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5337,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5338,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5339,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5340,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5341,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5342,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5343,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5344,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5345,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5346,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5347,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5348,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5349,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5350,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5351,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5352,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5353,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5354,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5355,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5356,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5357,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5358,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5359,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5360,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5361,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5362,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5363,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5364,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5365,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5366,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5367,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5368,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5369,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5370,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5371,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5372,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5373,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5374,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5375,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5376,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5377,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5378,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5379,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5380,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5381,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5382,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5383,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5384,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5385,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5386,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5387,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5388,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5389,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5390,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5391,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5392,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5393,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5394,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5395,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5396,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5397,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5398,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5399,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5400,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5401,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5402,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5403,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5404,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5405,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5406,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5407,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5408,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5409,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5410,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5411,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5412,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5413,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5414,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5415,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5416,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5417,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5418,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5419,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5420,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5421,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5422,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5423,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5424,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5425,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5426,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5427,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5428,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5429,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5430,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5431,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5432,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5433,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5434,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5435,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5436,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5437,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5438,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5439,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5440,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5441,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5442,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5443,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5444,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5445,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5446,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5447,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5448,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5449,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5450,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5451,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5452,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5453,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5454,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5455,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5456,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5457,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5458,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5459,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5460,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5461,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5462,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5463,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5464,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5465,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5466,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5467,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5468,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5469,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5470,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5471,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5472,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5473,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5474,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5475,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5476,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5477,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5478,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5479,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5480,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5481,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5482,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5483,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5484,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5485,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5486,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5487,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5488,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5489,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5490,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5491,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5492,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5493,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5494,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5495,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5496,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5497,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5498,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5499,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5500,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5501,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5502,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5503,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5504,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5505,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5506,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5507,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5508,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5509,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5510,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5511,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5512,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5513,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5514,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5515,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5516,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5517,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5518,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5519,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5520,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5521,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5522,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5523,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5524,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5525,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5526,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5527,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5528,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5529,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5530,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5531,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5532,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5533,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5534,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5535,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5536,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5537,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5538,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5539,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5540,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5541,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5542,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5543,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5544,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5545,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5546,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5547,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5548,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5549,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5550,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5551,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5552,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5553,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5554,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5555,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5556,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5557,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5558,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5559,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5560,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5561,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5562,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5563,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5564,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5565,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5566,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5567,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5568,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5569,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5570,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5571,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5572,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5573,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5574,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5575,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5576,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5577,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5578,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5579,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5580,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5581,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5582,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5583,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5584,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5585,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5586,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5587,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5588,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5589,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5590,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5591,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5592,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5593,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5594,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5595,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5596,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5597,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5598,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5599,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5600,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5601,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5602,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5603,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5604,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5605,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5606,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5607,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5608,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5609,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5610,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5611,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5612,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5613,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5614,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5615,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5616,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5617,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5618,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5619,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5620,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5621,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5622,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5623,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5624,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5625,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5626,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5627,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5628,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5629,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5630,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5631,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5632,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5633,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5634,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5635,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5636,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5637,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5638,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5639,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5640,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5641,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5642,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5643,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5644,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5645,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5646,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5647,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5648,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5649,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5650,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5651,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5652,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5653,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5654,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5655,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5656,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5657,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5658,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5659,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5660,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5661,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5662,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5663,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5664,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5665,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5666,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5667,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5668,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5669,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5670,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5671,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5672,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5673,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5674,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5675,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5676,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5677,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5678,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5679,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5680,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5681,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5682,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5683,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5684,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5685,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5686,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5687,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5688,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5689,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5690,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5691,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5692,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5693,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5694,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5695,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5696,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5697,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5698,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5699,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5700,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5701,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5702,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5703,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5704,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5705,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5706,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5707,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5708,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5709,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5710,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5711,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5712,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5713,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5714,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5715,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5716,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5717,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5718,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5719,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5720,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5721,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5722,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5723,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5724,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5725,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5726,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5727,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5728,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5729,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5730,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5731,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5732,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5733,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5734,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5735,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5736,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5737,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5738,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5739,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5740,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5741,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5742,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5743,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5744,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5745,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5746,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5747,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5748,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5749,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5750,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5751,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5752,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5753,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5754,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5755,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5756,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5757,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5758,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5759,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5760,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5761,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5762,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5763,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5764,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5765,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5766,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5767,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5768,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5769,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5770,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5771,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5772,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5773,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5774,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5775,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5776,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5777,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5778,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5779,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5780,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5781,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5782,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5783,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5784,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5785,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5786,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5787,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5788,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5789,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5790,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5791,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5792,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5793,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5794,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5795,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5796,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5797,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5798,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5799,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5800,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5801,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5802,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5803,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5804,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5805,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5806,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5807,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5808,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5809,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5810,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5811,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5812,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5813,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5814,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5815,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5816,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5817,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5818,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5819,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5820,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5821,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5822,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5823,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5824,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5825,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5826,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5827,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5828,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5829,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5830,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5831,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5832,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5833,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5834,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5835,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5836,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5837,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5838,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5839,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5840,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5841,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5842,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5843,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5844,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5845,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5846,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5847,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5848,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5849,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5850,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5851,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5852,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5853,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5854,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5855,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5856,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5857,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5858,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5859,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5860,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5861,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5862,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5863,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5864,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5865,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5866,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5867,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5868,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5869,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5870,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5871,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5872,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5873,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5874,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5875,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5876,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5877,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5878,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5879,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5880,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5881,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5882,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5883,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5884,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5885,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5886,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5887,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5888,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5889,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5890,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5891,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5892,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5893,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5894,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5895,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5896,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5897,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5898,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5899,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5900,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5901,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5902,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5903,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5904,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5905,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5906,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5907,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5908,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5909,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5910,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5911,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5912,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5913,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5914,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5915,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5916,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5917,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5918,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5919,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5920,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5921,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5922,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5923,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5924,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5925,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5926,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5927,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5928,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5929,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5930,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5931,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5932,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5933,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5934,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5935,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5936,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5937,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5938,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5939,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5940,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5941,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5942,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5943,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5944,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5945,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5946,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5947,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5948,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5949,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5950,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5951,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5952,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5953,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5954,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5955,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5956,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5957,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5958,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5959,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5960,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5961,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5962,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5963,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5964,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5965,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5966,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5967,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5968,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5969,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5970,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5971,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5972,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5973,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5974,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5975,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5976,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5977,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5978,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5979,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5980,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5981,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5982,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5983,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5984,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5985,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5986,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5987,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5988,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5989,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5990,
+      "agents": [
+        "QA",
+        "PROD",
+        "INOV"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5991,
+      "agents": [
+        "PROD",
+        "INOV",
+        "FIN"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5992,
+      "agents": [
+        "INOV",
+        "FIN",
+        "GROWTH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5993,
+      "agents": [
+        "FIN",
+        "GROWTH",
+        "ORCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5994,
+      "agents": [
+        "GROWTH",
+        "ORCH",
+        "ARCH"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5995,
+      "agents": [
+        "ORCH",
+        "ARCH",
+        "BACK"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5996,
+      "agents": [
+        "ARCH",
+        "BACK",
+        "FRONT"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5997,
+      "agents": [
+        "BACK",
+        "FRONT",
+        "DEVOPS"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5998,
+      "agents": [
+        "FRONT",
+        "DEVOPS",
+        "SEC"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 5999,
+      "agents": [
+        "DEVOPS",
+        "SEC",
+        "QA"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
+    },
+    {
+      "cycle": 6000,
+      "agents": [
+        "SEC",
+        "QA",
+        "PROD"
+      ],
+      "timestamp": "2026-01-03 21:54:59",
+      "status": "completed"
     }
   ],
   "total_commits": 0,
-  "last_update": "2026-01-03 21:54:29"
+  "last_update": "2026-01-03 21:54:59"
 }
