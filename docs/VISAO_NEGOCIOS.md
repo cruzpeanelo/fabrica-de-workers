@@ -4,6 +4,8 @@
 
 **Versão:** 7.0 | **Última Atualização:** Janeiro 2026
 
+📖 **[Conheça nossa história: De A até E](./HISTORIA_PLATAFORMA_E.md)** - Como chegamos aqui após 4 versões de aprendizado
+
 ---
 
 ## 📌 O Que É
@@ -19,7 +21,7 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 │                          ANTES vs DEPOIS                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│   DESENVOLVIMENTO TRADICIONAL          FÁBRICA DE AGENTES               │
+│   DESENVOLVIMENTO TRADICIONAL          PLATAFORMA E                      │
 │                                                                          │
 │   Você descreve ───► Dev interpreta    Você descreve ───► IA estrutura │
 │   Dev implementa ──► Bugs aparecem     IA implementa ──► Auto-corrige  │
