@@ -372,28 +372,137 @@ input[type="radio"]:focus-visible {
 
 
 /* =============================================================================
-   MINIMUM TOUCH TARGET SIZE
+   MINIMUM TOUCH TARGET SIZE - Issue #459
    ============================================================================= */
 
 /**
  * WCAG 2.5.5 (AAA) e 2.5.8 (AA) recomendam alvos de toque de 44x44px.
+ * Apple HIG: 44pt, Material Design: 48dp
  */
 
 /* Garantir tamanho minimo para elementos interativos */
 button,
 [role="button"],
-a,
 input[type="checkbox"],
 input[type="radio"],
 select,
 .btn,
-.clickable {
+.clickable,
+.action-btn,
+.icon-btn {
   min-height: var(--a11y-min-touch-target);
   min-width: var(--a11y-min-touch-target);
 }
 
+/* Links precisam de tratamento especial para não quebrar layout inline */
+a:not(.inline-link):not(.nav-link):not(.breadcrumb-link) {
+  display: inline-flex;
+  align-items: center;
+  min-height: calc(var(--a11y-min-touch-target) - 8px);
+  padding: 4px 8px;
+}
+
+/* Botões de icone devem ter área clicável expandida */
+.icon-button,
+.btn-icon,
+.btn-sm,
+.action-icon,
+[class*="btn-icon"],
+button:has(svg:only-child),
+button:has(i:only-child) {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* Botões pequenos devem ter padding adequado */
+.btn-xs,
+.btn-tiny,
+.small-action {
+  min-height: var(--a11y-min-touch-target);
+  min-width: var(--a11y-min-touch-target);
+  padding: 8px 12px;
+}
+
+/* Dropdowns e toggles */
+.dropdown-toggle,
+.toggle-btn,
+.expand-btn,
+.collapse-btn,
+[aria-haspopup],
+[aria-expanded] {
+  min-height: var(--a11y-min-touch-target);
+  min-width: var(--a11y-min-touch-target);
+}
+
+/* Menu items */
+.dropdown-item,
+.menu-item,
+.list-item-action,
+[role="menuitem"],
+[role="option"] {
+  min-height: var(--a11y-min-touch-target);
+  padding: 10px 16px;
+}
+
+/* Tab items */
+.tab,
+.nav-tab,
+[role="tab"] {
+  min-height: var(--a11y-min-touch-target);
+  padding: 10px 16px;
+}
+
+/* Pagination */
+.pagination-btn,
+.page-link,
+.pager-item {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Close buttons */
+.close-btn,
+.dismiss-btn,
+.btn-close,
+[aria-label*="close" i],
+[aria-label*="fechar" i],
+[aria-label*="dismiss" i] {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  padding: 8px;
+}
+
+/* Tag/Chip elements */
+.tag,
+.chip,
+.badge-clickable,
+.removable-tag {
+  min-height: 32px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag .remove-btn,
+.chip .remove-btn,
+.removable-tag button {
+  min-width: 24px;
+  min-height: 24px;
+  margin: -4px -8px -4px 4px;
+  padding: 4px;
+  border-radius: 50%;
+}
+
 /* Inputs e selects */
-input:not([type="checkbox"]):not([type="radio"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
 select,
 textarea {
   min-height: var(--a11y-min-touch-target);
@@ -424,6 +533,77 @@ textarea {
 a.inline-link {
   padding: 0.25rem;
   margin: -0.25rem;
+}
+
+/* Kanban card actions */
+.card-action,
+.story-action,
+.kanban-action,
+.quick-action {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toolbar buttons */
+.toolbar-btn,
+.toolbar button,
+.action-bar button,
+.button-group button {
+  min-height: var(--a11y-min-touch-target);
+  min-width: 36px;
+  padding: 8px 12px;
+}
+
+/* Rating/Star buttons */
+.rating-btn,
+.star-btn,
+.vote-btn {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  padding: 8px;
+}
+
+/* Social/Share buttons */
+.share-btn,
+.social-btn {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+}
+
+/* Status indicators that are clickable */
+.status-badge[onclick],
+.status-badge[role="button"],
+.clickable-badge {
+  min-height: 32px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Utility class for touch-friendly elements */
+.touch-target {
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Expanded touch area without visual change */
+.touch-expand {
+  position: relative;
+}
+
+.touch-expand::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: var(--a11y-min-touch-target);
+  min-height: var(--a11y-min-touch-target);
 }
 
 
