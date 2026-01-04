@@ -6,7 +6,7 @@ Middleware de Verificação de Plano (Issue #104)
 Middleware para verificar limites de plano antes de processar requests.
 Aplicado automaticamente a rotas que criam recursos.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

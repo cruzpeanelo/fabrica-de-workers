@@ -128,7 +128,7 @@ def get_project_preview(project_id: str):
             progress = round((story_metrics["done"] / story_metrics["total"]) * 100, 1)
 
         # Verificar diretorio do projeto
-        project_path = Path(f"C:/Users/lcruz/Fabrica de Agentes/projects/{project_id}")
+        project_path = Path(f"C:/Users/lcruz/Plataforma E/projects/{project_id}")
         project_files = {
             "exists": project_path.exists(),
             "total_files": 0,
@@ -203,7 +203,7 @@ def get_project_files(project_id: str, path: str = ""):
     """
     Lista arquivos do projeto para navegacao.
     """
-    project_path = Path(f"C:/Users/lcruz/Fabrica de Agentes/projects/{project_id}")
+    project_path = Path(f"C:/Users/lcruz/Plataforma E/projects/{project_id}")
 
     if not project_path.exists():
         return {"exists": False, "files": [], "message": "Pasta do projeto nao encontrada"}
@@ -242,7 +242,7 @@ def get_project_file_content(project_id: str, path: str):
     """
     Retorna conteudo de um arquivo do projeto.
     """
-    project_path = Path(f"C:/Users/lcruz/Fabrica de Agentes/projects/{project_id}")
+    project_path = Path(f"C:/Users/lcruz/Plataforma E/projects/{project_id}")
     file_path = project_path / path
 
     if not file_path.exists():

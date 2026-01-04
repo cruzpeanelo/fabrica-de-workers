@@ -4,7 +4,7 @@ SAP S/4HANA Integration - Exemplos de Uso
 ==========================================
 Este arquivo contem exemplos praticos de uso da integracao SAP S/4HANA.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import asyncio

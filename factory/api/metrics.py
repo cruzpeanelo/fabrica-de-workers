@@ -34,7 +34,7 @@ router = APIRouter(tags=["Metrics"])
 # Info da aplicação
 APP_INFO = Info(
     "fabrica_agentes",
-    "Informações da Fábrica de Agentes"
+    "Informações da Plataforma E"
 )
 APP_INFO.info({
     "version": "6.5",

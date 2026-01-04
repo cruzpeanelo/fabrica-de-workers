@@ -1,4 +1,4 @@
-# 🏢 Fábrica de Agentes - Visão para Negócios
+# 🏢 Plataforma E - Visão para Negócios
 
 > Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 
@@ -8,7 +8,7 @@
 
 ## 📌 O Que É
 
-A **Fábrica de Agentes** é uma plataforma que **automatiza o desenvolvimento de software** utilizando Inteligência Artificial (Claude da Anthropic).
+A **Plataforma E** é uma plataforma que **automatiza o desenvolvimento de software** utilizando Inteligência Artificial (Claude da Anthropic).
 
 Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transformando suas ideias em software funcionando.
 
@@ -62,7 +62,7 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 | **Bugs frequentes** | Clientes insatisfeitos |
 | **Dependência de pessoas** | Risco quando alguém sai de férias |
 
-### A Solução: Fábrica de Agentes
+### A Solução: Plataforma E
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -96,7 +96,7 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 
 ### Comparativo de Tempo e Custo
 
-| Métrica | Tradicional | Fábrica de Agentes | Economia |
+| Métrica | Tradicional | Plataforma E | Economia |
 |---------|-------------|-------------------|----------|
 | **Tempo por funcionalidade** | 2-4 semanas | 2-4 dias | **80-90%** |
 | **Custo por sprint** | R$ 50.000+ | R$ 5.000-10.000 | **80-90%** |
@@ -107,7 +107,7 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 
 ### Exemplo Real: Sistema de Gestão de Vendas
 
-| Item | Tradicional | Fábrica de Agentes |
+| Item | Tradicional | Plataforma E |
 |------|-------------|-------------------|
 | **Equipe** | 5 devs + 1 QA + 1 PO | 1 PO + Plataforma |
 | **Duração** | 6 meses | 1 mês |
@@ -125,7 +125,7 @@ Pense nela como um **time de desenvolvimento virtual** que trabalha 24/7, transf
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  🏭 Fábrica de Agentes                               [Projeto ▼] 🌙 👤  │
+│  🏭 Plataforma E                               [Projeto ▼] 🌙 👤  │
 ├────────────┬─────────────────────────────────────────────────────────────┤
 │            │                                                             │
 │  ÉPICOS    │   BACKLOG    READY    IN PROG    REVIEW   TEST    DONE    │
@@ -377,7 +377,7 @@ Quando o desenvolvimento termina, você pode testar imediatamente:
 │                    SINCRONIZAÇÃO BIDIRECIONAL JIRA                        │
 ├──────────────────────────────────────────────────────────────────────────┤
 │                                                                           │
-│  Jira Board                         Fábrica de Agentes                    │
+│  Jira Board                         Plataforma E                    │
 │  ┌──────────────┐                   ┌──────────────────┐                 │
 │  │ PROJ-123     │ ◄────────────────►│ STR-0001         │                 │
 │  │ Sprint 5     │ ◄────────────────►│ Sprint "Maio"    │                 │
@@ -507,7 +507,7 @@ Quando o desenvolvimento termina, você pode testar imediatamente:
 
 **Desafio:** MVP em 30 dias com orçamento limitado de R$ 80.000
 
-**Solução com Fábrica de Agentes:**
+**Solução com Plataforma E:**
 - 15 User Stories criadas em 2 dias
 - Processamento autônomo completou em 3 semanas
 - Testes automatizados incluídos (85% cobertura)
@@ -534,7 +534,7 @@ Quando o desenvolvimento termina, você pode testar imediatamente:
 - Sincronização bidirecional com sistemas legados
 
 **Resultado:**
-| Métrica | Tradicional | Fábrica de Agentes |
+| Métrica | Tradicional | Plataforma E |
 |---------|-------------|-------------------|
 | Equipe | 8 pessoas | 2 pessoas |
 | Duração | 12 meses | 2 meses |
@@ -615,7 +615,7 @@ Quando o desenvolvimento termina, você pode testar imediatamente:
 |-------|------------|
 | **Website** | [fabricadeagentes.com.br](https://fabricadeagentes.com.br) |
 | **Email** | contato@fabricadeagentes.com.br |
-| **GitHub** | [github.com/cruzpeanelo/fabrica-de-agentes](https://github.com/cruzpeanelo/fabrica-de-agentes) |
+| **GitHub** | [github.com/cruzpeanelo/plataforma-e](https://github.com/cruzpeanelo/plataforma-e) |
 | **Demo** | [demo.fabricadeagentes.com.br](https://demo.fabricadeagentes.com.br) |
 
 ---
@@ -662,7 +662,7 @@ R: Sim. Suportamos SAP S/4HANA (OData, Business Graph), SAP ECC (RFC, IDocs), e 
 
 ## 📊 Comparativo com Concorrentes
 
-| Critério | Fábrica de Agentes | GitHub Copilot | Cursor AI | Agências Tradicionais |
+| Critério | Plataforma E | GitHub Copilot | Cursor AI | Agências Tradicionais |
 |----------|-------------------|----------------|-----------|----------------------|
 | **Foco** | Desenvolvimento completo | Autocompletar código | Editor IA | Desenvolvimento humano |
 | **Autonomia** | Alta (auto-healing) | Baixa (sugestões) | Média | Depende do dev |
@@ -676,7 +676,7 @@ R: Sim. Suportamos SAP S/4HANA (OData, Business Graph), SAP ECC (RFC, IDocs), e 
 ---
 
 <p align="center">
-<strong>🏭 Fábrica de Agentes</strong><br>
+<strong>🏭 Plataforma E</strong><br>
 Transformando ideias em software com Inteligência Artificial
 </p>
 

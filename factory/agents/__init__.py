@@ -1,5 +1,5 @@
 """
-Fabrica de Agentes - Sistema de Agentes Autonomos com Aprendizado
+Plataforma E - Sistema de Agentes Autonomos com Aprendizado
 ================================================================
 
 Arquitetura:

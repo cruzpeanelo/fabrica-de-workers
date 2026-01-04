@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Automation Configuration - Fabrica de Agentes
+Automation Configuration - Plataforma E
 ==============================================
 Configuracoes para execucao autonoma de agentes.
 
@@ -9,7 +9,7 @@ Modos de operacao:
 - supervised: Agentes pedem aprovacao em pontos criticos
 - manual: Cada acao requer aprovacao
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import os

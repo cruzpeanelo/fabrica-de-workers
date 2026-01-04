@@ -1,6 +1,6 @@
 """
 Factory Auth Module - Complete Authentication System
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Includes:
 - MFA/2FA: TOTP, backup codes, recovery flow (Issue #103)

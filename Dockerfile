@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Dockerfile
+# Plataforma E - Dockerfile
 # =============================================================================
 # Multi-stage build para imagem de desenvolvimento/producao
 #
@@ -33,7 +33,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # =============================================================================
 FROM python:3.12-slim
 
-LABEL maintainer="Fabrica de Agentes <fabrica@belgo.com.br>"
+LABEL maintainer="Plataforma E <fabrica@belgo.com.br>"
 LABEL version="6.5"
 LABEL description="Dashboard Agile - Sistema de desenvolvimento autonomo com IA"
 

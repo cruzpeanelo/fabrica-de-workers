@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Motor de Regras para Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Avalia condicoes e determina quando/como enviar notificacoes.
 Suporta:

@@ -24,7 +24,7 @@ Uso pelos agentes:
     # Listar projetos
     result = await skill.list_projects()
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

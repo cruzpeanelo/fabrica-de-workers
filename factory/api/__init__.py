@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Factory API Module - Fabrica de Agentes v6.5
+Factory API Module - Plataforma E v6.5
 ============================================
 
-Modulos da API REST da Fabrica de Agentes.
+Modulos da API REST da Plataforma E.
 
 Componentes:
 - routes: Rotas internas da API (v1)

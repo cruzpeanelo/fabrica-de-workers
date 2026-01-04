@@ -1,8 +1,8 @@
-# Fabrica de Agentes - Documentacao de Negocios
+# Plataforma E - Documentacao de Negocios
 
 ## Visao Geral
 
-A **Fabrica de Agentes** e uma plataforma inovadora de agentes autonomos que simula uma organizacao corporativa completa, com hierarquia, processos de aprovacao, e sistema de tomada de decisao autonoma com intervencao humana opcional.
+A **Plataforma E** e uma plataforma inovadora de agentes autonomos que simula uma organizacao corporativa completa, com hierarquia, processos de aprovacao, e sistema de tomada de decisao autonoma com intervencao humana opcional.
 
 ## Proposta de Valor
 

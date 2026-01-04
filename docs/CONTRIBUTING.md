@@ -1,6 +1,6 @@
 # 🤝 Guia de Contribuição
 
-Obrigado pelo interesse em contribuir com a **Fábrica de Agentes**! Este guia vai te ajudar a configurar o ambiente, entender nossa estrutura e enviar suas contribuições.
+Obrigado pelo interesse em contribuir com a **Plataforma E**! Este guia vai te ajudar a configurar o ambiente, entender nossa estrutura e enviar suas contribuições.
 
 ---
 
@@ -56,18 +56,18 @@ Antes de começar, certifique-se de ter instalado:
 ```bash
 # Faça fork do repositório no GitHub
 # Depois clone seu fork:
-git clone https://github.com/SEU-USUARIO/fabrica-de-agentes.git
-cd fabrica-de-agentes
+git clone https://github.com/SEU-USUARIO/plataforma-e.git
+cd plataforma-e
 
 # Adicione o repositório original como upstream
-git remote add upstream https://github.com/cruzpeanelo/fabrica-de-agentes.git
+git remote add upstream https://github.com/cruzpeanelo/plataforma-e.git
 
 # Verifique os remotes
 git remote -v
-# origin    https://github.com/SEU-USUARIO/fabrica-de-agentes.git (fetch)
-# origin    https://github.com/SEU-USUARIO/fabrica-de-agentes.git (push)
-# upstream  https://github.com/cruzpeanelo/fabrica-de-agentes.git (fetch)
-# upstream  https://github.com/cruzpeanelo/fabrica-de-agentes.git (push)
+# origin    https://github.com/SEU-USUARIO/plataforma-e.git (fetch)
+# origin    https://github.com/SEU-USUARIO/plataforma-e.git (push)
+# upstream  https://github.com/cruzpeanelo/plataforma-e.git (fetch)
+# upstream  https://github.com/cruzpeanelo/plataforma-e.git (push)
 ```
 
 ### 2. Ambiente Virtual Python
@@ -140,7 +140,7 @@ python factory/dashboard/app_v6_agile.py
 ## Estrutura do Projeto
 
 ```
-Fábrica de Agentes/
+Plataforma E/
 ├── factory/                    # Código principal
 │   ├── api/                    # API REST (FastAPI)
 │   │   ├── routes.py           # Endpoints principais

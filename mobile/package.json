@@ -1,7 +1,7 @@
 {
-  "name": "fabrica-de-agentes-mobile",
+  "name": "plataforma-e-mobile",
   "version": "1.0.0",
-  "description": "App mobile da Fabrica de Agentes - Gestao Agile",
+  "description": "App mobile da Plataforma E - Gestao Agile",
   "main": "index.js",
   "scripts": {
     "start": "expo start",

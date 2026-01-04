@@ -25,7 +25,7 @@ Uso pelos agentes:
     # Sincronizar bidirecional
     result = await skill.sync_bidirectional(project_key="PROJ", project_id="local-123")
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

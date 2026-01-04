@@ -2,7 +2,7 @@
 """
 Azure Cloud Provider Module
 ===========================
-Implementacao do provider Azure para a Fabrica de Agentes.
+Implementacao do provider Azure para a Plataforma E.
 
 Recursos suportados:
 - Virtual Machines (Computacao)

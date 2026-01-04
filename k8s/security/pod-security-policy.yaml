@@ -1,5 +1,5 @@
 # Pod Security Standards (PSS) - Issue #93
-# Implements PSS Restricted Profile for Fabrica de Agentes
+# Implements PSS Restricted Profile for Plataforma E
 # Compatible with Kubernetes 1.25+ Pod Security Admission (PSA)
 
 ---
@@ -10,7 +10,7 @@ metadata:
   name: factory
   labels:
     app.kubernetes.io/name: factory
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
     # Pod Security Admission Labels - RESTRICTED profile
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/enforce-version: v1.28
@@ -27,7 +27,7 @@ metadata:
   name: factory-staging
   labels:
     app.kubernetes.io/name: factory-staging
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
     environment: staging
     # Pod Security Admission - BASELINE for staging
     pod-security.kubernetes.io/enforce: baseline
@@ -111,7 +111,7 @@ metadata:
     app: factory-api
     app.kubernetes.io/name: factory-api
     app.kubernetes.io/component: api
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
 spec:
   replicas: 2
   selector:
@@ -155,7 +155,7 @@ spec:
 
       containers:
         - name: api
-          image: ghcr.io/lcruz/fabrica-de-agentes/api:latest
+          image: ghcr.io/lcruz/plataforma-e/api:latest
           imagePullPolicy: Always
 
           # Container-level Security Context (PSS Restricted)
@@ -261,7 +261,7 @@ metadata:
     app: factory-worker
     app.kubernetes.io/name: factory-worker
     app.kubernetes.io/component: worker
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
 spec:
   replicas: 3
   selector:
@@ -291,7 +291,7 @@ spec:
 
       containers:
         - name: worker
-          image: ghcr.io/lcruz/fabrica-de-agentes/worker:latest
+          image: ghcr.io/lcruz/plataforma-e/worker:latest
           imagePullPolicy: Always
 
           # Container-level Security Context (PSS Restricted)
@@ -380,7 +380,7 @@ metadata:
     app: factory-dashboard
     app.kubernetes.io/name: factory-dashboard
     app.kubernetes.io/component: dashboard
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
 spec:
   replicas: 2
   selector:
@@ -409,7 +409,7 @@ spec:
 
       containers:
         - name: dashboard
-          image: ghcr.io/lcruz/fabrica-de-agentes/dashboard:latest
+          image: ghcr.io/lcruz/plataforma-e/dashboard:latest
           imagePullPolicy: Always
 
           # Container-level Security Context (PSS Restricted)

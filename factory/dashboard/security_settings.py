@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Security Settings Panel - Issue #156
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Provides Security Settings panel with:
 1. Two-Factor Authentication (MFA) management

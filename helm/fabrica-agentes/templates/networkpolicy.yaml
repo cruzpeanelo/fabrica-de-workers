@@ -1,6 +1,6 @@
 {{/*
 =============================================================================
-Fabrica de Agentes - NetworkPolicy
+Plataforma E - NetworkPolicy
 =============================================================================
 */}}
 {{- if .Values.networkPolicy.enabled }}

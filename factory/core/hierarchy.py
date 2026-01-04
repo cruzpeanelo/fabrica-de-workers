@@ -17,7 +17,7 @@ Arquitetura:
         └── Resources (Stories, Tasks, Agents, etc)
             └── Actions (create, read, update, delete)
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import uuid

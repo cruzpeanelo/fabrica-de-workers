@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Configuracao OpenAPI v1 - Fabrica de Agentes v6.5
+Configuracao OpenAPI v1 - Plataforma E v6.5
 =================================================
 
 Especificacao OpenAPI completa para a API publica.
@@ -14,16 +14,16 @@ from fastapi.openapi.utils import get_openapi
 # METADATA
 # =============================================================================
 
-API_TITLE = "Fabrica de Agentes API"
+API_TITLE = "Plataforma E API"
 API_VERSION = "1.0.0"
 API_DESCRIPTION = """
-# Fabrica de Agentes - API Publica
+# Plataforma E - API Publica
 
-API REST para integracao com a plataforma de desenvolvimento autonomo Fabrica de Agentes.
+API REST para integracao com a plataforma de desenvolvimento autonomo Plataforma E.
 
 ## Visao Geral
 
-A Fabrica de Agentes permite que voce:
+A Plataforma E permite que voce:
 - **Crie projetos** de software automaticamente
 - **Defina User Stories** no formato Agile
 - **Execute desenvolvimento autonomo** com IA
@@ -141,7 +141,7 @@ project = client.projects.create(name='Meu App')
 
 - Documentacao: https://docs.fabricadeagentes.com
 - Email: support@fabricadeagentes.com
-- GitHub Issues: https://github.com/cruzpeanelo/fabrica-de-agentes/issues
+- GitHub Issues: https://github.com/cruzpeanelo/plataforma-e/issues
 """
 
 # =============================================================================
@@ -188,7 +188,7 @@ Status disponiveis: `backlog`, `ready`, `in_progress`, `review`, `testing`, `don
 Jobs de desenvolvimento autonomo.
 
 Quando voce executa uma Story ou cria um Job diretamente,
-a Fabrica de Agentes usa IA para gerar codigo automaticamente.
+a Plataforma E usa IA para gerar codigo automaticamente.
 
 Status: `pending`, `queued`, `running`, `completed`, `failed`.
         """,
@@ -323,8 +323,8 @@ def custom_openapi(app: FastAPI) -> dict:
 
     # Adicionar informacoes de contato
     openapi_schema["info"]["contact"] = {
-        "name": "Fabrica de Agentes",
-        "url": "https://github.com/cruzpeanelo/fabrica-de-agentes",
+        "name": "Plataforma E",
+        "url": "https://github.com/cruzpeanelo/plataforma-e",
         "email": "support@fabricadeagentes.com"
     }
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Workers HorizontalPodAutoscaler
+# Plataforma E - Workers HorizontalPodAutoscaler
 # =============================================================================
 # Auto-scaling para Workers baseado em metricas customizadas (fila de jobs)
 #

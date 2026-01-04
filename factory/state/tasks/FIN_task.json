@@ -1,0 +1,11 @@
+{
+  "task_id": "task_FIN_1767484119",
+  "agent_type": "FIN",
+  "issue_number": null,
+  "title": "Analise de Custos",
+  "description": "Calcular custos de infraestrutura e otimizacoes.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:39.067895",
+  "status": "pending",
+  "context": {}
+}

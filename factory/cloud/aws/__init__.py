@@ -2,7 +2,7 @@
 """
 AWS Cloud Provider Module
 =========================
-Implementacao do provider AWS para a Fabrica de Agentes.
+Implementacao do provider AWS para a Plataforma E.
 
 Recursos suportados:
 - EC2 (Maquinas virtuais)

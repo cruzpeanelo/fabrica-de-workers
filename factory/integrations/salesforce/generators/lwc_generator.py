@@ -270,7 +270,7 @@ class LWCGenerator:
  * {class_name}
  * Componente Lightning Web Component
  *
- * @author Fabrica de Agentes
+ * @author Plataforma E
  * @date {datetime.now().strftime('%Y-%m-%d')}
  */
 export default class {class_name} extends LightningElement {{

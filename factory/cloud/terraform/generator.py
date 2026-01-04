@@ -84,7 +84,7 @@ class TerraformGenerator:
     ):
         """Gera arquivo main.tf"""
         content = f'''# =============================================================================
-# Fabrica de Agentes - Terraform Configuration
+# Plataforma E - Terraform Configuration
 # Project: {project_name}
 # Provider: {provider.value.upper()}
 # Generated automatically - DO NOT EDIT

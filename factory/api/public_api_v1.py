@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-API Publica v1 - Fabrica de Agentes v6.5
+API Publica v1 - Plataforma E v6.5
 ========================================
 
 Endpoints publicos versionados para integracao com desenvolvedores externos.
@@ -234,7 +234,7 @@ class ErrorResponse(BaseModel):
 async def api_info():
     """Informacoes basicas da API"""
     return {
-        "name": "Fabrica de Agentes API",
+        "name": "Plataforma E API",
         "version": "1.0.0",
         "docs": "/api/v1/docs",
         "openapi": "/api/v1/openapi.json",

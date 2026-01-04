@@ -1,4 +1,4 @@
-# Fabrica de Agentes - Documentacao Tecnica
+# Plataforma E - Documentacao Tecnica
 
 ## Arquitetura do Sistema
 

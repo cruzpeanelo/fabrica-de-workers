@@ -20,7 +20,7 @@ class BaseSettings(PydanticBaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
-    APP_NAME: str = "Fabrica de Agentes"
+    APP_NAME: str = "Plataforma E"
     APP_VERSION: str = "6.5.0"
 
     # Server

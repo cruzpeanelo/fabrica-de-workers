@@ -4,7 +4,7 @@ Docker Routes - Endpoints de API para deploy Docker
 ====================================================
 
 Este modulo define os endpoints REST para deploy Docker das aplicacoes
-geradas pela Fabrica de Agentes.
+geradas pela Plataforma E.
 
 Issue #77: App Generator - Deploy com Docker
 

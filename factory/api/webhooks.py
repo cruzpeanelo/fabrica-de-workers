@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Sistema de Webhooks - Fabrica de Agentes v6.5
+Sistema de Webhooks - Plataforma E v6.5
 =============================================
 
 Sistema de notificacoes por webhook para eventos da plataforma.

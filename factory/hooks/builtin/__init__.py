@@ -1,1 +1,1 @@
-"""Built-in hooks da Fabrica de Agentes."""
+"""Built-in hooks da Plataforma E."""

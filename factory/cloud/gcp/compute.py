@@ -2,7 +2,7 @@
 """
 GCP Compute Engine Manager
 ==========================
-Gerenciador de VMs Compute Engine para a Fabrica de Agentes.
+Gerenciador de VMs Compute Engine para a Plataforma E.
 
 Funcionalidades:
 - Criacao de instancias
@@ -113,7 +113,7 @@ class ComputeManager:
             machine_type_url = f"zones/{self.zone}/machineTypes/{machine_type}"
 
             # Preparar labels
-            instance_labels = {"project": "fabrica-de-agentes"}
+            instance_labels = {"project": "plataforma-e"}
             if labels:
                 instance_labels.update(labels)
 

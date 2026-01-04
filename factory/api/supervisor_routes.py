@@ -1,6 +1,6 @@
 """
 Supervisor Routes - API para controle de agentes IA
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional

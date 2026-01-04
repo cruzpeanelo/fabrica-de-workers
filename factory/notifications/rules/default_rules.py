@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Regras Padrao de Notificacao
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Define regras padrao para os eventos mais comuns do sistema.
 """

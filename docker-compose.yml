@@ -1,4 +1,4 @@
-# Fabrica de Agentes v6.5 - Docker Compose
+# Plataforma E v6.5 - Docker Compose
 # Complete Development Environment Setup
 # Usage: docker-compose up -d
 #
@@ -12,7 +12,7 @@
 
 services:
   # =============================================================================
-  # APP - Fabrica de Agentes Application
+  # APP - Plataforma E Application
   # =============================================================================
   app:
     build:

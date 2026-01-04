@@ -1,5 +1,5 @@
 """
-Agent Factory - Fabrica de Agentes Especializados
+Agent Factory - Plataforma E Especializados
 =================================================
 
 Factory para criar e gerenciar agentes especializados com:
@@ -322,7 +322,7 @@ class SpecializedAgent(AutonomousAgent):
 
 class AgentFactory:
     """
-    Fabrica de Agentes Especializados
+    Plataforma E Especializados
 
     Cria e gerencia agentes especializados de diferentes dominios.
     """

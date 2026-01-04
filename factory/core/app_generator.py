@@ -121,7 +121,7 @@ def get_folder_path_from_db(project_id: str) -> Optional[str]:
 class AppGenerator:
     """Gera aplicacoes testaveis a partir do codigo criado pelos workers."""
 
-    PROJECTS_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects")
+    PROJECTS_DIR = Path(r"C:\Users\lcruz\Plataforma E\projects")
 
     def __init__(self, project_id: str):
         self.project_id = project_id
@@ -759,7 +759,7 @@ pause
         content = f'''"""
 Aplicacao de Teste - {self.project_id}
 =====================================
-Gerada automaticamente pela Fabrica de Agentes
+Gerada automaticamente pela Plataforma E
 Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 Esta aplicacao permite testar os modelos e funcionalidades
@@ -843,7 +843,7 @@ def home():
         </div>
 
         <p style="color: #666; font-size: 12px; margin-top: 40px;">
-            Gerado automaticamente pela Fabrica de Agentes em {datetime.now().strftime("%d/%m/%Y %H:%M")}
+            Gerado automaticamente pela Plataforma E em {datetime.now().strftime("%d/%m/%Y %H:%M")}
         </p>
     </body>
     </html>
@@ -990,12 +990,12 @@ pause
         package = {
             "name": self.project_id.lower().replace(" ", "-").replace("_", "-"),
             "version": "1.0.0",
-            "description": "Aplicacao de teste gerada pela Fabrica de Agentes",
+            "description": "Aplicacao de teste gerada pela Plataforma E",
             "main": "app.js",
             "scripts": {"start": "node app.js", "dev": "nodemon app.js"},
             "dependencies": {"express": "^4.18.2", "cors": "^2.8.5", "swagger-ui-express": "^5.0.0", "swagger-jsdoc": "^6.2.8", **orm_deps},
             "devDependencies": {"nodemon": "^3.0.1"},
-            "author": "Fabrica de Agentes",
+            "author": "Plataforma E",
             "license": "MIT"
         }
         return json.dumps(package, indent=2, ensure_ascii=False)
@@ -1008,7 +1008,7 @@ pause
 
         return f'''/**
  * Aplicacao de Teste - {self.project_id}
- * Gerada automaticamente pela Fabrica de Agentes - {datetime.now().strftime("%Y-%m-%d %H:%M")}
+ * Gerada automaticamente pela Plataforma E - {datetime.now().strftime("%Y-%m-%d %H:%M")}
  */
 const express = require('express');
 const cors = require('cors');

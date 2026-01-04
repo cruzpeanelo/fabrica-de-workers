@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - API HorizontalPodAutoscaler
+# Plataforma E - API HorizontalPodAutoscaler
 # =============================================================================
 # Auto-scaling horizontal para a API baseado em metricas de CPU e memoria
 #

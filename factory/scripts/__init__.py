@@ -1,5 +1,5 @@
 """
-Fabrica de Agentes v4.0 - Scripts
+Plataforma E v4.0 - Scripts
 
 Scripts de inicializacao e gerenciamento:
 - start_workers.py: Inicia pool de workers Claude

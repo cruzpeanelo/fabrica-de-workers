@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Context Manager - Fabrica de Agentes
+Context Manager - Plataforma E
 ====================================
 Gerenciamento de contexto e auto-compact para evitar overflow.
 
 Monitora uso de contexto de cada agente e dispara compactacao
 quando necessario para evitar perda de informacao.
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import json

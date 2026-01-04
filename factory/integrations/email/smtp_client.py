@@ -49,7 +49,7 @@ class SmtpConfig:
     use_tls: bool = True
     use_ssl: bool = False
     sender_email: str = ""
-    sender_name: str = "Fabrica de Agentes"
+    sender_name: str = "Plataforma E"
     timeout: int = 30
     enabled: bool = False
 
@@ -64,7 +64,7 @@ class SmtpConfig:
             use_tls=os.getenv("SMTP_USE_TLS", "true").lower() == "true",
             use_ssl=os.getenv("SMTP_USE_SSL", "false").lower() == "true",
             sender_email=os.getenv("SMTP_SENDER_EMAIL", ""),
-            sender_name=os.getenv("SMTP_SENDER_NAME", "Fabrica de Agentes"),
+            sender_name=os.getenv("SMTP_SENDER_NAME", "Plataforma E"),
             timeout=int(os.getenv("SMTP_TIMEOUT", "30")),
             enabled=os.getenv("SMTP_ENABLED", "false").lower() == "true"
         )
@@ -390,7 +390,7 @@ class SmtpClient:
             body = template.render(**template_vars)
 
             # Usa assunto do template_vars ou parametro
-            email_subject = subject or template_vars.get("subject", "Fabrica de Agentes")
+            email_subject = subject or template_vars.get("subject", "Plataforma E")
 
             return await self.send_email(
                 to=to,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 MFA API Routes - Issue #103
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 REST API endpoints for MFA (Multi-Factor Authentication) operations:
 - Setup and enrollment

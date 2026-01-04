@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 RBAC - Role-Based Access Control
-Fabrica de Agentes v6.1
+Plataforma E v6.1
 
 Sistema completo de controle de acesso baseado em roles (papeis).
 Implementa:

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Tests for WIP Limits Implementation - Issue #237
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Comprehensive tests for:
 1. KanbanPolicy model

@@ -2,7 +2,7 @@
 """
 Calendar Sync Service (Issue #264)
 ===================================
-Servico de sincronizacao entre Fabrica de Agentes e calendarios externos.
+Servico de sincronizacao entre Plataforma E e calendarios externos.
 
 Funcionalidades:
 - Sincronizacao automatica de sprints
@@ -72,7 +72,7 @@ class CalendarSyncService:
     """
     Servico de sincronizacao de calendario.
 
-    Gerencia a sincronizacao de eventos entre a Fabrica de Agentes
+    Gerencia a sincronizacao de eventos entre a Plataforma E
     e calendarios externos (Google Calendar e Outlook).
 
     Exemplo:

@@ -1,5 +1,5 @@
 """
-Conexao com o Banco de Dados - Fabrica de Agentes v4.0
+Conexao com o Banco de Dados - Plataforma E v4.0
 Suporta PostgreSQL (producao) e SQLite (fallback local)
 """
 import os

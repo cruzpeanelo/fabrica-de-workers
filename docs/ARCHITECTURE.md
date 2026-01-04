@@ -1,8 +1,8 @@
-# Arquitetura Tecnica - Fabrica de Agentes
+# Arquitetura Tecnica - Plataforma E
 
 ## Visao Geral
 
-A Fabrica de Agentes e construida sobre uma arquitetura modular e extensivel que permite o desenvolvimento autonomo de software atraves de agentes inteligentes colaborativos.
+A Plataforma E e construida sobre uma arquitetura modular e extensivel que permite o desenvolvimento autonomo de software atraves de agentes inteligentes colaborativos.
 
 ---
 
@@ -431,5 +431,5 @@ def generate_new_artifact_intelligent(
 ---
 
 <p align="center">
-Documentacao tecnica da <strong>Fabrica de Agentes</strong>
+Documentacao tecnica da <strong>Plataforma E</strong>
 </p>

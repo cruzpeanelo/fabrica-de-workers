@@ -1,4 +1,4 @@
-# Database Migrations - Fabrica de Agentes
+# Database Migrations - Plataforma E
 
 ## Decisão Arquitetural
 

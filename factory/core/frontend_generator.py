@@ -20,7 +20,7 @@ Suporta:
   - Deteccao de componentes existentes
   - Geracao de UI CRUD automatica
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Data: 2024-12-29
 """
 
@@ -409,7 +409,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
         return f'''/**
  * App Principal - {self.project_id}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  * Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
  */
 import {{ Routes, Route, NavLink }} from 'react-router-dom'
@@ -434,7 +434,7 @@ function App() {{
       </main>
 
       <footer className="footer">
-        <p>Gerado pela Fabrica de Agentes</p>
+        <p>Gerado pela Plataforma E</p>
       </footer>
     </div>
   )
@@ -506,7 +506,7 @@ export default App
 
         return f'''/**
  * Componente CRUD - {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 import {{ useState, useEffect }} from 'react'
 import {{ apiService }} from '../services/api'
@@ -631,7 +631,7 @@ export default {name}Crud
         """Gera componente DataTable reutilizavel."""
         return '''/**
  * Componente DataTable - Tabela de dados reutilizavel
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 import { useState } from 'react'
 
@@ -739,7 +739,7 @@ export default DataTable
         """Gera componente FormModal reutilizavel."""
         return '''/**
  * Componente FormModal - Modal de formulario reutilizavel
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 function FormModal({ title, children, onClose, onSubmit }) {
   const handleBackdropClick = (e) => {
@@ -956,7 +956,7 @@ createApp(App).use(router).mount('#app')
     </main>
 
     <footer class="footer">
-      <p>Gerado pela Fabrica de Agentes</p>
+      <p>Gerado pela Plataforma E</p>
     </footer>
   </div>
 </template>
@@ -964,7 +964,7 @@ createApp(App).use(router).mount('#app')
 <script setup>
 /**
  * App Principal - {self.project_id}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  * Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
  */
 </script>
@@ -1055,7 +1055,7 @@ export default router
 <script setup>
 /**
  * View CRUD - {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 import {{ ref, onMounted }} from 'vue'
 import {{ apiService }} from '../services/api'
@@ -1151,7 +1151,7 @@ onMounted(() => loadData())
 <script setup>
 /**
  * HomeView - Pagina inicial
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 </script>
 '''
@@ -1327,7 +1327,7 @@ export default defineConfig({{
 
         return f'''/**
  * Servico de API - {self.project_id}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 import axios from 'axios'
 
@@ -1356,7 +1356,7 @@ export default api
     def _generate_styles(self) -> str:
         """Gera estilos CSS."""
         return '''/**
- * Estilos - Fabrica de Agentes
+ * Estilos - Plataforma E
  * Cores baseadas na identidade visual Belgo Arames
  */
 

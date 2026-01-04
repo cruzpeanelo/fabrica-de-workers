@@ -11,7 +11,7 @@ Implementa os modelos SQLAlchemy para:
 - Invoice: Faturas
 - PaymentMethod: Metodos de pagamento
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from sqlalchemy import (

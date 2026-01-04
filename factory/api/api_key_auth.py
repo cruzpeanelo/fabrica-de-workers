@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Autenticacao via API Key - Fabrica de Agentes v6.5
+Autenticacao via API Key - Plataforma E v6.5
 =================================================
 
 Sistema de autenticacao para API publica usando API Keys.

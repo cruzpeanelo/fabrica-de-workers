@@ -31,7 +31,7 @@ class CustomJsonFormatter(logging.Formatter):
     """Custom JSON formatter for structured logging."""
 
     def __init__(self, *args, **kwargs):
-        self.service_name = kwargs.pop("service_name", "fabrica-de-agentes")
+        self.service_name = kwargs.pop("service_name", "plataforma-e")
         self.environment = kwargs.pop("environment", os.getenv("ENVIRONMENT", "development"))
         super().__init__(*args, **kwargs)
 
@@ -73,7 +73,7 @@ class CustomJsonFormatter(logging.Formatter):
 
 def setup_logging(
     level: str = None,
-    service_name: str = "fabrica-de-agentes",
+    service_name: str = "plataforma-e",
     json_format: bool = None
 ) -> None:
     """

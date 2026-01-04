@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Multi-AZ Infrastructure Configuration
+# Plataforma E - Multi-AZ Infrastructure Configuration
 # =============================================================================
 # Issue #110: Multi-AZ Real para Todos Componentes
 #
@@ -378,7 +378,7 @@ resource "aws_elasticache_subnet_group" "main" {
 
 resource "aws_elasticache_replication_group" "main" {
   replication_group_id = "${local.name_prefix}-redis"
-  description          = "Redis cluster for Fabrica de Agentes"
+  description          = "Redis cluster for Plataforma E"
 
   # Engine
   engine               = "redis"

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Multi-Factor Authentication (MFA/2FA) Implementation - Issue #103
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Implements complete MFA system with:
 1. TOTP (Time-based One-Time Password) via pyotp
@@ -40,7 +40,7 @@ from factory.database.connection import SessionLocal
 # =============================================================================
 
 # MFA Configuration
-MFA_ISSUER = os.getenv("MFA_ISSUER", "Fabrica de Agentes")
+MFA_ISSUER = os.getenv("MFA_ISSUER", "Plataforma E")
 MFA_SECRET_LENGTH = 32  # 32 characters = 160 bits entropy
 BACKUP_CODE_LENGTH = 8
 BACKUP_CODE_COUNT = 10

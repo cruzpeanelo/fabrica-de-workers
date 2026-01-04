@@ -624,7 +624,7 @@ class GitLabIntegration(IntegrationBase):
             for ac in story["acceptance_criteria"]:
                 parts.append(f"- [ ] {ac}")
 
-        parts.append(f"\n\n---\nGerado pela Fabrica de Agentes")
+        parts.append(f"\n\n---\nGerado pela Plataforma E")
 
         return "\n".join(parts)
 

@@ -296,7 +296,7 @@ class AzureKeyVaultClient:
             secret_tags["secret_type"] = secret_type.value
             if tenant_id:
                 secret_tags["tenant_id"] = tenant_id
-            secret_tags["created_by"] = "fabrica-de-agentes"
+            secret_tags["created_by"] = "plataforma-e"
             secret_tags["created_at"] = datetime.utcnow().isoformat()
 
             # Salva o secret

@@ -22,7 +22,7 @@ Credenciais:
     startup_dev / startup123   - Dev StartupX
     consultor / consul123      - Multi-tenant (Belgo + TechCorp)
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 import os

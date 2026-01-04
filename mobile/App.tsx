@@ -1,5 +1,5 @@
 /**
- * Fabrica de Agentes - App Mobile
+ * Plataforma E - App Mobile
  * ================================
  * App React Native para gestao Agile
  * Issue #262, #368 - Multi-Tenant, White Label, User Mode

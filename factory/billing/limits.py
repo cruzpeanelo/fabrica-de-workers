@@ -8,7 +8,7 @@ Implementa:
 - Decorator para endpoints
 - Enforcement de quotas
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

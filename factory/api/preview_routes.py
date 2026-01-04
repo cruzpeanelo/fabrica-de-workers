@@ -19,7 +19,7 @@ Endpoints:
 - GET /api/previews/{preview_id}/qrcode - QR Code para mobile
 - POST /api/previews/cleanup - Limpar previews expirados
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Data: 2025-12-29
 """
 

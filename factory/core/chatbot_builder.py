@@ -11,7 +11,7 @@ Este modulo implementa o sistema completo de criacao de chatbots:
 - Analytics e Continuous Learning
 
 Versao: 1.0.0
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import os
@@ -31,7 +31,7 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 # Adicionar path do projeto
-sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
+sys.path.insert(0, r'C:\Users\lcruz\Plataforma E')
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -42,7 +42,7 @@ load_dotenv()
 # =============================================================================
 
 # Diretorio base para exports
-EXPORT_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\exports\chatbots')
+EXPORT_DIR = Path(r'C:\Users\lcruz\Plataforma E\exports\chatbots')
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Tons de personalidade disponiveis

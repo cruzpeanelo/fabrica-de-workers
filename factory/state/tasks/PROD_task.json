@@ -1,0 +1,11 @@
+{
+  "task_id": "task_PROD_1767484769",
+  "agent_type": "PROD",
+  "issue_number": null,
+  "title": "Documentar e priorizar backlog",
+  "description": "1. Liste todas as issues abertas: gh issue list --state open --limit 50\n2. Crie documento docs/backlog/prioritized-backlog.md com prioridades\n3. Crie issues para features faltantes se necessario\n",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:59:29.689268",
+  "status": "pending",
+  "context": {}
+}

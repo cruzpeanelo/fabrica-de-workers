@@ -66,7 +66,7 @@ export function LoginScreen() {
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>FA</Text>
           </View>
-          <Text style={styles.title}>Fabrica de Agentes</Text>
+          <Text style={styles.title}>Plataforma E</Text>
           <Text style={styles.subtitle}>Gestao Agile Inteligente</Text>
         </View>
 

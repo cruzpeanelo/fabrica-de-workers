@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Agent Runner - Fabrica de Agentes
+Agent Runner - Plataforma E
 =================================
 Wrapper para executar agentes Claude Code como processos separados.
 
@@ -9,7 +9,7 @@ Cada agente roda em seu proprio processo, com:
 - Auto-commit habilitado
 - Persistencia de estado em JSON
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import os

@@ -1,6 +1,6 @@
 """
 Input Routes - API Endpoints for Omnichannel Input Methods
-Fabrica de Agentes v6.5 - Issues #127, #128, #129, #131
+Plataforma E v6.5 - Issues #127, #128, #129, #131
 
 Provides REST API endpoints for:
 - Voice capture (POST /api/v1/inputs/voice)

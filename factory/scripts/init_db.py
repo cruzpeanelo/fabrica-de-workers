@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Database Initialization Script
-Fabrica de Agentes v4.0
+Plataforma E v4.0
 
 Cria tabelas e dados iniciais.
 

@@ -9,7 +9,7 @@ Pagina de login que:
 - Suporta white label dinamico
 - Mostra seletor se usuario tem multiplos tenants
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 from fastapi import APIRouter
@@ -23,7 +23,7 @@ LOGIN_PAGE_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Fabrica de Agentes</title>
+    <title>Login - Plataforma E</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -337,7 +337,7 @@ LOGIN_PAGE_HTML = """
                      alt="Logo"
                      class="login-logo"
                      onerror="this.style.display='none'">
-                <h1 class="login-title">{{ branding.display_name || 'Fabrica de Agentes' }}</h1>
+                <h1 class="login-title">{{ branding.display_name || 'Plataforma E' }}</h1>
                 <p class="login-subtitle">{{ branding.tagline || 'Sistema de Desenvolvimento Autonomo' }}</p>
             </div>
 
@@ -448,7 +448,7 @@ LOGIN_PAGE_HTML = """
                 const userData = ref(null);
 
                 const branding = reactive({
-                    display_name: 'Fabrica de Agentes',
+                    display_name: 'Plataforma E',
                     tagline: 'Sistema de Desenvolvimento Autonomo',
                     logo_url: '/static/logos/default.png',
                     primary_color: '#003B4A',

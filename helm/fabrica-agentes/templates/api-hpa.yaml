@@ -1,6 +1,6 @@
 {{/*
 =============================================================================
-Fabrica de Agentes - API HorizontalPodAutoscaler
+Plataforma E - API HorizontalPodAutoscaler
 =============================================================================
 */}}
 {{- if and .Values.api.enabled .Values.api.autoscaling.enabled }}

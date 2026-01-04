@@ -23,7 +23,7 @@ Usage:
         tenant_id = tenant["tenant_id"]
         ...
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 
 VERSION: Issue #371 Fix - 2025-12-30 - Added /login to PUBLIC_PATHS
 """

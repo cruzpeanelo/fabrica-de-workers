@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Middleware Module for Fabrica de Agentes
+Middleware Module for Plataforma E
 =========================================
 
 This module contains middleware implementations for:
 - Plan Limits Enforcement (Issue #104)
 - Global Tenant Context (Issue #105)
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 from .plan_limits import (

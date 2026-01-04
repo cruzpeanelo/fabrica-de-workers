@@ -10,7 +10,7 @@ Features:
 - Session listing and invalidation
 - Integration with token_blacklist.py
 
-Author: Fabrica de Agentes - Terminal B
+Author: Plataforma E - Terminal B
 """
 
 import time

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Exemplos de Uso do Sistema de Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Este arquivo demonstra como usar o sistema de notificacoes
 em diferentes cenarios.
@@ -28,7 +28,7 @@ def exemplo_configuracao_basica():
         "username": "seu_email@gmail.com",
         "password": "sua_app_password",  # Use App Password do Google
         "from_email": "seu_email@gmail.com",
-        "from_name": "Fabrica de Agentes",
+        "from_name": "Plataforma E",
         "use_tls": True
     })
 

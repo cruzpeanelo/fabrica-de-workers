@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-WebSocket Events - Fabrica de Agentes
+WebSocket Events - Plataforma E
 =====================================
 Definicao de tipos de eventos e estrutura de mensagens WebSocket.
 

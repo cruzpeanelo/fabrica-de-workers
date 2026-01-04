@@ -10,7 +10,7 @@ Este modulo fornece:
 - Graficos de consumo por periodo
 - Lista de faturas com download de PDF
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from datetime import datetime
@@ -31,7 +31,7 @@ BILLING_PAGE_HTML = '''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billing - Fabrica de Agentes</title>
+    <title>Billing - Plataforma E</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -368,7 +368,7 @@ stream
 BT
 /F1 24 Tf
 50 700 Td
-(FATURA - Fabrica de Agentes) Tj
+(FATURA - Plataforma E) Tj
 0 -40 Td
 /F1 12 Tf
 (Numero: {invoice_id}) Tj
@@ -379,7 +379,7 @@ BT
 0 -20 Td
 (Descricao do servico:) Tj
 0 -20 Td
-(- Uso da plataforma Fabrica de Agentes) Tj
+(- Uso da plataforma Plataforma E) Tj
 0 -20 Td
 (- API Calls, Tokens LLM, Storage, Compute) Tj
 0 -40 Td

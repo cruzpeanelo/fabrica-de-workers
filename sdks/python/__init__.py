@@ -1,8 +1,8 @@
 """
-Fabrica de Agentes - Python SDK
+Plataforma E - Python SDK
 ===============================
 
-Cliente Python oficial para a API da Fabrica de Agentes.
+Cliente Python oficial para a API da Plataforma E.
 
 Instalacao:
     pip install fabrica-agentes-sdk

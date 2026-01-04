@@ -1,4 +1,4 @@
-# Fabrica de Agentes - CI/CD Pipeline
+# Plataforma E - CI/CD Pipeline
 # Runs tests, linting, and builds Docker image
 
 name: CI/CD Pipeline

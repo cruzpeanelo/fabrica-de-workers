@@ -1,4 +1,4 @@
-# 🏭 Fábrica de Agentes
+# 🏭 Plataforma E
 
 **Plataforma de Desenvolvimento Autônomo com Inteligência Artificial**
 
@@ -26,7 +26,7 @@
 
 ## 🎯 Visão Geral
 
-A **Fábrica de Agentes** é uma plataforma enterprise que transforma a forma como software é desenvolvido, combinando:
+A **Plataforma E** é uma plataforma enterprise que transforma a forma como software é desenvolvido, combinando:
 
 - **Dashboard Agile v6.5**: Gestão completa de User Stories com Kanban
 - **Workers Claude AI**: Processamento autônomo de tarefas com auto-correção
@@ -60,7 +60,7 @@ A **Fábrica de Agentes** é uma plataforma enterprise que transforma a forma co
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  🏭 Fábrica de Agentes       [Projeto ▼] [Sprint ▼] [🔍 Buscar...] [?]  │
+│  🏭 Plataforma E       [Projeto ▼] [Sprint ▼] [🔍 Buscar...] [?]  │
 ├────────────┬─────────────────────────────────────────────────────────────┤
 │            │                                                             │
 │  ÉPICOS    │  BACKLOG   READY    IN PROGRESS  REVIEW   TESTING   DONE   │
@@ -151,8 +151,8 @@ A **Fábrica de Agentes** é uma plataforma enterprise que transforma a forma co
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/fabrica-de-agentes.git
-cd fabrica-de-agentes
+git clone https://github.com/seu-usuario/plataforma-e.git
+cd plataforma-e
 
 # 2. Crie ambiente virtual
 python -m venv venv
@@ -223,7 +223,7 @@ docker-compose up -d
 ### Estrutura de Diretórios
 
 ```
-Fábrica de Agentes/
+Plataforma E/
 ├── factory/
 │   ├── api/                    # API REST FastAPI
 │   │   ├── routes.py           # Endpoints principais
@@ -312,11 +312,11 @@ Queremos sua contribuição! Veja como participar:
 # 1. Faça fork no GitHub
 
 # 2. Clone seu fork
-git clone https://github.com/SEU-USUARIO/fabrica-de-agentes.git
-cd fabrica-de-agentes
+git clone https://github.com/SEU-USUARIO/plataforma-e.git
+cd plataforma-e
 
 # 3. Adicione upstream
-git remote add upstream https://github.com/cruzpeanelo/fabrica-de-agentes.git
+git remote add upstream https://github.com/cruzpeanelo/plataforma-e.git
 
 # 4. Crie branch para sua feature
 git checkout -b feature/minha-feature
@@ -436,12 +436,12 @@ Este projeto está sob a licença MIT - veja [LICENSE](LICENSE) para detalhes.
 
 - **Autor**: Luis Cruz
 - **GitHub**: [@cruzpeanelo](https://github.com/cruzpeanelo)
-- **Issues**: [Reportar Bug / Sugerir Feature](https://github.com/cruzpeanelo/fabrica-de-agentes/issues)
+- **Issues**: [Reportar Bug / Sugerir Feature](https://github.com/cruzpeanelo/plataforma-e/issues)
 
 ---
 
 <p align="center">
-  <strong>🏭 Fábrica de Agentes</strong><br>
+  <strong>🏭 Plataforma E</strong><br>
   Desenvolvimento autônomo com Claude AI
 </p>
 

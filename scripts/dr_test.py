@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fabrica de Agentes - Disaster Recovery Test Script
+Plataforma E - Disaster Recovery Test Script
 ===================================================
 Issue #98: Plano de Disaster Recovery Documentado
 
@@ -735,7 +735,7 @@ class DRTestSuite:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Fabrica de Agentes - DR Test Suite'
+        description='Plataforma E - DR Test Suite'
     )
     parser.add_argument(
         '--test',

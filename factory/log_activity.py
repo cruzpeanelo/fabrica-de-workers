@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CLI para registro de atividades - Fabrica de Agentes
+CLI para registro de atividades - Plataforma E
 Permite registrar atividades dos agentes no banco de dados
 
 Uso:

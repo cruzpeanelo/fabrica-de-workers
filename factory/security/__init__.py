@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Security Module for Fabrica de Agentes
+Security Module for Plataforma E
 ======================================
 
 This module provides security features including:
@@ -10,7 +10,7 @@ This module provides security features including:
 - Audit logging for cross-tenant access attempts
 - Per-tenant encryption
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 try:

@@ -65,7 +65,7 @@ class TableauConnector:
     """
     Conector para Tableau com suporte a WDC e Data Extract.
 
-    Permite exportar dados da Fabrica de Agentes para Tableau
+    Permite exportar dados da Plataforma E para Tableau
     em varios formatos, incluindo Web Data Connector.
 
     Exemplo de uso:
@@ -374,7 +374,7 @@ class TableauConnector:
         return f'''<!DOCTYPE html>
 <html>
 <head>
-    <title>Fabrica de Agentes - Tableau Connector</title>
+    <title>Plataforma E - Tableau Connector</title>
     <meta charset="utf-8">
     <script src="https://connectors.tableau.com/libs/tableauwdc-2.3.latest.js"></script>
     <style>
@@ -450,7 +450,7 @@ class TableauConnector:
 </head>
 <body>
     <div class="container">
-        <div class="logo">Fabrica de Agentes</div>
+        <div class="logo">Plataforma E</div>
         <h1>Conectar ao Tableau</h1>
 
         <label for="project">Projeto:</label>
@@ -466,7 +466,7 @@ class TableauConnector:
         <button id="connect">Conectar</button>
 
         <div class="info">
-            Este conector permite visualizar dados da Fabrica de Agentes
+            Este conector permite visualizar dados da Plataforma E
             diretamente no Tableau Desktop ou Tableau Server.
         </div>
     </div>
@@ -515,7 +515,7 @@ class TableauConnector:
                     project: projectId,
                     table: tableId
                 }});
-                tableau.connectionName = 'Fabrica de Agentes - ' + tableId;
+                tableau.connectionName = 'Plataforma E - ' + tableId;
                 tableau.submit();
             }});
         }})();

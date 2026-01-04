@@ -2,7 +2,7 @@
 """
 AWS EC2 Manager
 ===============
-Gerenciador de instancias EC2 para a Fabrica de Agentes.
+Gerenciador de instancias EC2 para a Plataforma E.
 
 Funcionalidades:
 - Criacao de instancias EC2

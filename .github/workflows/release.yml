@@ -1,4 +1,4 @@
-# Fabrica de Agentes - Release Workflow
+# Plataforma E - Release Workflow
 # Issue #51: Integracao CI/CD com GitHub Actions
 #
 # Cria releases automaticas quando uma tag e criada
@@ -235,7 +235,7 @@ jobs:
 
           # Create changelog file
           cat > RELEASE_NOTES.md << EOF
-          ## Fabrica de Agentes v${VERSION}
+          ## Plataforma E v${VERSION}
 
           ### What's Changed
 
@@ -275,7 +275,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Fabrica de Agentes v${{ needs.validate.outputs.version }}
+          name: Plataforma E v${{ needs.validate.outputs.version }}
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: ${{ inputs.prerelease || false }}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Interface Base para Canais de Notificacao
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Define a interface abstrata que todos os canais devem implementar.
 Padrao Strategy para permitir adicionar novos canais facilmente.

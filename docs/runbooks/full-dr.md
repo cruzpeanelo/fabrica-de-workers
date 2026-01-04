@@ -11,7 +11,7 @@
 
 ## Sumario
 
-Este runbook descreve os procedimentos para recuperacao completa do ambiente Fabrica de Agentes em caso de desastre regional ou perda total do cluster.
+Este runbook descreve os procedimentos para recuperacao completa do ambiente Plataforma E em caso de desastre regional ou perda total do cluster.
 
 ---
 
@@ -80,7 +80,7 @@ aws s3 ls s3://fabrica-agentes-backups-dr/db/ --region us-west-2 | tail -5
 ```bash
 # 1. Notificar equipe
 # Canal: #incident-dr no Slack
-# Titulo: [DR ATIVADO] Fabrica de Agentes - Failover para us-west-2
+# Titulo: [DR ATIVADO] Plataforma E - Failover para us-west-2
 
 # 2. Atualizar status page
 # https://status.fabrica-agentes.com
@@ -247,7 +247,7 @@ python scripts/backup_database.py --dry-run
 **Titulo:** Servico Restaurado - Operando em Ambiente de Backup
 
 **Mensagem:**
-O servico Fabrica de Agentes foi restaurado com sucesso no ambiente de backup.
+O servico Plataforma E foi restaurado com sucesso no ambiente de backup.
 
 - **Inicio do incidente:** [TIMESTAMP]
 - **Servico restaurado:** [TIMESTAMP]

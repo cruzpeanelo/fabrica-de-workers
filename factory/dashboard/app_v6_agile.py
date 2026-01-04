@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Dashboard Agile v6.0 - Fabrica de Agentes
+Dashboard Agile v6.0 - Plataforma E
 ==========================================
 Sistema completo de gestao Agile com:
 - User Stories detalhadas (narrativa, criterios, DoD)
@@ -23,8 +23,8 @@ from typing import Optional, List
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Mudar para diretorio do projeto e adicionar ao path
-os.chdir(r'C:\Users\lcruz\Fabrica de Agentes')
-sys.path.insert(0, r'C:\Users\lcruz\Fabrica de Agentes')
+os.chdir(r'C:\Users\lcruz\Plataforma E')
+sys.path.insert(0, r'C:\Users\lcruz\Plataforma E')
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -80,7 +80,7 @@ Base.metadata.create_all(bind=engine)
 
 # App FastAPI
 app = FastAPI(
-    title="Fabrica de Agentes - Dashboard Agile v6.0",
+    title="Plataforma E - Dashboard Agile v6.0",
     description="Sistema de gestao Agile com Stories, Tasks e Assistente",
     version="6.0.0"
 )
@@ -164,7 +164,7 @@ try:
     from factory.observability import setup_observability
     observability_status = setup_observability(
         app=app,
-        service_name="fabrica-de-agentes",
+        service_name="plataforma-e",
         enable_console_tracing=os.getenv("ENVIRONMENT", "development") == "development"
     )
     print(f"[Observability] Setup complete: tracing={observability_status.get('tracing')}, sentry={observability_status.get('sentry')}")
@@ -182,7 +182,7 @@ except ImportError as e:
     print(f"[Shutdown] Graceful shutdown not available: {e}")
 
 # Diretorio de uploads
-UPLOAD_DIR = Path(r'C:\Users\lcruz\Fabrica de Agentes\uploads')
+UPLOAD_DIR = Path(r'C:\Users\lcruz\Plataforma E\uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Mount static files for PWA support
@@ -1059,7 +1059,7 @@ def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "fabrica-de-agentes",
+        "service": "plataforma-e",
         "version": "6.5",
         "timestamp": datetime.utcnow().isoformat() + "Z"
     }
@@ -2906,7 +2906,7 @@ def generate_assistant_response(content: str, project_id: str, story_id: str, db
                             selected_task_context += f"\n- Codigo gerado: {len(task.code_output)} caracteres"
 
                 # System prompt para o assistente com contexto de pagina
-                system_prompt = f"""Voce e o Assistente Inteligente da Fabrica de Agentes, um sistema de gestao Agile.
+                system_prompt = f"""Voce e o Assistente Inteligente da Plataforma E, um sistema de gestao Agile.
 Seu papel e ajudar usuarios a gerenciar User Stories, Tasks, Projetos e o desenvolvimento autonomo.
 
 === CONTEXTO DA PAGINA ATUAL ===
@@ -3799,7 +3799,7 @@ def execute_terminal_command(project_id: str, request: TerminalExecuteRequest):
         if request.cwd:
             cwd = request.cwd
         else:
-            cwd = os.path.join(r'C:\Users\lcruz\Fabrica de Agentes\projects', project_id)
+            cwd = os.path.join(r'C:\Users\lcruz\Plataforma E\projects', project_id)
 
         # Ensure directory exists
         os.makedirs(cwd, exist_ok=True)
@@ -3950,7 +3950,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabrica de Agentes - Dashboard Agile</title>
+    <title>Plataforma E - Dashboard Agile</title>
 
     <!-- PWA Meta Tags (Issue #259) -->
     <meta name="theme-color" content="#003B4A">
@@ -3958,7 +3958,7 @@ HTML_TEMPLATE = """
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FdA Agile">
-    <meta name="application-name" content="Fabrica de Agentes">
+    <meta name="application-name" content="Plataforma E">
     <meta name="msapplication-TileColor" content="#003B4A">
     <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
 
@@ -7680,7 +7680,7 @@ HTML_TEMPLATE = """
                             <div class="w-8 h-8 bg-white rounded flex items-center justify-center">
                                 <span class="text-belgo-blue font-bold">FA</span>
                             </div>
-                            <span class="font-semibold text-lg header-title">Fabrica de Agentes</span>
+                            <span class="font-semibold text-lg header-title">Plataforma E</span>
                         </div>
                         <span class="text-gray-300 hide-on-mobile">|</span>
                         <span class="text-sm opacity-80 header-version hide-on-mobile">Dashboard Agile v6.0</span>
@@ -8796,7 +8796,7 @@ HTML_TEMPLATE = """
                             <path d="M85 30v10M80 35h10" stroke="white" stroke-width="2" stroke-linecap="round"/>
                         </svg>
                     </div>
-                    <h3 class="empty-state-title">Bem-vindo a Fabrica de Agentes!</h3>
+                    <h3 class="empty-state-title">Bem-vindo a Plataforma E!</h3>
                     <p class="empty-state-description">
                         Selecione um projeto na barra lateral ou crie um novo para comecar a gerenciar suas User Stories.
                     </p>
@@ -12484,7 +12484,7 @@ HTML_TEMPLATE = """
                     },
                     // Dashboard
                     dashboard: {
-                        title: 'Fabrica de Agentes', welcome: 'Bem-vindo',
+                        title: 'Plataforma E', welcome: 'Bem-vindo',
                         newStory: 'Nova Funcionalidade', newTask: 'Nova Tarefa',
                         kanban: 'Quadro Kanban', analytics: 'Analiticos',
                         settings: 'Configuracoes', darkMode: 'Modo Escuro',
@@ -13170,7 +13170,7 @@ HTML_TEMPLATE = """
             const finishOnboardingTour = () => {
                 showOnboardingTour.value = false;
                 localStorage.setItem('onboardingComplete', 'true');
-                addToast('success', 'Tour concluido!', 'Agora voce conhece o basico da Fabrica de Agentes');
+                addToast('success', 'Tour concluido!', 'Agora voce conhece o basico da Plataforma E');
             };
 
             const markOnboardingStepDone = (stepId) => {
@@ -13335,7 +13335,7 @@ HTML_TEMPLATE = """
             const tourSteps = ref([
                 {
                     icon: '👋',
-                    title: 'Bem-vindo a Fabrica de Agentes!',
+                    title: 'Bem-vindo a Plataforma E!',
                     content: 'Vamos fazer um tour rapido pelas principais funcionalidades da plataforma. Este tour leva menos de 1 minuto.',
                     target: null
                 },
@@ -13366,7 +13366,7 @@ HTML_TEMPLATE = """
                 {
                     icon: '🎉',
                     title: 'Pronto para comecar!',
-                    content: 'Voce conhece o basico da Fabrica de Agentes. Pressione <kbd>?</kbd> a qualquer momento para ver todos os atalhos de teclado.',
+                    content: 'Voce conhece o basico da Plataforma E. Pressione <kbd>?</kbd> a qualquer momento para ver todos os atalhos de teclado.',
                     target: null
                 }
             ]);
@@ -15943,7 +15943,7 @@ Data: ${new Date().toISOString()}`;
                 showTour.value = false;
                 localStorage.setItem('tour-completed', 'true');
                 localStorage.setItem('tour-completed-at', new Date().toISOString());
-                addToast('success', 'Tour concluido!', 'Voce esta pronto para usar a Fabrica de Agentes');
+                addToast('success', 'Tour concluido!', 'Voce esta pronto para usar a Plataforma E');
             };
 
             const restartTour = () => {
@@ -16777,7 +16777,7 @@ Process ${data.status}`);
                 chatHistory.value.push({
                     message_id: 'welcome',
                     role: 'assistant',
-                    content: 'Ola! Sou o assistente da Fabrica de Agentes. Posso ajudar com:\\n\\n- **Criar ' + translateTerm('stories') + '**: Clique em "Nova ' + translateTerm('story', true) + '"\\n- **Ver progresso**: Pergunte sobre o status\\n- **Documentacao**: Veja a aba Docs de cada ' + translateTerm('story') + '\\n\\nComo posso ajudar?',
+                    content: 'Ola! Sou o assistente da Plataforma E. Posso ajudar com:\\n\\n- **Criar ' + translateTerm('stories') + '**: Clique em "Nova ' + translateTerm('story', true) + '"\\n- **Ver progresso**: Pergunte sobre o status\\n- **Documentacao**: Veja a aba Docs de cada ' + translateTerm('story') + '\\n\\nComo posso ajudar?',
                     created_at: new Date().toISOString()
                 });
             });

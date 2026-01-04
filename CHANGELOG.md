@@ -1,4 +1,4 @@
-# Changelog - Fábrica de Agentes
+# Changelog - Plataforma E
 
 Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
@@ -96,7 +96,7 @@ Por Terminal:
 
 ### Enterprise Edition - Integrações Corporativas e Multi-Cloud
 
-Esta versão representa uma **evolução major** da Fábrica de Agentes, adicionando suporte completo a integrações corporativas, multi-tenancy, e infraestrutura cloud.
+Esta versão representa uma **evolução major** da Plataforma E, adicionando suporte completo a integrações corporativas, multi-tenancy, e infraestrutura cloud.
 
 #### Novas Funcionalidades Enterprise
 
@@ -453,7 +453,7 @@ Esta versão traz **4 novas funcionalidades** focadas em produtividade e persona
 
 ## [6.0.0] - 2025-12-26
 
-### Fábrica de Agentes v6.0 - Dashboard Agile
+### Plataforma E v6.0 - Dashboard Agile
 
 Lançamento do novo Dashboard Agile com suporte completo a User Stories, metodologia ágil e integração com Claude AI.
 

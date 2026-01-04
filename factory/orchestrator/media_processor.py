@@ -1,5 +1,5 @@
 """
-Processador de Midia - Fabrica de Agentes
+Processador de Midia - Plataforma E
 =========================================
 
 Processa videos, audios e documentos para extracao de requisitos.

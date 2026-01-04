@@ -1,5 +1,5 @@
 """
-OpenAPI Configuration for Fabrica de Agentes API
+OpenAPI Configuration for Plataforma E API
 =================================================
 
 Configuration for API documentation and metadata.
@@ -59,9 +59,9 @@ TAGS_METADATA = [
 
 # OpenAPI metadata
 OPENAPI_METADATA = {
-    "title": "Fabrica de Agentes API",
+    "title": "Plataforma E API",
     "description": """
-## Fabrica de Agentes - Plataforma de Desenvolvimento Autonomo
+## Plataforma E - Plataforma de Desenvolvimento Autonomo
 
 API REST para a plataforma de construcao de software com agentes autonomos.
 
@@ -88,10 +88,10 @@ A API usa JWT (JSON Web Tokens) para autenticacao.
 ### Links Uteis
 
 * [Dashboard](http://localhost:9000) - Interface visual
-* [GitHub](https://github.com/cruzpeanelo/fabrica-de-agentes) - Repositorio
+* [GitHub](https://github.com/cruzpeanelo/plataforma-e) - Repositorio
     """,
     "version": "3.0.0",
-    "terms_of_service": "https://github.com/cruzpeanelo/fabrica-de-agentes",
+    "terms_of_service": "https://github.com/cruzpeanelo/plataforma-e",
     "contact": {
         "name": "Luis Cruz",
         "url": "https://github.com/cruzpeanelo",

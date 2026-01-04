@@ -2,7 +2,7 @@
 """
 AWS Lambda Manager
 ==================
-Gerenciador de funcoes Lambda para a Fabrica de Agentes.
+Gerenciador de funcoes Lambda para a Plataforma E.
 
 Funcionalidades:
 - Criacao e deploy de funcoes Lambda

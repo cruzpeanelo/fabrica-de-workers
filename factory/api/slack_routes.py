@@ -359,7 +359,7 @@ async def handle_slash_command(request: Request):
             "blocks": [
                 {
                     "type": "header",
-                    "text": {"type": "plain_text", "text": "Fabrica de Agentes - Ajuda", "emoji": True}
+                    "text": {"type": "plain_text", "text": "Plataforma E - Ajuda", "emoji": True}
                 },
                 {
                     "type": "section",

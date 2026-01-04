@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Pair Programming com IA - Fabrica de Agentes
+Pair Programming com IA - Plataforma E
 =============================================
 
 Modo interativo de desenvolvimento onde o usuario e a IA trabalham juntos em tempo real.

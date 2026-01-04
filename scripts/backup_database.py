@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fabrica de Agentes - Database Backup Script
+Plataforma E - Database Backup Script
 =============================================
 Issue #97: Backup Automatizado Database e PVCs
 
@@ -469,7 +469,7 @@ def send_notification(
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Fabrica de Agentes - Database Backup Script'
+        description='Plataforma E - Database Backup Script'
     )
     parser.add_argument(
         '--upload',
@@ -496,7 +496,7 @@ def main():
     args = parser.parse_args()
 
     logger.info("=" * 60)
-    logger.info("Fabrica de Agentes - Database Backup")
+    logger.info("Plataforma E - Database Backup")
     logger.info("=" * 60)
 
     config = BackupConfig()

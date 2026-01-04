@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Audit Log Database Models - Issue #86
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 SQLAlchemy models for storing audit logs.
 Designed for SOC2/GDPR compliance with:

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def setup_observability(
     app,
-    service_name: str = "fabrica-de-agentes",
+    service_name: str = "plataforma-e",
     environment: str = None,
     sentry_dsn: str = None,
     otlp_endpoint: str = None,

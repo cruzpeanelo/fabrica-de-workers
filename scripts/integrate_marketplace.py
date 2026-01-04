@@ -12,7 +12,7 @@ Uso:
 import os
 import re
 
-DASHBOARD_PATH = r'C:\Users\lcruz\Fabrica de Agentes\factory\dashboard\app_v6_agile.py'
+DASHBOARD_PATH = r'C:\Users\lcruz\Plataforma E\factory\dashboard\app_v6_agile.py'
 
 MARKETPLACE_INTEGRATION_CODE = '''
 # Marketplace endpoints (Issue #56)

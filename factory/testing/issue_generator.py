@@ -145,7 +145,7 @@ class IssueGenerator:
 
     def __init__(
         self,
-        repo: str = "anthropics/fabrica-de-agentes",
+        repo: str = "anthropics/plataforma-e",
         screenshots_base_url: str = None
     ):
         self.repo = repo
@@ -505,7 +505,7 @@ def get_issue_generator(repo: str = None) -> IssueGenerator:
     """Retorna instancia global do IssueGenerator."""
     global _issue_generator
     if _issue_generator is None:
-        _issue_generator = IssueGenerator(repo or "anthropics/fabrica-de-agentes")
+        _issue_generator = IssueGenerator(repo or "anthropics/plataforma-e")
     return _issue_generator
 
 

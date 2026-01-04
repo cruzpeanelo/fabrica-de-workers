@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Templates Padrao de Notificacao
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Define templates para cada tipo de evento e canal.
 Os templates usam {variaveis} que sao substituidas pelos dados do evento.
@@ -22,7 +22,7 @@ EMAIL_TEMPLATES: Dict[str, Dict[str, str]] = {
         "body": """
 Ola!
 
-Um novo projeto foi criado na Fabrica de Agentes.
+Um novo projeto foi criado na Plataforma E.
 
 Projeto: {project_name}
 Tipo: {project_type}
@@ -308,7 +308,7 @@ Verifique o status do worker e reinicie se necessario.
     "report_daily": {
         "subject": "Relatorio Diario - {date}",
         "body": """
-RELATORIO DIARIO - Fabrica de Agentes
+RELATORIO DIARIO - Plataforma E
 Data: {date}
 
 RESUMO:
@@ -332,7 +332,7 @@ METRICAS:
     "report_weekly": {
         "subject": "Relatorio Semanal - Semana {week_number}",
         "body": """
-RELATORIO SEMANAL - Fabrica de Agentes
+RELATORIO SEMANAL - Plataforma E
 Semana: {week_number} ({start_date} - {end_date})
 
 RESUMO EXECUTIVO:

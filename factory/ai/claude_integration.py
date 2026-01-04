@@ -363,7 +363,7 @@ class AgentBrain:
 
     def _build_system_prompt(self) -> str:
         """Constroi system prompt especifico do agente"""
-        return f"""Voce e um agente autonomo inteligente na Fabrica de Agentes.
+        return f"""Voce e um agente autonomo inteligente na Plataforma E.
 
 Seu ID: {self.agent_id}
 Seu papel: {self.agent_role}

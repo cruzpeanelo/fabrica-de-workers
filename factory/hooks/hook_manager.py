@@ -1,5 +1,5 @@
 """
-Hook Manager - Gerenciador de hooks da Fabrica de Agentes.
+Hook Manager - Gerenciador de hooks da Plataforma E.
 
 Permite registrar callbacks para eventos do sistema.
 """

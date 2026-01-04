@@ -1,5 +1,5 @@
 """
-Dashboard de Controle - Fabrica de Agentes
+Dashboard de Controle - Plataforma E
 Centro de comando para gerenciamento de projetos e agentes
 
 Acesse em: http://localhost:9000
@@ -116,7 +116,7 @@ except ImportError:
 # FastAPI App with OpenAPI config
 app = FastAPI(
     title=OPENAPI_METADATA.get("title", DASHBOARD_TITLE),
-    description=OPENAPI_METADATA.get("description", "API da Fabrica de Agentes"),
+    description=OPENAPI_METADATA.get("description", "API da Plataforma E"),
     version=OPENAPI_METADATA.get("version", "3.0.0"),
     openapi_tags=TAGS_METADATA if TAGS_METADATA else None,
     contact=OPENAPI_METADATA.get("contact"),
@@ -1540,7 +1540,7 @@ class GitHubSetupRequest(BaseModel):
     private: bool = False
 
 class GitHubSyncRequest(BaseModel):
-    message: str = "Update from Fabrica de Agentes"
+    message: str = "Update from Plataforma E"
     branch: str = "main"
 
 @app.get("/api/github/status")
@@ -2156,7 +2156,7 @@ async def create_orchestrator_project(request: ProjectCreateRequest):
         raise HTTPException(status_code=503, detail="Orchestrator not available")
 
     project_id = f"PROJ-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    output_path = request.output_path or f"C:\\Users\\lcruz\\Fabrica de Agentes\\projects\\{project_id}"
+    output_path = request.output_path or f"C:\\Users\\lcruz\\Plataforma E\\projects\\{project_id}"
 
     # Cria processador do projeto
     processor = ProjectProcessor(
@@ -2408,7 +2408,7 @@ async def dashboard():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabrica de Agentes | Dashboard</title>
+    <title>Plataforma E | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2739,7 +2739,7 @@ async def dashboard():
         <header class="bg-gradient-to-r from-brand-red-dark to-brand-red px-6 py-4 shadow-lg">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <h1 class="text-2xl font-bold">Fabrica de Agentes</h1>
+                    <h1 class="text-2xl font-bold">Plataforma E</h1>
                     <span class="px-3 py-1 text-xs bg-brand-orange rounded-full font-semibold animate-pulse">v3.0</span>
                 </div>
                 <div class="flex items-center gap-6">

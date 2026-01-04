@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Canal de Slack (Webhook/API)
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Implementa envio de notificacoes para Slack usando:
 - Webhooks Incoming
@@ -113,7 +113,7 @@ class SlackChannel(BaseChannel):
                 notification_id="test-connection",
                 event_type="test",
                 subject="Teste de Conexao",
-                body="Conexao com Fabrica de Agentes testada com sucesso!",
+                body="Conexao com Plataforma E testada com sucesso!",
                 recipients=[]
             )
 
@@ -218,7 +218,7 @@ class SlackChannel(BaseChannel):
             "elements": [
                 {
                     "type": "mrkdwn",
-                    "text": f":factory: Fabrica de Agentes | `{message.event_type}` | {message.timestamp.strftime('%d/%m/%Y %H:%M')}"
+                    "text": f":factory: Plataforma E | `{message.event_type}` | {message.timestamp.strftime('%d/%m/%Y %H:%M')}"
                 }
             ]
         })

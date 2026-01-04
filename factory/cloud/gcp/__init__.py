@@ -2,7 +2,7 @@
 """
 GCP Cloud Provider Module
 =========================
-Implementacao do provider Google Cloud Platform para a Fabrica de Agentes.
+Implementacao do provider Google Cloud Platform para a Plataforma E.
 
 Recursos suportados:
 - Compute Engine (Maquinas virtuais)

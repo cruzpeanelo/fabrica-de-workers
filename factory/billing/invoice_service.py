@@ -12,7 +12,7 @@ Implementa:
 
 Issue #121 - Sistema de Cobranca por Uso (Usage-Based Billing)
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import uuid

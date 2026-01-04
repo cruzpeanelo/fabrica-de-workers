@@ -45,7 +45,7 @@ programs = await sap.list_abap_programs(prefix="Z*")
 analysis = await sap.analyze_abap_code("ZSAMPLE_REPORT")
 ```
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Versao: 1.0.0
 """
 
@@ -142,4 +142,4 @@ __all__ = [
 ]
 
 __version__ = '1.0.0'
-__author__ = 'Fabrica de Agentes'
+__author__ = 'Plataforma E'

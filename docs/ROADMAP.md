@@ -1,4 +1,4 @@
-# 🗺️ Roadmap - Fábrica de Agentes
+# 🗺️ Roadmap - Plataforma E
 
 > Planejamento estratégico de evolução da plataforma
 
@@ -8,7 +8,7 @@
 
 **Lançamento:** Dezembro 2025
 
-A versão 7.0 representa a consolidação da Fábrica de Agentes como plataforma enterprise-ready, com:
+A versão 7.0 representa a consolidação da Plataforma E como plataforma enterprise-ready, com:
 - ✅ Dashboard Agile v6.5 completo
 - ✅ Segurança enterprise (MFA, RBAC, Encryption)
 - ✅ Integrações corporativas (Jira, Azure DevOps, SAP)
@@ -311,7 +311,7 @@ Veja [CONTRIBUTING.md](./CONTRIBUTING.md) para guia completo.
 
 ```bash
 # Fork e clone
-git clone https://github.com/seu-usuario/fabrica-de-agentes.git
+git clone https://github.com/seu-usuario/plataforma-e.git
 
 # Escolha uma issue
 gh issue list --label "good first issue"
@@ -333,7 +333,7 @@ git checkout -b feature/minha-contribuicao
 ---
 
 <p align="center">
-<strong>🏭 Fábrica de Agentes</strong><br>
+<strong>🏭 Plataforma E</strong><br>
 Roadmap atualizado em Dezembro 2025
 </p>
 

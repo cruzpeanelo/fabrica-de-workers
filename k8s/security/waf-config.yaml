@@ -1,5 +1,5 @@
 # WAF (Web Application Firewall) Configuration - Issue #99
-# ModSecurity with OWASP Core Rule Set (CRS) for Fabrica de Agentes
+# ModSecurity with OWASP Core Rule Set (CRS) for Plataforma E
 # Provides protection against SQL Injection, XSS, and other attacks
 
 ---
@@ -12,7 +12,7 @@ metadata:
   labels:
     app.kubernetes.io/name: modsecurity
     app.kubernetes.io/component: waf
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
 data:
   # Main ModSecurity configuration
   modsecurity.conf: |
@@ -523,7 +523,7 @@ metadata:
     app: factory-waf
     app.kubernetes.io/name: factory-waf
     app.kubernetes.io/component: waf
-    app.kubernetes.io/part-of: fabrica-de-agentes
+    app.kubernetes.io/part-of: plataforma-e
 spec:
   replicas: 2
   selector:

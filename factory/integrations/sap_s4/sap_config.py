@@ -7,7 +7,7 @@ Configuracoes para conexao com SAP S/4HANA Cloud e On-Premise.
 Este modulo define as configuracoes necessarias para conectar-se ao SAP S/4HANA,
 incluindo URLs de API, credenciais OAuth2 e endpoints de servicos.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import os

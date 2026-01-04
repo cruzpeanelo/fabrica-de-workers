@@ -1,0 +1,11 @@
+{
+  "task_id": "task_INOV_1767484119",
+  "agent_type": "INOV",
+  "issue_number": null,
+  "title": "Issue #245 - ML Estimativas",
+  "description": "Pesquisar ML para story points automaticos.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:39.058811",
+  "status": "pending",
+  "context": {}
+}

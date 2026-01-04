@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura da Fábrica de Agentes
+# 🏗️ Arquitetura da Plataforma E
 
 > Documentação técnica completa com decisões arquiteturais, motivos e benefícios
 
@@ -26,7 +26,7 @@
 
 ## 🎯 Visão Geral
 
-A **Fábrica de Agentes** é uma plataforma de desenvolvimento autônomo que utiliza Inteligência Artificial (Claude da Anthropic) para automatizar o ciclo completo de desenvolvimento de software.
+A **Plataforma E** é uma plataforma de desenvolvimento autônomo que utiliza Inteligência Artificial (Claude da Anthropic) para automatizar o ciclo completo de desenvolvimento de software.
 
 ### Diagrama de Alto Nível
 
@@ -1483,4 +1483,4 @@ redis:
 
 ---
 
-*Documentação gerada em Janeiro 2026 - Fábrica de Agentes v7.0*
+*Documentação gerada em Janeiro 2026 - Plataforma E v7.0*

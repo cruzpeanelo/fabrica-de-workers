@@ -7,7 +7,7 @@ Skill para leitura de dados do SAP S/4HANA.
 Esta skill fornece capacidades de leitura de dados mestres
 e transacionais do S/4HANA via OData.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

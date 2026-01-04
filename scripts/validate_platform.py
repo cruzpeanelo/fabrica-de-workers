@@ -2,7 +2,7 @@
 Script de Validacao da Plataforma
 =================================
 
-Valida todos os componentes da Fabrica de Agentes.
+Valida todos os componentes da Plataforma E.
 
 Uso: python scripts/validate_platform.py
 """

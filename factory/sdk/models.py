@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Modelos do SDK - Fabrica de Agentes
+Modelos do SDK - Plataforma E
 ===================================
 
 Classes de modelo para representar recursos da API.
@@ -63,7 +63,7 @@ class APIKeyInfo:
 @dataclass
 class Project:
     """
-    Representa um projeto na Fabrica de Agentes.
+    Representa um projeto na Plataforma E.
 
     Attributes:
         id: ID unico do projeto (ex: PRJ-ABC123)

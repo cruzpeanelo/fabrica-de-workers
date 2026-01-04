@@ -12,7 +12,7 @@ Implementa:
 - Relatorios de consumo
 - Calculo de custos por uso
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import uuid

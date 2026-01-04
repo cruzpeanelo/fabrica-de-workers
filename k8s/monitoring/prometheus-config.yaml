@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Prometheus Monitoring Stack
+# Plataforma E - Prometheus Monitoring Stack
 # =============================================================================
 # Issue #96: Stack de Metricas Prometheus/Grafana
 #
@@ -169,7 +169,7 @@ data:
             action: replace
             target_label: kubernetes_name
 
-      # Fabrica de Agentes API
+      # Plataforma E API
       - job_name: 'fabrica-api'
         kubernetes_sd_configs:
           - role: endpoints

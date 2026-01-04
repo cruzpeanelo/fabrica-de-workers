@@ -9,7 +9,7 @@ API endpoints for:
 - Navigation configuration per persona
 - User preferences
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 import logging

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-MCP (Model Context Protocol) Server para a Fabrica de Agentes v4.0
+MCP (Model Context Protocol) Server para a Plataforma E v4.0
 
 Este modulo implementa um servidor MCP que expoe ferramentas da fabrica
 para uso com Claude Desktop e outros clientes MCP.

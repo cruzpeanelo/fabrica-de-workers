@@ -1,6 +1,6 @@
 """
 Voice Input - Enhanced Speech-to-Text with Browser Recording
-Fabrica de Agentes v6.5 - Issue #127
+Plataforma E v6.5 - Issue #127
 
 Features:
 - OpenAI Whisper API integration for cloud transcription

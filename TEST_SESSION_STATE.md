@@ -1,4 +1,4 @@
-# Estado da Sessao de Testes - Fabrica de Agentes
+# Estado da Sessao de Testes - Plataforma E
 > Ultima atualizacao: 2025-12-30 18:30
 
 ## Resumo Executivo

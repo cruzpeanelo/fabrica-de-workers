@@ -2,7 +2,7 @@
 """
 Sync Service Module
 ===================
-Servico unificado de sincronizacao entre a Fabrica de Agentes
+Servico unificado de sincronizacao entre a Plataforma E
 e sistemas externos (Jira, Azure DevOps, GitHub).
 
 Funcionalidades:
@@ -115,7 +115,7 @@ class SyncService:
     """
     Servico unificado de sincronizacao.
 
-    Gerencia sincronizacoes entre a Fabrica de Agentes e
+    Gerencia sincronizacoes entre a Plataforma E e
     sistemas externos de forma centralizada.
     """
 

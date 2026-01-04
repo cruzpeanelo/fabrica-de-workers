@@ -67,7 +67,7 @@ class SharePointConfig:
     max_file_size: int = 250 * 1024 * 1024  # 250MB maximo
 
     # Isolamento de tenant
-    integration_tenant_id: Optional[str] = None  # Tenant da Fabrica de Agentes
+    integration_tenant_id: Optional[str] = None  # Tenant da Plataforma E
 
     def get_site_identifier(self) -> Optional[str]:
         """

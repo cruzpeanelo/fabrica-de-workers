@@ -2,7 +2,7 @@
 """
 Observability Module - Issue #209
 =================================
-Distributed tracing, metrics, and error tracking for Fabrica de Agentes.
+Distributed tracing, metrics, and error tracking for Plataforma E.
 
 Components:
 - tracing.py: OpenTelemetry distributed tracing

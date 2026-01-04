@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Accessibility Middleware - Fabrica de Agentes v6.5
+Accessibility Middleware - Plataforma E v6.5
 ===================================================
 
 Middleware e utilidades para garantir acessibilidade WCAG 2.1 AA.

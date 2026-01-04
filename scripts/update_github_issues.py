@@ -11,7 +11,7 @@ import os
 import requests
 from datetime import datetime
 
-REPO = "cruzpeanelo/fabrica-de-agentes"
+REPO = "cruzpeanelo/plataforma-e"
 BASE_URL = f"https://api.github.com/repos/{REPO}"
 
 def get_headers():

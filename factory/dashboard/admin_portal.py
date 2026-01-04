@@ -53,7 +53,7 @@ def generate_admin_portal_html(admin_level: str = "platform") -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal de Administracao - Fabrica de Agentes</title>
+    <title>Portal de Administracao - Plataforma E</title>
     <style>
         :root {
             --primary: #003B4A;
@@ -574,7 +574,7 @@ def generate_admin_portal_html(admin_level: str = "platform") -> str:
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-logo">Fabrica de Agentes</div>
+                <div class="sidebar-logo">Plataforma E</div>
                 <div class="sidebar-subtitle">Portal de Administracao</div>
                 <div class="admin-level-badge" id="admin-level-badge">PLATFORM ADMIN</div>
             </div>
@@ -918,7 +918,7 @@ def generate_admin_portal_html(admin_level: str = "platform") -> str:
                                 <form id="general-settings-form" class="settings-form" data-testid="settings-form">
                                     <div class="form-group">
                                         <label class="form-label">Nome da Plataforma</label>
-                                        <input type="text" class="form-input" name="platform_name" value="Fabrica de Agentes">
+                                        <input type="text" class="form-input" name="platform_name" value="Plataforma E">
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Email de Suporte</label>

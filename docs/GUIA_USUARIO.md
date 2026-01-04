@@ -1,8 +1,8 @@
-# Guia do Usuário - Fábrica de Agentes
+# Guia do Usuário - Plataforma E
 
-## O Que É a Fábrica de Agentes?
+## O Que É a Plataforma E?
 
-A Fábrica de Agentes é um sistema que usa **inteligência artificial** para desenvolver software de forma autônoma. Imagine ter uma equipe de 19 especialistas virtuais trabalhando juntos:
+A Plataforma E é um sistema que usa **inteligência artificial** para desenvolver software de forma autônoma. Imagine ter uma equipe de 19 especialistas virtuais trabalhando juntos:
 
 - Um **arquiteto** que planeja a estrutura
 - Um **desenvolvedor backend** que cria as APIs
@@ -69,7 +69,7 @@ O dashboard é a interface visual do sistema:
 
 ```bash
 # No terminal, navegue até a pasta do projeto
-cd "C:\Users\lcruz\Fabrica de Agentes"
+cd "C:\Users\lcruz\Plataforma E"
 
 # Inicie o dashboard
 python -m factory.dashboard.app

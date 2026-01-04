@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Modelos de Dados para o Sistema de Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Este modulo define os modelos SQLAlchemy para:
 - NotificationPreference: Preferencias de notificacao por usuario

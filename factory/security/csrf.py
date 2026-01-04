@@ -10,7 +10,7 @@ Features:
 - Configurable expiration
 - Double-submit cookie pattern
 
-Author: Fabrica de Agentes - Terminal B
+Author: Plataforma E - Terminal B
 """
 
 import secrets

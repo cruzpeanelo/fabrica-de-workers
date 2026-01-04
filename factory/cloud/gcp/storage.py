@@ -2,7 +2,7 @@
 """
 GCP Cloud Storage Manager
 =========================
-Gerenciador de Cloud Storage para a Fabrica de Agentes.
+Gerenciador de Cloud Storage para a Plataforma E.
 
 Funcionalidades:
 - Criacao de buckets
@@ -76,7 +76,7 @@ class CloudStorageManager:
             Dicionario com informacoes do bucket criado
         """
         try:
-            bucket_labels = {"project": "fabrica-de-agentes"}
+            bucket_labels = {"project": "plataforma-e"}
             if labels:
                 bucket_labels.update(labels)
 

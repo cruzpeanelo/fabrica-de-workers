@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-WebSocket Routes - Fabrica de Agentes
+WebSocket Routes - Plataforma E
 =====================================
 Endpoints WebSocket para integracao com FastAPI.
 

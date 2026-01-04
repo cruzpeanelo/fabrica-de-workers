@@ -2,7 +2,7 @@
 """
 Test Routes - API para Geracao Automatica de Testes (Issue #53)
 ================================================================
-Fabrica de Agentes
+Plataforma E
 
 Endpoints para geracao, execucao e cobertura de testes.
 """
@@ -113,7 +113,7 @@ async def generate_story_tests(story_id: str, request: Optional[GenerateTestsReq
 """
 Testes para: {task.get("title")}
 Story: {story_id}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 import pytest
 
@@ -564,7 +564,7 @@ def _generate_basic_test_template(task, language: str, framework: str) -> dict:
         "python": f'''# -*- coding: utf-8 -*-
 """
 Testes Automaticos - {task.title}
-Gerado pela Fabrica de Agentes (Issue #53)
+Gerado pela Plataforma E (Issue #53)
 """
 import pytest
 
@@ -606,7 +606,7 @@ class Test{safe_title}Integration:
 ''',
         "javascript": f'''/**
  * Testes Automaticos - {task.title}
- * Gerado pela Fabrica de Agentes (Issue #53)
+ * Gerado pela Plataforma E (Issue #53)
  */
 
 describe('{task.title}', () => {{
@@ -660,7 +660,7 @@ if __name__ == "__main__":
     import uvicorn
     from fastapi import FastAPI
 
-    app = FastAPI(title="Test Routes - Fabrica de Agentes")
+    app = FastAPI(title="Test Routes - Plataforma E")
     app.include_router(router)
 
     uvicorn.run(app, host="0.0.0.0", port=8001)

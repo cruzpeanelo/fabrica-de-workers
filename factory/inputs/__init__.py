@@ -1,6 +1,6 @@
 """
 Factory Inputs - Omnichannel Input Methods for Requirements Capture
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 This module provides multiple input methods for capturing requirements:
 - Voice Capture (Speech-to-Text with Whisper + Claude)

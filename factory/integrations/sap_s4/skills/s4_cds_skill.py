@@ -7,7 +7,7 @@ Skill para trabalhar com CDS Views no SAP S/4HANA.
 Esta skill fornece capacidades de analise e geracao
 de CDS Views.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

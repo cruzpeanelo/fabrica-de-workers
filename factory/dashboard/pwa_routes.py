@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PWA Routes - Fabrica de Agentes
+PWA Routes - Plataforma E
 ================================
 Rotas para Progressive Web App:
 - Service Worker

@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - ConfigMaps Kubernetes
+# Plataforma E - ConfigMaps Kubernetes
 # =============================================================================
 # Configuracoes nao-sensiveis da aplicacao
 #
@@ -161,7 +161,7 @@ data:
     #!/bin/bash
     set -e
 
-    echo "=== Fabrica de Agentes - Inicializacao do Banco de Dados ==="
+    echo "=== Plataforma E - Inicializacao do Banco de Dados ==="
 
     # Aguardar banco de dados ficar disponivel
     echo "Aguardando PostgreSQL..."

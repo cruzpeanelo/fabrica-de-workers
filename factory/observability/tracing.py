@@ -172,7 +172,7 @@ def trace_function(name: Optional[str] = None):
 
 def setup_tracing(
     app,
-    service_name: str = "fabrica-de-agentes",
+    service_name: str = "plataforma-e",
     environment: str = None,
     otlp_endpoint: str = None,
     jaeger_host: str = None,

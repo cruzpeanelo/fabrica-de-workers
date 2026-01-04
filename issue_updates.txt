@@ -1,0 +1,304 @@
+414|[TD] Registrar rotas de segurança no app principal
+387|[TC] Criar modelo TenantBranding no banco de dados
+383|[TC] Implementar endpoints de Tenant Branding para Mobile
+380|[TD] API Sandbox - Endpoint de Execução de Código
+372|[TD] Rotas SPA faltando - /kanban, /stories, /backlog retornam 404
+366|[TB] Implementar Rate Limiting e Retry com Backoff Exponencial
+365|[TD] Implementar Cache Layer para Integrações
+362|[TZ] Implementar Storage Persistente para Backups de Deploy
+360|[TZ] Implementar API Routes para Monitoring de Integrações
+357|[TD] Implementar Input Validation Middleware
+353|[TD] Role ADMIN sem permissao de leitura em stories/projects
+346|[TZ] Atualizar testes unit para schemas atuais
+342|[TZ] Implementar Password Policies configuráveis por tenant
+333|[TZ] Implementar Health Check e Monitoring para integrações
+332|[TZ] Implementar integração real no Deploy Manager
+326|[TD] Criar testes unitários para integrações
+318|[TD] Bug: Endpoints retornam dados mock em caso de erro
+315|[TZ] Completar analyzers SAP ECC (Table, BADI, Config)
+314|[TD] Adicionar tenant isolation em todas as integrações
+309|[TB] Pagina /security timeout - nao carrega
+307|[TA] Endpoints de API faltantes (webhooks, health, epics GET)
+306|[TD] API Global Search retornando 500
+305|[TB] Paginas SPA faltantes retornando 404 (login, register, settings, etc)
+304|[TZ] Criar documentação de configuração de integrações
+302|[TB] Padronizar token refresh automático em todas integrações
+301|[TD] Garantir filtro de tenant em todos os endpoints da API
+300|[TZ] Implementar sistema de deploy configurável por tenant
+297|[TD] API Chat History - tenant_id passado como inteiro em vez de string
+296|[TD] Admin Portal sem conteudo visivel (formularios e secoes)
+295|[TD] Admin Users falta botao de adicionar usuario e campo de busca
+294|[TD] Story cards nao aparecem no Kanban apesar de 50 stories na API
+293|[TD] Tenant Selector Global + Context Switching
+292|[TD] Navegação Adaptativa por Role/Persona
+291|[TD] Multiplos overlays bloqueando interacao do usuario
+290|[TD] Enforcement de Permissões nos Endpoints
+289|[TD] Dashboards Adaptáveis por Persona
+288|[TD] Portal do Tenant Admin
+287|[TD] Portal do Platform Owner (Super Admin)
+286|[TD] Epic: Reorganização de Visões por Persona
+285|[TZ] Script de migration add_tenant_id_columns.py nao funciona - import incorreto
+284|[TC] Elementos UI nao visiveis: Breadcrumb, Search, FAB, Command Palette
+283|[TB] Paginas retornando 404: /admin, /security, /workers, /projects
+282|[TZ] Workflow de aprovação configurável
+281|[TD] OKRs e metas integradas
+280|[TD] Assistente IA contextual avancado
+279|[TD] Planejamento de capacidade do time
+278|[TD] Operacoes em lote avancadas
+277|[TD] Editor de temas customizados
+276|[TD] Importar dados de outras ferramentas
+275|[TA] Sistema avancado de webhooks outbound
+274|[TD] Dashboard de auditoria para admins
+273|[TD] Central de ajuda integrada
+272|[TD] Dashboard pessoal My Work
+271|[TD] Busca global avancada com filtros
+270|[TD] Melhorias avancadas de acessibilidade
+269|[TD] Lazy loading e virtualizacao de listas
+268|[TD] GraphQL API para integrações avancadas
+267|[TC] Visualizacao em calendario de entregas
+266|[TC] Sistema de gamificacao e conquistas
+265|[TD] Modo foco com timer Pomodoro
+264|[TA] Integracao com calendario (Google/Outlook)
+263|[TA] Integracao com Slack bidirecional
+261|[TD] Push notifications nativas
+260|[TD] Modo offline com sincronizacao
+259|[TD] Progressive Web App completo
+258|[TD] Dashboard de metricas Agile
+257|[TD] Relatorios agendados por email
+256|[TD] Exportar dados em CSV e Excel
+255|[TD] Exportar relatorios em PDF profissional
+254|[TD] Templates de story por projeto
+253|[TD] Preferencias de usuario persistentes
+252|[TD] Colunas customizaveis no Kanban
+251|[TD] Campos customizados por projeto
+250|[TD] Assistente de escrita de criterios de aceite
+249|[TD] Previsao de riscos e blockers
+248|[TD] Sugestoes de quebra de stories grandes
+247|[TD] Deteccao de duplicatas e stories relacionadas
+243|[TC] Implementar Dependency Graph visual para stories
+241|[TD] Erro 500 na API - coluna tenant_id nao existe na tabela stories
+239|[TD] SyntaxWarning: invalid escape sequence em app_v6_agile.py linha 7969
+238|[TD] Onboarding Tour overlay bloqueia interacao com botoes da interface
+237|[TC] Implementar WIP Limits e políticas de fluxo no Kanban
+234|[TD] Implementar animações e micro-interações
+233|[TD] Implementar Activity Feed em tempo real
+232|[TD] Implementar Onboarding Tour interativo
+230|[TC] Implementar Roadmap Timeline com visualização de epics
+227|[TC] Implementar Notification Center com bell icon
+223|[TD] Implementar Story Templates para criação rápida
+222|[TC] Implementar Quick Create FAB (Floating Action Button)
+221|[TD] Implementar Global Search com autocomplete e filtros
+220|[TD] Implementar Breadcrumb Navigation global
+219|[TD] Implementar Empty States elegantes
+216|[TD] Implementar Command Palette global (Cmd+K) - Padrão moderno de navegação
+215|[TD] Melhorar responsividade para dispositivos móveis
+214|[TD] Implementar suporte multi-idioma (PT-BR, EN-US)
+213|[TX] Expor API pública documentada para integrações externas
+212|[TD] Implementar separação formal de ambientes (Dev/Staging/Prod)
+211|[TC] Implementar orquestração de fluxos de trabalho complexos
+209|[TD] Implementar distributed tracing e APM
+206|[TD] Eliminar dependência de filesystem local para stateless
+205|[TC] Preparar arquitetura para auto-scaling horizontal
+204|[TD] Criar modo simplificado e glossário contextual
+202|[TD] Implementar ambiente de teste/sandbox integrado
+201|[TB] Implementar validação e sanitização de código de usuários
+200|[TD] Implementar criptografia de dados sensíveis em repouso
+199|[TZ] Implementar sistema de backup automatizado e DR
+198|[TD] Implementar sandbox/isolamento para execução de workers
+197|[TB] Sensitive data exposed - need immediate API key rotation
+196|[TZ] Secrets managed via environment variables only
+195|[TD] Add omnichannel input selector
+194|[TD] Sensitive data may be exposed in API responses
+193|[TD] No enum validation for status/priority fields
+192|[TB] JWT keys stored in plaintext file
+191|[TA] Jira webhook missing HMAC signature validation
+190|[TD] No request body size limits
+189|[TD] Orphan models not used
+188|[TD] ActivityLogRepository searches globally without tenant filter
+187|[TB] Integrate RBAC admin into main dashboard navigation
+186|[TD] Create executive dashboard with KPIs
+185|[TX] Add document/video upload interface
+184|[TD] No check constraint on story_points
+183|[TD] Async engine but sync repositories
+182|[TD] No transaction boundaries in repositories
+181|[TD] 25+ TODO comments in code generators
+180|[TZ] SAP RFC requires complex local SDK setup
+179|[TA] Power BI connector methods may need completion
+178|[TB] PersonaBuilder doesn't validate permission format
+177|[TB] @require_permission decorator unreliable user extraction
+176|[TB] OAuth scopes not aligned with RBAC permissions
+175|[TZ] No Alembic migration system
+174|[TB] Audit log doesn't record permission changes
+173|[TC] Idempotency key not required by default
+172|[TZ] Generic exception handling exposes database errors
+171|[TZ] Environment variable validation missing at startup
+170|[TD] Only 2 replicas for API - needs 3+ for HA
+169|[TZ] Terraform state in local file
+168|[TA] No external secrets management
+167|[TZ] Kubernetes secrets not encrypted at rest
+166|[TZ] Database password too weak
+165|[TZ] Redis without authentication
+164|[TD] MinIO using default credentials
+163|[TX] GitLab integration missing documentation
+162|[TA] Webhook callbacks not implemented
+161|[TA] Duplicate GitHub integration implementations
+160|[TX] File and Doc viewers are stubs - not functional
+159|[TD] Expose billing dashboard in main navigation
+158|[TD] Create tenant selector for multi-tenant users
+157|[TD] Add Analytics/BI dashboard with charts
+156|[TB] Create Settings > Security panel for MFA and API keys
+155|[TC] Add voice input button for story creation
+154|[TZ] Add Integrations menu for SAP/GitHub/GitLab configuration
+153|[TD] Missing indexes on frequently queried columns
+152|[TD] Missing tenant filtering in ChatMessageRepository.get_recent()
+151|[TD] N+1 query risk in story progress calculation
+150|[TD] Soft delete filter not enforced in repository queries
+149|[TD] Missing tenant_id in child models
+148|[TD] SSO user provisioning defaults to VIEWER only
+147|[TD] ABAC policies hardcoded - lost on restart
+146|[TB] Three permission systems (RBAC/Personas/ABAC) not integrated
+145|[TB] Permission cache ignores project_id scope
+144|[TD] Role-to-Persona mapping incomplete
+143|[TB] MANAGER role missing delete permissions
+142|[TD] DEVELOPER role over-privileged - can delete stories
+141|[TZ] Rate limiting fails open when Redis unavailable
+140|[TD] Tenant context extraction incomplete - always returns admin
+139|[TA] WhatsApp webhook missing Twilio signature validation
+138|[TZ] Default admin credentials accepted in all environments
+137|[TB] OAuth authorize endpoint uses hardcoded admin user_id
+136|[TB] Missing admin authorization in 7 billing endpoints
+135|[TD] Dashboard Simplificado para Usuários de Negócio
+134|[TD] Wizards e Assistentes Passo-a-Passo
+133|[TD] Interface Sem Jargões Técnicos
+132|[TC] Onboarding Guiado para Novos Usuários
+131|[TD] Omnichannel Hub - Central Unificada de Inputs
+130|[TD] Assistente Virtual por Vídeo (Video Chat)
+129|[TA] Integração WhatsApp para Captura de Requisitos
+128|[TX] Processamento de Documentos Office (Word, Excel, PowerPoint)
+127|[TC] Captura de Requisitos por Voz (Speech-to-Text)
+126|[TZ] Migração para Cloud (Checklist de Deploy)
+125|[TZ] Configuração Local vs Produção (Feature Flags)
+124|[TD] Dados de Teste e Seed para Multi-tenancy
+123|[TZ] Setup Local Completo com Docker Compose
+122|[TD] CRÍTICO: Isolamento Total de Dados Entre Tenants (Zero Data Leakage)
+121|[TD] Sistema de Cobrança por Uso (Usage-Based Billing)
+120|[TC] Hierarquia Tenant → Projeto → Acesso
+119|[TD] Sistema Completo de Personalização por Tenant
+118|[TD] Sistema de Metering e Usage Tracking Completo
+117|[TA] Conectores Nativos para Power BI, Tableau e Excel
+116|[TD] Gateway de Integrações com Isolamento de Tenant
+115|[TA] Endpoints de Analytics para Power BI e BI Tools
+114|[TC] API-First Design Pattern
+113|[TD] Portal de Administração Multi-nível
+112|[TD] Sistema de Perfis e Personas
+111|[TD] Visões e Dashboards por Perfil de Usuário
+110|[TC] Multi-AZ Real para Todos Componentes
+109|[TB] OAuth 2.0 para API
+108|[TD] Idempotência em Endpoints de Criação
+107|[TD] Paginação Baseada em Cursor
+106|[TB] Security Scanning Completo no CI
+105|[TD] Middleware de Tenant Global
+104|[TD] Limites de Plano Enforcement
+103|[TB] MFA/2FA Implementation
+102|[TA] GitHub/GitLab Integration Completa
+101|[TA] Endpoints SAP S/4HANA e ECC
+100|[TZ] CI/CD Deployment Automático Real
+99|[TD] WAF (Web Application Firewall)
+98|[TZ] Plano de Disaster Recovery Documentado
+97|[TZ] Backup Automatizado Database e PVCs
+96|[TZ] Stack de Métricas Prometheus/Grafana
+95|[TZ] Terraform Remote State com Locking
+94|[TD] Secrets Management Externo (Vault)
+93|[TZ] Kubernetes Pod Security Standards (PSS)
+92|[TZ] Scan de Vulnerabilidades em Imagens Docker
+91|[TD] SDKs para Múltiplas Linguagens
+90|[TD] Versionamento Semântico e Deprecation Policy
+89|[TD] Painel de Billing e Usage
+88|[TD] Dashboard de Monitoramento de Workers
+87|[TD] Painel de Administração de Usuários
+86|[TZ] Audit Logging Completo para SOC2/GDPR
+85|[TB] Resource-Level Authorization (ABAC)
+84|[TD] SAML Response Signature Validation
+83|[TB] JWT Authentication - Remover Credenciais Hardcoded
+82|[TD] Unificação dos Modelos Tenant Duplicados
+81|[TD] Isolamento de Dados nos Modelos Principais
+80|[TD] Acessibilidade WCAG 2.1 AA
+79|[TB] Sistema de Design Tokens Completo
+78|[TD] Bug: Sincronização project_id com nome da pasta
+77|[TZ] App Generator: Deploy com Docker
+76|[TC] App Generator: Suporte a Frontend React/Vue
+75|[TD] App Generator: Suporte a Node.js/Express
+74|[TD] Ambiente de Teste Integrado - Executar e Testar Aplicações
+73|[TD] Project Preview Dashboard - Visão Unificada do Projeto
+72|[TC] Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)
+71|[TD] A/B Testing de Código Gerado
+70|[TD] Replay e Debug de Execuções
+69|[TD] Importação de Projetos Existentes
+68|[TC] Modo Offline e PWA
+67|[TC] Agente de Suporte ao Cliente (Chatbot Builder)
+66|[TD] Ambiente de Preview e Staging Automático
+65|[TD] Analytics de Produtividade e Time Insights
+64|[TX] Documentação Automática com IA
+63|[TD] Estimativa Inteligente de Esforço
+62|[TD] Multi-tenancy e White Label
+61|[TD] API Pública e SDK para Desenvolvedores
+60|[TD] Refatoração Automática e Debt Reduction
+59|[TD] Pair Programming com IA
+58|[TD] Versionamento e Histórico de Código
+57|[TD] Análise de Segurança Automatizada (SAST/DAST)
+56|[TD] Marketplace de Templates e Skills
+55|[TA] Notificações em Tempo Real (WebSocket + Slack/Teams)
+54|[TA] Integração com Jira/Azure DevOps
+53|[TD] Geração Automática de Testes
+52|[TD] Code Review Assistido por IA
+51|[TZ] Integração CI/CD com GitHub Actions
+50|[TD] Dashboard Executivo com Business Intelligence
+49|[TD] Filtros avançados no Kanban
+48|[TD] Animações e micro-interações
+47|[TD] Confirmação de ações destrutivas
+46|[TD] Onboarding e empty states
+45|[TD] Melhorias de acessibilidade
+44|[TD] Templates de Stories
+43|[TD] Melhorias no Chat Assistant
+42|[TD] Sprint Burndown Chart
+41|[TD] Swimlanes - Agrupar por Epic ou Assignee
+40|[TD] Bulk actions para múltiplas stories
+39|[TC] Quick actions e menu de contexto
+38|[TC] Drag and drop com melhor feedback visual
+37|[TC] Suporte a Dark Mode
+36|[TC] Responsividade mobile
+35|[TD] Atalhos de teclado para ações comuns
+34|[TC] Loading states e skeleton screens
+33|[TC] Sistema de notificações toast
+32|[TD] Campo de busca para stories no Kanban
+31|[TD] fix: SQLiteJobQueue missing API parity methods
+30|[TZ] Kubernetes Deployment
+29|[TC] Testar Fluxo Completo de Workers
+28|[TD] Sistema de Logs Estruturados
+27|[TD] Integracao MCP Tools
+26|[TD] Suporte a Multiplos Modelos Claude
+25|[TD] WebSocket para Atualizacoes em Tempo Real
+24|[TD] Sistema Centralizado de Notificacoes Multi-Canal
+23|[TD] Integracao com Exchange/Outlook (Email)
+22|[TA] Integracao com Microsoft Teams
+21|[TA] Integracao com SAP S/4HANA
+20|[TA] Integracao com SAP ECC (ERP Central Component)
+19|[TA] Integracao com SAP Cloud Platform Integration (CPI)
+18|[TA] Integracao Completa com Salesforce CRM
+17|[TZ] Infrastructure as Code com Terraform
+16|[TA] Integracao Automatica com AWS, Azure e GCP
+15|[TZ] Modelo Multi-Tenant com Billing e Subscriptions
+14|[TA] Integracao com Jira e Azure DevOps
+13|[TA] Integracao SSO via SAML 2.0 e Azure AD
+12|[TB] Gerenciador de Acessos e Perfis (RBAC)
+11|[TA] Suporte a Multiplas LLMs (Azure OpenAI, AWS Bedrock, Google Vertex)
+10|[TD] Adicionar Suporte a Mais Linguagens
+9|[TZ] Configurar CI/CD com GitHub Actions
+8|[TZ] Containerizacao com Docker
+7|[TD] Integracao Automatica com GitHub
+6|[TD] Implementar Sistema de Logs Estruturados
+5|[TX] Completar Documentacao OpenAPI/Swagger
+4|[TC] Criar Suite de Testes Automatizados
+3|[TX] Validar e Documentar Skills de Processamento Multimidia
+2|[TC] Testar Fluxo Completo de Desenvolvimento Autonomo
+1|[TD] Testar Modo Inteligente com Claude AI

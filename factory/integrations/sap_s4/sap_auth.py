@@ -10,7 +10,7 @@ Este modulo implementa:
 - Autenticacao Basica (Basic Auth)
 - Cache de tokens com renovacao automatica
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import base64

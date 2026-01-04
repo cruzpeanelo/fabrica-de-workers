@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Tenant Isolation Middleware - Issue #122
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Implementa isolamento total de dados entre tenants:
 1. Middleware obrigatorio em TODAS as rotas

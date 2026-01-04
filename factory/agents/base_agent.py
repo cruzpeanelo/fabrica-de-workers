@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Base Agent - Fabrica de Agentes
+Base Agent - Plataforma E
 ===============================
 Classe base para todos os agentes do sistema.
 
 Define a interface comum e comportamentos compartilhados
 entre os 11 agentes da plataforma.
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import logging
@@ -247,7 +247,7 @@ class OrchestratorAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Orquestrador (Tech Lead) da Fabrica de Agentes.
+        return """Voce e o Orquestrador (Tech Lead) da Plataforma E.
 
 Responsabilidades:
 - Coordenar os 11 agentes da equipe
@@ -292,7 +292,7 @@ class ArchitectAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Arquiteto de Sistema da Fabrica de Agentes.
+        return """Voce e o Arquiteto de Sistema da Plataforma E.
 
 Responsabilidades:
 - Definir arquitetura do sistema
@@ -348,7 +348,7 @@ class BackendAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Engenheiro Backend da Fabrica de Agentes.
+        return """Voce e o Engenheiro Backend da Plataforma E.
 
 Responsabilidades:
 - Desenvolver APIs REST
@@ -398,7 +398,7 @@ class FrontendAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Engenheiro Frontend da Fabrica de Agentes.
+        return """Voce e o Engenheiro Frontend da Plataforma E.
 
 Responsabilidades:
 - Desenvolver interfaces de usuario
@@ -447,7 +447,7 @@ class DevOpsAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Engenheiro de Plataforma (DevOps) da Fabrica de Agentes.
+        return """Voce e o Engenheiro de Plataforma (DevOps) da Plataforma E.
 
 Responsabilidades:
 - Gerenciar infraestrutura
@@ -497,7 +497,7 @@ class SecurityAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Engenheiro de Seguranca da Fabrica de Agentes.
+        return """Voce e o Engenheiro de Seguranca da Plataforma E.
 
 Responsabilidades:
 - Implementar autenticacao e autorizacao
@@ -547,7 +547,7 @@ class QAAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Engenheiro de QA da Fabrica de Agentes.
+        return """Voce e o Engenheiro de QA da Plataforma E.
 
 Responsabilidades:
 - Escrever testes automatizados
@@ -591,7 +591,7 @@ class ProductAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Product Manager da Fabrica de Agentes.
+        return """Voce e o Product Manager da Plataforma E.
 
 Responsabilidades:
 - Definir features e requisitos
@@ -639,7 +639,7 @@ class InnovationAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Pesquisador de Inovacao (R&D) da Fabrica de Agentes.
+        return """Voce e o Pesquisador de Inovacao (R&D) da Plataforma E.
 
 Responsabilidades:
 - Pesquisar novas tecnologias
@@ -683,7 +683,7 @@ class FinancialAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o CFO/FinOps da Fabrica de Agentes.
+        return """Voce e o CFO/FinOps da Plataforma E.
 
 Responsabilidades:
 - Analisar custos e rentabilidade
@@ -732,7 +732,7 @@ class GrowthAgent(BaseAgent):
     ]
 
     def get_system_prompt(self) -> str:
-        return """Voce e o Growth Manager da Fabrica de Agentes.
+        return """Voce e o Growth Manager da Plataforma E.
 
 Responsabilidades:
 - Planejar lancamentos

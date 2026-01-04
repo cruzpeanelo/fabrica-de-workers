@@ -1,6 +1,6 @@
 {{/*
 =============================================================================
-Fabrica de Agentes - Namespace
+Plataforma E - Namespace
 =============================================================================
 */}}
 apiVersion: v1
@@ -10,4 +10,4 @@ metadata:
   labels:
     {{- include "fabrica-agentes.labels" . | nindent 4 }}
   annotations:
-    description: "Namespace da Fabrica de Agentes - Plataforma de desenvolvimento autonomo"
+    description: "Namespace da Plataforma E - Plataforma de desenvolvimento autonomo"

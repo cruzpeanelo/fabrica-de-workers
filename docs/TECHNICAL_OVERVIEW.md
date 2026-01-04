@@ -1,4 +1,4 @@
-# 🏗️ Visão Técnica Completa - Fábrica de Agentes v7.0
+# 🏗️ Visão Técnica Completa - Plataforma E v7.0
 
 > Documentação técnica baseada em análise real do código fonte (30/12/2025)
 
@@ -46,7 +46,7 @@ factory/auth/
 
 ```python
 # Configurações
-MFA_ISSUER = "Fabrica de Agentes"
+MFA_ISSUER = "Plataforma E"
 MFA_SECRET_LENGTH = 32      # 160 bits entropy
 BACKUP_CODE_COUNT = 10
 TOTP_VALID_WINDOW = 1       # ±30 segundos
@@ -442,7 +442,7 @@ Sprint, Epic, Comment, Attachment
 ## 📁 Estrutura de Arquivos Completa
 
 ```
-Fábrica de Agentes/
+Plataforma E/
 ├── factory/
 │   ├── auth/               # 17 arquivos - Autenticação
 │   ├── security/           # 7 arquivos - Proteção de dados

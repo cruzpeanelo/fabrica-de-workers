@@ -1,5 +1,5 @@
 """
-Modelos SQLAlchemy para a Fabrica de Agentes v4.0
+Modelos SQLAlchemy para a Plataforma E v4.0
 Arquitetura Worker-based (Single Claude + Tools per Worker)
 
 Multi-Tenancy v5.0 (Issues #81, #82):
@@ -2242,7 +2242,7 @@ class MarketplaceItem(Base):
     category = Column(String(30), default=MarketplaceCategory.STORY_TEMPLATE.value, index=True)
 
     # Autor e versao
-    author = Column(String(100), default="Fabrica de Agentes")
+    author = Column(String(100), default="Plataforma E")
     version = Column(String(20), default="1.0.0")
 
     # Tags para busca

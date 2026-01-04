@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Modelos de Multi-tenancy e White Label para a Fabrica de Agentes v5.0
+Modelos de Multi-tenancy e White Label para a Plataforma E v5.0
 
 DEPRECATED: Este arquivo foi mantido apenas para compatibilidade.
 Todos os modelos de multi-tenancy foram unificados em models.py (Issues #81, #82).

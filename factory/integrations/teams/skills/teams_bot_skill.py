@@ -249,7 +249,7 @@ class TeamsBotSkill:
             user_key=user_key,
             title=title,
             description=description,
-            requester="Fabrica de Agentes",
+            requester="Plataforma E",
             approval_data={
                 "request_id": request_id,
                 "type": "approval"

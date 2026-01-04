@@ -1,8 +1,8 @@
-# Integração GitLab - Fábrica de Agentes
+# Integração GitLab - Plataforma E
 
 ## Visão Geral
 
-A integração com GitLab permite sincronização bidirecional entre User Stories da Fábrica de Agentes e Issues do GitLab, além de criação automática de Merge Requests.
+A integração com GitLab permite sincronização bidirecional entre User Stories da Plataforma E e Issues do GitLab, além de criação automática de Merge Requests.
 
 ## Configuração
 

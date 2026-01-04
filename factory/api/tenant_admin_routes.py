@@ -13,7 +13,7 @@ Features:
 - Billing for tenant
 - Audit logs
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 import logging

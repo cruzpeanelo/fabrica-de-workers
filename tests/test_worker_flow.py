@@ -4,7 +4,7 @@ Comprehensive Worker Flow Tests - Issue #29
 ============================================
 
 Este modulo implementa testes completos para validar o fluxo de Workers
-na arquitetura v4.0 da Fabrica de Agentes.
+na arquitetura v4.0 da Plataforma E.
 
 Cenarios de Teste:
 1. Worker Initialization - Inicializacao e registro
@@ -15,7 +15,7 @@ Cenarios de Teste:
 6. Multi-Worker - Processamento concorrente
 7. Claude API Mocking - Simulacao da API
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Data: 2024
 Versao: 2.0.0
 """

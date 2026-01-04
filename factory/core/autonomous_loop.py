@@ -1,6 +1,6 @@
 """
 Autonomous Loop - Loop Autonomo de Geracao de Codigo v4.0
-Nova Arquitetura MVP - Fabrica de Agentes
+Nova Arquitetura MVP - Plataforma E
 
 Integrado com Claude API para geracao e auto-fix de codigo.
 Issue #198: Sandbox isolation para workers

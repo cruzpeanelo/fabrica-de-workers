@@ -1,5 +1,5 @@
 """
-API v1 - Fabrica de Agentes
+API v1 - Plataforma E
 ===========================
 
 API Foundation implementando:
@@ -44,7 +44,7 @@ async def api_v1_info():
     return APIResponse(
         data={
             "version": "1.0.0",
-            "name": "Fabrica de Agentes API",
+            "name": "Plataforma E API",
             "description": "API REST para gestao de projetos, stories e desenvolvimento autonomo",
             "domains": {
                 "core": "/api/v1/core - CRUD de Stories, Tasks, Projects",

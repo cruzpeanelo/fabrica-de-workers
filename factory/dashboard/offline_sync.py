@@ -541,7 +541,7 @@ async def offline_dashboard():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modo Offline - Fabrica de Agentes</title>
+    <title>Modo Offline - Plataforma E</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root {

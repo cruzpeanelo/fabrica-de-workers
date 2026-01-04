@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fabrica de Agentes - Script de Migracao SQLite -> PostgreSQL
+Plataforma E - Script de Migracao SQLite -> PostgreSQL
 
 Este script migra todos os dados do SQLite para o PostgreSQL.
 
@@ -273,7 +273,7 @@ def verify_migration(sqlite_conn, pg_conn):
 def main():
     print("=" * 60)
     print("  MIGRACAO SQLite -> PostgreSQL")
-    print("  Fabrica de Agentes v4.0")
+    print("  Plataforma E v4.0")
     print("=" * 60)
 
     # Verificar SQLite

@@ -1,6 +1,6 @@
 /**
  * API Service - Comunicacao com backend
- * Conecta ao servidor FastAPI da Fabrica de Agentes
+ * Conecta ao servidor FastAPI da Plataforma E
  */
 
 import axios from 'axios';

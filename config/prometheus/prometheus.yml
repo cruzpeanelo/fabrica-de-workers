@@ -1,5 +1,5 @@
 # =============================================================================
-# Prometheus Configuration - Fabrica de Agentes
+# Prometheus Configuration - Plataforma E
 # =============================================================================
 # Issue #378: Configuração do Prometheus para scraping de métricas
 
@@ -38,7 +38,7 @@ scrape_configs:
           service: 'prometheus'
 
   # -------------------------------------------------------------------------
-  # Fabrica de Agentes - Dashboard API
+  # Plataforma E - Dashboard API
   # -------------------------------------------------------------------------
   - job_name: 'fabrica-api'
     metrics_path: /metrics
@@ -52,7 +52,7 @@ scrape_configs:
     scrape_timeout: 5s
 
   # -------------------------------------------------------------------------
-  # Fabrica de Agentes - HTTP Metrics (auto-instrumentação)
+  # Plataforma E - HTTP Metrics (auto-instrumentação)
   # -------------------------------------------------------------------------
   - job_name: 'fabrica-http'
     metrics_path: /metrics/http
@@ -63,7 +63,7 @@ scrape_configs:
           environment: 'development'
 
   # -------------------------------------------------------------------------
-  # Fabrica de Agentes - Workers
+  # Plataforma E - Workers
   # -------------------------------------------------------------------------
   - job_name: 'fabrica-workers'
     metrics_path: /metrics

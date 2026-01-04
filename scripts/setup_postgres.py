@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fabrica de Agentes - Setup PostgreSQL
+Plataforma E - Setup PostgreSQL
 
 Script para configurar e migrar para PostgreSQL automaticamente.
 
@@ -148,7 +148,7 @@ def verify_application():
 
 def main():
     print("=" * 60)
-    print("  SETUP PostgreSQL - Fabrica de Agentes")
+    print("  SETUP PostgreSQL - Plataforma E")
     print("=" * 60)
 
     # Step 1: Check Docker

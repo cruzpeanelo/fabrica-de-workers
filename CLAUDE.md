@@ -1,8 +1,8 @@
-# Fábrica de Agentes
+# Plataforma E
 
 ## Sistema de Desenvolvimento Autônomo com Agentes IA
 
-A **Fábrica de Agentes** é uma plataforma de desenvolvimento autônomo que combina:
+A **Plataforma E** é uma plataforma de desenvolvimento autônomo que combina:
 - **Dashboard Agile v6.5**: Gestão de User Stories com Kanban, narrativa Agile, e assistente IA
 - **Workers Claude**: Processamento autônomo de tarefas com loop de auto-correção
 - **Kanban Watcher**: Monitoramento automático que executa tarefas quando movidas para "To Do"
@@ -29,7 +29,7 @@ User Stories → Kanban Board → Tasks → Autonomous Dev → App Generator →
 ## Estrutura do Projeto
 
 ```
-Fábrica de Agentes/
+Plataforma E/
 ├── factory/
 │   ├── api/                    # API REST
 │   │   ├── routes.py           # Endpoints
@@ -305,4 +305,4 @@ python tests/test_e2e_dashboard.py
 
 ---
 
-*Fábrica de Agentes v6.5 - Sistema Agile de Desenvolvimento Autônomo com Teste de Aplicações*
+*Plataforma E v6.5 - Sistema Agile de Desenvolvimento Autônomo com Teste de Aplicações*

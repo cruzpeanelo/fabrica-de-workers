@@ -11,7 +11,7 @@ Endpoints para gestao de billing e usage:
 
 Issue #89 - Painel de Billing e Usage
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

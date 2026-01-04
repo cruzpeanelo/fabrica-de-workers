@@ -1,0 +1,11 @@
+{
+  "task_id": "task_ARCH_1767484118",
+  "agent_type": "ARCH",
+  "issue_number": null,
+  "title": "Issue #243 - Dependency Graph",
+  "description": "Projetar arquitetura do grafo de dependencias.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:38.995646",
+  "status": "pending",
+  "context": {}
+}

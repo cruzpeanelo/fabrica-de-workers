@@ -1,6 +1,6 @@
-# Guia de CI/CD - Fabrica de Agentes
+# Guia de CI/CD - Plataforma E
 
-Este documento descreve a configuracao do pipeline de Integracao Continua (CI) e Deploy Continuo (CD) do projeto Fabrica de Agentes.
+Este documento descreve a configuracao do pipeline de Integracao Continua (CI) e Deploy Continuo (CD) do projeto Plataforma E.
 
 ## Visao Geral
 
@@ -234,9 +234,9 @@ pip install --upgrade <pacote>
 Adicione ao README:
 
 ```markdown
-[![CI](https://github.com/SEU_USUARIO/fabrica-de-agentes/actions/workflows/ci.yml/badge.svg)](https://github.com/SEU_USUARIO/fabrica-de-agentes/actions/workflows/ci.yml)
-[![CD](https://github.com/SEU_USUARIO/fabrica-de-agentes/actions/workflows/cd.yml/badge.svg)](https://github.com/SEU_USUARIO/fabrica-de-agentes/actions/workflows/cd.yml)
-[![codecov](https://codecov.io/gh/SEU_USUARIO/fabrica-de-agentes/branch/main/graph/badge.svg)](https://codecov.io/gh/SEU_USUARIO/fabrica-de-agentes)
+[![CI](https://github.com/SEU_USUARIO/plataforma-e/actions/workflows/ci.yml/badge.svg)](https://github.com/SEU_USUARIO/plataforma-e/actions/workflows/ci.yml)
+[![CD](https://github.com/SEU_USUARIO/plataforma-e/actions/workflows/cd.yml/badge.svg)](https://github.com/SEU_USUARIO/plataforma-e/actions/workflows/cd.yml)
+[![codecov](https://codecov.io/gh/SEU_USUARIO/plataforma-e/branch/main/graph/badge.svg)](https://codecov.io/gh/SEU_USUARIO/plataforma-e)
 ```
 
 ## Proximos Passos

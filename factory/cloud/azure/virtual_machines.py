@@ -2,7 +2,7 @@
 """
 Azure Virtual Machines Manager
 ==============================
-Gerenciador de maquinas virtuais Azure para a Fabrica de Agentes.
+Gerenciador de maquinas virtuais Azure para a Plataforma E.
 
 Funcionalidades:
 - Criacao de VMs

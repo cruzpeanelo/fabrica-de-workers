@@ -1,4 +1,4 @@
-# API Design Guide - Fabrica de Agentes
+# API Design Guide - Plataforma E
 
 Issue #114 - [Arquitetura] API-First Design Pattern
 
@@ -76,4 +76,4 @@ Supported: Bearer JWT, API Key, OAuth2
 
 ---
 
-*Fabrica de Agentes v6.5 - API Design Guide*
+*Plataforma E v6.5 - API Design Guide*

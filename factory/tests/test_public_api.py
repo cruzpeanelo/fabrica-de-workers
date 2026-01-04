@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Testes da API Publica - Fabrica de Agentes v6.5
+Testes da API Publica - Plataforma E v6.5
 ===============================================
 
 Testes unitarios e de integracao para a API publica.

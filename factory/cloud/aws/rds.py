@@ -2,7 +2,7 @@
 """
 AWS RDS Manager
 ===============
-Gerenciador de bancos de dados RDS para a Fabrica de Agentes.
+Gerenciador de bancos de dados RDS para a Plataforma E.
 
 Funcionalidades:
 - Criacao de instancias RDS (PostgreSQL, MySQL, etc)

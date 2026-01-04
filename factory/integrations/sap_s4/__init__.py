@@ -11,7 +11,7 @@ Funcionalidades:
 - Geracao de CDS Views e Fiori Elements
 - Integracao com SAP BTP
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Versao: 1.0.0
 """
 
@@ -59,7 +59,7 @@ from .skills.s4_cds_skill import S4CDSSkill
 from .skills.s4_fiori_skill import S4FioriSkill
 
 __version__ = "1.0.0"
-__author__ = "Fabrica de Agentes"
+__author__ = "Plataforma E"
 
 __all__ = [
     # Cliente OData

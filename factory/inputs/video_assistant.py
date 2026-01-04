@@ -1,6 +1,6 @@
 """
 Video Assistant - WebRTC Video-based Requirements Capture
-Fabrica de Agentes v6.5 - Issue #130
+Plataforma E v6.5 - Issue #130
 
 Features:
 - WebRTC integration for video calls

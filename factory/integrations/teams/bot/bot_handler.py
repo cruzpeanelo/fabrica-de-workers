@@ -370,7 +370,7 @@ class TeamsBotHandler:
                 "task": {
                     "type": "continue",
                     "value": {
-                        "title": "Fabrica de Agentes",
+                        "title": "Plataforma E",
                         "card": {
                             "contentType": "application/vnd.microsoft.card.adaptive",
                             "content": card

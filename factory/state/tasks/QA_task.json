@@ -1,0 +1,11 @@
+{
+  "task_id": "task_QA_1767484853",
+  "agent_type": "QA",
+  "issue_number": null,
+  "title": "Executar testes e criar issues",
+  "description": "\n1. Executar: pytest tests/ -v 2>&1 | tee test_results.txt\n2. Para cada FALHA:\n   - Identificar agente responsavel (BACK, FRONT, etc)\n   - Criar issue: gh issue create --title \"[AGENTE] Fix: teste X falhando\" --body \"Detalhes do erro\" --label bug\n3. Documentar em docs/testing/test-report.md\n4. Listar issues criadas\n",
+  "priority": "medium",
+  "created_at": "2026-01-03T21:00:53.283088",
+  "status": "pending",
+  "context": {}
+}

@@ -2,7 +2,7 @@
 """
 AWS Cloud Provider
 ==================
-Implementacao do provider AWS para a Fabrica de Agentes.
+Implementacao do provider AWS para a Plataforma E.
 
 Integra todos os servicos AWS:
 - EC2 (Computacao)
@@ -45,7 +45,7 @@ except ImportError:
 
 class AWSProvider(CloudProvider):
     """
-    Provider AWS para a Fabrica de Agentes.
+    Provider AWS para a Plataforma E.
 
     Implementa a interface CloudProvider para AWS,
     integrando todos os servicos necessarios.

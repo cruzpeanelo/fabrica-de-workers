@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Agent Orchestrator - Fabrica de Agentes
+Agent Orchestrator - Plataforma E
 =======================================
 Loop principal que coordena todos os agentes.
 
@@ -12,7 +12,7 @@ O orquestrador:
 5. Monitora contexto e dispara auto-compact
 6. Persiste estado em JSON
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import os
@@ -457,7 +457,7 @@ async def main():
     from factory.core.runtime_manager import parse_duration
 
     parser = argparse.ArgumentParser(
-        description="Fabrica de Agentes - Orquestrador (Async)",
+        description="Plataforma E - Orquestrador (Async)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos:

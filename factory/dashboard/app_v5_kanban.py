@@ -1,5 +1,5 @@
 """
-Dashboard Kanban - Fabrica de Agentes v5.0
+Dashboard Kanban - Plataforma E v5.0
 Gestao de Projetos estilo Monday/Jira com visual Belgo Arames
 
 Acesse em: http://localhost:9001
@@ -41,7 +41,7 @@ init_db()
 
 # FastAPI App
 app = FastAPI(
-    title="Fabrica de Agentes - Kanban Dashboard",
+    title="Plataforma E - Kanban Dashboard",
     description="Gestao de Projetos estilo Monday/Jira com visual Belgo Arames",
     version="5.0.0",
     docs_url="/docs",
@@ -418,7 +418,7 @@ KANBAN_DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabrica de Agentes - Kanban</title>
+    <title>Plataforma E - Kanban</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -999,7 +999,7 @@ KANBAN_DASHBOARD_HTML = """
                     <path d="M8 10h16M8 16h12M8 22h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
                 </svg>
                 <div>
-                    <div class="header-title">Fabrica de Agentes</div>
+                    <div class="header-title">Plataforma E</div>
                     <div class="header-subtitle">Kanban Dashboard</div>
                 </div>
             </div>
@@ -1524,7 +1524,7 @@ if __name__ == "__main__":
     host = os.getenv("DASHBOARD_HOST", "127.0.0.1")
     port = int(os.getenv("DASHBOARD_PORT", "9001"))
     print(f"\n{'='*60}")
-    print(f"  Fabrica de Agentes - Kanban Dashboard v5.0")
+    print(f"  Plataforma E - Kanban Dashboard v5.0")
     print(f"  Visual: Belgo Arames Brand Identity")
     print(f"  Acesse: http://{host}:{port}")
     print(f"{'='*60}\n")

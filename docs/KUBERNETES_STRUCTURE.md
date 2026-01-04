@@ -1,4 +1,4 @@
-# Kubernetes Structure - Fabrica de Agentes
+# Kubernetes Structure - Plataforma E
 
 ## Visão Geral
 

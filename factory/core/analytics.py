@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Analytics Service - Business Intelligence para Fabrica de Agentes
+Analytics Service - Business Intelligence para Plataforma E
 ================================================================
 Metricas Agile: Velocity, Throughput, Cycle Time, Lead Time
 KPIs executivos para gestores e stakeholders
@@ -658,7 +658,7 @@ def get_analytics_service() -> AnalyticsService:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  Analytics Service - Fabrica de Agentes")
+    print("  Analytics Service - Plataforma E")
     print("=" * 60)
 
     service = AnalyticsService()

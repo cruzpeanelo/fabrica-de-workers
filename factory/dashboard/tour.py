@@ -25,7 +25,7 @@ tour_router = APIRouter(prefix="/api/tour", tags=["Onboarding Tour"])
 TOUR_STEPS = [
     {
         "id": "welcome",
-        "title": "Bem-vindo a Fabrica de Agentes!",
+        "title": "Bem-vindo a Plataforma E!",
         "description": "Vamos fazer um tour rapido para voce conhecer a plataforma. Leva menos de 2 minutos!",
         "target": None,
         "position": "center",

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Fabrica de Agentes",
-    "slug": "fabrica-de-agentes",
+    "name": "Plataforma E",
+    "slug": "plataforma-e",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -78,7 +78,7 @@
       "icon": "./assets/notification-icon.png",
       "color": "#003B4A",
       "androidMode": "default",
-      "androidCollapsedTitle": "Fabrica de Agentes"
+      "androidCollapsedTitle": "Plataforma E"
     },
     "extra": {
       "eas": {

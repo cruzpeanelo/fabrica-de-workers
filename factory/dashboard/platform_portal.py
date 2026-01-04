@@ -5,7 +5,7 @@ Platform Portal Page (Issue #287)
 
 HTML page for Platform Owner (Super Admin) to manage the entire platform.
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 import logging
@@ -54,7 +54,7 @@ def get_platform_portal_html():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Platform Portal - Fabrica de Agentes</title>
+    <title>Platform Portal - Plataforma E</title>
     <style>
         :root {
             --primary: #003B4A;

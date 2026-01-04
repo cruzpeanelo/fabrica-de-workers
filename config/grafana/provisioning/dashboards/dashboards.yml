@@ -1,12 +1,12 @@
 # =============================================================================
-# Grafana Dashboard Provisioning - Fabrica de Agentes
+# Grafana Dashboard Provisioning - Plataforma E
 # =============================================================================
 apiVersion: 1
 
 providers:
-  - name: 'Fabrica de Agentes'
+  - name: 'Plataforma E'
     orgId: 1
-    folder: 'Fabrica de Agentes'
+    folder: 'Plataforma E'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

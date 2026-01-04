@@ -1,5 +1,5 @@
 """
-Skills Package - Fabrica de Agentes
+Skills Package - Plataforma E
 Habilidades reutilizaveis pelos agentes
 """
 from .skill_manager import SkillManager

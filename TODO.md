@@ -1,4 +1,4 @@
-# Fabrica de Agentes - Atividades Pendentes e Roadmap
+# Plataforma E - Atividades Pendentes e Roadmap
 
 **Ultima Atualizacao:** 2025-12-17 07:00
 **Responsavel:** Luis Cruz
@@ -258,7 +258,7 @@ Containerizar aplicacao para facilitar deploy.
 
 ### Iniciar Aplicacao
 ```bash
-cd "C:\Users\lcruz\Fabrica de Agentes"
+cd "C:\Users\lcruz\Plataforma E"
 python factory/dashboard/app.py
 # Acesse: http://localhost:9000
 ```
@@ -337,7 +337,7 @@ python -c "from factory.database.connection import SessionLocal; from factory.da
 ## Notas Adicionais
 
 ### Sobre o GitHub
-- Repositorio: https://github.com/cruzpeanelo/fabrica-de-agentes
+- Repositorio: https://github.com/cruzpeanelo/plataforma-e
 - Historico foi limpo - apenas 1 commit inicial
 - Nenhuma referencia a clientes no codigo versionado
 - Pastas `projects/` e `factory/memory/` estao no .gitignore

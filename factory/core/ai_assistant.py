@@ -211,7 +211,7 @@ class ContextualAIAssistant:
         """Build a contextual system prompt"""
         context_summary = context.get_summary()
 
-        return f"""Voce e um assistente IA avancado da Fabrica de Agentes, especializado em desenvolvimento agil de software.
+        return f"""Voce e um assistente IA avancado da Plataforma E, especializado em desenvolvimento agil de software.
 
 CONTEXTO ATUAL:
 {context_summary}

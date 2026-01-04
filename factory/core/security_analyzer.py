@@ -2,7 +2,7 @@
 """
 Security Analyzer - Analise de Seguranca Automatizada (SAST/DAST) v1.0
 ======================================================================
-Fabrica de Agentes - Issue #57
+Plataforma E - Issue #57
 
 Implementa analise de seguranca estatica e dinamica:
 - SAST: Analise estatica de codigo fonte
@@ -850,7 +850,7 @@ class SecurityAnalyzer:
         print(report.to_ascii_report())
     """
 
-    PROJECTS_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects")
+    PROJECTS_DIR = Path(r"C:\Users\lcruz\Plataforma E\projects")
 
     def __init__(self, config: SecurityScanConfig = None):
         self.config = config or SecurityScanConfig()

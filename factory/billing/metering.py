@@ -12,7 +12,7 @@ Implementa:
 - Relatorios de consumo detalhados
 - Calculo de custos em tempo real
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import uuid

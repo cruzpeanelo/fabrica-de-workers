@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Unified Authorization Layer
-Fabrica de Agentes v6.3
+Plataforma E v6.3
 
 Issue #146: Integra os 3 sistemas de permissao (RBAC/Personas/ABAC)
 em uma camada unificada.

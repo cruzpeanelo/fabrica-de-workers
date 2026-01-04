@@ -85,7 +85,7 @@ async def liveness():
     return {
         "status": "alive",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "fabrica-de-agentes"
+        "service": "plataforma-e"
     }
 
 
@@ -190,7 +190,7 @@ async def health_summary():
     return {
         "status": "healthy" if healthy_count == total_count else "degraded",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "fabrica-de-agentes",
+        "service": "plataforma-e",
         "version": os.getenv("APP_VERSION", "1.0.0"),
         "environment": os.getenv("ENVIRONMENT", "development"),
         "checks": checks,

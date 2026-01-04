@@ -1,6 +1,6 @@
 # 👥 Funcionalidades por Perfil de Usuário
 
-> Guia completo de acesso e funcionalidades por persona na Fábrica de Agentes v7.0
+> Guia completo de acesso e funcionalidades por persona na Plataforma E v7.0
 
 ---
 
@@ -637,4 +637,4 @@ Todos os dashboards suportam:
 
 ---
 
-*Documentação gerada em 30/12/2025 - Fábrica de Agentes v7.0*
+*Documentação gerada em 30/12/2025 - Plataforma E v7.0*

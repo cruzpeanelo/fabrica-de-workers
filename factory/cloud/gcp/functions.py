@@ -2,7 +2,7 @@
 """
 GCP Cloud Functions Manager
 ===========================
-Gerenciador de Cloud Functions para a Fabrica de Agentes.
+Gerenciador de Cloud Functions para a Plataforma E.
 
 Funcionalidades:
 - Criacao de funcoes (1st e 2nd gen)
@@ -108,7 +108,7 @@ class CloudFunctionsManager:
             Dicionario com informacoes da funcao criada
         """
         try:
-            func_labels = {"project": "fabrica-de-agentes"}
+            func_labels = {"project": "plataforma-e"}
             if labels:
                 func_labels.update(labels)
 

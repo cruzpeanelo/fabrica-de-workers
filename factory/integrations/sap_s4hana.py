@@ -7,7 +7,7 @@ Modulo principal de integracao com SAP S/4HANA.
 Este modulo fornece uma interface unificada para interagir com SAP S/4HANA,
 incluindo conexao OData, SAP Graph, analise de artefatos e geracao de codigo.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Versao: 1.0.0
 
 Exemplo de uso:

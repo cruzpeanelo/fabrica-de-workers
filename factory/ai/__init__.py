@@ -1,5 +1,5 @@
 """
-Modulo de Inteligencia Artificial da Fabrica de Agentes
+Modulo de Inteligencia Artificial da Plataforma E
 =======================================================
 
 Este pacote fornece integracao com LLMs para dar inteligencia

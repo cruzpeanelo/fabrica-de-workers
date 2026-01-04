@@ -1,5 +1,5 @@
 """
-Configuracoes da Fabrica de Agentes v4.0
+Configuracoes da Plataforma E v4.0
 Nova arquitetura com Workers Claude
 """
 import os
@@ -451,7 +451,7 @@ MCP_SERVERS = {
 
 DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "127.0.0.1")
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", 9000))
-DASHBOARD_TITLE = "Fabrica de Agentes v4.0"
+DASHBOARD_TITLE = "Plataforma E v4.0"
 DASHBOARD_VERSION = "4.0.0"
 
 # CORS

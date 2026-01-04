@@ -2,7 +2,7 @@
 """
 AWS S3 Manager
 ==============
-Gerenciador de buckets e objetos S3 para a Fabrica de Agentes.
+Gerenciador de buckets e objetos S3 para a Plataforma E.
 
 Funcionalidades:
 - Criacao e gerenciamento de buckets

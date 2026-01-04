@@ -1,4 +1,4 @@
-# Análise de Adoção - Fábrica de Agentes
+# Análise de Adoção - Plataforma E
 **Data:** 2026-01-03
 **Agente:** GROWTH
 **Task ID:** task_GROWTH_1767484119
@@ -7,7 +7,7 @@
 
 ## 📊 Executive Summary
 
-A Fábrica de Agentes está em fase inicial de adoção, com **269 atividades** registradas hoje, **4 projetos ativos** e **5 user stories**. Identificamos oportunidades significativas para melhorar a ativação, engajamento e retenção de usuários.
+A Plataforma E está em fase inicial de adoção, com **269 atividades** registradas hoje, **4 projetos ativos** e **5 user stories**. Identificamos oportunidades significativas para melhorar a ativação, engajamento e retenção de usuários.
 
 ### Métricas-Chave (Snapshot)
 | Métrica | Valor Atual | Meta | Status |

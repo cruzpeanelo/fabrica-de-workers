@@ -1,8 +1,8 @@
-# Arquitetura Técnica - Fábrica de Agentes v7.0
+# Arquitetura Técnica - Plataforma E v7.0
 
 ## Documentação para Equipes de TI
 
-Este documento descreve a arquitetura completa, componentes, artefatos e fluxos técnicos da plataforma Fábrica de Agentes.
+Este documento descreve a arquitetura completa, componentes, artefatos e fluxos técnicos da plataforma Plataforma E.
 
 ---
 
@@ -581,7 +581,7 @@ Story Watcher              Database              Claude API              File Sy
 ## 8. Estrutura de Arquivos
 
 ```
-Fabrica de Agentes/
+Plataforma E/
 │
 ├── factory/                          # Core da aplicacao
 │   │

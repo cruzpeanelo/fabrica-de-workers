@@ -2,7 +2,7 @@
 """
 GCP Cloud SQL Manager
 =====================
-Gerenciador de Cloud SQL para a Fabrica de Agentes.
+Gerenciador de Cloud SQL para a Plataforma E.
 
 Funcionalidades:
 - Criacao de instancias Cloud SQL
@@ -115,7 +115,7 @@ class CloudSQLManager:
             Dicionario com informacoes da instancia criada
         """
         try:
-            instance_labels = {"project": "fabrica-de-agentes"}
+            instance_labels = {"project": "plataforma-e"}
             if labels:
                 instance_labels.update(labels)
 

@@ -8,7 +8,7 @@ Testa:
 - Issue #121: Sistema de Cobranca por Uso (Usage-Based Billing)
 - Issue #89: Endpoints de Billing
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import pytest

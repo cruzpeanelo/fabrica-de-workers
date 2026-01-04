@@ -59,22 +59,22 @@ class ServerInfo(BaseModel):
 
 class ContactInfo(BaseModel):
     """Informacoes de contato"""
-    name: str = "Fabrica de Agentes Team"
+    name: str = "Plataforma E Team"
     email: str = "support@fabricadeagentes.com"
-    url: str = "https://github.com/cruzpeanelo/fabrica-de-agentes"
+    url: str = "https://github.com/cruzpeanelo/plataforma-e"
 
 
 class LicenseInfo(BaseModel):
     """Informacoes de licenca"""
     name: str = "Proprietary"
-    url: str = "https://github.com/cruzpeanelo/fabrica-de-agentes/blob/main/LICENSE"
+    url: str = "https://github.com/cruzpeanelo/plataforma-e/blob/main/LICENSE"
 
 
 class APIInfo(BaseModel):
     """Informacoes da API"""
-    title: str = "Fabrica de Agentes API"
+    title: str = "Plataforma E API"
     description: str = """
-## Fabrica de Agentes - Plataforma de Desenvolvimento Autonomo
+## Plataforma E - Plataforma de Desenvolvimento Autonomo
 
 API REST para a plataforma de construcao de software com agentes autonomos.
 
@@ -98,7 +98,7 @@ A API usa JWT (JSON Web Tokens) para autenticacao.
 A API segue versionamento semantico. Use o header `Accept-Version` ou o prefixo `/api/v1/` para especificar a versao.
 """
     version: str = "3.0.0"
-    terms_of_service: str = "https://github.com/cruzpeanelo/fabrica-de-agentes"
+    terms_of_service: str = "https://github.com/cruzpeanelo/plataforma-e"
     contact: ContactInfo = ContactInfo()
     license_info: LicenseInfo = LicenseInfo()
 

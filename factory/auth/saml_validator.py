@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 SAML Response Signature Validator
-Fabrica de Agentes v6.2 - Security Hardening
+Plataforma E v6.2 - Security Hardening
 
 Issue #84 - SAML Response Signature Validation:
 - Validacao completa de assinaturas SAML

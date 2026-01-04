@@ -28,7 +28,7 @@ Usage:
     # Get all flags
     flags = FeatureFlags.get_all_flags()
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import os

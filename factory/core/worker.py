@@ -2,7 +2,7 @@
 Claude Worker - Worker para processamento de Jobs v4.0
 Usa Claude Agent SDK para executar autonomous loop
 
-Fabrica de Agentes - Nova Arquitetura MVP
+Plataforma E - Nova Arquitetura MVP
 """
 import asyncio
 import os

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tech Debt API Routes - Fabrica de Agentes
+Tech Debt API Routes - Plataforma E
 ==========================================
 Endpoints para analise de debito tecnico e refatoracao automatica.
 """
@@ -76,7 +76,7 @@ def get_project_path(project_id: str) -> str:
         pass
 
     # Fallback para caminho padrao
-    return f"C:/Users/lcruz/Fabrica de Agentes/projects/{project_id}"
+    return f"C:/Users/lcruz/Plataforma E/projects/{project_id}"
 
 
 def notify_event(event_type: str, data: dict):

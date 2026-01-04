@@ -1,6 +1,6 @@
 # =============================================================================
 # GCP Module - Main Configuration
-# Fabrica de Agentes Infrastructure
+# Plataforma E Infrastructure
 # =============================================================================
 
 # NOTE: This is a placeholder module for GCP infrastructure.

@@ -12,7 +12,7 @@ Implementa:
 - CSS customizado
 - Configuracoes de idioma e timezone
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import os
@@ -1012,7 +1012,7 @@ class WhiteLabelService:
 
         # Adicionar variaveis de branding ao contexto
         branding_context = {
-            "company_name": branding.display_name if branding else "Fabrica de Agentes",
+            "company_name": branding.display_name if branding else "Plataforma E",
             "logo_url": branding.logo_url if branding else "",
             "support_email": branding.support_email if branding else "suporte@fabricadeagentes.com",
             "support_url": branding.support_url if branding else "",
@@ -1048,7 +1048,7 @@ class WhiteLabelService:
     ) -> EmailTemplateConfig:
         """Retorna template de email padrao"""
         branding = self.get_branding(tenant_id)
-        company = branding.display_name if branding else "Fabrica de Agentes"
+        company = branding.display_name if branding else "Plataforma E"
 
         templates = {
             EmailTemplateType.WELCOME.value: EmailTemplateConfig(

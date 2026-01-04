@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Multi-tenancy e White Label para a Fabrica de Agentes v5.0
+Multi-tenancy e White Label para a Plataforma E v5.0
 ============================================================
 
 Este modulo implementa:

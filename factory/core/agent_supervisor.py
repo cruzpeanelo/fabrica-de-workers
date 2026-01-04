@@ -1,6 +1,6 @@
 """
 Agent Supervisor - Sistema de Monitoramento e Controle de Agentes IA
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Funcionalidades:
 - Monitoramento de agentes em execucao

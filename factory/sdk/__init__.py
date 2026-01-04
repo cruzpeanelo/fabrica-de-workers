@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Fabrica de Agentes SDK
+Plataforma E SDK
 ======================
 
-SDK oficial Python para integracao com a Fabrica de Agentes.
+SDK oficial Python para integracao com a Plataforma E.
 
 Instalacao:
     pip install fabrica-sdk
@@ -54,7 +54,7 @@ from factory.sdk.exceptions import (
 )
 
 __version__ = "1.0.0"
-__author__ = "Fabrica de Agentes"
+__author__ = "Plataforma E"
 __email__ = "support@fabricadeagentes.com"
 
 __all__ = [

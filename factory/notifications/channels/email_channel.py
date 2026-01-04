@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Canal de Email (SMTP)
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Implementa envio de notificacoes por email usando SMTP.
 Suporta:
@@ -183,7 +183,7 @@ class EmailChannel(BaseChannel):
         email_msg = MIMEMultipart("alternative")
 
         # Headers
-        from_name = self.config.get("from_name", "Fabrica de Agentes")
+        from_name = self.config.get("from_name", "Plataforma E")
         email_msg["From"] = f"{from_name} <{self.config['from_email']}>"
         email_msg["Subject"] = self._format_subject(message)
         email_msg["X-Priority"] = self._get_priority_header(message.priority)
@@ -249,7 +249,7 @@ class EmailChannel(BaseChannel):
             message.body,
             "",
             "---",
-            f"Notificacao enviada por Fabrica de Agentes",
+            f"Notificacao enviada por Plataforma E",
             f"Tipo: {message.event_type}",
             f"Data: {message.timestamp.strftime('%d/%m/%Y %H:%M')}",
             "",
@@ -328,7 +328,7 @@ class EmailChannel(BaseChannel):
         <!-- Header -->
         <div style="background-color: #003B4A; padding: 20px; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 20px;">
-                {emoji} Fabrica de Agentes
+                {emoji} Plataforma E
             </h1>
         </div>
 

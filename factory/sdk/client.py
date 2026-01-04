@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Cliente SDK - Fabrica de Agentes
+Cliente SDK - Plataforma E
 ================================
 
-Cliente principal para interacao com a API da Fabrica de Agentes.
+Cliente principal para interacao com a API da Plataforma E.
 """
 import os
 import time
@@ -577,7 +577,7 @@ class APIKeysResource:
 
 class FabricaClient:
     """
-    Cliente principal para a API da Fabrica de Agentes.
+    Cliente principal para a API da Plataforma E.
 
     Usage:
         from fabrica import FabricaClient

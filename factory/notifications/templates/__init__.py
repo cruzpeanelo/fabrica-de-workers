@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Templates de Notificacao - Fabrica de Agentes
+Templates de Notificacao - Plataforma E
 """
 
 from .default_templates import (

@@ -7,7 +7,7 @@ Analisador de aplicacoes SAP Fiori.
 Analisa apps Fiori Elements e Freestyle para extrair metadados,
 configuracoes e dependencias.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import json

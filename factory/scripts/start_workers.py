@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Worker Launcher Script
-Fabrica de Agentes v4.0
+Plataforma E v4.0
 
 Inicia pool de workers Claude para processar jobs da fila.
 

@@ -819,7 +819,7 @@ class Orchestrator:
 
 ## Contexto Atual
 
-Voce esta executando no terminal principal da Fabrica de Agentes.
+Voce esta executando no terminal principal da Plataforma E.
 Modo atual: {self.mode}
 
 Voce pode:
@@ -864,7 +864,7 @@ Comece analisando as issues pendentes ou aguardando instrucoes.
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fabrica de Agentes - Orquestrador",
+        description="Plataforma E - Orquestrador",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos de uso:

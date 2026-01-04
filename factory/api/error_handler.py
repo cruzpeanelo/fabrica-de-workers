@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Safe Error Handler - Fabrica de Agentes v6.5
+Safe Error Handler - Plataforma E v6.5
 =============================================
 
 Issue #172 - Generic exception handling exposes database errors.

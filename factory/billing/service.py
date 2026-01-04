@@ -11,7 +11,7 @@ Implementa:
 - Checkout sessions
 - Portal do cliente
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import os

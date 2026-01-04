@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-MCP Server - Servidor MCP para a Fabrica de Agentes
+MCP Server - Servidor MCP para a Plataforma E
 
 Este modulo implementa um servidor MCP (Model Context Protocol) que permite
-que Claude Desktop e outros clientes MCP interajam com a Fabrica de Agentes.
+que Claude Desktop e outros clientes MCP interajam com a Plataforma E.
 
 O servidor expoe ferramentas para:
 - Gerenciar User Stories e Tasks
@@ -57,7 +57,7 @@ logger = logging.getLogger("mcp-server")
 
 class MCPServer:
     """
-    Servidor MCP para a Fabrica de Agentes
+    Servidor MCP para a Plataforma E
 
     Implementa o protocolo MCP (Model Context Protocol) para comunicacao
     com Claude Desktop e outros clientes compatíveis.
@@ -71,7 +71,7 @@ class MCPServer:
         self.server_info = {
             "name": "fabrica-agentes-mcp",
             "version": "1.0.0",
-            "description": "MCP Server para a Fabrica de Agentes - Sistema de Desenvolvimento Autonomo"
+            "description": "MCP Server para a Plataforma E - Sistema de Desenvolvimento Autonomo"
         }
         self._running = False
 
@@ -352,7 +352,7 @@ async def test_tools():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="MCP Server para Fabrica de Agentes")
+    parser = argparse.ArgumentParser(description="MCP Server para Plataforma E")
     parser.add_argument("--test", action="store_true", help="Testar ferramentas")
     parser.add_argument("--list-tools", action="store_true", help="Listar ferramentas")
 

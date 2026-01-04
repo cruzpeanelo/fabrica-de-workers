@@ -1,5 +1,5 @@
 """
-Processador de Projetos - Fabrica de Agentes
+Processador de Projetos - Plataforma E
 =============================================
 
 Processa projetos de forma autonoma, coordenando:

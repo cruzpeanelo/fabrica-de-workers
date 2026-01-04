@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tech Debt Analyzer - Fabrica de Agentes
+Tech Debt Analyzer - Plataforma E
 ========================================
 Modulo para analise de debito tecnico e refatoracao automatica.
 """

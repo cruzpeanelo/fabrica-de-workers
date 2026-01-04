@@ -1,0 +1,2588 @@
+[
+  {
+    "number": 431,
+    "old_title": "[TD] Corrigir testes falhando - Multi-tenant enums e E2E async",
+    "new_title": "[QA] Corrigir testes falhando - Multi-tenant enums e E2E async",
+    "state": "OPEN"
+  },
+  {
+    "number": 430,
+    "old_title": "[T0-FIX] Bug: TenantAuditLog model missing from tenant_models.py",
+    "new_title": "[ORCH] Bug: TenantAuditLog model missing from tenant_models.py",
+    "state": "CLOSED"
+  },
+  {
+    "number": 429,
+    "old_title": "[TC] Componentes de Data e Midia Mobile - Parte 5",
+    "new_title": "[FRONT] Componentes de Data e Midia Mobile - Parte 5",
+    "state": "CLOSED"
+  },
+  {
+    "number": 428,
+    "old_title": "[TC] Componentes Utilitarios Mobile - Parte 4",
+    "new_title": "[FRONT] Componentes Utilitarios Mobile - Parte 4",
+    "state": "CLOSED"
+  },
+  {
+    "number": 427,
+    "old_title": "[TC] Componentes de Formulario e Navegacao Mobile - Parte 3",
+    "new_title": "[FRONT] Componentes de Formulario e Navegacao Mobile - Parte 3",
+    "state": "CLOSED"
+  },
+  {
+    "number": 426,
+    "old_title": "[TC] Componentes avancados para App Mobile - Parte 2",
+    "new_title": "[FRONT] Componentes avancados para App Mobile - Parte 2",
+    "state": "CLOSED"
+  },
+  {
+    "number": 425,
+    "old_title": "[T0] Bug: NameError 'Request' not defined em factory/api/auth.py",
+    "new_title": "[ORCH] Bug: NameError 'Request' not defined em factory/api/auth.py",
+    "state": "CLOSED"
+  },
+  {
+    "number": 424,
+    "old_title": "[T0] Bug: get_session e get_engine não existem em factory.database.connection",
+    "new_title": "[ORCH] Bug: get_session e get_engine não existem em factory.database.connection",
+    "state": "CLOSED"
+  },
+  {
+    "number": 423,
+    "old_title": "[TC] Componentes reutilizaveis para App Mobile",
+    "new_title": "[FRONT] Componentes reutilizaveis para App Mobile",
+    "state": "CLOSED"
+  },
+  {
+    "number": 422,
+    "old_title": "[T0-TEST] Validar Enterprise Components CSS #421",
+    "new_title": "[QA] Validar Enterprise Components CSS #421",
+    "state": "CLOSED"
+  },
+  {
+    "number": 421,
+    "old_title": "[TC] Componentes visuais para Dashboards Enterprise",
+    "new_title": "[FRONT] Componentes visuais para Dashboards Enterprise",
+    "state": "CLOSED"
+  },
+  {
+    "number": 420,
+    "old_title": "[TZ] Consolidar diretórios Kubernetes: k8s/ vs kubernetes/",
+    "new_title": "[DEVOPS] Consolidar diretórios Kubernetes: k8s/ vs kubernetes/",
+    "state": "CLOSED"
+  },
+  {
+    "number": 419,
+    "old_title": "[TZ] Documentar decisão arquitetural: Custom Migrations vs Alembic",
+    "new_title": "[DEVOPS] Documentar decisão arquitetural: Custom Migrations vs Alembic",
+    "state": "CLOSED"
+  },
+  {
+    "number": 418,
+    "old_title": "[T0-TEST] Validar fix OAuth hardcoded admin #137",
+    "new_title": "[QA] Validar fix OAuth hardcoded admin #137",
+    "state": "CLOSED"
+  },
+  {
+    "number": 417,
+    "old_title": "[T0] Bug: JWT_SECRET_KEY e ACCESS_TOKEN_EXPIRE_MINUTES não exportados de factory.config",
+    "new_title": "[ORCH] Bug: JWT_SECRET_KEY e ACCESS_TOKEN_EXPIRE_MINUTES não exportados de factory.config",
+    "state": "CLOSED"
+  },
+  {
+    "number": 416,
+    "old_title": "[T0-FIX] Corrigir imports quebrados em factory/security/__init__.py",
+    "new_title": "[ORCH] Corrigir imports quebrados em factory/security/__init__.py",
+    "state": "CLOSED"
+  },
+  {
+    "number": 415,
+    "old_title": "[T0-TEST] Validar rotas de segurança #414",
+    "new_title": "[QA] Validar rotas de segurança #414",
+    "state": "CLOSED"
+  },
+  {
+    "number": 414,
+    "old_title": "[TD] Registrar rotas de segurança no app principal",
+    "new_title": "[BACK] Registrar rotas de segurança no app principal",
+    "state": "CLOSED"
+  },
+  {
+    "number": 413,
+    "old_title": "[TD] Bug no TenantIsolationMiddleware - subdomain extraction retorna valor incorreto",
+    "new_title": "[INOV] Bug no TenantIsolationMiddleware - subdomain extraction retorna valor incorreto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 412,
+    "old_title": "[T0-TEST] Validar CSRF Protection #411",
+    "new_title": "[QA] Validar CSRF Protection #411",
+    "state": "CLOSED"
+  },
+  {
+    "number": 411,
+    "old_title": "[TB] Implementar CSRF Protection para forms e mutations",
+    "new_title": "[SEC] Implementar CSRF Protection para forms e mutations",
+    "state": "CLOSED"
+  },
+  {
+    "number": 410,
+    "old_title": "[T0-TEST] Validar Session Management #409",
+    "new_title": "[QA] Validar Session Management #409",
+    "state": "CLOSED"
+  },
+  {
+    "number": 409,
+    "old_title": "[TB] Implementar Session Management com Timeout e Concurrent Sessions",
+    "new_title": "[SEC] Implementar Session Management com Timeout e Concurrent Sessions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 408,
+    "old_title": "[T0-TEST] Validar Issue #244 - Planning Poker",
+    "new_title": "[QA] Validar Issue #244 - Planning Poker",
+    "state": "CLOSED"
+  },
+  {
+    "number": 407,
+    "old_title": "[T0-TEST] Validar Issue #240 - Sprint Retrospective",
+    "new_title": "[QA] Validar Issue #240 - Sprint Retrospective",
+    "state": "CLOSED"
+  },
+  {
+    "number": 406,
+    "old_title": "[T0-TEST] Validar Issue #403 - Fix MFA Mock Vulnerability",
+    "new_title": "[QA] Validar Issue #403 - Fix MFA Mock Vulnerability",
+    "state": "CLOSED"
+  },
+  {
+    "number": 405,
+    "old_title": "[TD] Metricas Agile retornam dados mockados em vez de dados reais",
+    "new_title": "[INOV] Metricas Agile retornam dados mockados em vez de dados reais",
+    "state": "CLOSED"
+  },
+  {
+    "number": 404,
+    "old_title": "[T0-TEST] Validar Issue #402 - Brute Force Protection",
+    "new_title": "[QA] Validar Issue #402 - Brute Force Protection",
+    "state": "CLOSED"
+  },
+  {
+    "number": 403,
+    "old_title": "[TB] Endpoints MFA retornam dados mockados - Vulnerabilidade de seguranca",
+    "new_title": "[SEC] Endpoints MFA retornam dados mockados - Vulnerabilidade de seguranca",
+    "state": "CLOSED"
+  },
+  {
+    "number": 402,
+    "old_title": "[TB] Brute Force Protection - Bloqueio de Login por Tentativas",
+    "new_title": "[SEC] Brute Force Protection - Bloqueio de Login por Tentativas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 401,
+    "old_title": "[TZ] Database schema desatualizado - Coluna external_references nao existe",
+    "new_title": "[DEVOPS] Database schema desatualizado - Coluna external_references nao existe",
+    "state": "CLOSED"
+  },
+  {
+    "number": 400,
+    "old_title": "[T0-TEST] Validar Issue #399 - CORS Multi-tenant",
+    "new_title": "[QA] Validar Issue #399 - CORS Multi-tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 399,
+    "old_title": "[TB] CORS Multi-tenant - Allowed Origins por Tenant",
+    "new_title": "[SEC] CORS Multi-tenant - Allowed Origins por Tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 398,
+    "old_title": "[T0-TEST] Validar Filtros Persistentes e Atalhos de Teclado",
+    "new_title": "[QA] Validar Filtros Persistentes e Atalhos de Teclado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 397,
+    "old_title": "[T0-TEST] Validar Issue #396 - Security Headers",
+    "new_title": "[QA] Validar Issue #396 - Security Headers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 396,
+    "old_title": "[TB] Security Headers Middleware (HSTS, CSP, X-Frame-Options)",
+    "new_title": "[SEC] Security Headers Middleware (HSTS, CSP, X-Frame-Options)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 395,
+    "old_title": "[T0-TEST] Validar Issue #393 - Rate Limiting",
+    "new_title": "[QA] Validar Issue #393 - Rate Limiting",
+    "state": "CLOSED"
+  },
+  {
+    "number": 394,
+    "old_title": "[T0-TEST] Validar Fidelidade Mobile - StoryCard e APIs",
+    "new_title": "[QA] Validar Fidelidade Mobile - StoryCard e APIs",
+    "state": "CLOSED"
+  },
+  {
+    "number": 393,
+    "old_title": "[TB] Rate Limiting por Tenant/Usuario",
+    "new_title": "[SEC] Rate Limiting por Tenant/Usuario",
+    "state": "CLOSED"
+  },
+  {
+    "number": 392,
+    "old_title": "[T0-TEST] Validar Mobile Multi-Tenant e White Label",
+    "new_title": "[QA] Validar Mobile Multi-Tenant e White Label",
+    "state": "CLOSED"
+  },
+  {
+    "number": 391,
+    "old_title": "[T0-TEST] Validar Rotas SPA - /kanban, /stories, /backlog",
+    "new_title": "[QA] Validar Rotas SPA - /kanban, /stories, /backlog",
+    "state": "CLOSED"
+  },
+  {
+    "number": 390,
+    "old_title": "[T0-TEST] Validar Issue #380 - API Sandbox",
+    "new_title": "[QA] Validar Issue #380 - API Sandbox",
+    "state": "CLOSED"
+  },
+  {
+    "number": 389,
+    "old_title": "[TZ] Health check do banco retorna unhealthy - SQL expression error",
+    "new_title": "[DEVOPS] Health check do banco retorna unhealthy - SQL expression error",
+    "state": "CLOSED"
+  },
+  {
+    "number": 388,
+    "old_title": "[T0-TEST] Validar Mobile Security #384",
+    "new_title": "[QA] Validar Mobile Security #384",
+    "state": "CLOSED"
+  },
+  {
+    "number": 387,
+    "old_title": "[TC] Criar modelo TenantBranding no banco de dados",
+    "new_title": "[FRONT] Criar modelo TenantBranding no banco de dados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 386,
+    "old_title": "[T0] Criar testes para validar Multi-Tenant Mobile",
+    "new_title": "[QA] Criar testes para validar Multi-Tenant Mobile",
+    "state": "CLOSED"
+  },
+  {
+    "number": 385,
+    "old_title": "[TC] Corrigir App Mobile - Multi-Tenant e White Label no React Native",
+    "new_title": "[FRONT] Corrigir App Mobile - Multi-Tenant e White Label no React Native",
+    "state": "CLOSED"
+  },
+  {
+    "number": 384,
+    "old_title": "[TB] Implementar seguranca Mobile - Refresh Token e IP Validation",
+    "new_title": "[SEC] Implementar seguranca Mobile - Refresh Token e IP Validation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 383,
+    "old_title": "[TC] Implementar endpoints de Tenant Branding para Mobile",
+    "new_title": "[FRONT] Implementar endpoints de Tenant Branding para Mobile",
+    "state": "CLOSED"
+  },
+  {
+    "number": 382,
+    "old_title": "[TZ] Makefile com comandos de desenvolvimento",
+    "new_title": "[DEVOPS] Makefile com comandos de desenvolvimento",
+    "state": "CLOSED"
+  },
+  {
+    "number": 381,
+    "old_title": "[TD] Core Sandbox - Executor Seguro de Código",
+    "new_title": "[BACK] Core Sandbox - Executor Seguro de Código",
+    "state": "CLOSED"
+  },
+  {
+    "number": 380,
+    "old_title": "[TD] API Sandbox - Endpoint de Execução de Código",
+    "new_title": "[BACK] API Sandbox - Endpoint de Execução de Código",
+    "state": "CLOSED"
+  },
+  {
+    "number": 379,
+    "old_title": "[TZ] Helm Charts para Kubernetes",
+    "new_title": "[DEVOPS] Helm Charts para Kubernetes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 378,
+    "old_title": "[TZ] Implementar Observabilidade (Prometheus + Grafana)",
+    "new_title": "[DEVOPS] Implementar Observabilidade (Prometheus + Grafana)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 377,
+    "old_title": "[T0-TEST] Validar fix login page auth loop #371",
+    "new_title": "[QA] Validar fix login page auth loop #371",
+    "state": "CLOSED"
+  },
+  {
+    "number": 376,
+    "old_title": "[TZ] Inconsistência de portas Docker (9000 vs 9001)",
+    "new_title": "[DEVOPS] Inconsistência de portas Docker (9000 vs 9001)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 375,
+    "old_title": "[TZ] Script de inicialização local (start.sh/start.bat)",
+    "new_title": "[DEVOPS] Script de inicialização local (start.sh/start.bat)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 374,
+    "old_title": "[T0-TEST] Validar fix ADMIN permissions #353",
+    "new_title": "[QA] Validar fix ADMIN permissions #353",
+    "state": "CLOSED"
+  },
+  {
+    "number": 373,
+    "old_title": "[TD] NameError: backref nao definido em models.py - Testes nao rodam",
+    "new_title": "[QA] NameError: backref nao definido em models.py - Testes nao rodam",
+    "state": "CLOSED"
+  },
+  {
+    "number": 372,
+    "old_title": "[TD] Rotas SPA faltando - /kanban, /stories, /backlog retornam 404",
+    "new_title": "[FRONT] Rotas SPA faltando - /kanban, /stories, /backlog retornam 404",
+    "state": "CLOSED"
+  },
+  {
+    "number": 371,
+    "old_title": "[TB] Pagina /login exige autenticacao JWT - Loop impossivel",
+    "new_title": "[SEC] Pagina /login exige autenticacao JWT - Loop impossivel",
+    "state": "CLOSED"
+  },
+  {
+    "number": 370,
+    "old_title": "[T0] Testar Sandbox Terminal UI (Issue #202)",
+    "new_title": "[QA] Testar Sandbox Terminal UI (Issue #202)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 369,
+    "old_title": "[T0-TEST] Validar Security Event Notifications #359",
+    "new_title": "[QA] Validar Security Event Notifications #359",
+    "state": "CLOSED"
+  },
+  {
+    "number": 368,
+    "old_title": "[T0-CRITICAL] App Mobile nao respeita Multi-Tenant e White Label",
+    "new_title": "[ORCH] App Mobile nao respeita Multi-Tenant e White Label",
+    "state": "CLOSED"
+  },
+  {
+    "number": 367,
+    "old_title": "[T0-TEST] Validar JWT Token Blacklist #358",
+    "new_title": "[QA] Validar JWT Token Blacklist #358",
+    "state": "CLOSED"
+  },
+  {
+    "number": 366,
+    "old_title": "[TB] Implementar Rate Limiting e Retry com Backoff Exponencial",
+    "new_title": "[SEC] Implementar Rate Limiting e Retry com Backoff Exponencial",
+    "state": "CLOSED"
+  },
+  {
+    "number": 365,
+    "old_title": "[TD] Implementar Cache Layer para Integrações",
+    "new_title": "[BACK] Implementar Cache Layer para Integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 364,
+    "old_title": "[TA] Implementar Sincronização Bidirecional Jira <-> Sistema",
+    "new_title": "[BACK] Implementar Sincronização Bidirecional Jira <-> Sistema",
+    "state": "CLOSED"
+  },
+  {
+    "number": 363,
+    "old_title": "[TA] Implementar Webhook Handlers para Integrações Externas",
+    "new_title": "[BACK] Implementar Webhook Handlers para Integrações Externas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 362,
+    "old_title": "[TZ] Implementar Storage Persistente para Backups de Deploy",
+    "new_title": "[DEVOPS] Implementar Storage Persistente para Backups de Deploy",
+    "state": "CLOSED"
+  },
+  {
+    "number": 361,
+    "old_title": "[T0-TEST] Validar Input Validation Middleware #357",
+    "new_title": "[QA] Validar Input Validation Middleware #357",
+    "state": "CLOSED"
+  },
+  {
+    "number": 360,
+    "old_title": "[TZ] Implementar API Routes para Monitoring de Integrações",
+    "new_title": "[DEVOPS] Implementar API Routes para Monitoring de Integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 359,
+    "old_title": "[TB] Implementar Security Event Notifications",
+    "new_title": "[SEC] Implementar Security Event Notifications",
+    "state": "CLOSED"
+  },
+  {
+    "number": 358,
+    "old_title": "[TB] Implementar JWT Blacklist e Token Revocation",
+    "new_title": "[SEC] Implementar JWT Blacklist e Token Revocation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 357,
+    "old_title": "[TD] Implementar Input Validation Middleware",
+    "new_title": "[BACK] Implementar Input Validation Middleware",
+    "state": "CLOSED"
+  },
+  {
+    "number": 356,
+    "old_title": "[T0] Testar App Mobile React Native (Issue #262)",
+    "new_title": "[QA] Testar App Mobile React Native (Issue #262)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 355,
+    "old_title": "[TD] Testes de Worker Flow e Repositories falhando",
+    "new_title": "[QA] Testes de Worker Flow e Repositories falhando",
+    "state": "CLOSED"
+  },
+  {
+    "number": 354,
+    "old_title": "[TD] Testes de Billing falhando - TypeErrors e AttributeErrors",
+    "new_title": "[QA] Testes de Billing falhando - TypeErrors e AttributeErrors",
+    "state": "CLOSED"
+  },
+  {
+    "number": 353,
+    "old_title": "[TD] Role ADMIN sem permissao de leitura em stories/projects",
+    "new_title": "[BACK] Role ADMIN sem permissao de leitura em stories/projects",
+    "state": "CLOSED"
+  },
+  {
+    "number": 352,
+    "old_title": "[T0-TEST] Validar implementacoes de seguranca - #343 e #344",
+    "new_title": "[QA] Validar implementacoes de seguranca - #343 e #344",
+    "state": "CLOSED"
+  },
+  {
+    "number": 351,
+    "old_title": "[T0] Testar Onboarding Tour (Issue #204)",
+    "new_title": "[QA] Testar Onboarding Tour (Issue #204)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 350,
+    "old_title": "[T0] Testar User Mode - Modo Básico/Avançado (Issue #204)",
+    "new_title": "[QA] Testar User Mode - Modo Básico/Avançado (Issue #204)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 349,
+    "old_title": "[T0-TEST] Testar Issue #342 - Password Policies",
+    "new_title": "[QA] Testar Issue #342 - Password Policies",
+    "state": "CLOSED"
+  },
+  {
+    "number": 348,
+    "old_title": "[T0-TEST] Testar Issue #339 - Audit Log",
+    "new_title": "[QA] Testar Issue #339 - Audit Log",
+    "state": "CLOSED"
+  },
+  {
+    "number": 347,
+    "old_title": "[T0-TEST] Testar Issue #345 - Security Headers",
+    "new_title": "[QA] Testar Issue #345 - Security Headers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 346,
+    "old_title": "[TZ] Atualizar testes unit para schemas atuais",
+    "new_title": "[DEVOPS] Atualizar testes unit para schemas atuais",
+    "state": "CLOSED"
+  },
+  {
+    "number": 345,
+    "old_title": "[TB] Implementar Security Headers e CSP avançado",
+    "new_title": "[SEC] Implementar Security Headers e CSP avançado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 344,
+    "old_title": "[TB] Implementar Encryption at Rest para dados sensíveis",
+    "new_title": "[SEC] Implementar Encryption at Rest para dados sensíveis",
+    "state": "CLOSED"
+  },
+  {
+    "number": 343,
+    "old_title": "[TB] Implementar IP Whitelisting e Geo-blocking por tenant",
+    "new_title": "[SEC] Implementar IP Whitelisting e Geo-blocking por tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 342,
+    "old_title": "[TZ] Implementar Password Policies configuráveis por tenant",
+    "new_title": "[DEVOPS] Implementar Password Policies configuráveis por tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 341,
+    "old_title": "[TB] Implementar API Key Management para integrações",
+    "new_title": "[SEC] Implementar API Key Management para integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 340,
+    "old_title": "[TB] Implementar Two-Factor Authentication (2FA/MFA)",
+    "new_title": "[SEC] Implementar Two-Factor Authentication (2FA/MFA)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 339,
+    "old_title": "[TB] Implementar Audit Log detalhado com trail de segurança",
+    "new_title": "[SEC] Implementar Audit Log detalhado com trail de segurança",
+    "state": "CLOSED"
+  },
+  {
+    "number": 338,
+    "old_title": "[T0-TEST] Testar Issue #212 - Ambientes Dev/Staging/Prod",
+    "new_title": "[QA] Testar Issue #212 - Ambientes Dev/Staging/Prod",
+    "state": "CLOSED"
+  },
+  {
+    "number": 337,
+    "old_title": "[TD] URGENTE: Conflito de merge em repositories.py",
+    "new_title": "[BACK] URGENTE: Conflito de merge em repositories.py",
+    "state": "CLOSED"
+  },
+  {
+    "number": 336,
+    "old_title": "[T0] Testar: Bug #319 - API tasks story_id no body CORRIGIDO",
+    "new_title": "[QA] Testar: Bug #319 - API tasks story_id no body CORRIGIDO",
+    "state": "CLOSED"
+  },
+  {
+    "number": 335,
+    "old_title": "[TA] Completar Jira Sync Skill - TODOs pendentes",
+    "new_title": "[BACK] Completar Jira Sync Skill - TODOs pendentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 334,
+    "old_title": "[T0] Testar: Bug #316 - ImportError Agent/AgentRepository CORRIGIDO",
+    "new_title": "[QA] Testar: Bug #316 - ImportError Agent/AgentRepository CORRIGIDO",
+    "state": "CLOSED"
+  },
+  {
+    "number": 333,
+    "old_title": "[TZ] Implementar Health Check e Monitoring para integrações",
+    "new_title": "[DEVOPS] Implementar Health Check e Monitoring para integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 332,
+    "old_title": "[TZ] Implementar integração real no Deploy Manager",
+    "new_title": "[DEVOPS] Implementar integração real no Deploy Manager",
+    "state": "CLOSED"
+  },
+  {
+    "number": 331,
+    "old_title": "[T0] Testar: Bug #317 - MetaData tabela tenants duplicada CORRIGIDO",
+    "new_title": "[QA] Testar: Bug #317 - MetaData tabela tenants duplicada CORRIGIDO",
+    "state": "CLOSED"
+  },
+  {
+    "number": 330,
+    "old_title": "[T0] Testar Animações #234",
+    "new_title": "[QA] Testar Animações #234",
+    "state": "CLOSED"
+  },
+  {
+    "number": 329,
+    "old_title": "[T0] Testar Feedback Visual #203",
+    "new_title": "[QA] Testar Feedback Visual #203",
+    "state": "CLOSED"
+  },
+  {
+    "number": 328,
+    "old_title": "[T0] Testar Empty States #219",
+    "new_title": "[QA] Testar Empty States #219",
+    "state": "CLOSED"
+  },
+  {
+    "number": 327,
+    "old_title": "[T0] Testar Onboarding Tour #232",
+    "new_title": "[QA] Testar Onboarding Tour #232",
+    "state": "CLOSED"
+  },
+  {
+    "number": 326,
+    "old_title": "[TD] Criar testes unitários para integrações",
+    "new_title": "[QA] Criar testes unitários para integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 325,
+    "old_title": "[T0-TEST] Testar Issue #206 - Stateless Deployment",
+    "new_title": "[QA] Testar Issue #206 - Stateless Deployment",
+    "state": "CLOSED"
+  },
+  {
+    "number": 324,
+    "old_title": "[T0-TEST] Testar Issue #205 - Auto-scaling e Health Checks",
+    "new_title": "[QA] Testar Issue #205 - Auto-scaling e Health Checks",
+    "state": "CLOSED"
+  },
+  {
+    "number": 323,
+    "old_title": "[T0-TEST] Testar Issue #209 - Distributed Tracing e APM",
+    "new_title": "[QA] Testar Issue #209 - Distributed Tracing e APM",
+    "state": "CLOSED"
+  },
+  {
+    "number": 322,
+    "old_title": "[T0] Testar mudanças UI - Issues #308, #217, #218, #215, #214",
+    "new_title": "[QA] Testar mudanças UI - Issues #308, #217, #218, #215, #214",
+    "state": "CLOSED"
+  },
+  {
+    "number": 321,
+    "old_title": "[T0] Terminal A disponível - Sem issues pendentes",
+    "new_title": "[ORCH] Terminal A disponível - Sem issues pendentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 320,
+    "old_title": "[T0-TEST] Testar implementações de segurança - Terminal B",
+    "new_title": "[QA] Testar implementações de segurança - Terminal B",
+    "state": "CLOSED"
+  },
+  {
+    "number": 319,
+    "old_title": "[TD] Bug: API de tasks exige story_id no body apesar de estar na URL",
+    "new_title": "[BACK] Bug: API de tasks exige story_id no body apesar de estar na URL",
+    "state": "CLOSED"
+  },
+  {
+    "number": 318,
+    "old_title": "[TD] Bug: Endpoints retornam dados mock em caso de erro",
+    "new_title": "[BACK] Bug: Endpoints retornam dados mock em caso de erro",
+    "state": "CLOSED"
+  },
+  {
+    "number": 317,
+    "old_title": "[TD] Bug: Erro MetaData - Tabela tenants duplicada",
+    "new_title": "[BACK] Bug: Erro MetaData - Tabela tenants duplicada",
+    "state": "CLOSED"
+  },
+  {
+    "number": 316,
+    "old_title": "[TD] Bug: Testes quebrados - ImportError Agent e AgentRepository",
+    "new_title": "[QA] Bug: Testes quebrados - ImportError Agent e AgentRepository",
+    "state": "CLOSED"
+  },
+  {
+    "number": 315,
+    "old_title": "[TZ] Completar analyzers SAP ECC (Table, BADI, Config)",
+    "new_title": "[DEVOPS] Completar analyzers SAP ECC (Table, BADI, Config)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 314,
+    "old_title": "[TD] Adicionar tenant isolation em todas as integrações",
+    "new_title": "[BACK] Adicionar tenant isolation em todas as integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 313,
+    "old_title": "[TA] Implementar Azure DevOps Repos e Pipelines API",
+    "new_title": "[BACK] Implementar Azure DevOps Repos e Pipelines API",
+    "state": "CLOSED"
+  },
+  {
+    "number": 312,
+    "old_title": "[TA] Implementar Azure DevOps Skills para sistema de agentes",
+    "new_title": "[BACK] Implementar Azure DevOps Skills para sistema de agentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 311,
+    "old_title": "[TA] Implementar Jira Agile API (Sprints, Boards, Epics)",
+    "new_title": "[BACK] Implementar Jira Agile API (Sprints, Boards, Epics)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 310,
+    "old_title": "[TA] Implementar Jira Skills para sistema de agentes",
+    "new_title": "[BACK] Implementar Jira Skills para sistema de agentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 309,
+    "old_title": "[TB] Pagina /security timeout - nao carrega",
+    "new_title": "[SEC] Pagina /security timeout - nao carrega",
+    "state": "CLOSED"
+  },
+  {
+    "number": 308,
+    "old_title": "[TC] Bug: Modal de criar story não abre ao clicar no botão",
+    "new_title": "[FRONT] Bug: Modal de criar story não abre ao clicar no botão",
+    "state": "CLOSED"
+  },
+  {
+    "number": 307,
+    "old_title": "[TA] Endpoints de API faltantes (webhooks, health, epics GET)",
+    "new_title": "[BACK] Endpoints de API faltantes (webhooks, health, epics GET)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 306,
+    "old_title": "[TD] API Global Search retornando 500",
+    "new_title": "[BACK] API Global Search retornando 500",
+    "state": "CLOSED"
+  },
+  {
+    "number": 305,
+    "old_title": "[TB] Paginas SPA faltantes retornando 404 (login, register, settings, etc)",
+    "new_title": "[SEC] Paginas SPA faltantes retornando 404 (login, register, settings, etc)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 304,
+    "old_title": "[TZ] Criar documentação de configuração de integrações",
+    "new_title": "[DEVOPS] Criar documentação de configuração de integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 303,
+    "old_title": "[TA] Implementar verificação de assinatura de webhooks",
+    "new_title": "[BACK] Implementar verificação de assinatura de webhooks",
+    "state": "CLOSED"
+  },
+  {
+    "number": 302,
+    "old_title": "[TB] Padronizar token refresh automático em todas integrações",
+    "new_title": "[SEC] Padronizar token refresh automático em todas integrações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 301,
+    "old_title": "[TD] Garantir filtro de tenant em todos os endpoints da API",
+    "new_title": "[BACK] Garantir filtro de tenant em todos os endpoints da API",
+    "state": "CLOSED"
+  },
+  {
+    "number": 300,
+    "old_title": "[TZ] Implementar sistema de deploy configurável por tenant",
+    "new_title": "[DEVOPS] Implementar sistema de deploy configurável por tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 299,
+    "old_title": "[TA] Implementar Azure Key Vault para gerenciamento de credenciais",
+    "new_title": "[BACK] Implementar Azure Key Vault para gerenciamento de credenciais",
+    "state": "CLOSED"
+  },
+  {
+    "number": 298,
+    "old_title": "[TA] Implementar integração SharePoint via Microsoft Graph API",
+    "new_title": "[BACK] Implementar integração SharePoint via Microsoft Graph API",
+    "state": "CLOSED"
+  },
+  {
+    "number": 297,
+    "old_title": "[TD] API Chat History - tenant_id passado como inteiro em vez de string",
+    "new_title": "[BACK] API Chat History - tenant_id passado como inteiro em vez de string",
+    "state": "CLOSED"
+  },
+  {
+    "number": 296,
+    "old_title": "[TD] Admin Portal sem conteudo visivel (formularios e secoes)",
+    "new_title": "[FRONT] Admin Portal sem conteudo visivel (formularios e secoes)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 295,
+    "old_title": "[TD] Admin Users falta botao de adicionar usuario e campo de busca",
+    "new_title": "[BACK] Admin Users falta botao de adicionar usuario e campo de busca",
+    "state": "CLOSED"
+  },
+  {
+    "number": 294,
+    "old_title": "[TD] Story cards nao aparecem no Kanban apesar de 50 stories na API",
+    "new_title": "[FRONT] Story cards nao aparecem no Kanban apesar de 50 stories na API",
+    "state": "CLOSED"
+  },
+  {
+    "number": 293,
+    "old_title": "[TD] Tenant Selector Global + Context Switching",
+    "new_title": "[BACK] Tenant Selector Global + Context Switching",
+    "state": "CLOSED"
+  },
+  {
+    "number": 292,
+    "old_title": "[TD] Navegação Adaptativa por Role/Persona",
+    "new_title": "[PROD] Navegação Adaptativa por Role/Persona",
+    "state": "CLOSED"
+  },
+  {
+    "number": 291,
+    "old_title": "[TD] Multiplos overlays bloqueando interacao do usuario",
+    "new_title": "[BACK] Multiplos overlays bloqueando interacao do usuario",
+    "state": "CLOSED"
+  },
+  {
+    "number": 290,
+    "old_title": "[TD] Enforcement de Permissões nos Endpoints",
+    "new_title": "[BACK] Enforcement de Permissões nos Endpoints",
+    "state": "CLOSED"
+  },
+  {
+    "number": 289,
+    "old_title": "[TD] Dashboards Adaptáveis por Persona",
+    "new_title": "[FRONT] Dashboards Adaptáveis por Persona",
+    "state": "CLOSED"
+  },
+  {
+    "number": 288,
+    "old_title": "[TD] Portal do Tenant Admin",
+    "new_title": "[BACK] Portal do Tenant Admin",
+    "state": "CLOSED"
+  },
+  {
+    "number": 287,
+    "old_title": "[TD] Portal do Platform Owner (Super Admin)",
+    "new_title": "[FRONT] Portal do Platform Owner (Super Admin)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 286,
+    "old_title": "[TD] Epic: Reorganização de Visões por Persona",
+    "new_title": "[ARCH] Epic: Reorganização de Visões por Persona",
+    "state": "CLOSED"
+  },
+  {
+    "number": 285,
+    "old_title": "[TZ] Script de migration add_tenant_id_columns.py nao funciona - import incorreto",
+    "new_title": "[DEVOPS] Script de migration add_tenant_id_columns.py nao funciona - import incorreto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 284,
+    "old_title": "[TC] Elementos UI nao visiveis: Breadcrumb, Search, FAB, Command Palette",
+    "new_title": "[FRONT] Elementos UI nao visiveis: Breadcrumb, Search, FAB, Command Palette",
+    "state": "CLOSED"
+  },
+  {
+    "number": 283,
+    "old_title": "[TB] Paginas retornando 404: /admin, /security, /workers, /projects",
+    "new_title": "[SEC] Paginas retornando 404: /admin, /security, /workers, /projects",
+    "state": "CLOSED"
+  },
+  {
+    "number": 282,
+    "old_title": "[TZ] Workflow de aprovação configurável",
+    "new_title": "[DEVOPS] Workflow de aprovação configurável",
+    "state": "CLOSED"
+  },
+  {
+    "number": 281,
+    "old_title": "[TD] OKRs e metas integradas",
+    "new_title": "[BACK] OKRs e metas integradas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 280,
+    "old_title": "[TD] Assistente IA contextual avancado",
+    "new_title": "[BACK] Assistente IA contextual avancado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 279,
+    "old_title": "[TD] Planejamento de capacidade do time",
+    "new_title": "[BACK] Planejamento de capacidade do time",
+    "state": "CLOSED"
+  },
+  {
+    "number": 278,
+    "old_title": "[TD] Operacoes em lote avancadas",
+    "new_title": "[BACK] Operacoes em lote avancadas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 277,
+    "old_title": "[TD] Editor de temas customizados",
+    "new_title": "[BACK] Editor de temas customizados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 276,
+    "old_title": "[TD] Importar dados de outras ferramentas",
+    "new_title": "[BACK] Importar dados de outras ferramentas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 275,
+    "old_title": "[TA] Sistema avancado de webhooks outbound",
+    "new_title": "[BACK] Sistema avancado de webhooks outbound",
+    "state": "CLOSED"
+  },
+  {
+    "number": 274,
+    "old_title": "[TD] Dashboard de auditoria para admins",
+    "new_title": "[FRONT] Dashboard de auditoria para admins",
+    "state": "CLOSED"
+  },
+  {
+    "number": 273,
+    "old_title": "[TD] Central de ajuda integrada",
+    "new_title": "[BACK] Central de ajuda integrada",
+    "state": "CLOSED"
+  },
+  {
+    "number": 272,
+    "old_title": "[TD] Dashboard pessoal My Work",
+    "new_title": "[SEC] Dashboard pessoal My Work",
+    "state": "CLOSED"
+  },
+  {
+    "number": 271,
+    "old_title": "[TD] Busca global avancada com filtros",
+    "new_title": "[BACK] Busca global avancada com filtros",
+    "state": "CLOSED"
+  },
+  {
+    "number": 270,
+    "old_title": "[TD] Melhorias avancadas de acessibilidade",
+    "new_title": "[BACK] Melhorias avancadas de acessibilidade",
+    "state": "CLOSED"
+  },
+  {
+    "number": 269,
+    "old_title": "[TD] Lazy loading e virtualizacao de listas",
+    "new_title": "[BACK] Lazy loading e virtualizacao de listas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 268,
+    "old_title": "[TD] GraphQL API para integrações avancadas",
+    "new_title": "[BACK] GraphQL API para integrações avancadas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 267,
+    "old_title": "[TC] Visualizacao em calendario de entregas",
+    "new_title": "[FRONT] Visualizacao em calendario de entregas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 266,
+    "old_title": "[TC] Sistema de gamificacao e conquistas",
+    "new_title": "[FRONT] Sistema de gamificacao e conquistas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 265,
+    "old_title": "[TD] Modo foco com timer Pomodoro",
+    "new_title": "[BACK] Modo foco com timer Pomodoro",
+    "state": "CLOSED"
+  },
+  {
+    "number": 264,
+    "old_title": "[TA] Integracao com calendario (Google/Outlook)",
+    "new_title": "[DEVOPS] Integracao com calendario (Google/Outlook)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 263,
+    "old_title": "[TA] Integracao com Slack bidirecional",
+    "new_title": "[BACK] Integracao com Slack bidirecional",
+    "state": "CLOSED"
+  },
+  {
+    "number": 262,
+    "old_title": "[TC] App mobile nativo (React Native)",
+    "new_title": "[FRONT] App mobile nativo (React Native)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 261,
+    "old_title": "[TD] Push notifications nativas",
+    "new_title": "[BACK] Push notifications nativas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 260,
+    "old_title": "[TD] Modo offline com sincronizacao",
+    "new_title": "[BACK] Modo offline com sincronizacao",
+    "state": "CLOSED"
+  },
+  {
+    "number": 259,
+    "old_title": "[TD] Progressive Web App completo",
+    "new_title": "[BACK] Progressive Web App completo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 258,
+    "old_title": "[TD] Dashboard de metricas Agile",
+    "new_title": "[FRONT] Dashboard de metricas Agile",
+    "state": "CLOSED"
+  },
+  {
+    "number": 257,
+    "old_title": "[TD] Relatorios agendados por email",
+    "new_title": "[INOV] Relatorios agendados por email",
+    "state": "CLOSED"
+  },
+  {
+    "number": 256,
+    "old_title": "[TD] Exportar dados em CSV e Excel",
+    "new_title": "[BACK] Exportar dados em CSV e Excel",
+    "state": "CLOSED"
+  },
+  {
+    "number": 255,
+    "old_title": "[TD] Exportar relatorios em PDF profissional",
+    "new_title": "[BACK] Exportar relatorios em PDF profissional",
+    "state": "CLOSED"
+  },
+  {
+    "number": 254,
+    "old_title": "[TD] Templates de story por projeto",
+    "new_title": "[BACK] Templates de story por projeto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 253,
+    "old_title": "[TD] Preferencias de usuario persistentes",
+    "new_title": "[BACK] Preferencias de usuario persistentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 252,
+    "old_title": "[TD] Colunas customizaveis no Kanban",
+    "new_title": "[FRONT] Colunas customizaveis no Kanban",
+    "state": "CLOSED"
+  },
+  {
+    "number": 251,
+    "old_title": "[TD] Campos customizados por projeto",
+    "new_title": "[BACK] Campos customizados por projeto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 250,
+    "old_title": "[TD] Assistente de escrita de criterios de aceite",
+    "new_title": "[BACK] Assistente de escrita de criterios de aceite",
+    "state": "CLOSED"
+  },
+  {
+    "number": 249,
+    "old_title": "[TD] Previsao de riscos e blockers",
+    "new_title": "[BACK] Previsao de riscos e blockers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 248,
+    "old_title": "[TD] Sugestoes de quebra de stories grandes",
+    "new_title": "[BACK] Sugestoes de quebra de stories grandes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 247,
+    "old_title": "[TD] Deteccao de duplicatas e stories relacionadas",
+    "new_title": "[BACK] Deteccao de duplicatas e stories relacionadas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 246,
+    "old_title": "[TD] Auto-categorização de stories com NLP",
+    "new_title": "[INOV] Auto-categorização de stories com NLP",
+    "state": "CLOSED"
+  },
+  {
+    "number": 245,
+    "old_title": "[TD] Estimativas inteligentes com Machine Learning",
+    "new_title": "[INOV] Estimativas inteligentes com Machine Learning",
+    "state": "OPEN"
+  },
+  {
+    "number": 244,
+    "old_title": "[TD] Implementar Planning Poker integrado",
+    "new_title": "[BACK] Implementar Planning Poker integrado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 243,
+    "old_title": "[TC] Implementar Dependency Graph visual para stories",
+    "new_title": "[FRONT] Implementar Dependency Graph visual para stories",
+    "state": "OPEN"
+  },
+  {
+    "number": 242,
+    "old_title": "[TD] Implementar Colaboração em Tempo Real com cursores",
+    "new_title": "[BACK] Implementar Colaboração em Tempo Real com cursores",
+    "state": "CLOSED"
+  },
+  {
+    "number": 241,
+    "old_title": "[TD] Erro 500 na API - coluna tenant_id nao existe na tabela stories",
+    "new_title": "[BACK] Erro 500 na API - coluna tenant_id nao existe na tabela stories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 240,
+    "old_title": "[TD] Implementar Sprint Retrospective integrado",
+    "new_title": "[BACK] Implementar Sprint Retrospective integrado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 239,
+    "old_title": "[TD] SyntaxWarning: invalid escape sequence em app_v6_agile.py linha 7969",
+    "new_title": "[BACK] SyntaxWarning: invalid escape sequence em app_v6_agile.py linha 7969",
+    "state": "CLOSED"
+  },
+  {
+    "number": 238,
+    "old_title": "[TD] Onboarding Tour overlay bloqueia interacao com botoes da interface",
+    "new_title": "[PROD] Onboarding Tour overlay bloqueia interacao com botoes da interface",
+    "state": "CLOSED"
+  },
+  {
+    "number": 237,
+    "old_title": "[TC] Implementar WIP Limits e políticas de fluxo no Kanban",
+    "new_title": "[FRONT] Implementar WIP Limits e políticas de fluxo no Kanban",
+    "state": "CLOSED"
+  },
+  {
+    "number": 236,
+    "old_title": "[TD] Implementar Bulk Actions para operações em massa",
+    "new_title": "[BACK] Implementar Bulk Actions para operações em massa",
+    "state": "CLOSED"
+  },
+  {
+    "number": 235,
+    "old_title": "[TD] Implementar filtros persistentes e salvos por usuário",
+    "new_title": "[BACK] Implementar filtros persistentes e salvos por usuário",
+    "state": "CLOSED"
+  },
+  {
+    "number": 234,
+    "old_title": "[TD] Implementar animações e micro-interações",
+    "new_title": "[BACK] Implementar animações e micro-interações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 233,
+    "old_title": "[TD] Implementar Activity Feed em tempo real",
+    "new_title": "[BACK] Implementar Activity Feed em tempo real",
+    "state": "CLOSED"
+  },
+  {
+    "number": 232,
+    "old_title": "[TD] Implementar Onboarding Tour interativo",
+    "new_title": "[PROD] Implementar Onboarding Tour interativo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 231,
+    "old_title": "[TD] Implementar Quality Dashboard com métricas de código",
+    "new_title": "[FRONT] Implementar Quality Dashboard com métricas de código",
+    "state": "OPEN"
+  },
+  {
+    "number": 230,
+    "old_title": "[TC] Implementar Roadmap Timeline com visualização de epics",
+    "new_title": "[FRONT] Implementar Roadmap Timeline com visualização de epics",
+    "state": "OPEN"
+  },
+  {
+    "number": 229,
+    "old_title": "[TD] Implementar Sprint Planning View com drag-drop",
+    "new_title": "[BACK] Implementar Sprint Planning View com drag-drop",
+    "state": "OPEN"
+  },
+  {
+    "number": 228,
+    "old_title": "[TD] Implementar Team Health Dashboard com métricas",
+    "new_title": "[FRONT] Implementar Team Health Dashboard com métricas",
+    "state": "OPEN"
+  },
+  {
+    "number": 227,
+    "old_title": "[TC] Implementar Notification Center com bell icon",
+    "new_title": "[FRONT] Implementar Notification Center com bell icon",
+    "state": "CLOSED"
+  },
+  {
+    "number": 226,
+    "old_title": "[TD] Implementar Keyboard Shortcuts Panel e atalhos globais",
+    "new_title": "[INOV] Implementar Keyboard Shortcuts Panel e atalhos globais",
+    "state": "CLOSED"
+  },
+  {
+    "number": 225,
+    "old_title": "[TD] Implementar Comments e Threads em Stories/Tasks",
+    "new_title": "[BACK] Implementar Comments e Threads em Stories/Tasks",
+    "state": "CLOSED"
+  },
+  {
+    "number": 224,
+    "old_title": "[TD] Implementar Time Tracking inline em Tasks",
+    "new_title": "[BACK] Implementar Time Tracking inline em Tasks",
+    "state": "CLOSED"
+  },
+  {
+    "number": 223,
+    "old_title": "[TD] Implementar Story Templates para criação rápida",
+    "new_title": "[BACK] Implementar Story Templates para criação rápida",
+    "state": "CLOSED"
+  },
+  {
+    "number": 222,
+    "old_title": "[TC] Implementar Quick Create FAB (Floating Action Button)",
+    "new_title": "[FRONT] Implementar Quick Create FAB (Floating Action Button)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 221,
+    "old_title": "[TD] Implementar Global Search com autocomplete e filtros",
+    "new_title": "[BACK] Implementar Global Search com autocomplete e filtros",
+    "state": "CLOSED"
+  },
+  {
+    "number": 220,
+    "old_title": "[TD] Implementar Breadcrumb Navigation global",
+    "new_title": "[FRONT] Implementar Breadcrumb Navigation global",
+    "state": "CLOSED"
+  },
+  {
+    "number": 219,
+    "old_title": "[TD] Implementar Empty States elegantes",
+    "new_title": "[BACK] Implementar Empty States elegantes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 218,
+    "old_title": "[TC] Implementar Skeleton Loaders elegantes",
+    "new_title": "[FRONT] Implementar Skeleton Loaders elegantes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 217,
+    "old_title": "[TC] Implementar Dark Mode toggle persistente",
+    "new_title": "[FRONT] Implementar Dark Mode toggle persistente",
+    "state": "CLOSED"
+  },
+  {
+    "number": 216,
+    "old_title": "[TD] Implementar Command Palette global (Cmd+K) - Padrão moderno de navegação",
+    "new_title": "[BACK] Implementar Command Palette global (Cmd+K) - Padrão moderno de navegação",
+    "state": "CLOSED"
+  },
+  {
+    "number": 215,
+    "old_title": "[TD] Melhorar responsividade para dispositivos móveis",
+    "new_title": "[BACK] Melhorar responsividade para dispositivos móveis",
+    "state": "CLOSED"
+  },
+  {
+    "number": 214,
+    "old_title": "[TD] Implementar suporte multi-idioma (PT-BR, EN-US)",
+    "new_title": "[BACK] Implementar suporte multi-idioma (PT-BR, EN-US)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 213,
+    "old_title": "[TX] Expor API pública documentada para integrações externas",
+    "new_title": "[QA] Expor API pública documentada para integrações externas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 212,
+    "old_title": "[TD] Implementar separação formal de ambientes (Dev/Staging/Prod)",
+    "new_title": "[FRONT] Implementar separação formal de ambientes (Dev/Staging/Prod)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 211,
+    "old_title": "[TC] Implementar orquestração de fluxos de trabalho complexos",
+    "new_title": "[FRONT] Implementar orquestração de fluxos de trabalho complexos",
+    "state": "OPEN"
+  },
+  {
+    "number": 210,
+    "old_title": "[TD] Aumentar cobertura de testes para 80%+",
+    "new_title": "[QA] Aumentar cobertura de testes para 80%+",
+    "state": "OPEN"
+  },
+  {
+    "number": 209,
+    "old_title": "[TB] Implementar distributed tracing e APM",
+    "new_title": "[SEC] Implementar distributed tracing e APM",
+    "state": "CLOSED"
+  },
+  {
+    "number": 208,
+    "old_title": "[TD] Implementar versionamento e histórico de workers",
+    "new_title": "[BACK] Implementar versionamento e histórico de workers",
+    "state": "OPEN"
+  },
+  {
+    "number": 207,
+    "old_title": "[TB] Fortalecer rate limiting e proteção contra abusos",
+    "new_title": "[SEC] Fortalecer rate limiting e proteção contra abusos",
+    "state": "CLOSED"
+  },
+  {
+    "number": 206,
+    "old_title": "[TB] Eliminar dependência de filesystem local para stateless",
+    "new_title": "[SEC] Eliminar dependência de filesystem local para stateless",
+    "state": "CLOSED"
+  },
+  {
+    "number": 205,
+    "old_title": "[TB] Preparar arquitetura para auto-scaling horizontal",
+    "new_title": "[SEC] Preparar arquitetura para auto-scaling horizontal",
+    "state": "CLOSED"
+  },
+  {
+    "number": 204,
+    "old_title": "[TC] Criar modo simplificado e glossário contextual",
+    "new_title": "[FRONT] Criar modo simplificado e glossário contextual",
+    "state": "CLOSED"
+  },
+  {
+    "number": 203,
+    "old_title": "[TC] Melhorar feedback visual e mensagens de erro",
+    "new_title": "[FRONT] Melhorar feedback visual e mensagens de erro",
+    "state": "CLOSED"
+  },
+  {
+    "number": 202,
+    "old_title": "[TC] Implementar ambiente de teste/sandbox integrado",
+    "new_title": "[FRONT] Implementar ambiente de teste/sandbox integrado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 201,
+    "old_title": "[SECURITY] Implementar validação e sanitização de código de usuários",
+    "new_title": "[SEC] Implementar validação e sanitização de código de usuários",
+    "state": "CLOSED"
+  },
+  {
+    "number": 200,
+    "old_title": "[SECURITY] Implementar criptografia de dados sensíveis em repouso",
+    "new_title": "[SEC] Implementar criptografia de dados sensíveis em repouso",
+    "state": "CLOSED"
+  },
+  {
+    "number": 199,
+    "old_title": "[CRITICAL] Implementar sistema de backup automatizado e DR",
+    "new_title": "[DEVOPS] Implementar sistema de backup automatizado e DR",
+    "state": "CLOSED"
+  },
+  {
+    "number": 198,
+    "old_title": "[SECURITY] Implementar sandbox/isolamento para execução de workers",
+    "new_title": "[SEC] Implementar sandbox/isolamento para execução de workers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 197,
+    "old_title": "[SECURITY-MEDIUM] Sensitive data exposed - need immediate API key rotation",
+    "new_title": "[SEC] Sensitive data exposed - need immediate API key rotation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 196,
+    "old_title": "[INTEGRATION] Secrets managed via environment variables only",
+    "new_title": "[BACK] Secrets managed via environment variables only",
+    "state": "CLOSED"
+  },
+  {
+    "number": 195,
+    "old_title": "[FRONTEND] Add omnichannel input selector",
+    "new_title": "[FRONT] Add omnichannel input selector",
+    "state": "CLOSED"
+  },
+  {
+    "number": 194,
+    "old_title": "[INFRA] Sensitive data may be exposed in API responses",
+    "new_title": "[DEVOPS] Sensitive data may be exposed in API responses",
+    "state": "CLOSED"
+  },
+  {
+    "number": 193,
+    "old_title": "[INFRA] No enum validation for status/priority fields",
+    "new_title": "[DEVOPS] No enum validation for status/priority fields",
+    "state": "CLOSED"
+  },
+  {
+    "number": 192,
+    "old_title": "[SECURITY-MEDIUM] JWT keys stored in plaintext file",
+    "new_title": "[SEC] JWT keys stored in plaintext file",
+    "state": "CLOSED"
+  },
+  {
+    "number": 191,
+    "old_title": "[SECURITY-HIGH] Jira webhook missing HMAC signature validation",
+    "new_title": "[SEC] Jira webhook missing HMAC signature validation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 190,
+    "old_title": "[SECURITY-MEDIUM] No request body size limits",
+    "new_title": "[SEC] No request body size limits",
+    "state": "CLOSED"
+  },
+  {
+    "number": 189,
+    "old_title": "[DATABASE] Orphan models not used",
+    "new_title": "[BACK] Orphan models not used",
+    "state": "CLOSED"
+  },
+  {
+    "number": 188,
+    "old_title": "[DATABASE] ActivityLogRepository searches globally without tenant filter",
+    "new_title": "[BACK] ActivityLogRepository searches globally without tenant filter",
+    "state": "CLOSED"
+  },
+  {
+    "number": 187,
+    "old_title": "[FRONTEND] Integrate RBAC admin into main dashboard navigation",
+    "new_title": "[FRONT] Integrate RBAC admin into main dashboard navigation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 186,
+    "old_title": "[FRONTEND] Create executive dashboard with KPIs",
+    "new_title": "[FRONT] Create executive dashboard with KPIs",
+    "state": "CLOSED"
+  },
+  {
+    "number": 185,
+    "old_title": "[FRONTEND] Add document/video upload interface",
+    "new_title": "[FRONT] Add document/video upload interface",
+    "state": "CLOSED"
+  },
+  {
+    "number": 184,
+    "old_title": "[DATABASE] No check constraint on story_points",
+    "new_title": "[BACK] No check constraint on story_points",
+    "state": "CLOSED"
+  },
+  {
+    "number": 183,
+    "old_title": "[DATABASE] Async engine but sync repositories",
+    "new_title": "[BACK] Async engine but sync repositories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 182,
+    "old_title": "[DATABASE] No transaction boundaries in repositories",
+    "new_title": "[BACK] No transaction boundaries in repositories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 181,
+    "old_title": "[INTEGRATION] 25+ TODO comments in code generators",
+    "new_title": "[BACK] 25+ TODO comments in code generators",
+    "state": "CLOSED"
+  },
+  {
+    "number": 180,
+    "old_title": "[INTEGRATION] SAP RFC requires complex local SDK setup",
+    "new_title": "[BACK] SAP RFC requires complex local SDK setup",
+    "state": "CLOSED"
+  },
+  {
+    "number": 179,
+    "old_title": "[INTEGRATION] Power BI connector methods may need completion",
+    "new_title": "[BACK] Power BI connector methods may need completion",
+    "state": "CLOSED"
+  },
+  {
+    "number": 178,
+    "old_title": "[RBAC] PersonaBuilder doesn't validate permission format",
+    "new_title": "[SEC] PersonaBuilder doesn't validate permission format",
+    "state": "CLOSED"
+  },
+  {
+    "number": 177,
+    "old_title": "[RBAC] @require_permission decorator unreliable user extraction",
+    "new_title": "[SEC] @require_permission decorator unreliable user extraction",
+    "state": "CLOSED"
+  },
+  {
+    "number": 176,
+    "old_title": "[RBAC] OAuth scopes not aligned with RBAC permissions",
+    "new_title": "[SEC] OAuth scopes not aligned with RBAC permissions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 175,
+    "old_title": "[DATABASE] No Alembic migration system",
+    "new_title": "[BACK] No Alembic migration system",
+    "state": "CLOSED"
+  },
+  {
+    "number": 174,
+    "old_title": "[INFRA] Audit log doesn't record permission changes",
+    "new_title": "[DEVOPS] Audit log doesn't record permission changes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 173,
+    "old_title": "[INFRA] Idempotency key not required by default",
+    "new_title": "[DEVOPS] Idempotency key not required by default",
+    "state": "CLOSED"
+  },
+  {
+    "number": 172,
+    "old_title": "[INFRA] Generic exception handling exposes database errors",
+    "new_title": "[DEVOPS] Generic exception handling exposes database errors",
+    "state": "CLOSED"
+  },
+  {
+    "number": 171,
+    "old_title": "[INTEGRATION] Environment variable validation missing at startup",
+    "new_title": "[BACK] Environment variable validation missing at startup",
+    "state": "CLOSED"
+  },
+  {
+    "number": 170,
+    "old_title": "[INFRA-MEDIUM] Only 2 replicas for API - needs 3+ for HA",
+    "new_title": "[DEVOPS] Only 2 replicas for API - needs 3+ for HA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 169,
+    "old_title": "[INFRA-MEDIUM] Terraform state in local file",
+    "new_title": "[DEVOPS] Terraform state in local file",
+    "state": "CLOSED"
+  },
+  {
+    "number": 168,
+    "old_title": "[INFRA-HIGH] No external secrets management",
+    "new_title": "[DEVOPS] No external secrets management",
+    "state": "CLOSED"
+  },
+  {
+    "number": 167,
+    "old_title": "[INFRA-HIGH] Kubernetes secrets not encrypted at rest",
+    "new_title": "[DEVOPS] Kubernetes secrets not encrypted at rest",
+    "state": "CLOSED"
+  },
+  {
+    "number": 166,
+    "old_title": "[INFRA-HIGH] Database password too weak",
+    "new_title": "[DEVOPS] Database password too weak",
+    "state": "CLOSED"
+  },
+  {
+    "number": 165,
+    "old_title": "[INFRA-CRITICAL] Redis without authentication",
+    "new_title": "[DEVOPS] Redis without authentication",
+    "state": "CLOSED"
+  },
+  {
+    "number": 164,
+    "old_title": "[INFRA-CRITICAL] MinIO using default credentials",
+    "new_title": "[DEVOPS] MinIO using default credentials",
+    "state": "CLOSED"
+  },
+  {
+    "number": 163,
+    "old_title": "[INTEGRATION] GitLab integration missing documentation",
+    "new_title": "[BACK] GitLab integration missing documentation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 162,
+    "old_title": "[INTEGRATION] Webhook callbacks not implemented",
+    "new_title": "[BACK] Webhook callbacks not implemented",
+    "state": "CLOSED"
+  },
+  {
+    "number": 161,
+    "old_title": "[INTEGRATION] Duplicate GitHub integration implementations",
+    "new_title": "[BACK] Duplicate GitHub integration implementations",
+    "state": "CLOSED"
+  },
+  {
+    "number": 160,
+    "old_title": "[FRONTEND] File and Doc viewers are stubs - not functional",
+    "new_title": "[FRONT] File and Doc viewers are stubs - not functional",
+    "state": "CLOSED"
+  },
+  {
+    "number": 159,
+    "old_title": "[FRONTEND] Expose billing dashboard in main navigation",
+    "new_title": "[FRONT] Expose billing dashboard in main navigation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 158,
+    "old_title": "[FRONTEND] Create tenant selector for multi-tenant users",
+    "new_title": "[FRONT] Create tenant selector for multi-tenant users",
+    "state": "CLOSED"
+  },
+  {
+    "number": 157,
+    "old_title": "[FRONTEND] Add Analytics/BI dashboard with charts",
+    "new_title": "[FRONT] Add Analytics/BI dashboard with charts",
+    "state": "CLOSED"
+  },
+  {
+    "number": 156,
+    "old_title": "[FRONTEND] Create Settings > Security panel for MFA and API keys",
+    "new_title": "[FRONT] Create Settings > Security panel for MFA and API keys",
+    "state": "CLOSED"
+  },
+  {
+    "number": 155,
+    "old_title": "[FRONTEND] Add voice input button for story creation",
+    "new_title": "[FRONT] Add voice input button for story creation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 154,
+    "old_title": "[FRONTEND] Add Integrations menu for SAP/GitHub/GitLab configuration",
+    "new_title": "[FRONT] Add Integrations menu for SAP/GitHub/GitLab configuration",
+    "state": "CLOSED"
+  },
+  {
+    "number": 153,
+    "old_title": "[DATABASE-MEDIUM] Missing indexes on frequently queried columns",
+    "new_title": "[BACK] Missing indexes on frequently queried columns",
+    "state": "CLOSED"
+  },
+  {
+    "number": 152,
+    "old_title": "[DATABASE-HIGH] Missing tenant filtering in ChatMessageRepository.get_recent()",
+    "new_title": "[BACK] Missing tenant filtering in ChatMessageRepository.get_recent()",
+    "state": "CLOSED"
+  },
+  {
+    "number": 151,
+    "old_title": "[DATABASE-HIGH] N+1 query risk in story progress calculation",
+    "new_title": "[BACK] N+1 query risk in story progress calculation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 150,
+    "old_title": "[DATABASE-CRITICAL] Soft delete filter not enforced in repository queries",
+    "new_title": "[BACK] Soft delete filter not enforced in repository queries",
+    "state": "CLOSED"
+  },
+  {
+    "number": 149,
+    "old_title": "[DATABASE-CRITICAL] Missing tenant_id in child models",
+    "new_title": "[BACK] Missing tenant_id in child models",
+    "state": "CLOSED"
+  },
+  {
+    "number": 148,
+    "old_title": "[RBAC] SSO user provisioning defaults to VIEWER only",
+    "new_title": "[SEC] SSO user provisioning defaults to VIEWER only",
+    "state": "CLOSED"
+  },
+  {
+    "number": 147,
+    "old_title": "[RBAC] ABAC policies hardcoded - lost on restart",
+    "new_title": "[SEC] ABAC policies hardcoded - lost on restart",
+    "state": "CLOSED"
+  },
+  {
+    "number": 146,
+    "old_title": "[RBAC] Three permission systems (RBAC/Personas/ABAC) not integrated",
+    "new_title": "[SEC] Three permission systems (RBAC/Personas/ABAC) not integrated",
+    "state": "CLOSED"
+  },
+  {
+    "number": 145,
+    "old_title": "[RBAC] Permission cache ignores project_id scope",
+    "new_title": "[SEC] Permission cache ignores project_id scope",
+    "state": "CLOSED"
+  },
+  {
+    "number": 144,
+    "old_title": "[RBAC] Role-to-Persona mapping incomplete",
+    "new_title": "[SEC] Role-to-Persona mapping incomplete",
+    "state": "CLOSED"
+  },
+  {
+    "number": 143,
+    "old_title": "[RBAC] MANAGER role missing delete permissions",
+    "new_title": "[SEC] MANAGER role missing delete permissions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 142,
+    "old_title": "[RBAC] DEVELOPER role over-privileged - can delete stories",
+    "new_title": "[SEC] DEVELOPER role over-privileged - can delete stories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 141,
+    "old_title": "[SECURITY-MEDIUM] Rate limiting fails open when Redis unavailable",
+    "new_title": "[SEC] Rate limiting fails open when Redis unavailable",
+    "state": "CLOSED"
+  },
+  {
+    "number": 140,
+    "old_title": "[SECURITY-HIGH] Tenant context extraction incomplete - always returns admin",
+    "new_title": "[SEC] Tenant context extraction incomplete - always returns admin",
+    "state": "CLOSED"
+  },
+  {
+    "number": 139,
+    "old_title": "[SECURITY-HIGH] WhatsApp webhook missing Twilio signature validation",
+    "new_title": "[SEC] WhatsApp webhook missing Twilio signature validation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 138,
+    "old_title": "[SECURITY-HIGH] Default admin credentials accepted in all environments",
+    "new_title": "[SEC] Default admin credentials accepted in all environments",
+    "state": "CLOSED"
+  },
+  {
+    "number": 137,
+    "old_title": "[SECURITY-CRITICAL] OAuth authorize endpoint uses hardcoded admin user_id",
+    "new_title": "[SEC] OAuth authorize endpoint uses hardcoded admin user_id",
+    "state": "CLOSED"
+  },
+  {
+    "number": 136,
+    "old_title": "[SECURITY-CRITICAL] Missing admin authorization in 7 billing endpoints",
+    "new_title": "[SEC] Missing admin authorization in 7 billing endpoints",
+    "state": "CLOSED"
+  },
+  {
+    "number": 135,
+    "old_title": "[UX] Dashboard Simplificado para Usuários de Negócio",
+    "new_title": "[FRONT] Dashboard Simplificado para Usuários de Negócio",
+    "state": "CLOSED"
+  },
+  {
+    "number": 134,
+    "old_title": "[UX] Wizards e Assistentes Passo-a-Passo",
+    "new_title": "[SEC] Wizards e Assistentes Passo-a-Passo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 133,
+    "old_title": "[UX] Interface Sem Jargões Técnicos",
+    "new_title": "[FRONT] Interface Sem Jargões Técnicos",
+    "state": "CLOSED"
+  },
+  {
+    "number": 132,
+    "old_title": "[UX] Onboarding Guiado para Novos Usuários",
+    "new_title": "[FRONT] Onboarding Guiado para Novos Usuários",
+    "state": "CLOSED"
+  },
+  {
+    "number": 131,
+    "old_title": "[Feature] Omnichannel Hub - Central Unificada de Inputs",
+    "new_title": "[PROD] Omnichannel Hub - Central Unificada de Inputs",
+    "state": "CLOSED"
+  },
+  {
+    "number": 130,
+    "old_title": "[Input] Assistente Virtual por Vídeo (Video Chat)",
+    "new_title": "[BACK] Assistente Virtual por Vídeo (Video Chat)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 129,
+    "old_title": "[Input] Integração WhatsApp para Captura de Requisitos",
+    "new_title": "[FRONT] Integração WhatsApp para Captura de Requisitos",
+    "state": "CLOSED"
+  },
+  {
+    "number": 128,
+    "old_title": "[Input] Processamento de Documentos Office (Word, Excel, PowerPoint)",
+    "new_title": "[QA] Processamento de Documentos Office (Word, Excel, PowerPoint)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 127,
+    "old_title": "[Input] Captura de Requisitos por Voz (Speech-to-Text)",
+    "new_title": "[FRONT] Captura de Requisitos por Voz (Speech-to-Text)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 126,
+    "old_title": "[DevEnv] Migração para Cloud (Checklist de Deploy)",
+    "new_title": "[DEVOPS] Migração para Cloud (Checklist de Deploy)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 125,
+    "old_title": "[DevEnv] Configuração Local vs Produção (Feature Flags)",
+    "new_title": "[DEVOPS] Configuração Local vs Produção (Feature Flags)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 124,
+    "old_title": "[DevEnv] Dados de Teste e Seed para Multi-tenancy",
+    "new_title": "[DEVOPS] Dados de Teste e Seed para Multi-tenancy",
+    "state": "CLOSED"
+  },
+  {
+    "number": 123,
+    "old_title": "[DevEnv] Setup Local Completo com Docker Compose",
+    "new_title": "[DEVOPS] Setup Local Completo com Docker Compose",
+    "state": "CLOSED"
+  },
+  {
+    "number": 122,
+    "old_title": "[Security] CRÍTICO: Isolamento Total de Dados Entre Tenants (Zero Data Leakage)",
+    "new_title": "[SEC] CRÍTICO: Isolamento Total de Dados Entre Tenants (Zero Data Leakage)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 121,
+    "old_title": "[Billing] Sistema de Cobrança por Uso (Usage-Based Billing)",
+    "new_title": "[FIN] Sistema de Cobrança por Uso (Usage-Based Billing)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 120,
+    "old_title": "[Multi-tenant] Hierarquia Tenant → Projeto → Acesso",
+    "new_title": "[BACK] Hierarquia Tenant → Projeto → Acesso",
+    "state": "CLOSED"
+  },
+  {
+    "number": 119,
+    "old_title": "[White Label] Sistema Completo de Personalização por Tenant",
+    "new_title": "[BACK] Sistema Completo de Personalização por Tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 118,
+    "old_title": "[Billing] Sistema de Metering e Usage Tracking Completo",
+    "new_title": "[FIN] Sistema de Metering e Usage Tracking Completo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 117,
+    "old_title": "[API] Conectores Nativos para Power BI, Tableau e Excel",
+    "new_title": "[BACK] Conectores Nativos para Power BI, Tableau e Excel",
+    "state": "CLOSED"
+  },
+  {
+    "number": 116,
+    "old_title": "[API] Gateway de Integrações com Isolamento de Tenant",
+    "new_title": "[BACK] Gateway de Integrações com Isolamento de Tenant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 115,
+    "old_title": "[API] Endpoints de Analytics para Power BI e BI Tools",
+    "new_title": "[BACK] Endpoints de Analytics para Power BI e BI Tools",
+    "state": "CLOSED"
+  },
+  {
+    "number": 114,
+    "old_title": "[Arquitetura] API-First Design Pattern",
+    "new_title": "[FRONT] [Arquitetura] API-First Design Pattern",
+    "state": "CLOSED"
+  },
+  {
+    "number": 113,
+    "old_title": "[Admin] Portal de Administração Multi-nível",
+    "new_title": "[BACK] [Admin] Portal de Administração Multi-nível",
+    "state": "CLOSED"
+  },
+  {
+    "number": 112,
+    "old_title": "[RBAC] Sistema de Perfis e Personas",
+    "new_title": "[SEC] Sistema de Perfis e Personas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 111,
+    "old_title": "[UI/UX] Visões e Dashboards por Perfil de Usuário",
+    "new_title": "[FRONT] [UI/UX] Visões e Dashboards por Perfil de Usuário",
+    "state": "CLOSED"
+  },
+  {
+    "number": 110,
+    "old_title": "[Infra] Multi-AZ Real para Todos Componentes",
+    "new_title": "[DEVOPS] Multi-AZ Real para Todos Componentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 109,
+    "old_title": "[API] OAuth 2.0 para API",
+    "new_title": "[BACK] OAuth 2.0 para API",
+    "state": "CLOSED"
+  },
+  {
+    "number": 108,
+    "old_title": "[API] Idempotência em Endpoints de Criação",
+    "new_title": "[BACK] Idempotência em Endpoints de Criação",
+    "state": "CLOSED"
+  },
+  {
+    "number": 107,
+    "old_title": "[API] Paginação Baseada em Cursor",
+    "new_title": "[BACK] Paginação Baseada em Cursor",
+    "state": "CLOSED"
+  },
+  {
+    "number": 106,
+    "old_title": "[Infra] Security Scanning Completo no CI",
+    "new_title": "[SEC] Security Scanning Completo no CI",
+    "state": "CLOSED"
+  },
+  {
+    "number": 105,
+    "old_title": "[Multi-tenant] Middleware de Tenant Global",
+    "new_title": "[BACK] Middleware de Tenant Global",
+    "state": "CLOSED"
+  },
+  {
+    "number": 104,
+    "old_title": "[Multi-tenant] Limites de Plano Enforcement",
+    "new_title": "[BACK] Limites de Plano Enforcement",
+    "state": "CLOSED"
+  },
+  {
+    "number": 103,
+    "old_title": "[Security] MFA/2FA Implementation",
+    "new_title": "[SEC] MFA/2FA Implementation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 102,
+    "old_title": "[Integration] GitHub/GitLab Integration Completa",
+    "new_title": "[BACK] GitHub/GitLab Integration Completa",
+    "state": "CLOSED"
+  },
+  {
+    "number": 101,
+    "old_title": "[Integration] Endpoints SAP S/4HANA e ECC",
+    "new_title": "[BACK] Endpoints SAP S/4HANA e ECC",
+    "state": "CLOSED"
+  },
+  {
+    "number": 100,
+    "old_title": "[Infra] CI/CD Deployment Automático Real",
+    "new_title": "[DEVOPS] CI/CD Deployment Automático Real",
+    "state": "CLOSED"
+  },
+  {
+    "number": 99,
+    "old_title": "[Infra] WAF (Web Application Firewall)",
+    "new_title": "[DEVOPS] WAF (Web Application Firewall)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 98,
+    "old_title": "[Infra] Plano de Disaster Recovery Documentado",
+    "new_title": "[DEVOPS] Plano de Disaster Recovery Documentado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 97,
+    "old_title": "[Infra] Backup Automatizado Database e PVCs",
+    "new_title": "[DEVOPS] Backup Automatizado Database e PVCs",
+    "state": "CLOSED"
+  },
+  {
+    "number": 96,
+    "old_title": "[Infra] Stack de Métricas Prometheus/Grafana",
+    "new_title": "[DEVOPS] Stack de Métricas Prometheus/Grafana",
+    "state": "CLOSED"
+  },
+  {
+    "number": 95,
+    "old_title": "[Infra] Terraform Remote State com Locking",
+    "new_title": "[DEVOPS] Terraform Remote State com Locking",
+    "state": "CLOSED"
+  },
+  {
+    "number": 94,
+    "old_title": "[Infra] Secrets Management Externo (Vault)",
+    "new_title": "[DEVOPS] Secrets Management Externo (Vault)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 93,
+    "old_title": "[Infra] Kubernetes Pod Security Standards (PSS)",
+    "new_title": "[SEC] Kubernetes Pod Security Standards (PSS)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 92,
+    "old_title": "[Infra] Scan de Vulnerabilidades em Imagens Docker",
+    "new_title": "[DEVOPS] Scan de Vulnerabilidades em Imagens Docker",
+    "state": "CLOSED"
+  },
+  {
+    "number": 91,
+    "old_title": "[API] SDKs para Múltiplas Linguagens",
+    "new_title": "[BACK] SDKs para Múltiplas Linguagens",
+    "state": "CLOSED"
+  },
+  {
+    "number": 90,
+    "old_title": "[API] Versionamento Semântico e Deprecation Policy",
+    "new_title": "[BACK] Versionamento Semântico e Deprecation Policy",
+    "state": "CLOSED"
+  },
+  {
+    "number": 89,
+    "old_title": "[Admin] Painel de Billing e Usage",
+    "new_title": "[INOV] [Admin] Painel de Billing e Usage",
+    "state": "CLOSED"
+  },
+  {
+    "number": 88,
+    "old_title": "[Admin] Dashboard de Monitoramento de Workers",
+    "new_title": "[FRONT] [Admin] Dashboard de Monitoramento de Workers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 87,
+    "old_title": "[Admin] Painel de Administração de Usuários",
+    "new_title": "[INOV] [Admin] Painel de Administração de Usuários",
+    "state": "CLOSED"
+  },
+  {
+    "number": 86,
+    "old_title": "[Security] Audit Logging Completo para SOC2/GDPR",
+    "new_title": "[SEC] Audit Logging Completo para SOC2/GDPR",
+    "state": "CLOSED"
+  },
+  {
+    "number": 85,
+    "old_title": "[Security] Resource-Level Authorization (ABAC)",
+    "new_title": "[SEC] Resource-Level Authorization (ABAC)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 84,
+    "old_title": "[Security] SAML Response Signature Validation",
+    "new_title": "[SEC] SAML Response Signature Validation",
+    "state": "CLOSED"
+  },
+  {
+    "number": 83,
+    "old_title": "[Security] JWT Authentication - Remover Credenciais Hardcoded",
+    "new_title": "[SEC] JWT Authentication - Remover Credenciais Hardcoded",
+    "state": "CLOSED"
+  },
+  {
+    "number": 82,
+    "old_title": "[Multi-tenant] Unificação dos Modelos Tenant Duplicados",
+    "new_title": "[BACK] Unificação dos Modelos Tenant Duplicados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 81,
+    "old_title": "[Multi-tenant] Isolamento de Dados nos Modelos Principais",
+    "new_title": "[BACK] Isolamento de Dados nos Modelos Principais",
+    "state": "CLOSED"
+  },
+  {
+    "number": 80,
+    "old_title": "[UI/UX] Acessibilidade WCAG 2.1 AA",
+    "new_title": "[FRONT] [UI/UX] Acessibilidade WCAG 2.1 AA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 79,
+    "old_title": "[UI/UX] Sistema de Design Tokens Completo",
+    "new_title": "[SEC] [UI/UX] Sistema de Design Tokens Completo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 78,
+    "old_title": "Bug: Sincronização project_id com nome da pasta",
+    "new_title": "[BACK] Bug: Sincronização project_id com nome da pasta",
+    "state": "CLOSED"
+  },
+  {
+    "number": 77,
+    "old_title": "App Generator: Deploy com Docker",
+    "new_title": "[DEVOPS] App Generator: Deploy com Docker",
+    "state": "CLOSED"
+  },
+  {
+    "number": 76,
+    "old_title": "App Generator: Suporte a Frontend React/Vue",
+    "new_title": "[FRONT] App Generator: Suporte a Frontend React/Vue",
+    "state": "CLOSED"
+  },
+  {
+    "number": 75,
+    "old_title": "App Generator: Suporte a Node.js/Express",
+    "new_title": "[BACK] App Generator: Suporte a Node.js/Express",
+    "state": "CLOSED"
+  },
+  {
+    "number": 74,
+    "old_title": "[Feature] Ambiente de Teste Integrado - Executar e Testar Aplicações",
+    "new_title": "[QA] Ambiente de Teste Integrado - Executar e Testar Aplicações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 73,
+    "old_title": "[Feature] Project Preview Dashboard - Visão Unificada do Projeto",
+    "new_title": "[FRONT] Project Preview Dashboard - Visão Unificada do Projeto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 72,
+    "old_title": "[Feature] Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)",
+    "new_title": "[FRONT] Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 71,
+    "old_title": "[Feature] A/B Testing de Código Gerado",
+    "new_title": "[QA] A/B Testing de Código Gerado",
+    "state": "CLOSED"
+  },
+  {
+    "number": 70,
+    "old_title": "[Feature] Replay e Debug de Execuções",
+    "new_title": "[PROD] Replay e Debug de Execuções",
+    "state": "CLOSED"
+  },
+  {
+    "number": 69,
+    "old_title": "[Feature] Importação de Projetos Existentes",
+    "new_title": "[PROD] Importação de Projetos Existentes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 68,
+    "old_title": "[Feature] Modo Offline e PWA",
+    "new_title": "[FRONT] Modo Offline e PWA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 67,
+    "old_title": "[Feature] Agente de Suporte ao Cliente (Chatbot Builder)",
+    "new_title": "[FRONT] Agente de Suporte ao Cliente (Chatbot Builder)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 66,
+    "old_title": "[Feature] Ambiente de Preview e Staging Automático",
+    "new_title": "[PROD] Ambiente de Preview e Staging Automático",
+    "state": "CLOSED"
+  },
+  {
+    "number": 65,
+    "old_title": "[Feature] Analytics de Produtividade e Time Insights",
+    "new_title": "[PROD] Analytics de Produtividade e Time Insights",
+    "state": "CLOSED"
+  },
+  {
+    "number": 64,
+    "old_title": "[Feature] Documentação Automática com IA",
+    "new_title": "[QA] Documentação Automática com IA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 63,
+    "old_title": "[Feature] Estimativa Inteligente de Esforço",
+    "new_title": "[PROD] Estimativa Inteligente de Esforço",
+    "state": "CLOSED"
+  },
+  {
+    "number": 62,
+    "old_title": "[Feature] Multi-tenancy e White Label",
+    "new_title": "[PROD] Multi-tenancy e White Label",
+    "state": "CLOSED"
+  },
+  {
+    "number": 61,
+    "old_title": "[Feature] API Pública e SDK para Desenvolvedores",
+    "new_title": "[PROD] API Pública e SDK para Desenvolvedores",
+    "state": "CLOSED"
+  },
+  {
+    "number": 60,
+    "old_title": "[Feature] Refatoração Automática e Debt Reduction",
+    "new_title": "[PROD] Refatoração Automática e Debt Reduction",
+    "state": "CLOSED"
+  },
+  {
+    "number": 59,
+    "old_title": "[Feature] Pair Programming com IA",
+    "new_title": "[PROD] Pair Programming com IA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 58,
+    "old_title": "[Feature] Versionamento e Histórico de Código",
+    "new_title": "[PROD] Versionamento e Histórico de Código",
+    "state": "CLOSED"
+  },
+  {
+    "number": 57,
+    "old_title": "[Feature] Análise de Segurança Automatizada (SAST/DAST)",
+    "new_title": "[PROD] Análise de Segurança Automatizada (SAST/DAST)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 56,
+    "old_title": "[Feature] Marketplace de Templates e Skills",
+    "new_title": "[PROD] Marketplace de Templates e Skills",
+    "state": "CLOSED"
+  },
+  {
+    "number": 55,
+    "old_title": "[Feature] Notificações em Tempo Real (WebSocket + Slack/Teams)",
+    "new_title": "[PROD] Notificações em Tempo Real (WebSocket + Slack/Teams)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 54,
+    "old_title": "[Feature] Integração com Jira/Azure DevOps",
+    "new_title": "[PROD] Integração com Jira/Azure DevOps",
+    "state": "CLOSED"
+  },
+  {
+    "number": 53,
+    "old_title": "[Feature] Geração Automática de Testes",
+    "new_title": "[QA] Geração Automática de Testes",
+    "state": "CLOSED"
+  },
+  {
+    "number": 52,
+    "old_title": "[Feature] Code Review Assistido por IA",
+    "new_title": "[PROD] Code Review Assistido por IA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 51,
+    "old_title": "[Feature] Integração CI/CD com GitHub Actions",
+    "new_title": "[DEVOPS] Integração CI/CD com GitHub Actions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 50,
+    "old_title": "[Feature] Dashboard Executivo com Business Intelligence",
+    "new_title": "[FRONT] Dashboard Executivo com Business Intelligence",
+    "state": "CLOSED"
+  },
+  {
+    "number": 49,
+    "old_title": "[Feature] Filtros avançados no Kanban",
+    "new_title": "[FRONT] Filtros avançados no Kanban",
+    "state": "CLOSED"
+  },
+  {
+    "number": 48,
+    "old_title": "[UI] Animações e micro-interações",
+    "new_title": "[FRONT] [UI] Animações e micro-interações",
+    "state": "CLOSED"
+  },
+  {
+    "number": 47,
+    "old_title": "[UX] Confirmação de ações destrutivas",
+    "new_title": "[FRONT] Confirmação de ações destrutivas",
+    "state": "CLOSED"
+  },
+  {
+    "number": 46,
+    "old_title": "[UX] Onboarding e empty states",
+    "new_title": "[FRONT] Onboarding e empty states",
+    "state": "CLOSED"
+  },
+  {
+    "number": 45,
+    "old_title": "[A11y] Melhorias de acessibilidade",
+    "new_title": "[BACK] [A11y] Melhorias de acessibilidade",
+    "state": "CLOSED"
+  },
+  {
+    "number": 44,
+    "old_title": "[UX] Templates de Stories",
+    "new_title": "[FRONT] Templates de Stories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 43,
+    "old_title": "[UX] Melhorias no Chat Assistant",
+    "new_title": "[FRONT] Melhorias no Chat Assistant",
+    "state": "CLOSED"
+  },
+  {
+    "number": 42,
+    "old_title": "[Feature] Sprint Burndown Chart",
+    "new_title": "[PROD] Sprint Burndown Chart",
+    "state": "CLOSED"
+  },
+  {
+    "number": 41,
+    "old_title": "[Feature] Swimlanes - Agrupar por Epic ou Assignee",
+    "new_title": "[PROD] Swimlanes - Agrupar por Epic ou Assignee",
+    "state": "CLOSED"
+  },
+  {
+    "number": 40,
+    "old_title": "[UX] Bulk actions para múltiplas stories",
+    "new_title": "[FRONT] Bulk actions para múltiplas stories",
+    "state": "CLOSED"
+  },
+  {
+    "number": 39,
+    "old_title": "[UX] Quick actions e menu de contexto",
+    "new_title": "[FRONT] Quick actions e menu de contexto",
+    "state": "CLOSED"
+  },
+  {
+    "number": 38,
+    "old_title": "[UX] Drag and drop com melhor feedback visual",
+    "new_title": "[FRONT] Drag and drop com melhor feedback visual",
+    "state": "CLOSED"
+  },
+  {
+    "number": 37,
+    "old_title": "[UI] Suporte a Dark Mode",
+    "new_title": "[FRONT] [UI] Suporte a Dark Mode",
+    "state": "CLOSED"
+  },
+  {
+    "number": 36,
+    "old_title": "[UI] Responsividade mobile",
+    "new_title": "[FRONT] [UI] Responsividade mobile",
+    "state": "CLOSED"
+  },
+  {
+    "number": 35,
+    "old_title": "[UX] Atalhos de teclado para ações comuns",
+    "new_title": "[FRONT] Atalhos de teclado para ações comuns",
+    "state": "CLOSED"
+  },
+  {
+    "number": 34,
+    "old_title": "[UX] Loading states e skeleton screens",
+    "new_title": "[FRONT] Loading states e skeleton screens",
+    "state": "CLOSED"
+  },
+  {
+    "number": 33,
+    "old_title": "[UX] Sistema de notificações toast",
+    "new_title": "[FRONT] Sistema de notificações toast",
+    "state": "CLOSED"
+  },
+  {
+    "number": 32,
+    "old_title": "[UX] Campo de busca para stories no Kanban",
+    "new_title": "[FRONT] Campo de busca para stories no Kanban",
+    "state": "CLOSED"
+  },
+  {
+    "number": 31,
+    "old_title": "fix: SQLiteJobQueue missing API parity methods",
+    "new_title": "[BACK] fix: SQLiteJobQueue missing API parity methods",
+    "state": "CLOSED"
+  },
+  {
+    "number": 30,
+    "old_title": "[v5.0] Kubernetes Deployment",
+    "new_title": "[DEVOPS] [v5.0] Kubernetes Deployment",
+    "state": "CLOSED"
+  },
+  {
+    "number": 29,
+    "old_title": "[v4.0] Testar Fluxo Completo de Workers",
+    "new_title": "[FRONT] [v4.0] Testar Fluxo Completo de Workers",
+    "state": "CLOSED"
+  },
+  {
+    "number": 28,
+    "old_title": "[v4.0] Sistema de Logs Estruturados",
+    "new_title": "[BACK] [v4.0] Sistema de Logs Estruturados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 27,
+    "old_title": "[v4.0] Integracao MCP Tools",
+    "new_title": "[BACK] [v4.0] Integracao MCP Tools",
+    "state": "CLOSED"
+  },
+  {
+    "number": 26,
+    "old_title": "[v4.0] Suporte a Multiplos Modelos Claude",
+    "new_title": "[BACK] [v4.0] Suporte a Multiplos Modelos Claude",
+    "state": "CLOSED"
+  },
+  {
+    "number": 25,
+    "old_title": "[v4.0] WebSocket para Atualizacoes em Tempo Real",
+    "new_title": "[BACK] [v4.0] WebSocket para Atualizacoes em Tempo Real",
+    "state": "CLOSED"
+  },
+  {
+    "number": 24,
+    "old_title": "[NOTIFICACOES] Sistema Centralizado de Notificacoes Multi-Canal",
+    "new_title": "[BACK] [NOTIFICACOES] Sistema Centralizado de Notificacoes Multi-Canal",
+    "state": "CLOSED"
+  },
+  {
+    "number": 23,
+    "old_title": "[MICROSOFT] Integracao com Exchange/Outlook (Email)",
+    "new_title": "[INOV] [MICROSOFT] Integracao com Exchange/Outlook (Email)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 22,
+    "old_title": "[MICROSOFT] Integracao com Microsoft Teams",
+    "new_title": "[BACK] [MICROSOFT] Integracao com Microsoft Teams",
+    "state": "CLOSED"
+  },
+  {
+    "number": 21,
+    "old_title": "[SAP] Integracao com SAP S/4HANA",
+    "new_title": "[BACK] [SAP] Integracao com SAP S/4HANA",
+    "state": "CLOSED"
+  },
+  {
+    "number": 20,
+    "old_title": "[SAP] Integracao com SAP ECC (ERP Central Component)",
+    "new_title": "[FRONT] [SAP] Integracao com SAP ECC (ERP Central Component)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 19,
+    "old_title": "[SAP] Integracao com SAP Cloud Platform Integration (CPI)",
+    "new_title": "[FRONT] [SAP] Integracao com SAP Cloud Platform Integration (CPI)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 18,
+    "old_title": "[SALESFORCE] Integracao Completa com Salesforce CRM",
+    "new_title": "[GROWTH] [SALESFORCE] Integracao Completa com Salesforce CRM",
+    "state": "CLOSED"
+  },
+  {
+    "number": 17,
+    "old_title": "[CLOUD] Infrastructure as Code com Terraform",
+    "new_title": "[DEVOPS] [CLOUD] Infrastructure as Code com Terraform",
+    "state": "CLOSED"
+  },
+  {
+    "number": 16,
+    "old_title": "[CLOUD] Integracao Automatica com AWS, Azure e GCP",
+    "new_title": "[BACK] [CLOUD] Integracao Automatica com AWS, Azure e GCP",
+    "state": "CLOSED"
+  },
+  {
+    "number": 15,
+    "old_title": "[SAAS] Modelo Multi-Tenant com Billing e Subscriptions",
+    "new_title": "[FIN] [SAAS] Modelo Multi-Tenant com Billing e Subscriptions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 14,
+    "old_title": "[ENTERPRISE] Integracao com Jira e Azure DevOps",
+    "new_title": "[BACK] [ENTERPRISE] Integracao com Jira e Azure DevOps",
+    "state": "CLOSED"
+  },
+  {
+    "number": 13,
+    "old_title": "[ENTERPRISE] Integracao SSO via SAML 2.0 e Azure AD",
+    "new_title": "[SEC] [ENTERPRISE] Integracao SSO via SAML 2.0 e Azure AD",
+    "state": "CLOSED"
+  },
+  {
+    "number": 12,
+    "old_title": "[ENTERPRISE] Gerenciador de Acessos e Perfis (RBAC)",
+    "new_title": "[SEC] [ENTERPRISE] Gerenciador de Acessos e Perfis (RBAC)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 11,
+    "old_title": "[ENTERPRISE] Suporte a Multiplas LLMs (Azure OpenAI, AWS Bedrock, Google Vertex)",
+    "new_title": "[INOV] [ENTERPRISE] Suporte a Multiplas LLMs (Azure OpenAI, AWS Bedrock, Google Vertex)",
+    "state": "CLOSED"
+  },
+  {
+    "number": 10,
+    "old_title": "[BAIXA] Adicionar Suporte a Mais Linguagens",
+    "new_title": "[INOV] [BAIXA] Adicionar Suporte a Mais Linguagens",
+    "state": "CLOSED"
+  },
+  {
+    "number": 9,
+    "old_title": "[BAIXA] Configurar CI/CD com GitHub Actions",
+    "new_title": "[DEVOPS] [BAIXA] Configurar CI/CD com GitHub Actions",
+    "state": "CLOSED"
+  },
+  {
+    "number": 8,
+    "old_title": "[BAIXA] Containerizacao com Docker",
+    "new_title": "[DEVOPS] [BAIXA] Containerizacao com Docker",
+    "state": "CLOSED"
+  },
+  {
+    "number": 7,
+    "old_title": "[BAIXA] Integracao Automatica com GitHub",
+    "new_title": "[INOV] [BAIXA] Integracao Automatica com GitHub",
+    "state": "CLOSED"
+  },
+  {
+    "number": 6,
+    "old_title": "[MEDIA] Implementar Sistema de Logs Estruturados",
+    "new_title": "[BACK] [MEDIA] Implementar Sistema de Logs Estruturados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 5,
+    "old_title": "[MEDIA] Completar Documentacao OpenAPI/Swagger",
+    "new_title": "[QA] [MEDIA] Completar Documentacao OpenAPI/Swagger",
+    "state": "CLOSED"
+  },
+  {
+    "number": 4,
+    "old_title": "[MEDIA] Criar Suite de Testes Automatizados",
+    "new_title": "[FRONT] [MEDIA] Criar Suite de Testes Automatizados",
+    "state": "CLOSED"
+  },
+  {
+    "number": 3,
+    "old_title": "[ALTA] Validar e Documentar Skills de Processamento Multimidia",
+    "new_title": "[QA] [ALTA] Validar e Documentar Skills de Processamento Multimidia",
+    "state": "CLOSED"
+  },
+  {
+    "number": 2,
+    "old_title": "[ALTA] Testar Fluxo Completo de Desenvolvimento Autonomo",
+    "new_title": "[FRONT] [ALTA] Testar Fluxo Completo de Desenvolvimento Autonomo",
+    "state": "CLOSED"
+  },
+  {
+    "number": 1,
+    "old_title": "[ALTA] Testar Modo Inteligente com Claude AI",
+    "new_title": "[QA] [ALTA] Testar Modo Inteligente com Claude AI",
+    "state": "CLOSED"
+  }
+]

@@ -26,9 +26,9 @@ HELP_ARTICLES = [
         "title": "Primeiros Passos",
         "category": "inicio",
         "content": """
-# Bem-vindo a Fabrica de Agentes
+# Bem-vindo a Plataforma E
 
-A Fabrica de Agentes e uma plataforma de desenvolvimento autonomo que combina:
+A Plataforma E e uma plataforma de desenvolvimento autonomo que combina:
 
 - **Dashboard Agile**: Gestao de User Stories com Kanban
 - **Workers Claude**: Processamento autonomo de tarefas

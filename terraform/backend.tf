@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Terraform Remote State Backend Configuration
+# Plataforma E - Terraform Remote State Backend Configuration
 # =============================================================================
 # Issue #95: Terraform Remote State com Locking
 #

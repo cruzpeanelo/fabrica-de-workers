@@ -1,8 +1,8 @@
 """
-Fabrica de Agentes - Python SDK
+Plataforma E - Python SDK
 ===============================
 
-Cliente Python oficial para a API da Fabrica de Agentes.
+Cliente Python oficial para a API da Plataforma E.
 
 Instalacao:
     pip install fabrica-agentes-sdk
@@ -63,7 +63,7 @@ except ImportError:
         )
 
 __version__ = "1.0.0"
-__author__ = "Fabrica de Agentes Team"
+__author__ = "Plataforma E Team"
 
 
 # =============================================================================
@@ -930,7 +930,7 @@ class QueueResource:
 
 class FabricaClient:
     """
-    Cliente principal da API Fabrica de Agentes.
+    Cliente principal da API Plataforma E.
 
     Uso:
         client = FabricaClient(

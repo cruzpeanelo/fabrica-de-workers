@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Model Selector - Selecao Inteligente de Modelos Claude v1.0
-Fabrica de Agentes
+Plataforma E
 
 Permite selecao automatica ou manual de modelos Claude baseado em:
 - Complexidade da tarefa
@@ -687,7 +687,7 @@ def get_model_config(model_id: str) -> Dict[str, Any]:
 # =============================================================================
 
 if __name__ == "__main__":
-    print("\n=== Model Selector - Fabrica de Agentes ===\n")
+    print("\n=== Model Selector - Plataforma E ===\n")
 
     selector = ModelSelector()
 

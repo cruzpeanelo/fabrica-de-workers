@@ -706,7 +706,7 @@ class DataSeeder:
     def seed_all(self, clean: bool = False, tenant_filter: str = None):
         """Seed all test data."""
         print("=" * 60)
-        print("Fabrica de Agentes - Data Seeder")
+        print("Plataforma E - Data Seeder")
         print("=" * 60)
 
         if clean:
@@ -763,7 +763,7 @@ class DataSeeder:
 def main():
     """Main entry point for CLI."""
     parser = argparse.ArgumentParser(
-        description="Seed test data for Fabrica de Agentes",
+        description="Seed test data for Plataforma E",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

@@ -1,5 +1,5 @@
 """
-API v1 Schemas - Fabrica de Agentes
+API v1 Schemas - Plataforma E
 ===================================
 
 Schemas padrao para API v1 incluindo:

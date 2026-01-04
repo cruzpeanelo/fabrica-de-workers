@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ABAC - Attribute-Based Access Control
-Fabrica de Agentes v6.2 - Security Hardening
+Plataforma E v6.2 - Security Hardening
 
 Issue #85 - Resource-Level Authorization (ABAC):
 - Controle de acesso baseado em atributos

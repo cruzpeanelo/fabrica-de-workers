@@ -3,7 +3,7 @@
 Factory Configuration Package
 ==============================
 
-This package provides configuration management for the Fabrica de Agentes platform:
+This package provides configuration management for the Plataforma E platform:
 - Feature flags for environment and tenant-based feature toggles
 - Environment configuration (development, staging, production)
 
@@ -59,7 +59,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(J
 # Dashboard Configuration (backward compatibility with factory/config.py)
 DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "127.0.0.1")
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "9001"))
-DASHBOARD_TITLE = "Fabrica de Agentes v6.5"
+DASHBOARD_TITLE = "Plataforma E v6.5"
 
 __all__ = [
     # Main functions

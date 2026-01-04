@@ -7,7 +7,7 @@ Cliente para SAP Graph API - camada de integracao unificada do SAP.
 SAP Graph fornece uma visao unificada e simplificada dos dados de negocios
 atraves de uma API GraphQL-like, abstraindo a complexidade das APIs subjacentes.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

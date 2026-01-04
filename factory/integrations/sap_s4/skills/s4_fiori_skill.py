@@ -7,7 +7,7 @@ Skill para trabalhar com aplicacoes SAP Fiori.
 Esta skill fornece capacidades de analise e geracao
 de aplicacoes Fiori Elements e Freestyle.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

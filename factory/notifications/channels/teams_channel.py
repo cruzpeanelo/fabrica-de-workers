@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Canal de Microsoft Teams (Webhook)
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Implementa envio de notificacoes para Microsoft Teams usando:
 - Webhooks Incoming (Adaptive Cards)
@@ -111,7 +111,7 @@ class TeamsChannel(BaseChannel):
                 notification_id="test-connection",
                 event_type="test",
                 subject="Teste de Conexao",
-                body="Conexao com Fabrica de Agentes testada com sucesso!",
+                body="Conexao com Plataforma E testada com sucesso!",
                 recipients=[]
             )
 
@@ -181,7 +181,7 @@ class TeamsChannel(BaseChannel):
         # Timestamp no rodape
         body.append({
             "type": "TextBlock",
-            "text": f"Fabrica de Agentes | {message.event_type} | {message.timestamp.strftime('%d/%m/%Y %H:%M')}",
+            "text": f"Plataforma E | {message.event_type} | {message.timestamp.strftime('%d/%m/%Y %H:%M')}",
             "wrap": True,
             "size": "Small",
             "color": "Light",
@@ -246,7 +246,7 @@ class TeamsChannel(BaseChannel):
         # Secao principal
         main_section = {
             "activityTitle": f"{emoji} {message.subject}",
-            "activitySubtitle": f"Fabrica de Agentes - {message.event_type}",
+            "activitySubtitle": f"Plataforma E - {message.event_type}",
             "text": message.body,
             "markdown": True
         }

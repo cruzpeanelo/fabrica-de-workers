@@ -2,7 +2,7 @@
 """
 Azure Blob Storage Manager
 ==========================
-Gerenciador de Blob Storage Azure para a Fabrica de Agentes.
+Gerenciador de Blob Storage Azure para a Plataforma E.
 
 Funcionalidades:
 - Criacao de Storage Accounts

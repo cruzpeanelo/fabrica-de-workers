@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Modulo de Billing e Multi-Tenancy - Fabrica de Agentes SaaS
+Modulo de Billing e Multi-Tenancy - Plataforma E SaaS
 ============================================================
 
 Este modulo implementa:
@@ -11,7 +11,7 @@ Este modulo implementa:
 - Faturamento e invoicing
 - Usage-Based Billing (Issue #118, #121, #89)
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Versao: 2.0.0
 """
 

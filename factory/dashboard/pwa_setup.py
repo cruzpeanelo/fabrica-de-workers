@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PWA Setup - Fabrica de Agentes (Issue #259)
+PWA Setup - Plataforma E (Issue #259)
 ============================================
 Progressive Web App completo com:
 - Manifest.json dinâmico
@@ -353,7 +353,7 @@ def get_pwa_meta_tags() -> str:
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FdA Agile">
-    <meta name="application-name" content="Fabrica de Agentes">
+    <meta name="application-name" content="Plataforma E">
     <meta name="msapplication-TileColor" content="#003B4A">
     <meta name="msapplication-TileImage" content="/static/icons/icon-144x144.png">
     <meta name="msapplication-config" content="none">

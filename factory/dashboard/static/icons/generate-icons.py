@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Gerador de icones PWA - Fabrica de Agentes
+Gerador de icones PWA - Plataforma E
 ===========================================
 Gera icones PNG a partir do SVG base.
 

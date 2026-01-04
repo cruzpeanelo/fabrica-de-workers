@@ -1,5 +1,5 @@
 """
-Sistema de Logs Estruturados - Fabrica de Agentes
+Sistema de Logs Estruturados - Plataforma E
 =================================================
 
 Sistema centralizado de logging com suporte a:
@@ -241,7 +241,7 @@ class DatabaseLogHandler(logging.Handler):
 
 
 class FactoryLogger:
-    """Logger principal da Fabrica de Agentes"""
+    """Logger principal da Plataforma E"""
 
     _instance = None
     _lock = threading.Lock()

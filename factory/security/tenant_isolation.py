@@ -11,7 +11,7 @@ This module provides comprehensive tenant data isolation including:
 - Audit logging for cross-tenant access attempts
 - Per-tenant encryption for sensitive data
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import os

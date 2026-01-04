@@ -774,7 +774,7 @@ CUSTOM_FIELDS_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campos Customizados - Fabrica de Agentes</title>
+    <title>Campos Customizados - Plataforma E</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@heroicons/vue@2.0.18/dist/heroicons.min.css" rel="stylesheet">

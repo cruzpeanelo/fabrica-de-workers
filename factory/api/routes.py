@@ -1,6 +1,6 @@
 """
 Factory API Routes v4.0 - Simplified Job-centric API
-Fabrica de Agentes - Nova Arquitetura MVP
+Plataforma E - Nova Arquitetura MVP
 """
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field

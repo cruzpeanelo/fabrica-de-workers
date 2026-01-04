@@ -1,6 +1,6 @@
 """
 Omnichannel Hub - Unified Input Processing Center
-Fabrica de Agentes v6.5 - Issue #131
+Plataforma E v6.5 - Issue #131
 
 Central hub that unifies all input methods (voice, document, whatsapp, email, api, video)
 for consistent requirements capture and story creation.

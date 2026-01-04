@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-MCP Tools - Ferramentas MCP para a Fabrica de Agentes
+MCP Tools - Ferramentas MCP para a Plataforma E
 
 Este modulo define as ferramentas que serao expostas pelo servidor MCP.
 Cada ferramenta representa uma operacao que o Claude pode executar.

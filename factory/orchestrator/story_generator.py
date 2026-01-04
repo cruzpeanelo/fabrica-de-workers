@@ -1,5 +1,5 @@
 """
-Gerador de Historias - Fabrica de Agentes
+Gerador de Historias - Plataforma E
 ==========================================
 
 Gera historias automaticamente seguindo melhores praticas Agile/Kanban.

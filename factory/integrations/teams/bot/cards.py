@@ -53,7 +53,7 @@ class BotCardBuilder:
         """
         self._builder.clear()
 
-        self._builder.add_heading("Fabrica de Agentes - Comandos")
+        self._builder.add_heading("Plataforma E - Comandos")
         self._builder.add_text(
             "Aqui estao os comandos disponiveis:",
             color=TextColor.DARK
@@ -95,7 +95,7 @@ class BotCardBuilder:
         greeting = f"Ola, {user_name}!" if user_name else "Ola!"
         self._builder.add_heading(greeting)
         self._builder.add_text(
-            "Sou o assistente da Fabrica de Agentes. "
+            "Sou o assistente da Plataforma E. "
             "Posso ajudar voce a gerenciar projetos, stories e tarefas."
         )
 
@@ -151,7 +151,7 @@ class BotCardBuilder:
         """
         self._builder.clear()
 
-        self._builder.add_heading("Status da Fabrica de Agentes")
+        self._builder.add_heading("Status da Plataforma E")
         self._builder.add_status_indicator(status)
 
         facts = [

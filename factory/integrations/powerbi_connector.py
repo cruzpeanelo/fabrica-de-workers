@@ -68,7 +68,7 @@ class PowerBIConnector:
     """
     Conector para Power BI com suporte a OData.
 
-    Permite exportar dados da Fabrica de Agentes para Power BI
+    Permite exportar dados da Plataforma E para Power BI
     em formato compativel com DirectQuery e Import mode.
 
     Exemplo de uso:

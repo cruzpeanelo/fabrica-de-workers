@@ -1,4 +1,4 @@
-# Go-to-Market Strategy - Fábrica de Agentes
+# Go-to-Market Strategy - Plataforma E
 **Versão:** 1.0
 **Data:** 2026-01-03
 **Owner:** Agente GROWTH
@@ -7,7 +7,7 @@
 
 ## 🎯 Visão do Produto
 
-**Fábrica de Agentes** é uma plataforma de desenvolvimento autônomo que transforma user stories em código funcional através de uma squad de 11 agentes IA especializados.
+**Plataforma E** é uma plataforma de desenvolvimento autônomo que transforma user stories em código funcional através de uma squad de 11 agentes IA especializados.
 
 ### Value Proposition
 > "Do story para código testado em minutos, não dias. 11 agentes IA fazem o trabalho pesado enquanto você foca na estratégia."

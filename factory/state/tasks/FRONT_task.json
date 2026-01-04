@@ -1,0 +1,11 @@
+{
+  "task_id": "task_FRONT_1767484853",
+  "agent_type": "FRONT",
+  "issue_number": null,
+  "title": "Quality Dashboard Component",
+  "description": "\n1. Criar issue: gh issue create --title \"[FRONT] Quality Dashboard\" --body \"Dashboard metricas qualidade\"\n2. Implementar componente\n3. Commit com referencia a issue\n4. Fechar issue\n5. Criar handoff para QA testar\n",
+  "priority": "medium",
+  "created_at": "2026-01-03T21:00:53.276458",
+  "status": "pending",
+  "context": {}
+}

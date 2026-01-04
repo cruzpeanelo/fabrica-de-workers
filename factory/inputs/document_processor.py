@@ -1,6 +1,6 @@
 """
 Document Processor - Office Documents to Requirements
-Fabrica de Agentes v6.5 - Issue #128
+Plataforma E v6.5 - Issue #128
 
 Processes DOCX, XLSX, PPTX, and PDF files to extract requirements.
 Uses specialized libraries for each format and Claude for intelligent extraction.

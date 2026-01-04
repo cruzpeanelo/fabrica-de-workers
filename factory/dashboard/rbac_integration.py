@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 RBAC Integration for Dashboard
-Fabrica de Agentes v6.1
+Plataforma E v6.1
 
 Provides endpoints and UI for RBAC management
 Can be imported and registered with the main app

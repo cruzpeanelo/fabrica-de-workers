@@ -522,7 +522,7 @@ class GoogleCalendarClient:
             summary=f"[Sprint] {name}",
             start=start_date,
             end=end_date,
-            description=f"Goal: {goal}\n\nFabrica de Agentes - Sprint Tracking",
+            description=f"Goal: {goal}\n\nPlataforma E - Sprint Tracking",
             color_id=EVENT_COLOR_MAPPING.get("sprint", GoogleCalendarEventColor.PEACOCK).value,
             attendees=attendees or [],
             event_type="sprint",
@@ -562,7 +562,7 @@ class GoogleCalendarClient:
             summary=f"[Deadline] {title}",
             start=deadline.replace(hour=9, minute=0),
             end=deadline.replace(hour=10, minute=0),
-            description=f"Priority: {priority}\n\n{description}\n\nFabrica de Agentes",
+            description=f"Priority: {priority}\n\n{description}\n\nPlataforma E",
             color_id=EVENT_COLOR_MAPPING.get("deadline", GoogleCalendarEventColor.TOMATO).value,
             event_type="deadline",
             external_id=story_id

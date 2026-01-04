@@ -1,3 +1,3 @@
 """
-Playwright MCP Server - Automacao de browser para a Fabrica de Agentes.
+Playwright MCP Server - Automacao de browser para a Plataforma E.
 """

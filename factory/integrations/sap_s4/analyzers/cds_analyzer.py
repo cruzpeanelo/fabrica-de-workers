@@ -7,7 +7,7 @@ Analisador de CDS Views do SAP S/4HANA.
 CDS (Core Data Services) e a base de modelagem de dados no S/4HANA,
 permitindo definir views semanticas, associacoes e anotacoes.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import re

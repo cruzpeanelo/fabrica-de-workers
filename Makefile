@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Makefile
+# Plataforma E - Makefile
 # =============================================================================
 # Issue #382: Comandos padronizados para desenvolvimento
 #

@@ -1,5 +1,5 @@
 """
-Project Manager - Fabrica de Agentes
+Project Manager - Plataforma E
 Gerencia criacao e estrutura de projetos
 """
 import shutil
@@ -165,7 +165,7 @@ class ProjectManager:
         """Cria README do projeto"""
         readme_content = f"""# {project['name']}
 
-> Projeto criado pela Fabrica de Agentes
+> Projeto criado pela Plataforma E
 
 ## Informacoes
 
@@ -187,7 +187,7 @@ class ProjectManager:
 ```
 
 ---
-*Gerado automaticamente pela Fabrica de Agentes*
+*Gerado automaticamente pela Plataforma E*
 """
         (folder_path / "README.md").write_text(readme_content, encoding="utf-8")
 

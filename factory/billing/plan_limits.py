@@ -9,7 +9,7 @@ Implementa:
 - Decorators para proteger endpoints
 - Contadores de uso automaticos
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

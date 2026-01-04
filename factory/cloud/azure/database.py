@@ -2,7 +2,7 @@
 """
 Azure Database Manager
 ======================
-Gerenciador de bancos de dados Azure para a Fabrica de Agentes.
+Gerenciador de bancos de dados Azure para a Plataforma E.
 
 Suporta:
 - Azure Database for PostgreSQL

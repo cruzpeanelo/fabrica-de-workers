@@ -4,7 +4,7 @@ Docker Generator - Geracao de arquivos Docker para deploy
 ==========================================================
 
 Este modulo gera arquivos Docker para deploy facil das aplicacoes
-criadas pela Fabrica de Agentes.
+criadas pela Plataforma E.
 
 Funcionalidades (Issue #77):
 - Geracao de Dockerfile otimizado por tipo de projeto (Python/Node.js)
@@ -51,7 +51,7 @@ class DatabaseType(Enum):
 class DockerGenerator:
     """Gera arquivos Docker para deploy de aplicacoes."""
 
-    PROJECTS_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects")
+    PROJECTS_DIR = Path(r"C:\Users\lcruz\Plataforma E\projects")
 
     def __init__(self, project_id: str):
         """
@@ -199,7 +199,7 @@ class DockerGenerator:
     def _generate_python_dockerfile(self) -> str:
         """Gera Dockerfile otimizado para projetos Python/FastAPI."""
         return f'''# Dockerfile para {self.project_id}
-# Gerado automaticamente pela Fabrica de Agentes
+# Gerado automaticamente pela Plataforma E
 # Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 # ============================================================
@@ -275,7 +275,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     def _generate_nodejs_dockerfile(self) -> str:
         """Gera Dockerfile otimizado para projetos Node.js/Express."""
         return f'''# Dockerfile para {self.project_id}
-# Gerado automaticamente pela Fabrica de Agentes
+# Gerado automaticamente pela Plataforma E
 # Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 
 # ============================================================
@@ -344,7 +344,7 @@ CMD ["node", "server.js"]
 
     def _generate_dockerignore(self) -> str:
         """Gera arquivo .dockerignore."""
-        return '''# .dockerignore - Gerado pela Fabrica de Agentes
+        return '''# .dockerignore - Gerado pela Plataforma E
 
 # Git
 .git
@@ -549,7 +549,7 @@ Thumbs.db
       - app'''
 
         compose_content = f'''# docker-compose.yml para {self.project_id}
-# Gerado automaticamente pela Fabrica de Agentes
+# Gerado automaticamente pela Plataforma E
 # Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 #
 # Uso:
@@ -576,7 +576,7 @@ volumes:{db_volumes}
     def _generate_docker_env(self, database: DatabaseType) -> str:
         """Gera arquivo .env.docker com variaveis de ambiente."""
         base_env = f'''# Variaveis de ambiente Docker para {self.project_id}
-# Gerado automaticamente pela Fabrica de Agentes
+# Gerado automaticamente pela Plataforma E
 # Data: {datetime.now().strftime("%Y-%m-%d %H:%M")}
 #
 # IMPORTANTE: Altere as senhas padrao antes de usar em producao!
@@ -719,7 +719,7 @@ docker-compose logs -f
         """Gera configuracao Nginx como proxy reverso."""
         app_port = "8000" if self.project_type == "python" else "3000"
         return f'''# nginx.conf para {self.project_id}
-# Gerado automaticamente pela Fabrica de Agentes
+# Gerado automaticamente pela Plataforma E
 
 events {{
     worker_connections 1024;

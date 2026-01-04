@@ -352,7 +352,7 @@ def generate_role_dashboard_html(role: str, user_id: int = None, project_id: str
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Fabrica de Agentes</title>
+    <title>Dashboard - Plataforma E</title>
     <style>
         :root {{
             --primary: #003B4A;

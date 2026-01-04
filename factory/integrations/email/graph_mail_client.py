@@ -547,7 +547,7 @@ class MicrosoftGraphClient:
             body = template.render(**template_vars)
 
             # Usa assunto do template_vars ou parametro
-            email_subject = subject or template_vars.get("subject", "Fabrica de Agentes")
+            email_subject = subject or template_vars.get("subject", "Plataforma E")
 
             return await self.send_email(
                 to=to,

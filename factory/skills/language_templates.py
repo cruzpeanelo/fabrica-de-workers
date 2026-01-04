@@ -1,5 +1,5 @@
 """
-Language Templates - Fabrica de Agentes
+Language Templates - Plataforma E
 Templates para geracao de codigo em multiplas linguagens
 """
 
@@ -9,7 +9,7 @@ Templates para geracao de codigo em multiplas linguagens
 
 NODEJS_EXPRESS_ROUTER = '''/**
  * Router para {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 import {{ Router, Request, Response }} from 'express';
@@ -87,7 +87,7 @@ export default router;
 
 NODEJS_SEQUELIZE_MODEL = '''/**
  * Model {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 import {{ Model, DataTypes, Optional }} from 'sequelize';
@@ -134,7 +134,7 @@ export {{ {model_class} }};
 # =============================================================================
 
 GO_GIN_HANDLER = '''// Handler para {name}
-// Gerado automaticamente pela Fabrica de Agentes
+// Gerado automaticamente pela Plataforma E
 
 package handlers
 
@@ -271,7 +271,7 @@ func (h *{handler_name}Handler) Delete(c *gin.Context) {{
 '''
 
 GO_GORM_MODEL = '''// Model {name}
-// Gerado automaticamente pela Fabrica de Agentes
+// Gerado automaticamente pela Plataforma E
 
 package models
 
@@ -301,7 +301,7 @@ func (m *{model_class}) TableName() string {{
 
 REACT_COMPONENT = '''/**
  * Componente {component_name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 import React, {{ useState, useEffect }} from 'react';
@@ -425,7 +425,7 @@ export default {component_name};
 
 REACT_HOOK = '''/**
  * Hook use{hook_name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 import {{ useState, useEffect, useCallback }} from 'react';
@@ -496,7 +496,7 @@ export const use{hook_name} = (apiUrl: string = '/api/{route_prefix}'): Use{hook
 
 JAVA_SPRING_CONTROLLER = '''/**
  * Controller para {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 package com.example.app.controllers;
@@ -559,7 +559,7 @@ public class {model_class}Controller {{
 
 JAVA_JPA_ENTITY = '''/**
  * Entity {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 package com.example.app.models;
@@ -598,7 +598,7 @@ public class {model_class} {{
 
 JAVA_REPOSITORY = '''/**
  * Repository para {name}
- * Gerado automaticamente pela Fabrica de Agentes
+ * Gerado automaticamente pela Plataforma E
  */
 
 package com.example.app.repositories;

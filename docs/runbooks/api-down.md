@@ -10,7 +10,7 @@
 
 ## Sumario
 
-Este runbook descreve os procedimentos para restaurar a API Fabrica de Agentes quando ela esta indisponivel.
+Este runbook descreve os procedimentos para restaurar a API Plataforma E quando ela esta indisponivel.
 
 ---
 

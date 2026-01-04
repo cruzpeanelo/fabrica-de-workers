@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Tests for MFA/2FA Implementation - Issue #103
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Comprehensive tests for:
 1. MFA Setup flow

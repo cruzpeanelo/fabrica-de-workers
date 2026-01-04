@@ -180,7 +180,7 @@ class RealSkills:
     TEMPLATES = {
         "fastapi_router": '''"""
 Router para {name}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -248,7 +248,7 @@ def delete_{route_prefix}(item_id: int, db: Session = Depends(get_db)):
 
         "sqlalchemy_model": '''"""
 Modelo {name}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, ForeignKey, JSON
@@ -279,7 +279,7 @@ class {class_name}(Base):
 
         "pydantic_schema": '''"""
 Schemas Pydantic para {name}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 from pydantic import BaseModel
@@ -468,7 +468,7 @@ onMounted(fetchItems)
 
         "test_file": '''"""
 Testes para {name}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 import pytest
@@ -954,7 +954,7 @@ class Test{class_name}:
         try:
             code = f'''"""
 Configuracao do Banco de Dados
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 from sqlalchemy import create_engine
@@ -1039,7 +1039,7 @@ if __name__ == "__main__":
 
             code = f'''"""
 {app_name} - API Backend
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 
 from fastapi import FastAPI
@@ -1055,7 +1055,7 @@ init_db()
 # Cria aplicacao FastAPI
 app = FastAPI(
     title="{app_name}",
-    description="API gerada automaticamente pela Fabrica de Agentes",
+    description="API gerada automaticamente pela Plataforma E",
     version="1.0.0"
 )
 

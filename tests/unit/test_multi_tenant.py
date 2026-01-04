@@ -8,7 +8,7 @@ Testes para:
 - Issue #105: GlobalTenantMiddleware, validacao de membership
 - Issue #104: PlanEnforcer, limites de plano
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import pytest

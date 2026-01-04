@@ -2,7 +2,7 @@
 """
 Salesforce Integration Module
 =============================
-Integracao completa com Salesforce CRM para a Fabrica de Agentes.
+Integracao completa com Salesforce CRM para a Plataforma E.
 
 Este modulo fornece:
 - Cliente REST API para operacoes CRUD
@@ -49,4 +49,4 @@ __all__ = [
 ]
 
 __version__ = '1.0.0'
-__author__ = 'Fabrica de Agentes'
+__author__ = 'Plataforma E'

@@ -1,5 +1,5 @@
 """
-Fabrica de Agentes - Metrics API Endpoint
+Plataforma E - Metrics API Endpoint
 ==========================================
 Issue #96: Stack de Metricas Prometheus/Grafana
 

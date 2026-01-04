@@ -1,5 +1,5 @@
 """
-Skill Manager - Fabrica de Agentes
+Skill Manager - Plataforma E
 Gerencia habilidades disponiveis para os agentes
 """
 from typing import Dict, List, Optional, Any

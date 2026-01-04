@@ -507,7 +507,7 @@ class ExcelExporter:
             ("Total de Funcionalidades", len(stories)),
             ("Total de Story Points", sum(s.get("story_points", 0) for s in stories)),
             ("", ""),
-            ("Exportado por", "Fabrica de Agentes"),
+            ("Exportado por", "Plataforma E"),
             ("Versao", "6.5")
         ]
 

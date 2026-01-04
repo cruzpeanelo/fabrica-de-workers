@@ -1,7 +1,7 @@
 # =============================================================================
-# Fabrica de Agentes - Helm Chart
+# Plataforma E - Helm Chart
 # =============================================================================
-# Chart principal para deployment da Fabrica de Agentes
+# Chart principal para deployment da Plataforma E
 #
 # Instalacao:
 #   helm install fabrica-agentes ./helm/fabrica-agentes -n fabrica-agentes --create-namespace
@@ -25,7 +25,7 @@ sources:
 
 # Maintainers
 maintainers:
-  - name: Fabrica de Agentes Team
+  - name: Plataforma E Team
     email: fabrica@belgo.com.br
 
 # Keywords para busca

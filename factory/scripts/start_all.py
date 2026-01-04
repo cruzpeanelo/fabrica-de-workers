@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Full Stack Launcher
-Fabrica de Agentes v4.0
+Plataforma E v4.0
 
 Inicia toda a stack: Dashboard/API + Workers
 
@@ -177,7 +177,7 @@ def cli():
     """CLI"""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Inicia Fabrica de Agentes v4.0")
+    parser = argparse.ArgumentParser(description="Inicia Plataforma E v4.0")
     parser.add_argument(
         "-w", "--workers",
         type=int,

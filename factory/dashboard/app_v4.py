@@ -1,6 +1,6 @@
 """
 Factory Dashboard v4.0 - Worker-Centric Dashboard
-Fabrica de Agentes - Nova Arquitetura MVP
+Plataforma E - Nova Arquitetura MVP
 
 Dashboard simplificado focado em:
 - Jobs e fila de processamento
@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
 # =============================================================================
 
 app = FastAPI(
-    title="Fabrica de Agentes v4.0",
+    title="Plataforma E v4.0",
     description="Worker-Centric Code Generation Platform",
     version="4.0.0",
     docs_url="/docs",
@@ -105,7 +105,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabrica de Agentes v4.0</title>
+    <title>Plataforma E v4.0</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -120,7 +120,7 @@ DASHBOARD_HTML = """
         <header class="bg-gray-800 border-b border-gray-700 px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <h1 class="text-2xl font-bold text-blue-400">Fabrica de Agentes</h1>
+                    <h1 class="text-2xl font-bold text-blue-400">Plataforma E</h1>
                     <span class="text-xs bg-blue-600 px-2 py-1 rounded">v4.0</span>
                 </div>
                 <div class="flex items-center space-x-4">

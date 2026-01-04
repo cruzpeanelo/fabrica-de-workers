@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Dashboard de Logs da Fabrica de Agentes",
+  "description": "Dashboard de Logs da Plataforma E",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -555,7 +555,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Fabrica de Agentes - Logs",
+  "title": "Plataforma E - Logs",
   "uid": "fabrica-logs",
   "version": 1,
   "weekStart": ""

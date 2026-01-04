@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Painel de Administracao de Usuarios (#87) - Fabrica de Agentes v6.5"""
+"""Painel de Administracao de Usuarios (#87) - Plataforma E v6.5"""
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum

@@ -1,4 +1,4 @@
-# 📋 Funcionalidades da Fábrica de Agentes
+# 📋 Funcionalidades da Plataforma E
 
 Documentação completa de todas as funcionalidades disponíveis na plataforma.
 
@@ -17,7 +17,7 @@ Documentação completa de todas as funcionalidades disponíveis na plataforma.
 
 ## 🎛️ Dashboard Agile
 
-O Dashboard Agile v6.5 é o coração da Fábrica de Agentes.
+O Dashboard Agile v6.5 é o coração da Plataforma E.
 
 ### Kanban Board
 

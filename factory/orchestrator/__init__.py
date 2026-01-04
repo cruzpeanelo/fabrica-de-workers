@@ -1,5 +1,5 @@
 """
-Orquestrador Autonomo da Fabrica de Agentes
+Orquestrador Autonomo da Plataforma E
 ============================================
 
 Sistema de orquestracao que processa projetos de forma autonoma,

@@ -13,7 +13,7 @@ Este modulo gerencia:
 - QR Code para acesso mobile
 - Health checks e monitoramento
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Data: 2025-12-29
 """
 
@@ -35,8 +35,8 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 # Diretorio base dos projetos
-PROJECTS_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects")
-PREVIEW_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\previews")
+PROJECTS_DIR = Path(r"C:\Users\lcruz\Plataforma E\projects")
+PREVIEW_DIR = Path(r"C:\Users\lcruz\Plataforma E\previews")
 
 # Criar diretorio de previews se nao existir
 PREVIEW_DIR.mkdir(exist_ok=True)

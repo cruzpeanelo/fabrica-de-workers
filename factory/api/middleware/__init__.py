@@ -2,7 +2,7 @@
 """
 API Middleware Module
 =====================
-Middlewares para a API da Fabrica de Agentes.
+Middlewares para a API da Plataforma E.
 
 Terminal 5 - Issue #301
 """

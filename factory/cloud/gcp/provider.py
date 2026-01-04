@@ -2,7 +2,7 @@
 """
 GCP Cloud Provider
 ==================
-Implementacao do provider Google Cloud Platform para a Fabrica de Agentes.
+Implementacao do provider Google Cloud Platform para a Plataforma E.
 
 Integra todos os servicos GCP:
 - Compute Engine (Computacao)
@@ -52,7 +52,7 @@ except ImportError:
 
 class GCPProvider(CloudProvider):
     """
-    Provider GCP para a Fabrica de Agentes.
+    Provider GCP para a Plataforma E.
 
     Implementa a interface CloudProvider para Google Cloud Platform,
     integrando todos os servicos necessarios.

@@ -328,7 +328,7 @@ class RefactoringEngine:
     e aplica refatoracoes automaticamente.
     """
 
-    PROJECTS_DIR = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects")
+    PROJECTS_DIR = Path(r"C:\Users\lcruz\Plataforma E\projects")
 
     def __init__(self, project_id: str):
         self.project_id = project_id

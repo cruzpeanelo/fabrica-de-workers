@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Handoff Manager - Fabrica de Agentes
+Handoff Manager - Plataforma E
 ====================================
 Gerencia passagem de tarefas entre agentes.
 
 Quando um agente completa uma tarefa, o HandoffManager
 determina para qual(is) agente(s) a tarefa deve seguir.
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import json

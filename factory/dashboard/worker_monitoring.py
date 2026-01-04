@@ -233,7 +233,7 @@ def generate_worker_monitoring_html() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Monitoring - Fabrica de Agentes</title>
+    <title>Worker Monitoring - Plataforma E</title>
     <style>
         :root {
             --primary: #003B4A;

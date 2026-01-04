@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Automation API Routes - Fabrica de Agentes
+Automation API Routes - Plataforma E
 ==========================================
 Endpoints para controlar o sistema de automacao autonoma.
 
 Permite iniciar/parar orquestrador, visualizar status,
 aprovar/rejeitar tarefas, e configurar modo de operacao.
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import asyncio

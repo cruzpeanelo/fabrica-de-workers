@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-WebSocket Manager - Fabrica de Agentes
+WebSocket Manager - Plataforma E
 ======================================
 Gerenciador de conexoes WebSocket com suporte a:
 - Broadcast de eventos para todos os clientes

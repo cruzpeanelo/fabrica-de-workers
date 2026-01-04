@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Permission Audit Logging - Auditoria de Mudancas de Permissoes
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Sistema de auditoria para rastreabilidade completa de acoes RBAC:
 - Criacao/atualizacao/delecao de roles

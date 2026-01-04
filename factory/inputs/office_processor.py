@@ -1,6 +1,6 @@
 """
 Office Processor - Enhanced Microsoft Office Document Processing
-Fabrica de Agentes v6.5 - Issue #128
+Plataforma E v6.5 - Issue #128
 
 Features:
 - Word (.docx) document parsing with styles and tables

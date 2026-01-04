@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Seed do Banco de Dados - Fabrica de Agentes v4.0
+Seed do Banco de Dados - Plataforma E v4.0
 =================================================
 
 Arquitetura MVP Worker-based:
@@ -169,7 +169,7 @@ def seed_demo_project(db):
     project = Project(
         project_id="PRJ-DEMO-001",
         name="Projeto Demo",
-        description="Projeto de demonstracao da Fabrica de Agentes v4.0",
+        description="Projeto de demonstracao da Plataforma E v4.0",
         project_type="web-app",
         status="PLANNING",
         progress=0.0,
@@ -187,7 +187,7 @@ def seed_demo_project(db):
 def run_seed():
     """Executa todo o seed"""
     print("=" * 70)
-    print("SEED - Fabrica de Agentes v4.0")
+    print("SEED - Plataforma E v4.0")
     print("Arquitetura MVP: Jobs + Workers + Claude Agent SDK")
     print("=" * 70)
 

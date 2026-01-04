@@ -1,5 +1,5 @@
 """
-Teste E2E Completo - Fabrica de Agentes Dashboard v6.0
+Teste E2E Completo - Plataforma E Dashboard v6.0
 ======================================================
 Testa todas as funcionalidades do dashboard incluindo as novas melhorias:
 - CRUD de Projects, Stories, Tasks, Docs
@@ -572,7 +572,7 @@ def print_report():
     """Print final test report"""
     print("\n")
     print("=" * 60)
-    print("  TEST REPORT - Fabrica de Agentes Dashboard v6.0")
+    print("  TEST REPORT - Plataforma E Dashboard v6.0")
     print("=" * 60)
 
     passed = sum(1 for t in test_results if t["passed"])

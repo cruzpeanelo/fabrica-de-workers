@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Unit Tests for Time Tracking Module - Issue #224
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Tests for factory.dashboard.time_tracking module.
 """

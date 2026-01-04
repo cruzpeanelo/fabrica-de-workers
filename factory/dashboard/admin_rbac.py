@@ -32,7 +32,7 @@ def generate_rbac_admin_html() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administracao RBAC - Fabrica de Agentes</title>
+    <title>Administracao RBAC - Plataforma E</title>
     <style>
         :root {
             --primary: #003B4A;

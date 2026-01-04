@@ -1,6 +1,6 @@
 """
 Authentication Module v5.0 - JWT com rotacao de chaves e seguranca aprimorada
-Fabrica de Agentes - Security Hardening
+Plataforma E - Security Hardening
 
 Issue #83 - JWT Authentication Security:
 - Removidas credenciais hardcoded

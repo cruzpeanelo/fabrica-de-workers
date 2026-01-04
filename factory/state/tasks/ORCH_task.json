@@ -1,0 +1,11 @@
+{
+  "task_id": "task_ORCH_1767484118",
+  "agent_type": "ORCH",
+  "issue_number": null,
+  "title": "Coordenar Squad",
+  "description": "Monitorar todos os agentes e coordenar handoffs.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:38.987368",
+  "status": "pending",
+  "context": {}
+}

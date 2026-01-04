@@ -377,7 +377,7 @@ class WebhookClient:
             sections[0]["facts"].append({"name": "Responsavel", "value": assigned_to})
 
         message = WebhookMessage(
-            title="Fabrica de Agentes",
+            title="Plataforma E",
             text="Um novo projeto foi iniciado",
             theme_color=ThemeColor.PRIMARY.value,
             sections=sections
@@ -427,7 +427,7 @@ class WebhookClient:
             })
 
         message = WebhookMessage(
-            title="Fabrica de Agentes",
+            title="Plataforma E",
             text="Projeto finalizado com sucesso",
             theme_color=ThemeColor.SUCCESS.value,
             sections=sections,
@@ -470,7 +470,7 @@ class WebhookClient:
             sections[0]["facts"].insert(1, {"name": "Etapa", "value": step})
 
         message = WebhookMessage(
-            title="Fabrica de Agentes",
+            title="Plataforma E",
             text="Ocorreu um erro no desenvolvimento",
             theme_color=ThemeColor.DANGER.value,
             sections=sections
@@ -647,7 +647,7 @@ class WebhookClient:
             })
 
         message = WebhookMessage(
-            title="Fabrica de Agentes - Resumo Diario",
+            title="Plataforma E - Resumo Diario",
             text="Confira o resumo das atividades de hoje",
             theme_color=ThemeColor.PRIMARY.value,
             sections=sections

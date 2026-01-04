@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Version Control - Fabrica de Agentes
+Version Control - Plataforma E
 ====================================
 Sistema completo de versionamento de codigo com:
 - Snapshots automaticos em cada geracao

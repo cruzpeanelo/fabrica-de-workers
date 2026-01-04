@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Infrastructure as Code
+# Plataforma E - Infrastructure as Code
 # Main Terraform Configuration
 # =============================================================================
 # Issue #169: Remote State com S3 + DynamoDB + KMS Encryption

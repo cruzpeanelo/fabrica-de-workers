@@ -11,7 +11,7 @@ Endpoints para:
 - Webhooks do Stripe
 - Portal de billing
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

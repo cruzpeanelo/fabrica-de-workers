@@ -1,4 +1,4 @@
-# Referência da API - Fábrica de Agentes
+# Referência da API - Plataforma E
 
 ## Índice
 

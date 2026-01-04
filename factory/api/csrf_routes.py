@@ -9,7 +9,7 @@ Endpoints:
 - POST /api/csrf-token/refresh - Refresh CSRF token
 - GET /api/csrf-token/stats - Statistics (admin)
 
-Author: Fabrica de Agentes - Terminal B
+Author: Plataforma E - Terminal B
 """
 
 from typing import Optional

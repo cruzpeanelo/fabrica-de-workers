@@ -2,7 +2,7 @@
 """
 Azure Functions Manager
 =======================
-Gerenciador de Azure Functions para a Fabrica de Agentes.
+Gerenciador de Azure Functions para a Plataforma E.
 
 Funcionalidades:
 - Criacao de Function Apps

@@ -17,7 +17,7 @@ Usage:
 
     app.add_middleware(AuthorizationMiddleware)
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 """
 
 import os

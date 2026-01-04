@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Fabrica de Agentes - API Dashboard",
+  "description": "Plataforma E - API Dashboard",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -907,7 +907,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Fabrica de Agentes - API Dashboard",
+  "title": "Plataforma E - API Dashboard",
   "uid": "fabrica-api-dashboard",
   "version": 1
 }

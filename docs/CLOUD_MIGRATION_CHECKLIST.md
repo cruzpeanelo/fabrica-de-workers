@@ -2,7 +2,7 @@
 
 > Issue #126 - Migracao para Cloud (Checklist de Deploy)
 
-This document provides a comprehensive checklist for deploying the Fabrica de Agentes platform to cloud providers (AWS, GCP, Azure).
+This document provides a comprehensive checklist for deploying the Plataforma E platform to cloud providers (AWS, GCP, Azure).
 
 ---
 
@@ -1004,4 +1004,4 @@ resource "azurerm_storage_account" "uploads" {
 
 *Document Version: 1.0*
 *Last Updated: 2024-12-29*
-*Author: Fabrica de Agentes Team*
+*Author: Plataforma E Team*

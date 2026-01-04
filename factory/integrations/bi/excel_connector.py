@@ -66,7 +66,7 @@ class ExcelTableStyle(str, Enum):
 class ExcelConfig:
     """Configuracao do Excel Connector"""
     default_template: str = ""
-    company_name: str = "Fabrica de Agentes"
+    company_name: str = "Plataforma E"
     company_color: str = "003B4A"  # Azul Belgo
     accent_color: str = "FF6C00"  # Laranja Belgo
     date_format: str = "DD/MM/YYYY"
@@ -79,7 +79,7 @@ class ExcelConfig:
     def from_env(cls) -> "ExcelConfig":
         return cls(
             default_template=os.getenv("EXCEL_TEMPLATE", ""),
-            company_name=os.getenv("EXCEL_COMPANY_NAME", "Fabrica de Agentes"),
+            company_name=os.getenv("EXCEL_COMPANY_NAME", "Plataforma E"),
             company_color=os.getenv("EXCEL_COMPANY_COLOR", "003B4A"),
             accent_color=os.getenv("EXCEL_ACCENT_COLOR", "FF6C00")
         )

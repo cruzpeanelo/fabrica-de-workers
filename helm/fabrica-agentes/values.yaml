@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Helm Values
+# Plataforma E - Helm Values
 # =============================================================================
 # Configuracoes padrao do chart
 # Sobrescreva com: helm install ... -f custom-values.yaml

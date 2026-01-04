@@ -2,7 +2,7 @@
 Job Queue - Sistema de Fila de Jobs v4.0
 Redis-based Queue com fallback para SQLite
 
-Fabrica de Agentes - Nova Arquitetura MVP
+Plataforma E - Nova Arquitetura MVP
 """
 import asyncio
 import json

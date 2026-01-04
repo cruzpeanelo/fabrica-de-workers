@@ -255,7 +255,7 @@ def generate_billing_panel_html(tenant_id: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Billing e Usage - Fabrica de Agentes</title>
+    <title>Billing e Usage - Plataforma E</title>
     <style>
         :root {{
             --primary: #003B4A;

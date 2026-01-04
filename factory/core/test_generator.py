@@ -2,7 +2,7 @@
 """
 Test Generator - Geracao Automatica de Testes v1.0
 ===================================================
-Fabrica de Agentes - Issue #53
+Plataforma E - Issue #53
 
 Gera testes automaticos para codigo produzido pelos workers:
 - Testes Unitarios (pytest)
@@ -953,7 +953,7 @@ def db_session():
         lines = [
             '# -*- coding: utf-8 -*-',
             '"""',
-            'Testes Automaticos Gerados - Fabrica de Agentes',
+            'Testes Automaticos Gerados - Plataforma E',
             f'Gerado em: {datetime.utcnow().isoformat()}',
             '"""',
             ''
@@ -1058,7 +1058,7 @@ class E2ETestGenerator(BaseTestGenerator):
         content = f'''# -*- coding: utf-8 -*-
 """
 Testes E2E - {module_name}
-Gerado automaticamente pela Fabrica de Agentes
+Gerado automaticamente pela Plataforma E
 """
 import pytest
 from playwright.sync_api import Page, expect
@@ -1780,7 +1780,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Gerador Automatico de Testes - Fabrica de Agentes"
+        description="Gerador Automatico de Testes - Plataforma E"
     )
     parser.add_argument(
         "source",

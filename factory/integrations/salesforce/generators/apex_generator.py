@@ -789,7 +789,7 @@ class ApexGenerator:
  * {name}
  * {description}
  *
- * @author Fabrica de Agentes
+ * @author Plataforma E
  * @date {datetime.now().strftime('%Y-%m-%d')}
  */
 """

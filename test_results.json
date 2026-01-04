@@ -24,7 +24,7 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Billing e Usage - Fabrica de Agentes"
+      "title": "Billing e Usage - Plataforma E"
     },
     {
       "path": "/admin",
@@ -38,7 +38,7 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Administracao de Usuarios - Fabrica de Agentes"
+      "title": "Administracao de Usuarios - Plataforma E"
     },
     {
       "path": "/admin/portal",
@@ -46,7 +46,7 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Portal de Administracao - Fabrica de Agentes"
+      "title": "Portal de Administracao - Plataforma E"
     },
     {
       "path": "/security",
@@ -54,7 +54,7 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Fabrica de Agentes - Dashboard Agile"
+      "title": "Plataforma E - Dashboard Agile"
     },
     {
       "path": "/integrations",

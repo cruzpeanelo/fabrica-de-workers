@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Gerenciador Central de Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Coordena o envio de notificacoes atraves de multiplos canais:
 - Avalia regras para determinar destinatarios e canais
@@ -255,7 +255,7 @@ class NotificationManager:
         if not template:
             # Template padrao
             return {
-                "subject": f"[{event_type}] Notificacao da Fabrica de Agentes",
+                "subject": f"[{event_type}] Notificacao da Plataforma E",
                 "body": self._default_body(event_type, data),
                 "body_html": None
             }

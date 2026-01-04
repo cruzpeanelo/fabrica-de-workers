@@ -139,7 +139,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const newBranding = {
       primary: branding.primary_color || DEFAULT_BRANDING.primary,
       secondary: branding.secondary_color || DEFAULT_BRANDING.secondary,
-      companyName: branding.company_name || 'Fabrica de Agentes',
+      companyName: branding.company_name || 'Plataforma E',
       logoUrl: branding.logo_url,
     };
     setCustomBranding(newBranding);
@@ -157,7 +157,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const themeColors = generatePalette(primary, secondary, isDark);
 
   const branding = {
-    companyName: customBranding?.companyName || 'Fabrica de Agentes',
+    companyName: customBranding?.companyName || 'Plataforma E',
     logoUrl: customBranding?.logoUrl,
   };
 

@@ -12,7 +12,7 @@ Endpoints:
 - GET /api/tenant/by-domain/{domain} - Lookup por dominio
 - PUT /api/tenant/{tenant_id}/branding - Atualizar branding
 
-Author: Fabrica de Agentes - Terminal 4
+Author: Plataforma E - Terminal 4
 Issue #383 - Terminal A (extended)
 """
 
@@ -271,14 +271,14 @@ async def get_current_tenant_branding(request: Request, db=Depends(get_db)):
         # Return default branding
         return BrandingResponse(
             tenant_id="default",
-            display_name="Fabrica de Agentes"
+            display_name="Plataforma E"
         )
 
     tenant = db.query(Tenant).filter(Tenant.tenant_id == tenant_id).first()
     if not tenant:
         return BrandingResponse(
             tenant_id="default",
-            display_name="Fabrica de Agentes"
+            display_name="Plataforma E"
         )
 
     branding = db.query(BrandingConfig).filter(

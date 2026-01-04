@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Configuracao do Sistema de Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Configuracoes e variaveis de ambiente para o sistema de notificacoes.
 Permite configurar canais via variaveis de ambiente ou arquivo .env.
@@ -15,7 +15,7 @@ EMAIL:
     NOTIFICATION_EMAIL_USERNAME=user@gmail.com
     NOTIFICATION_EMAIL_PASSWORD=app_password
     NOTIFICATION_EMAIL_FROM=user@gmail.com
-    NOTIFICATION_EMAIL_FROM_NAME=Fabrica de Agentes
+    NOTIFICATION_EMAIL_FROM_NAME=Plataforma E
     NOTIFICATION_EMAIL_USE_TLS=true
 
 SLACK:
@@ -63,7 +63,7 @@ class EmailConfig:
     username: str = ""
     password: str = ""
     from_email: str = ""
-    from_name: str = "Fabrica de Agentes"
+    from_name: str = "Plataforma E"
     use_tls: bool = True
     use_ssl: bool = False
 
@@ -77,7 +77,7 @@ class EmailConfig:
             username=os.getenv("NOTIFICATION_EMAIL_USERNAME", ""),
             password=os.getenv("NOTIFICATION_EMAIL_PASSWORD", ""),
             from_email=os.getenv("NOTIFICATION_EMAIL_FROM", ""),
-            from_name=os.getenv("NOTIFICATION_EMAIL_FROM_NAME", "Fabrica de Agentes"),
+            from_name=os.getenv("NOTIFICATION_EMAIL_FROM_NAME", "Plataforma E"),
             use_tls=get_env_bool("NOTIFICATION_EMAIL_USE_TLS", True),
             use_ssl=get_env_bool("NOTIFICATION_EMAIL_USE_SSL", False)
         )

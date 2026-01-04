@@ -1,5 +1,5 @@
 # =============================================================================
-# Configuracao do Promtail - Fabrica de Agentes
+# Configuracao do Promtail - Plataforma E
 # =============================================================================
 # Promtail e o agente que coleta logs e envia para o Loki.
 # Esta configuracao coleta logs da aplicacao e de containers Docker.
@@ -21,7 +21,7 @@ clients:
 
 scrape_configs:
   # ==========================================================================
-  # Logs da aplicacao Fabrica de Agentes
+  # Logs da aplicacao Plataforma E
   # ==========================================================================
   - job_name: fabrica-logs
     static_configs:

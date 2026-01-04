@@ -1,0 +1,11 @@
+{
+  "task_id": "task_GROWTH_1767484119",
+  "agent_type": "GROWTH",
+  "issue_number": null,
+  "title": "Metricas de Adocao",
+  "description": "Analisar uso da plataforma e propor melhorias.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:39.077030",
+  "status": "pending",
+  "context": {}
+}

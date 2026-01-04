@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Factory Admin Module - Paineis Administrativos
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Este modulo implementa:
 - Painel de Administracao de Usuarios (#87)
@@ -9,7 +9,7 @@ Este modulo implementa:
 - Painel de Billing e Usage (#89)
 - Portal de Administracao Multi-nivel (#113)
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from .user_admin import UserAdminService, user_admin_router

@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Terraform State Bootstrap
+# Plataforma E - Terraform State Bootstrap
 # =============================================================================
 # Issue #95: Terraform Remote State com Locking
 #

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Excecoes do SDK - Fabrica de Agentes
+Excecoes do SDK - Plataforma E
 ====================================
 
 Excecoes customizadas para tratamento de erros da API.
@@ -9,7 +9,7 @@ Excecoes customizadas para tratamento de erros da API.
 
 class FabricaError(Exception):
     """
-    Excecao base para erros da Fabrica de Agentes.
+    Excecao base para erros da Plataforma E.
 
     Attributes:
         message: Mensagem de erro

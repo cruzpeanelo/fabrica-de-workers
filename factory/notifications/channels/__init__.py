@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Canais de Notificacao - Fabrica de Agentes
+Canais de Notificacao - Plataforma E
 Modulo que exporta todos os canais disponiveis
 """
 

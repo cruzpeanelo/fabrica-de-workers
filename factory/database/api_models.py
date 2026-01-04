@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Modelos de API Publica - Fabrica de Agentes v6.5
+Modelos de API Publica - Plataforma E v6.5
 ===============================================
 
 Modelos SQLAlchemy para gerenciamento de API Keys, Webhooks e Rate Limiting.

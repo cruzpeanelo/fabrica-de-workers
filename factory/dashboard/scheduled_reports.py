@@ -494,7 +494,7 @@ def _generate_epic_progress(stories: List, db, filters: ReportFilters = None) ->
 def format_report_as_html(content: Dict, report_name: str, branding: Dict = None) -> str:
     """Formata o relatorio como HTML."""
     brand_color = branding.get('color', '#003B4A') if branding else '#003B4A'
-    company_name = branding.get('company', 'Fabrica de Agentes') if branding else 'Fabrica de Agentes'
+    company_name = branding.get('company', 'Plataforma E') if branding else 'Plataforma E'
 
     html = f'''
     <!DOCTYPE html>
@@ -609,7 +609,7 @@ def format_report_as_html(content: Dict, report_name: str, branding: Dict = None
     html += '''
             </div>
             <div class="footer">
-                Relatorio gerado automaticamente pela Fabrica de Agentes<br>
+                Relatorio gerado automaticamente pela Plataforma E<br>
                 Este e um email automatico, nao responda.
             </div>
         </div>
@@ -1785,7 +1785,7 @@ def register_scheduled_reports(app):
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Relatorios Agendados - Fabrica de Agentes</title>
+            <title>Relatorios Agendados - Plataforma E</title>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
             <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
             <style>

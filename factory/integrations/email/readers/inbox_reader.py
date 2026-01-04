@@ -560,7 +560,7 @@ class InboxReader:
         {"<p><a href='" + project_url + "'>Clique aqui para acompanhar o projeto</a></p>" if project_url else ""}
 
         <p>Atenciosamente,<br>
-        <strong>Fabrica de Agentes</strong><br>
+        <strong>Plataforma E</strong><br>
         Sistema de Desenvolvimento Autonomo</p>
         """
 

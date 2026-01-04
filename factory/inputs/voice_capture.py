@@ -1,6 +1,6 @@
 """
 Voice Capture - Speech-to-Text for Requirements Capture
-Fabrica de Agentes v6.5 - Issue #127
+Plataforma E v6.5 - Issue #127
 
 Uses OpenAI Whisper for transcription and Claude for requirements extraction.
 """

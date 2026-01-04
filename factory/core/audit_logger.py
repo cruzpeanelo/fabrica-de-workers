@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Unified Audit Logging System - Issue #86
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Implements SOC2/GDPR compliant audit logging:
 1. Unified logging across all modules
@@ -352,7 +352,7 @@ class AuditEntry:
         return {
             "time": self.timestamp.timestamp(),
             "host": socket.gethostname(),
-            "source": "fabrica_de_agentes",
+            "source": "plataforma_e",
             "sourcetype": "audit_log",
             "index": SIEM_INDEX,
             "event": self.to_dict()
@@ -873,7 +873,7 @@ class AuditLogger:
             data_subject_id=data_subject_id,
             retention_days=retention_days,
             correlation_id=correlation_id,
-            source_system=source_system or "fabrica_de_agentes",
+            source_system=source_system or "plataforma_e",
             geo_location=geo_location,
             risk_score=risk_score,
             checksum="",

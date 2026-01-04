@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Handlers de Eventos para Notificacoes
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Este modulo conecta os eventos do sistema ao sistema de notificacoes.
 Pode ser integrado com:

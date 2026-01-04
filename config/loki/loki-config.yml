@@ -1,5 +1,5 @@
 # =============================================================================
-# Configuracao do Grafana Loki - Fabrica de Agentes
+# Configuracao do Grafana Loki - Plataforma E
 # =============================================================================
 # Loki e um sistema de agregacao de logs inspirado no Prometheus.
 # Esta configuracao e otimizada para desenvolvimento local.

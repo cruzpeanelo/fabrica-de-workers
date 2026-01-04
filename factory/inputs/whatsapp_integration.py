@@ -1,6 +1,6 @@
 """
 WhatsApp Integration - Requirements Capture via WhatsApp
-Fabrica de Agentes v6.5 - Issue #129
+Plataforma E v6.5 - Issue #129
 
 Uses Twilio WhatsApp API for receiving messages and Claude for
 conversational requirements extraction.

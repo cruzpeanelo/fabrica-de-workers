@@ -1,5 +1,5 @@
 """
-GitHub Skill - Fabrica de Agentes
+GitHub Skill - Plataforma E
 Integracao com GitHub para versionamento de projetos
 """
 import os

@@ -2,7 +2,7 @@
 """
 Azure Cloud Provider
 ====================
-Implementacao do provider Azure para a Fabrica de Agentes.
+Implementacao do provider Azure para a Plataforma E.
 
 Integra todos os servicos Azure:
 - Virtual Machines (Computacao)
@@ -55,7 +55,7 @@ except ImportError:
 
 class AzureProvider(CloudProvider):
     """
-    Provider Azure para a Fabrica de Agentes.
+    Provider Azure para a Plataforma E.
 
     Implementa a interface CloudProvider para Azure,
     integrando todos os servicos necessarios.

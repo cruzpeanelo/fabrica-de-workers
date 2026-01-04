@@ -166,12 +166,18 @@ Ao completar uma tarefa:
 
 ## Task Atual
 
-**Task ID:** task_BACK_1767477444
-**Titulo:** Teste de API
+**Task ID:** task_BACK_1767484853
+**Titulo:** Implementar Sprint Planning API
 **Prioridade:** medium
 
 **Descricao:**
-Criar endpoint de teste
+
+1. Criar issue: gh issue create --title "[BACK] Sprint Planning API" --body "Implementar endpoints drag-drop"
+2. Implementar em factory/api/sprint_routes.py
+3. Commit: git add . && git commit -m "[BACK] Sprint Planning API - Closes #XXX"
+4. Fechar issue: gh issue close XXX -c "Implementado"
+5. Criar issue para QA: gh issue create --title "[QA] Testar Sprint Planning API" --body "Testar endpoints" --label testing
+
 
 ---
 

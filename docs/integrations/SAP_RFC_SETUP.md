@@ -2,7 +2,7 @@
 
 ## Issue #180: SAP RFC Integration Documentation
 
-Este guia explica como configurar o SAP NetWeaver RFC SDK para usar a integração SAP ECC da Fábrica de Agentes.
+Este guia explica como configurar o SAP NetWeaver RFC SDK para usar a integração SAP ECC da Plataforma E.
 
 ## Pré-requisitos
 
@@ -163,7 +163,7 @@ sysnr=00
 client=300
 ```
 
-## 5. Uso na Fábrica de Agentes
+## 5. Uso na Plataforma E
 
 ### Exemplo Básico
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Unit Tests for Story Categorizer - Issue #246
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Tests for factory.ai.categorizer module.
 """

@@ -629,7 +629,7 @@ def register_api_version(
 
 # Documentacao da Politica de Deprecacao
 DEPRECATION_POLICY_DOC = """
-# Politica de Deprecacao da API - Fabrica de Agentes
+# Politica de Deprecacao da API - Plataforma E
 
 ## Versionamento Semantico
 

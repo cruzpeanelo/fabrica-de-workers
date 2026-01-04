@@ -1,8 +1,8 @@
-# Proposta de Valor - Fabrica de Agentes
+# Proposta de Valor - Plataforma E
 
 ## Resumo Executivo
 
-A **Fabrica de Agentes** e uma plataforma de desenvolvimento de software autonomo que utiliza inteligencia artificial para transformar requisitos de negocio em aplicacoes funcionais completas em questao de minutos, nao meses.
+A **Plataforma E** e uma plataforma de desenvolvimento de software autonomo que utiliza inteligencia artificial para transformar requisitos de negocio em aplicacoes funcionais completas em questao de minutos, nao meses.
 
 ---
 
@@ -42,7 +42,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 
 ---
 
-## A Solucao: Fabrica de Agentes
+## A Solucao: Plataforma E
 
 ### Como Funciona
 
@@ -73,7 +73,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 
 ### Beneficios Quantificaveis
 
-| Metrica | Tradicional | Fabrica de Agentes | Melhoria |
+| Metrica | Tradicional | Plataforma E | Melhoria |
 |---------|-------------|-------------------|----------|
 | Tempo de desenvolvimento | 6 meses | 1-2 semanas | **92%** |
 | Custo total | R$ 1.000.000+ | R$ 50.000 | **95%** |
@@ -94,7 +94,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 - R$ 150.000 - R$ 300.000 em desenvolvimento
 - Risco de ficar sem capital antes de validar
 
-**Com Fabrica de Agentes**:
+**Com Plataforma E**:
 - MVP em 1-2 semanas
 - R$ 10.000 - R$ 30.000
 - Validacao rapida, pivotar com baixo custo
@@ -113,7 +113,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 - Custo: R$ 2.000.000+
 - Risco de falha: 40%
 
-**Com Fabrica de Agentes**:
+**Com Plataforma E**:
 - Entrega em 1-2 meses
 - Custo: R$ 100.000 - R$ 200.000
 - Risco drasticamente reduzido
@@ -131,7 +131,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 - Dificuldade em escalar
 - Margens apertadas
 
-**Com Fabrica de Agentes**:
+**Com Plataforma E**:
 - Capacidade ilimitada de projetos
 - Escala instantanea
 - Margens multiplicadas por 5-10x
@@ -149,7 +149,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 - Usuarios frustrados
 - Shadow IT proliferando
 
-**Com Fabrica de Agentes**:
+**Com Plataforma E**:
 - Backlog zerado em meses
 - Usuarios atendidos rapidamente
 - Governanca mantida
@@ -193,7 +193,7 @@ CUSTO TOTAL ESTIMADO           : R$ 1.089.600
 | Outsourcing | Medio | Medio | Variavel | Boa |
 | Low-code (Mendix, OutSystems) | Rapido | Alto | Limitada | Boa |
 | No-code (Bubble, Webflow) | Rapido | Baixo | Basica | Limitada |
-| **Fabrica de Agentes** | **Muito rapido** | **Baixo** | **Alta** | **Ilimitada** |
+| **Plataforma E** | **Muito rapido** | **Baixo** | **Alta** | **Ilimitada** |
 
 ---
 
@@ -312,5 +312,5 @@ Depende do tier: email (Starter), prioritario (Professional), 24/7 com SLA (Ente
 ---
 
 <p align="center">
-<strong>Fabrica de Agentes</strong> - O futuro do desenvolvimento de software e autonomo.
+<strong>Plataforma E</strong> - O futuro do desenvolvimento de software e autonomo.
 </p>

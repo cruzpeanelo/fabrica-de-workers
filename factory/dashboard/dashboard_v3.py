@@ -1,5 +1,5 @@
 """
-Dashboard de Controle v3.0 - Fabrica de Agentes
+Dashboard de Controle v3.0 - Plataforma E
 ===============================================
 
 Dashboard completamente redesenhado com:
@@ -508,7 +508,7 @@ DASHBOARD_HTML = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fabrica de Agentes | Dashboard v3.0</title>
+    <title>Plataforma E | Dashboard v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -570,7 +570,7 @@ DASHBOARD_HTML = '''
                                 </svg>
                             </div>
                             <div>
-                                <h1 class="text-xl font-bold">Fabrica de Agentes</h1>
+                                <h1 class="text-xl font-bold">Plataforma E</h1>
                                 <p class="text-xs text-dark-400">Plataforma de Agentes Autonomos</p>
                             </div>
                         </div>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Sistema Centralizado de Notificacoes Multi-Canal
-Fabrica de Agentes v6.0
+Plataforma E v6.0
 
 Este modulo fornece um sistema completo para envio de notificacoes
 atraves de multiplos canais (Email, Slack, Teams, etc).

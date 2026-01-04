@@ -9,7 +9,7 @@ Controla a duracao da execucao autonoma do orquestrador:
 - Extensao de tempo em execucao
 - Persistencia de estado
 
-Reutilizavel na plataforma Fabrica de Agentes.
+Reutilizavel na plataforma Plataforma E.
 """
 
 import os

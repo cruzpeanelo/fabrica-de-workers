@@ -7,7 +7,7 @@ Analisador de servicos RAP (ABAP RESTful Application Programming Model).
 RAP e o modelo de programacao moderno do SAP para criar aplicacoes
 transacionais e analiticas no S/4HANA.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import re

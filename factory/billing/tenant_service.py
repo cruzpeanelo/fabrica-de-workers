@@ -9,7 +9,7 @@ Implementa:
 - Gerenciamento de configuracoes
 - Suspensao e reativacao
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import uuid

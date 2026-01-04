@@ -1,10 +1,10 @@
 """
-Fabrica de Agentes - Prometheus Metrics Module
+Plataforma E - Prometheus Metrics Module
 ===============================================
 Issue #96: Stack de Metricas Prometheus/Grafana
 
 Este modulo define todas as metricas Prometheus para monitoramento
-da aplicacao Fabrica de Agentes.
+da aplicacao Plataforma E.
 
 Metricas disponíveis:
 - API requests (contador, latencia)
@@ -230,7 +230,7 @@ tasks_total = Gauge(
 
 app_info = Info(
     'fabrica_agentes',
-    'Fabrica de Agentes application information'
+    'Plataforma E application information'
 )
 
 

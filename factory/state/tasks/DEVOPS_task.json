@@ -1,0 +1,11 @@
+{
+  "task_id": "task_DEVOPS_1767484119",
+  "agent_type": "DEVOPS",
+  "issue_number": null,
+  "title": "Issue #378 - Observability",
+  "description": "Configurar Prometheus, Grafana e alertas.",
+  "priority": "medium",
+  "created_at": "2026-01-03T20:48:39.024087",
+  "status": "pending",
+  "context": {}
+}

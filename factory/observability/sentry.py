@@ -80,7 +80,7 @@ def setup_sentry(
         sentry_sdk.init(
             dsn=dsn,
             environment=environment,
-            release=f"fabrica-de-agentes@{release}",
+            release=f"plataforma-e@{release}",
             traces_sample_rate=traces_sample_rate,
             profiles_sample_rate=profiles_sample_rate,
             debug=debug,

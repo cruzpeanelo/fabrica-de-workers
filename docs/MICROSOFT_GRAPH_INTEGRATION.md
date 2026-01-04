@@ -18,7 +18,7 @@ A integracao com Microsoft Graph permite:
 
 1. Acesse [portal.azure.com](https://portal.azure.com)
 2. Va para **Azure Active Directory** > **App registrations** > **New registration**
-3. Defina um nome (ex: "Fabrica de Agentes - Email")
+3. Defina um nome (ex: "Plataforma E - Email")
 4. Tipo de conta: **Single tenant** ou **Multitenant**
 5. Clique em **Register**
 
@@ -64,7 +64,7 @@ SMTP_SERVER=smtp.office365.com
 SMTP_PORT=587
 SMTP_USERNAME=fabrica@suaempresa.com
 SMTP_PASSWORD=sua-senha
-SMTP_SENDER_NAME=Fabrica de Agentes
+SMTP_SENDER_NAME=Plataforma E
 SMTP_USE_TLS=true
 SMTP_ENABLED=false
 ```
@@ -333,4 +333,4 @@ The mailbox is either inactive, soft-deleted, or is hosted on-premise
 
 ---
 
-*Integracao Microsoft Graph - Fabrica de Agentes v6.0*
+*Integracao Microsoft Graph - Plataforma E v6.0*

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Row Level Security (RLS) Setup - Issue #122
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 This module provides database-level tenant isolation using:
 1. PostgreSQL Row Level Security (RLS) policies

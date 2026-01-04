@@ -1,1 +1,1 @@
-# WebSocket modules for Fabrica de Agentes
+# WebSocket modules for Plataforma E

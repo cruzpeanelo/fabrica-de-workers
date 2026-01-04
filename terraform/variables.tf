@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Terraform Variables
+# Plataforma E - Terraform Variables
 # =============================================================================
 
 # =============================================================================
@@ -31,7 +31,7 @@ variable "cloud_provider" {
 variable "owner" {
   description = "Owner of the infrastructure"
   type        = string
-  default     = "Fabrica de Agentes Team"
+  default     = "Plataforma E Team"
 }
 
 variable "cost_center" {

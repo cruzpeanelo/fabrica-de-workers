@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Rate Limiting v2 - Fabrica de Agentes v6.5
+Rate Limiting v2 - Plataforma E v6.5
 ==========================================
 
 Sistema avancado de rate limiting com suporte a:

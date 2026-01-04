@@ -2,7 +2,7 @@
 """
 SSO Authentication Module - SAML 2.0 and Azure AD OAuth2
 =========================================================
-Provides enterprise Single Sign-On integration for Fabrica de Agentes.
+Provides enterprise Single Sign-On integration for Plataforma E.
 
 Features:
 - SAML 2.0 authentication with configurable IdP
@@ -510,8 +510,8 @@ def generate_sp_metadata(config: SAMLConfig) -> str:
             Location="{config.sp_slo_url}"/>
     </md:SPSSODescriptor>
     <md:Organization>
-        <md:OrganizationName xml:lang="en">Fabrica de Agentes</md:OrganizationName>
-        <md:OrganizationDisplayName xml:lang="en">Fabrica de Agentes</md:OrganizationDisplayName>
+        <md:OrganizationName xml:lang="en">Plataforma E</md:OrganizationName>
+        <md:OrganizationDisplayName xml:lang="en">Plataforma E</md:OrganizationDisplayName>
         <md:OrganizationURL xml:lang="en">https://github.com/fabricadeagentes</md:OrganizationURL>
     </md:Organization>
 </md:EntityDescriptor>"""
@@ -1104,7 +1104,7 @@ async def sso_login_page(redirect_url: str = Query("/", description="URL to redi
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login SSO - Fabrica de Agentes</title>
+    <title>Login SSO - Plataforma E</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .belgo-blue {{ background-color: #003B4A; }}
@@ -1120,7 +1120,7 @@ async def sso_login_page(redirect_url: str = Query("/", description="URL to redi
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">Fabrica de Agentes</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Plataforma E</h1>
             <p class="text-gray-500 mt-1">Autenticacao Single Sign-On</p>
         </div>
 
@@ -1152,7 +1152,7 @@ async def sso_login_page(redirect_url: str = Query("/", description="URL to redi
 
         <!-- Footer -->
         <p class="text-center text-gray-400 text-xs mt-8">
-            Fabrica de Agentes v6.0 - Sistema Agile
+            Plataforma E v6.0 - Sistema Agile
         </p>
     </div>
 </body>

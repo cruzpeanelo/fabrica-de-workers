@@ -23,7 +23,7 @@ Usage:
     async def create_project():
         ...
 
-Author: Fabrica de Agentes
+Author: Plataforma E
 """
 
 import logging

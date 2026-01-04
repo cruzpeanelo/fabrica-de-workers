@@ -1,5 +1,5 @@
 """
-Migracao de Dados do Orchestrator Antigo para Fabrica de Agentes
+Migracao de Dados do Orchestrator Antigo para Plataforma E
 Migra stories, tasks, logs e eventos do projeto Gestao Estrategica
 """
 import sqlite3
@@ -17,7 +17,7 @@ from factory.database.models import (
 
 # Paths
 OLD_DB = Path(r"C:\Users\lcruz\Estoque Ageing\orchestrator\database\orchestrator.db")
-PROJECT_PATH = Path(r"C:\Users\lcruz\Fabrica de Agentes\projects\gestao-estrategica")
+PROJECT_PATH = Path(r"C:\Users\lcruz\Plataforma E\projects\gestao-estrategica")
 
 
 def get_old_connection():
@@ -313,7 +313,7 @@ def update_agent_metrics(db):
 def run_migration():
     """Executa migracao completa"""
     print("=" * 60)
-    print("MIGRACAO - Orchestrator -> Fabrica de Agentes")
+    print("MIGRACAO - Orchestrator -> Plataforma E")
     print("=" * 60)
 
     if not OLD_DB.exists():

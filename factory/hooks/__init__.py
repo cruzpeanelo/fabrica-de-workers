@@ -1,5 +1,5 @@
 """
-Factory Hooks - Sistema de Hooks para a Fabrica de Agentes.
+Factory Hooks - Sistema de Hooks para a Plataforma E.
 
 Hooks permitem executar codigo antes/depois de eventos importantes como:
 - pre_commit / post_commit

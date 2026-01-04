@@ -3,7 +3,7 @@
 AI Chat Advanced - Issue #280
 =============================
 
-Assistente IA contextual avancado para a Fabrica de Agentes.
+Assistente IA contextual avancado para a Plataforma E.
 
 Funcionalidades:
 1. Chat contextual que conhece o projeto atual
@@ -1156,7 +1156,7 @@ class AIChatService:
     """
 
     # System prompt para o assistente
-    SYSTEM_PROMPT = """Voce e um assistente de desenvolvimento Agile experiente para a Fabrica de Agentes.
+    SYSTEM_PROMPT = """Voce e um assistente de desenvolvimento Agile experiente para a Plataforma E.
 
 Seu papel e ajudar desenvolvedores e POs com:
 1. Criacao e refinamento de User Stories
@@ -1662,7 +1662,7 @@ def get_chat_page_html() -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Chat - Fabrica de Agentes</title>
+    <title>AI Chat - Plataforma E</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

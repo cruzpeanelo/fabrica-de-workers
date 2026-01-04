@@ -12,7 +12,7 @@ Implementa:
 - Cupons de desconto
 - Recomendacoes de planos
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import os

@@ -189,7 +189,7 @@ class SlackClient:
     # Enviar mensagem
     await client.send_message(
         channel="#general",
-        text="Hello from Fabrica de Agentes!"
+        text="Hello from Plataforma E!"
     )
 
     # Enviar notificacao de story

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 OAuth 2.0 Authentication Service - Issue #109
-Fabrica de Agentes v6.5
+Plataforma E v6.5
 
 Complete OAuth 2.0 implementation with:
 1. Authorization Code Flow (for web apps with backend)

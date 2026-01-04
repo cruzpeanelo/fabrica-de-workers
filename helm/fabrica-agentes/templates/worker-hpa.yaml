@@ -1,6 +1,6 @@
 {{/*
 =============================================================================
-Fabrica de Agentes - Worker HorizontalPodAutoscaler
+Plataforma E - Worker HorizontalPodAutoscaler
 =============================================================================
 */}}
 {{- if and .Values.worker.enabled .Values.worker.autoscaling.enabled }}

@@ -7,7 +7,7 @@ Gerador de CDS Views para SAP S/4HANA.
 Este modulo gera codigo CDS View seguindo as melhores praticas SAP,
 incluindo anotacoes VDM, UI e semanticas.
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

@@ -1,6 +1,6 @@
 """
 Rate Limiting Module v4.1 - Redis-based rate limiting with in-memory fallback
-Fabrica de Agentes - Nova Arquitetura MVP
+Plataforma E - Nova Arquitetura MVP
 
 Issue #141: Implementa fallback in-memory quando Redis não está disponível.
 """

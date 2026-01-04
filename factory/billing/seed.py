@@ -10,7 +10,7 @@ Popula o banco de dados com:
 Uso:
     python -m factory.billing.seed
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

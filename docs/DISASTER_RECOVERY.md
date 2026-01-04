@@ -1,4 +1,4 @@
-# Disaster Recovery Plan - Fabrica de Agentes
+# Disaster Recovery Plan - Plataforma E
 
 **Issue #98, #199**: Plano de Disaster Recovery Documentado
 
@@ -47,7 +47,7 @@ is_valid = await manager.verify_backup(backup_file)
 
 ## Sumario Executivo
 
-Este documento define o Plano de Recuperacao de Desastres (DR) para a plataforma Fabrica de Agentes. O objetivo e garantir a continuidade do negocio em caso de falhas criticas, minimizando o tempo de inatividade e a perda de dados.
+Este documento define o Plano de Recuperacao de Desastres (DR) para a plataforma Plataforma E. O objetivo e garantir a continuidade do negocio em caso de falhas criticas, minimizando o tempo de inatividade e a perda de dados.
 
 ---
 
@@ -330,7 +330,7 @@ kubectl scale deployment/fabrica-workers --replicas=3 -n fabrica-agentes
 
 **Status Page (usuarios):**
 ```
-[INCIDENTE] Fabrica de Agentes - Degradacao de Servico
+[INCIDENTE] Plataforma E - Degradacao de Servico
 
 Estamos investigando problemas de conectividade com a plataforma.
 Algumas funcionalidades podem estar indisponiveis.
@@ -341,7 +341,7 @@ Proximo update: Em 30 minutos
 
 ---
 
-[RESOLVIDO] Fabrica de Agentes - Servico Restaurado
+[RESOLVIDO] Plataforma E - Servico Restaurado
 
 O servico foi totalmente restaurado as [TIMESTAMP].
 Causa: [DESCRICAO BREVE]
@@ -354,7 +354,7 @@ Pedimos desculpas pelo inconveniente.
 ```
 :rotating_light: **INCIDENTE EM ANDAMENTO** :rotating_light:
 
-**Servico:** Fabrica de Agentes
+**Servico:** Plataforma E
 **Severidade:** [SEV1/SEV2/SEV3]
 **Inicio:** [TIMESTAMP]
 **Comandante:** @nome

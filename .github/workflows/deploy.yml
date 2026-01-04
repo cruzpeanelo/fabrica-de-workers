@@ -1,5 +1,5 @@
 # =============================================================================
-# Fabrica de Agentes - Production Deployment Pipeline
+# Plataforma E - Production Deployment Pipeline
 # =============================================================================
 # Issue #100: CI/CD Deployment Automatico Real
 #
@@ -362,7 +362,7 @@ jobs:
                       "type": "header",
                       "text": {
                         "type": "plain_text",
-                        "text": "${{ steps.status.outputs.emoji }} Deploy ${{ steps.status.outputs.status }} - Fabrica de Agentes"
+                        "text": "${{ steps.status.outputs.emoji }} Deploy ${{ steps.status.outputs.status }} - Plataforma E"
                       }
                     },
                     {

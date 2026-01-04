@@ -546,7 +546,7 @@ class ChannelNotifier:
         """
         self._card_builder.clear()
 
-        self._card_builder.add_heading("Resumo Diario - Fabrica de Agentes")
+        self._card_builder.add_heading("Resumo Diario - Plataforma E")
         self._card_builder.add_text(datetime.now().strftime("%d/%m/%Y"))
 
         self._card_builder.add_fact_set([

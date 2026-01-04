@@ -54,7 +54,7 @@ class OnboardingStep(BaseModel):
 ONBOARDING_STEPS = [
     {
         "step_id": "welcome",
-        "title": "Bem-vindo a Fabrica de Agentes!",
+        "title": "Bem-vindo a Plataforma E!",
         "description": "Este sistema ajuda voce a criar e gerenciar projetos de software de forma simples e organizada. Vamos fazer um tour rapido?",
         "element_selector": ".welcome-banner",
         "position": "center",
@@ -290,7 +290,7 @@ ONBOARDING_TEMPLATE = '''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onboarding - Fabrica de Agentes</title>
+    <title>Onboarding - Plataforma E</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/lucide-static@latest/font/lucide.css">
     <style>
@@ -781,7 +781,7 @@ ONBOARDING_TEMPLATE = '''<!DOCTYPE html>
             <div class="welcome-icon">
                 <i class="lucide-rocket"></i>
             </div>
-            <h2>Bem-vindo a Fabrica de Agentes!</h2>
+            <h2>Bem-vindo a Plataforma E!</h2>
             <p>
                 Estamos felizes em te-lo aqui! Este sistema foi criado para facilitar
                 o gerenciamento dos seus projetos. Que tal fazer um tour rapido para

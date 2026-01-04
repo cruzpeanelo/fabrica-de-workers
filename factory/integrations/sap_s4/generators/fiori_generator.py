@@ -10,7 +10,7 @@ Este modulo gera estrutura completa de apps Fiori incluindo:
 - Controllers JavaScript
 - Annotations
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import json

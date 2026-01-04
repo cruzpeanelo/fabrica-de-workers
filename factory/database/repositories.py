@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Repositorios para acesso ao banco de dados - Fabrica de Agentes v4.0
+Repositorios para acesso ao banco de dados - Plataforma E v4.0
 Arquitetura MVP Worker-based (Jobs + Workers + Claude Agent SDK)
 
 Issue #183 - Async-safe usage:

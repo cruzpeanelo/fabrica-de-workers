@@ -16,7 +16,7 @@ import argparse
 def main():
     """Funcao principal"""
     parser = argparse.ArgumentParser(
-        description="MCP Server para Fabrica de Agentes",
+        description="MCP Server para Plataforma E",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos:

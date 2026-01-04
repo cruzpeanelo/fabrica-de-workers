@@ -2,7 +2,7 @@
 """
 Cloud Integration Module
 ========================
-Modulo de integracao multi-cloud para a Fabrica de Agentes.
+Modulo de integracao multi-cloud para a Plataforma E.
 
 Suporta os seguintes provedores:
 - AWS (Amazon Web Services)

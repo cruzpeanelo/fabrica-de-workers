@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Sistema de Logs Estruturados - Fabrica de Agentes v4.0
+Sistema de Logs Estruturados - Plataforma E v4.0
 ======================================================
 
 Configuracao centralizada de logging estruturado com suporte a:
@@ -22,7 +22,7 @@ Uso:
     logger = get_logger(__name__)
     logger.info("Mensagem", job_id="JOB-001", worker_id="worker-1")
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import json

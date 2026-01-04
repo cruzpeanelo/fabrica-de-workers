@@ -12,7 +12,7 @@ Implementa tracking automatico de:
 
 Issue #118 - Sistema de Metering e Usage Tracking Completo
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import time

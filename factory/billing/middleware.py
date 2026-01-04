@@ -9,7 +9,7 @@ Implementa:
 - Filtros automaticos de query por tenant
 - Protecao de acesso entre tenants
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

@@ -12,7 +12,7 @@ Este modulo implementa:
 - Deep insert/update
 - Tratamento de erros SAP
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import json

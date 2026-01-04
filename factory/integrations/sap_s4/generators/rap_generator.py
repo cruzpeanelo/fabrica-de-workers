@@ -10,7 +10,7 @@ Este modulo gera artefatos RAP completos:
 - Service Binding
 - Implementation Classes
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 from dataclasses import dataclass, field

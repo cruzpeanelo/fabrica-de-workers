@@ -12,7 +12,7 @@ Cenarios de Teste:
 3. App Generator: Analise e geracao de aplicacoes testaveis
 4. Integracao Claude API: Comunicacao com a API
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 Data: 2024
 Versao: 1.0.0
 """

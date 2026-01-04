@@ -26,7 +26,7 @@ router = APIRouter(prefix="/api/export/pdf", tags=["Export PDF"])
 def generate_html_report(title: str, content: str, branding: dict = None) -> str:
     """Gera HTML formatado para conversao em PDF."""
     brand_color = branding.get('color', '#003B4A') if branding else '#003B4A'
-    company_name = branding.get('company', 'Fabrica de Agentes') if branding else 'Fabrica de Agentes'
+    company_name = branding.get('company', 'Plataforma E') if branding else 'Plataforma E'
 
     return f'''
     <!DOCTYPE html>
@@ -65,7 +65,7 @@ def generate_html_report(title: str, content: str, branding: dict = None) -> str
         </div>
         {content}
         <div class="footer">
-            Relatorio gerado automaticamente pela Fabrica de Agentes
+            Relatorio gerado automaticamente pela Plataforma E
         </div>
     </body>
     </html>

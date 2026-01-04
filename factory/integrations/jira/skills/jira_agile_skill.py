@@ -30,7 +30,7 @@ Uso pelos agentes:
     # Mover issue para sprint
     result = await skill.move_to_sprint(issue_keys=["PROJ-123"], sprint_id=456)
 
-Autor: Fabrica de Agentes
+Autor: Plataforma E
 """
 
 import logging

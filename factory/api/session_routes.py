@@ -11,7 +11,7 @@ Endpoints:
 - GET /api/sessions/stats - Session statistics (admin)
 - PUT /api/sessions/config - Update session config (admin)
 
-Author: Fabrica de Agentes - Terminal B
+Author: Plataforma E - Terminal B
 """
 
 from typing import Optional, List

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Motor de Regras de Notificacao - Fabrica de Agentes
+Motor de Regras de Notificacao - Plataforma E
 """
 
 from .rule_engine import RuleEngine

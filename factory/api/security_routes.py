@@ -2,7 +2,7 @@
 """
 Security API Routes - Analise de Seguranca (Issue #57, #359)
 =============================================================
-Fabrica de Agentes
+Plataforma E
 
 Endpoints para:
 - Analise de seguranca SAST/DAST (Issue #57)

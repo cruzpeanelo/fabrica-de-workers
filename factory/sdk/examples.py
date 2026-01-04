@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Exemplos de Uso do SDK - Fabrica de Agentes
+Exemplos de Uso do SDK - Plataforma E
 ===========================================
 
-Este arquivo contem exemplos de como usar o SDK Python da Fabrica de Agentes.
+Este arquivo contem exemplos de como usar o SDK Python da Plataforma E.
 Execute os exemplos individuais ou use como referencia para sua integracao.
 
 Requisitos:

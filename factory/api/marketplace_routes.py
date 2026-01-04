@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Marketplace API Routes - Fabrica de Agentes
+Marketplace API Routes - Plataforma E
 =============================================
 
 Endpoints da API REST para o Marketplace de Templates e Skills.

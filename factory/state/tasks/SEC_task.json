@@ -1,0 +1,11 @@
+{
+  "task_id": "task_SEC_1767484853",
+  "agent_type": "SEC",
+  "issue_number": null,
+  "title": "Auditoria e criar issues seguranca",
+  "description": "\n1. Analisar codigo para vulnerabilidades\n2. Para cada problema encontrado:\n   - Criar issue: gh issue create --title \"[SEC] Vulnerabilidade: X\" --body \"Detalhes\" --label security\n3. Documentar em docs/security/audit-report.md\n",
+  "priority": "medium",
+  "created_at": "2026-01-03T21:00:53.289528",
+  "status": "pending",
+  "context": {}
+}

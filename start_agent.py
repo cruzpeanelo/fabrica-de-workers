@@ -193,9 +193,19 @@ def run_claude(prompt: str, agent_type: str, task_id: str = None) -> dict:
 
     log_file_action(agent_type, "write", str(prompt_file), task_id=task_id)
 
-    # Construir comando
+    # Adicionar npm ao PATH para encontrar claude
+    env = os.environ.copy()
+    npm_path = os.path.expanduser("~/AppData/Roaming/npm")
+    if os.path.exists(npm_path):
+        env["PATH"] = npm_path + os.pathsep + env.get("PATH", "")
+
+    # Construir comando - usar caminho completo se necessario
+    claude_path = os.path.join(npm_path, "claude.cmd") if os.name == "nt" else "claude"
+    if not os.path.exists(claude_path):
+        claude_path = "claude"  # Fallback para PATH
+
     cmd = [
-        "claude",
+        claude_path,
         "--dangerously-skip-permissions",
         "-p", str(prompt_file),
     ]
@@ -209,6 +219,7 @@ def run_claude(prompt: str, agent_type: str, task_id: str = None) -> dict:
         result = subprocess.run(
             cmd,
             cwd=str(BASE_PATH),
+            env=env,
             # Nao capturar output para permitir interacao
         )
 

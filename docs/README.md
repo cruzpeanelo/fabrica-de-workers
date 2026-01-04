@@ -1,6 +1,6 @@
-# Documentação da Fábrica de Agentes
+# Documentação da Plataforma E
 
-Bem-vindo à documentação completa da **Fábrica de Agentes v7.0**!
+Bem-vindo à documentação completa da **Plataforma E v7.0**!
 
 > Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 
@@ -169,8 +169,8 @@ docs/
 
 ## 🔗 Links Úteis
 
-- **Repositório**: [github.com/cruzpeanelo/fabrica-de-agentes](https://github.com/cruzpeanelo/fabrica-de-agentes)
-- **Issues**: [Reportar Bug / Sugerir Feature](https://github.com/cruzpeanelo/fabrica-de-agentes/issues)
+- **Repositório**: [github.com/cruzpeanelo/plataforma-e](https://github.com/cruzpeanelo/plataforma-e)
+- **Issues**: [Reportar Bug / Sugerir Feature](https://github.com/cruzpeanelo/plataforma-e/issues)
 - **Dashboard**: http://localhost:9001 (local)
 - **Changelog**: [CHANGELOG.md](../CHANGELOG.md)
 
@@ -189,7 +189,7 @@ Veja o [Guia de Contribuição](CONTRIBUTING.md) para mais detalhes.
 ---
 
 <p align="center">
-<strong>🏭 Fábrica de Agentes v7.0</strong><br>
+<strong>🏭 Plataforma E v7.0</strong><br>
 Plataforma de Desenvolvimento Ágil com Inteligência Artificial
 </p>
 

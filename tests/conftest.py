@@ -3,7 +3,7 @@
 Pytest Configuration and Fixtures
 =================================
 
-Shared fixtures for all tests in the Fabrica de Agentes test suite.
+Shared fixtures for all tests in the Plataforma E test suite.
 Atualizado para v4.0 - Arquitetura Worker-based.
 """
 

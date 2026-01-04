@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fabrica de Agentes - Database Restore Script
+Plataforma E - Database Restore Script
 =============================================
 Issue #97: Backup Automatizado Database e PVCs
 
@@ -449,7 +449,7 @@ def verify_restore(config: RestoreConfig, target_db: str) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Fabrica de Agentes - Database Restore Script'
+        description='Plataforma E - Database Restore Script'
     )
     parser.add_argument(
         '--file',
@@ -495,7 +495,7 @@ def main():
     args = parser.parse_args()
 
     logger.info("=" * 60)
-    logger.info("Fabrica de Agentes - Database Restore")
+    logger.info("Plataforma E - Database Restore")
     logger.info("=" * 60)
 
     config = RestoreConfig()

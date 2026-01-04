@@ -184,7 +184,7 @@ def generate_admin_users_html(tenant_id: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administracao de Usuarios - Fabrica de Agentes</title>
+    <title>Administracao de Usuarios - Plataforma E</title>
     <style>
         :root {{
             --primary: #003B4A;

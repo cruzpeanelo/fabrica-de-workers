@@ -1,6 +1,6 @@
-# WebSocket - Fabrica de Agentes
+# WebSocket - Plataforma E
 
-Sistema de WebSocket para atualizacoes em tempo real na Fabrica de Agentes.
+Sistema de WebSocket para atualizacoes em tempo real na Plataforma E.
 
 ## Visao Geral
 
@@ -389,4 +389,4 @@ app.include_router(ws_router)
 
 ---
 
-*Fabrica de Agentes v6.5 - WebSocket para Atualizacoes em Tempo Real*
+*Plataforma E v6.5 - WebSocket para Atualizacoes em Tempo Real*

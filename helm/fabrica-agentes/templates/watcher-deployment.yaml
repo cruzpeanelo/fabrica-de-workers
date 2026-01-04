@@ -1,6 +1,6 @@
 {{/*
 =============================================================================
-Fabrica de Agentes - Watcher Deployment (Singleton)
+Plataforma E - Watcher Deployment (Singleton)
 =============================================================================
 */}}
 {{- if .Values.watcher.enabled }}
