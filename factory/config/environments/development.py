@@ -32,8 +32,16 @@ class DevelopmentSettings(BaseSettings):
     JWT_SECRET_KEY: str = "dev-secret-key-change-in-production"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours for dev convenience
 
-    # CORS (allow all for development)
-    CORS_ORIGINS: list = ["*"]
+    # CORS (Issue #468: Replaced wildcard with explicit localhost origins)
+    # Using explicit origins even in development for security
+    CORS_ORIGINS: list = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:9001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:9001",
+    ]
 
     # Features (all enabled for testing)
     ENABLE_WEBSOCKETS: bool = True
