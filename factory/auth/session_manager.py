@@ -192,10 +192,18 @@ class SessionManager:
     def validate_session(
         cls,
         session_id: str,
-        refresh: bool = True
+        refresh: bool = True,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None
     ) -> tuple:
         """
         Validate a session.
+
+        Args:
+            session_id: The session ID to validate
+            refresh: Whether to refresh the session on successful validation
+            ip_address: Current request IP address for binding validation (Issue #472)
+            user_agent: Current request User-Agent for binding validation (Issue #472)
 
         Returns:
             (valid, message) - whether session is valid
@@ -210,6 +218,25 @@ class SessionManager:
         if session.is_expired():
             cls._invalidate_session(session_id, reason="expired")
             return False, "Session has expired"
+
+        # Issue #472: Validate IP address binding
+        if ip_address and session.ip_address:
+            if ip_address != session.ip_address:
+                logger.warning(
+                    f"Session IP mismatch: session={session_id[:8]}... "
+                    f"expected={session.ip_address} got={ip_address}"
+                )
+                cls._invalidate_session(session_id, reason="ip_mismatch")
+                return False, "Session IP address changed - possible session hijacking"
+
+        # Issue #472: Validate User-Agent binding
+        if user_agent and session.user_agent:
+            if user_agent != session.user_agent:
+                logger.warning(
+                    f"Session User-Agent mismatch: session={session_id[:8]}..."
+                )
+                cls._invalidate_session(session_id, reason="user_agent_mismatch")
+                return False, "Session User-Agent changed - possible session hijacking"
 
         config = cls.get_config(session.tenant_id)
         if session.is_inactive(config.inactivity_timeout):
@@ -407,9 +434,20 @@ def create_session(
     )
 
 
-def validate_session(session_id: str, refresh: bool = True) -> tuple:
-    """Validate a session."""
-    return SessionManager.validate_session(session_id, refresh)
+def validate_session(
+    session_id: str,
+    refresh: bool = True,
+    ip_address: str = None,
+    user_agent: str = None
+) -> tuple:
+    """
+    Validate a session.
+    
+    Issue #472: Added ip_address and user_agent for session binding validation.
+    """
+    return SessionManager.validate_session(
+        session_id, refresh, ip_address, user_agent
+    )
 
 
 def invalidate_session(session_id: str) -> bool:
