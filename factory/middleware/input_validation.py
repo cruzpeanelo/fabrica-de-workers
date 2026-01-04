@@ -338,12 +338,13 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.config = config or ValidationConfig()
         self.validator = InputValidator(self.config)
+        # Issue #470: File uploads are now validated for filename/metadata attacks
+        # Only truly static/documentation endpoints are excluded
         self.excluded_paths = excluded_paths or [
             "/docs",
             "/redoc",
             "/openapi.json",
             "/health",
-            "/api/upload",  # File uploads handled separately
         ]
 
     async def dispatch(self, request: Request, call_next: Callable):
