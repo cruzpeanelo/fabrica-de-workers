@@ -99,6 +99,19 @@ ENDPOINT_LIMITS = {
     "/api/v1/webhooks": {"per_minute": 30},
 }
 
+# Issue #485: Strict rate limits for authentication endpoints (always enforced)
+# These limits apply regardless of RATE_LIMIT_MODE to prevent brute force attacks
+AUTH_ENDPOINT_LIMITS = {
+    "/api/v1/auth/login": {"per_minute": 5, "per_day": 100},
+    "/api/auth/login": {"per_minute": 5, "per_day": 100},
+    "/api/v1/auth/register": {"per_minute": 3, "per_day": 20},
+    "/api/auth/register": {"per_minute": 3, "per_day": 20},
+    "/api/v1/auth/forgot-password": {"per_minute": 3, "per_day": 10},
+    "/api/auth/forgot-password": {"per_minute": 3, "per_day": 10},
+    "/api/v1/auth/reset-password": {"per_minute": 5, "per_day": 20},
+    "/api/auth/reset-password": {"per_minute": 5, "per_day": 20},
+}
+
 
 # =============================================================================
 # IN-MEMORY RATE LIMIT STORAGE (Issue #469: Proper fallback)
@@ -412,9 +425,10 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
     Adiciona headers padrao X-RateLimit-*.
     """
 
-    # Paths que nao tem rate limit (ou tem limite maior)
+    # Paths that skip general rate limiting (static/health/docs only)
     # Issue #461: Extended exempt paths for testing and auth
     # Issue #477: Added SPA pages and PWA files to prevent blocking navigation
+    # Issue #485: REMOVED /api/auth exemption - auth endpoints now have strict rate limits
     EXEMPT_PATHS = {
         "/api/v1/health",
         "/api/v1/docs",
@@ -422,11 +436,10 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/docs",
         "/redoc",
-        "/api/auth",  # Auth endpoints need to work for login
-        "/api/auth/login",
+        # Issue #485: Removed "/api/auth" - auth endpoints must be rate limited
         "/api/health",
         "/health",
-        "/login",  # HTML login page
+        "/login",  # HTML login page (not the API endpoint)
         # Issue #477: SPA pages should not be rate limited
         "/",
         "/kanban",
@@ -447,27 +460,47 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         "/api/pwa",
     }
 
+    # Issue #485: Auth endpoints that need STRICT rate limiting (not exemption)
+    AUTH_RATE_LIMITED_PATHS = {
+        "/api/v1/auth/login",
+        "/api/auth/login",
+        "/api/v1/auth/register",
+        "/api/auth/register",
+        "/api/v1/auth/forgot-password",
+        "/api/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+        "/api/auth/reset-password",
+    }
+
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
 
-        # Pular paths isentos (Issue #461: support prefix matching)
-        if path in self.EXEMPT_PATHS or path.startswith("/static"):
-            return await call_next(request)
-        # Also check prefix matching for auth paths
-        for exempt in self.EXEMPT_PATHS:
-            if path.startswith(exempt):
+        # Issue #485: Check if this is an auth endpoint that needs STRICT rate limiting
+        is_auth_endpoint = path in self.AUTH_RATE_LIMITED_PATHS
+
+        # Skip exempt paths (but NOT auth endpoints - they need rate limiting)
+        if not is_auth_endpoint:
+            if path in self.EXEMPT_PATHS or path.startswith("/static"):
                 return await call_next(request)
+            # Check prefix matching for exempt paths (Issue #477: SPA pages)
+            for exempt in self.EXEMPT_PATHS:
+                if path.startswith(exempt) and exempt not in ("/", ):
+                    return await call_next(request)
 
         # Determinar identificador e tier
         identifier, tier = await self._get_identifier_and_tier(request)
 
-        # Verificar rate limit
-        limiter = get_tiered_rate_limiter()
-        allowed, info = await limiter.check_rate_limit(
-            identifier=identifier,
-            tier=tier,
-            endpoint=path
-        )
+        # Issue #485: For auth endpoints, use strict limits regardless of tier
+        if is_auth_endpoint:
+            allowed, info = await self._check_auth_rate_limit(identifier, path)
+        else:
+            # Verificar rate limit normal
+            limiter = get_tiered_rate_limiter()
+            allowed, info = await limiter.check_rate_limit(
+                identifier=identifier,
+                tier=tier,
+                endpoint=path
+            )
 
         if not allowed:
             return self._rate_limit_exceeded_response(info)
@@ -510,6 +543,43 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         # Fallback: usar IP
         client_ip = request.client.host if request.client else "unknown"
         return f"ip:{client_ip}", "free"
+
+    async def _check_auth_rate_limit(
+        self,
+        identifier: str,
+        path: str
+    ) -> Tuple[bool, Dict]:
+        """
+        Issue #485: Strict rate limiting for authentication endpoints.
+
+        Uses dedicated limits from AUTH_ENDPOINT_LIMITS that apply regardless
+        of environment mode (dev/prod) to prevent brute force attacks.
+        """
+        # Get strict limits for this auth endpoint
+        limits = AUTH_ENDPOINT_LIMITS.get(path, {"per_minute": 5, "per_day": 100})
+        per_minute = limits.get("per_minute", 5)
+        per_day = limits.get("per_day", 100)
+
+        # Use dedicated key for auth rate limiting (by IP, not by tier)
+        auth_key = f"auth:{identifier}:{path.replace('/', '_')}"
+
+        # Use in-memory store for auth rate limiting (always available)
+        store = _get_memory_store()
+        allowed, info = store.check_and_increment(auth_key, per_minute, per_day)
+
+        # Add path info for logging
+        info["endpoint"] = path
+        info["auth_rate_limited"] = True
+
+        if not allowed:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Auth rate limit exceeded for {identifier} on {path}: "
+                f"{info.get('exceeded', 'minute')} limit reached"
+            )
+
+        return allowed, info
 
     def _rate_limit_exceeded_response(self, info: Dict) -> Response:
         """Gera resposta 429 padronizada"""
