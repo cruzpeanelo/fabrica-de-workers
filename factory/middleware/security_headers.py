@@ -78,9 +78,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
     # CSP by environment
     # Issue #456: Added media-src and frame-src for audio notifications and preview iframes
+    # Issue #471: Removed 'unsafe-eval' from development CSP for security
+    # Use nonce-based scripts or redesign features that require eval()
     CSP_DEVELOPMENT = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "script-src 'self' 'unsafe-inline' "
             "https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "img-src 'self' data: https: blob:; "
