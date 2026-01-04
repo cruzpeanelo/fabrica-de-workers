@@ -389,6 +389,8 @@ def decode_token(token: str) -> TokenData:
     Suporta validacao com multiplas chaves ativas para
     permitir rotacao sem invalidar tokens existentes.
 
+    Issue #467: Integra verificacao de blacklist para tokens revogados.
+
     Args:
         token: Token JWT
 
@@ -396,7 +398,7 @@ def decode_token(token: str) -> TokenData:
         TokenData com dados do usuario
 
     Raises:
-        HTTPException: Se token invalido
+        HTTPException: Se token invalido ou revogado
     """
     key_manager = get_key_manager()
 
@@ -410,12 +412,27 @@ def decode_token(token: str) -> TokenData:
             username = payload.get("sub")
             role = payload.get("role")
             exp = payload.get("exp")
+            iat = payload.get("iat")  # Issue #467: Get issued-at for user-level revocation check
 
             if username is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token: missing username"
                 )
+
+            # Issue #467: Check if token is revoked (blacklist integration)
+            try:
+                from factory.auth.token_blacklist import is_token_revoked
+                issued_at = datetime.fromtimestamp(iat) if iat else None
+                if is_token_revoked(token, user_id=username, issued_at=issued_at):
+                    logger.warning(f"[Auth] Revoked token used: user={username}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token has been revoked"
+                    )
+            except ImportError:
+                # Blacklist module not available, continue without check
+                logger.debug("[Auth] Token blacklist module not available")
 
             return TokenData(
                 username=username,
