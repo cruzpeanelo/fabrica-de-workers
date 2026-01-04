@@ -948,6 +948,12 @@ class StoryMove(BaseModel):
     order: Optional[int] = None
 
 
+# Auth Request Schema
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 # Issue #236: Bulk Actions Schemas
 class BulkMoveRequest(BaseModel):
     """Request para mover multiplas stories"""
@@ -4528,6 +4534,10 @@ HTML_TEMPLATE = """
     <!-- PDF.js for PDF viewing -->
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <style>
+        /* v-cloak: Hide Vue templates until mounted */
+        [v-cloak] { display: none !important; }
+        [v-cloak]::before { content: "Carregando..." !important; display: block !important; }
+
         * { font-family: 'Inter', sans-serif; }
         :root {
             --belgo-blue: #003B4A;
@@ -8186,7 +8196,7 @@ HTML_TEMPLATE = """
         </style>
 </head>
 <body class="bg-gray-100">
-    <div id="app" :class="{ 'dark': isDarkMode }">
+    <div id="app" v-cloak :class="{ 'dark': isDarkMode }">
         <!-- Mobile Overlay -->
         <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false"></div>
         <!-- Pull to Refresh -->
@@ -8866,16 +8876,16 @@ HTML_TEMPLATE = """
                 <div class="p-4 border-b"><h3 class="text-lg font-semibold">Nova API Key</h3></div>
                 <div class="p-4 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                        <input v-model="newApiKey.name" type="text" placeholder="Ex: Producao App" class="w-full px-3 py-2 border rounded">
+                        <label for="api-key-name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                        <input id="api-key-name" v-model="newApiKey.name" type="text" placeholder="Ex: Producao App" class="w-full px-3 py-2 border rounded">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
-                        <textarea v-model="newApiKey.description" class="w-full px-3 py-2 border rounded" rows="2"></textarea>
+                        <label for="api-key-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="api-key-description" v-model="newApiKey.description" class="w-full px-3 py-2 border rounded" rows="2"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tier</label>
-                        <select v-model="newApiKey.tier" class="w-full px-3 py-2 border rounded">
+                        <label for="api-key-tier" class="block text-sm font-medium text-gray-700 mb-1">Tier</label>
+                        <select id="api-key-tier" v-model="newApiKey.tier" class="w-full px-3 py-2 border rounded">
                             <option value="free">Free</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option>
                         </select>
                     </div>
@@ -9086,12 +9096,12 @@ HTML_TEMPLATE = """
                             <h2 class="wizard-title">Detalhes do Projeto</h2>
                             <p class="wizard-description">Informe os dados basicos do seu projeto.</p>
                             <div class="wizard-field">
-                                <label>Nome do Projeto</label>
-                                <input v-model="wizardData.name" type="text" placeholder="Ex: Sistema de Vendas">
+                                <label for="wizard-project-name">Nome do Projeto</label>
+                                <input id="wizard-project-name" v-model="wizardData.name" type="text" placeholder="Ex: Sistema de Vendas">
                             </div>
                             <div class="wizard-field">
-                                <label>Descricao</label>
-                                <textarea v-model="wizardData.description" rows="3" placeholder="Descreva brevemente o projeto..."></textarea>
+                                <label for="wizard-description">Descricao</label>
+                                <textarea id="wizard-description" v-model="wizardData.description" rows="3" placeholder="Descreva brevemente o projeto..."></textarea>
                             </div>
                         </div>
 
@@ -9283,16 +9293,16 @@ HTML_TEMPLATE = """
                 </svg>
             </button>
             <div :class="['onboarding-tooltip', 'arrow-' + currentTourStep.arrow]" :style="onboardingTooltipStyle" @click.stop>
-                <div class="onboarding-tooltip-step">Passo {{ currentTourStepIndex + 1 }} de {{ tourSteps.length }}</div>
+                <div class="onboarding-tooltip-step">Passo {{ currentTourStepIndex + 1 }} de {{ onboardingTourSteps.length }}</div>
                 <h3 class="onboarding-tooltip-title">{{ currentTourStep.title }}</h3>
                 <p class="onboarding-tooltip-content">{{ currentTourStep.content }}</p>
                 <div class="onboarding-tooltip-buttons">
                     <button class="onboarding-skip" @click.stop="skipOnboardingTour">Pular tour</button>
                     <div class="onboarding-nav">
-                        <button v-if="currentTourStepIndex > 0" class="onboarding-btn prev" @click.stop="prevTourStep">
+                        <button v-if="currentTourStepIndex > 0" class="onboarding-btn prev" @click.stop="onboardingPrevStep">
                             Anterior
                         </button>
-                        <button v-if="currentTourStepIndex < tourSteps.length - 1" class="onboarding-btn next" @click.stop="nextTourStep">
+                        <button v-if="currentTourStepIndex < onboardingTourSteps.length - 1" class="onboarding-btn next" @click.stop="onboardingNextStep">
                             Proximo
                         </button>
                         <button v-else class="onboarding-btn next" @click.stop="finishOnboardingTour">
@@ -9301,7 +9311,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="onboarding-progress">
-                    <div v-for="(step, idx) in tourSteps" :key="idx"
+                    <div v-for="(step, idx) in onboardingTourSteps" :key="idx"
                          :class="['onboarding-progress-dot', idx === currentTourStepIndex ? 'active' : '']"></div>
                 </div>
             </div>
@@ -10906,51 +10916,51 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Titulo *</label>
-                        <input v-model="newStory.title" type="text"
+                        <label for="story-title" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Titulo *</label>
+                        <input id="story-title" v-model="newStory.title" type="text"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                placeholder="Ex: Implementar login com email">
                     </div>
 
                     <div class="grid grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Como um</label>
-                            <input v-model="newStory.persona" type="text"
+                            <label for="story-persona" class="block text-sm font-medium text-gray-700 mb-1">Como um</label>
+                            <input id="story-persona" v-model="newStory.persona" type="text"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                    placeholder="usuario do sistema">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Eu quero</label>
-                            <input v-model="newStory.action" type="text"
+                            <label for="story-action" class="block text-sm font-medium text-gray-700 mb-1">Eu quero</label>
+                            <input id="story-action" v-model="newStory.action" type="text"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                    placeholder="fazer login">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Para que</label>
-                            <input v-model="newStory.benefit" type="text"
+                            <label for="story-benefit" class="block text-sm font-medium text-gray-700 mb-1">Para que</label>
+                            <input id="story-benefit" v-model="newStory.benefit" type="text"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                    placeholder="acesse minhas informacoes">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
-                        <textarea v-model="newStory.description" rows="3"
+                        <label for="story-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="story-description" v-model="newStory.description" rows="3"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                   placeholder="Detalhes adicionais..."></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Criterios de Aceite (um por linha)</label>
-                        <textarea v-model="newStoryCriteria" rows="3"
+                        <label for="story-criteria" class="block text-sm font-medium text-gray-700 mb-1">Criterios de Aceite (um por linha)</label>
+                        <textarea id="story-criteria" v-model="newStoryCriteria" rows="3"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                   placeholder="Usuario pode fazer login com email&#10;Senha deve ter minimo 8 caracteres"></textarea>
                     </div>
 
                     <div class="grid grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
-                            <select v-model="newStory.story_points" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-points" class="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
+                            <select id="story-points" v-model="newStory.story_points" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option :value="0">0</option>
                                 <option :value="1">1</option>
                                 <option :value="2">2</option>
@@ -10962,8 +10972,8 @@ HTML_TEMPLATE = """
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
-                            <select v-model="newStory.priority" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-priority" class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                            <select id="story-priority" v-model="newStory.priority" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="low">Baixa</option>
                                 <option value="medium">Media</option>
                                 <option value="high">Alta</option>
@@ -10971,8 +10981,8 @@ HTML_TEMPLATE = """
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Complexidade</label>
-                            <select v-model="newStory.complexity" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-complexity" class="block text-sm font-medium text-gray-700 mb-1">Complexidade</label>
+                            <select id="story-complexity" v-model="newStory.complexity" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="low">Baixa</option>
                                 <option value="medium">Media</option>
                                 <option value="high">Alta</option>
@@ -10980,8 +10990,8 @@ HTML_TEMPLATE = """
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                            <select v-model="newStory.category" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-category" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                            <select id="story-category" v-model="newStory.category" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="feature">Feature</option>
                                 <option value="bug">Bug</option>
                                 <option value="tech_debt">Tech Debt</option>
@@ -10993,15 +11003,15 @@ HTML_TEMPLATE = """
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Epic</label>
-                            <select v-model="newStory.epic_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-epic" class="block text-sm font-medium text-gray-700 mb-1">Epic</label>
+                            <select id="story-epic" v-model="newStory.epic_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="">Nenhum</option>
                                 <option v-for="e in epics" :key="e.epic_id" :value="e.epic_id">{{ e.title }}</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
-                            <select v-model="newStory.sprint_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="story-sprint" class="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
+                            <select id="story-sprint" v-model="newStory.sprint_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="">Nenhum</option>
                                 <option v-for="s in sprints" :key="s.sprint_id" :value="s.sprint_id">{{ s.name }}</option>
                             </select>
@@ -11029,19 +11039,19 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
-                        <input v-model="newTask.title" type="text"
+                        <label for="task-title" class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                        <input id="task-title" v-model="newTask.title" type="text"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
-                        <textarea v-model="newTask.description" rows="2"
+                        <label for="task-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="task-description" v-model="newTask.description" rows="2"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                            <select v-model="newTask.task_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="task-type" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select id="task-type" v-model="newTask.task_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="development">Desenvolvimento</option>
                                 <option value="review">Review</option>
                                 <option value="test">Teste</option>
@@ -11074,18 +11084,18 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
-                        <input v-model="newEpic.title" type="text"
+                        <label for="epic-title" class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                        <input id="epic-title" v-model="newEpic.title" type="text"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
-                        <textarea v-model="newEpic.description" rows="2"
+                        <label for="epic-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="epic-description" v-model="newEpic.description" rows="2"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
-                        <input v-model="newEpic.color" type="color" class="w-full h-10 rounded-lg">
+                        <label for="epic-color" class="block text-sm font-medium text-gray-700 mb-1">Cor</label>
+                        <input id="epic-color" v-model="newEpic.color" type="color" class="w-full h-10 rounded-lg">
                     </div>
                 </div>
                 <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
@@ -11105,19 +11115,19 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
-                        <input v-model="newSprint.name" type="text"
+                        <label for="sprint-name" class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
+                        <input id="sprint-name" v-model="newSprint.name" type="text"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                placeholder="Ex: Sprint 1">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Goal</label>
-                        <textarea v-model="newSprint.goal" rows="2"
+                        <label for="sprint-goal" class="block text-sm font-medium text-gray-700 mb-1">Goal</label>
+                        <textarea id="sprint-goal" v-model="newSprint.goal" rows="2"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Capacidade (pts)</label>
-                        <input v-model.number="newSprint.capacity" type="number"
+                        <label for="sprint-capacity" class="block text-sm font-medium text-gray-700 mb-1">Capacidade (pts)</label>
+                        <input id="sprint-capacity" v-model.number="newSprint.capacity" type="number"
                                class="w-full border border-gray-300 rounded-lg px-3 py-2">
                     </div>
                 </div>
@@ -11139,13 +11149,13 @@ HTML_TEMPLATE = """
                 <div class="p-6 space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
-                            <input v-model="newDoc.title" type="text"
+                            <label for="doc-title" class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                            <input id="doc-title" v-model="newDoc.title" type="text"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                            <select v-model="newDoc.doc_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="doc-type" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select id="doc-type" v-model="newDoc.doc_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="technical">Tecnico</option>
                                 <option value="user">Usuario</option>
                                 <option value="test">Teste</option>
@@ -11155,13 +11165,13 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Conteudo (Markdown)</label>
-                        <textarea v-model="newDoc.content" rows="6"
+                        <label for="doc-content" class="block text-sm font-medium text-gray-700 mb-1">Conteudo (Markdown)</label>
+                        <textarea id="doc-content" v-model="newDoc.content" rows="6"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Como Testar</label>
-                        <textarea v-model="newDoc.test_instructions" rows="3"
+                        <label for="doc-test-instructions" class="block text-sm font-medium text-gray-700 mb-1">Como Testar</label>
+                        <textarea id="doc-test-instructions" v-model="newDoc.test_instructions" rows="3"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
                     </div>
                 </div>
@@ -12562,6 +12572,15 @@ HTML_TEMPLATE = """
             let developerChart = null;
             let cycletimeChart = null;
 
+            // ========== CURRENT USER (Authentication) ==========
+            const currentUser = ref({
+                username: localStorage.getItem('user_id') || 'user',
+                name: localStorage.getItem('user_name') || 'User',
+                role: localStorage.getItem('user_role') || 'DEVELOPER'
+            });
+            const currentUserId = computed(() => currentUser.value?.username || 'user');
+            const currentUserName = computed(() => currentUser.value?.name || 'User');
+
             // ========== TENANT SELECTOR (Multi-Tenancy) ==========
             const userTenants = ref([]);
             const selectedTenantId = ref('');
@@ -13597,7 +13616,7 @@ HTML_TEMPLATE = """
                 return Math.round((done / onboardingSteps.value.length) * 100);
             });
 
-            const tourSteps = [
+            const onboardingTourSteps = [
                 {
                     target: '.sidebar-desktop',
                     title: 'Barra Lateral',
@@ -13625,7 +13644,7 @@ HTML_TEMPLATE = """
             ];
 
             const currentTourStep = computed(() => {
-                return tourSteps[currentTourStepIndex.value] || tourSteps[0];
+                return onboardingTourSteps[currentTourStepIndex.value] || onboardingTourSteps[0];
             });
 
             const onboardingSpotlightStyle = computed(() => {
@@ -13673,13 +13692,13 @@ HTML_TEMPLATE = """
                 showOnboardingTour.value = true;
             };
 
-            const nextTourStep = () => {
-                if (currentTourStepIndex.value < tourSteps.length - 1) {
+            const onboardingNextStep = () => {
+                if (currentTourStepIndex.value < onboardingTourSteps.length - 1) {
                     currentTourStepIndex.value++;
                 }
             };
 
-            const prevTourStep = () => {
+            const onboardingPrevStep = () => {
                 if (currentTourStepIndex.value > 0) {
                     currentTourStepIndex.value--;
                 }
@@ -17588,6 +17607,8 @@ Process ${data.status}`);
             });
 
             return {
+                // Current User (Authentication)
+                currentUser, currentUserId, currentUserName,
                 // Analytics (Issue #65 + Issue #157 Charts)
                 showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics, velocityHistory,
                 // Project Preview Dashboard (Issue #73)
@@ -17627,8 +17648,8 @@ Process ${data.status}`);
                 // Issue #132 - Onboarding Tour
                 showOnboardingChecklist, showOnboardingTour, currentTourStepIndex,
                 onboardingSteps, onboardingComplete, onboardingProgress,
-                tourSteps, currentTourStep, onboardingSpotlightStyle, onboardingTooltipStyle,
-                handleOnboardingStep, startOnboardingTour, nextTourStep, prevTourStep,
+                onboardingTourSteps, currentTourStep, onboardingSpotlightStyle, onboardingTooltipStyle,
+                handleOnboardingStep, startOnboardingTour, onboardingNextStep, onboardingPrevStep,
                 skipOnboardingTour, finishOnboardingTour, markOnboardingStepDone, loadOnboardingState, closeAllOverlays,
                 projects, selectedProjectId, selectedSprintId, selectedEpicId,
                 storyBoard, kanbanStatuses, epics, sprints, selectedStory, activeTab,
@@ -18042,6 +18063,73 @@ def executive_page():
 def login_page():
     """Login Page - SPA route"""
     return HTML_TEMPLATE
+
+
+# Auth API endpoint
+@app.post("/api/auth/login")
+async def api_login(request: LoginRequest):
+    """Login and return JWT token with tenant info"""
+    from datetime import timedelta
+    try:
+        from passlib.context import CryptContext
+        import jwt
+
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+        db = SessionLocal()
+        try:
+            from factory.database.models import User, TenantMember
+            user = db.query(User).filter(User.username == request.username).first()
+
+            if not user:
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+
+            # Verify password
+            if not pwd_context.verify(request.password, user.password_hash):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+
+            # Get user's tenant memberships
+            memberships = db.query(TenantMember).filter(
+                TenantMember.user_id == user.id,
+                TenantMember.active == True
+            ).all()
+
+            # Get primary tenant (first one or default)
+            tenant_ids = [m.tenant_id for m in memberships]
+            primary_tenant = tenant_ids[0] if tenant_ids else None
+
+            # Create JWT token with tenant info
+            SECRET_KEY = os.getenv("JWT_SECRET_KEY", "plataforma-e-secret-key-change-in-production")
+            expire = datetime.utcnow() + timedelta(hours=24)
+
+            token_data = {
+                "sub": user.username,
+                "role": user.role,
+                "user_id": user.id,
+                "tenant_id": primary_tenant,
+                "tenant_ids": tenant_ids,  # All tenants user has access to
+                "exp": expire
+            }
+
+            access_token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
+
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "username": user.username,
+                "role": user.role,
+                "tenant_id": primary_tenant,
+                "tenant_ids": tenant_ids,
+                "expires_at": expire.isoformat()
+            }
+        finally:
+            db.close()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] Login error: {e}")
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
 
 
 @app.get("/register", response_class=HTMLResponse)
