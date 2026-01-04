@@ -29,12 +29,16 @@ from factory.database.connection import init_db, SessionLocal
 from factory.database.models import (
     Project, User, ActivityLog,
     # Arquitetura MVP v4.0
-    Job, JobStatus, JobStep, FailureHistory, Worker
+    Job, JobStatus, JobStep, FailureHistory, Worker,
+    # Agentes, Skills, Stories e Sprints
+    Agent, Skill, Story, Template, Sprint
 )
 from factory.database.repositories import (
     ProjectRepository, UserRepository, ActivityLogRepository,
     # Arquitetura MVP v4.0
-    JobRepository, FailureHistoryRepository, WorkerRepository
+    JobRepository, FailureHistoryRepository, WorkerRepository,
+    # Agentes, Skills, Templates e Sprints
+    AgentRepository, SkillRepository, StoryRepository, TemplateRepository, SprintRepository
 )
 from factory.config import DASHBOARD_HOST, DASHBOARD_PORT, DASHBOARD_TITLE
 
@@ -130,10 +134,17 @@ if HAS_MIDDLEWARE:
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS
+# CORS - Restrict to specific origins for security
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:9001",
+        "http://localhost:9000",
+        "http://localhost:8000",
+        "http://127.0.0.1:9001",
+        "http://127.0.0.1:9000",
+        "http://127.0.0.1:8000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -198,7 +209,7 @@ class AgentUpdate(BaseModel):
 
 class SprintCreate(BaseModel):
     project_id: str
-    sprint_number: int
+    sprint_number: Optional[int] = None  # Opcional - sera auto-gerado se nao fornecido
     name: Optional[str] = None
     goal: Optional[str] = None
     start_date: Optional[str] = None
@@ -535,21 +546,42 @@ async def create_story(data: StoryCreate):
         unique_suffix = uuid.uuid4().hex[:4].upper()
         story_id = f"US-{timestamp}-{unique_suffix}"
 
+        # Mapeia sprint para sprint_id se fornecido
+        sprint_id = None
+        if data.sprint:
+            sprint_id = f"SPR-{data.project_id}-{data.sprint:03d}" if data.project_id else None
+
         repo = StoryRepository(db)
         story = repo.create({
             "story_id": story_id,
             "title": data.title,
             "description": data.description,
             "project_id": data.project_id,
-            "sprint": data.sprint,
-            "points": data.points,
-            "priority": data.priority,
-            "status": "TO_DO"
+            "sprint_id": sprint_id,
+            "story_points": data.points,  # Mapeia points para story_points
+            "priority": data.priority if hasattr(data, 'priority') else "medium",
+            "status": "backlog"
         })
 
         return {"success": True, "story": story.to_dict()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
+
+@app.get("/api/projects/{project_id}/stories")
+async def get_stories_by_project(project_id: str):
+    """Retorna todas as stories de um projeto"""
+    db = SessionLocal()
+    try:
+        # Verifica se projeto existe
+        project = db.query(Project).filter(Project.project_id == project_id).first()
+        if not project:
+            raise HTTPException(status_code=404, detail="Projeto nao encontrado")
+
+        stories = db.query(Story).filter(Story.project_id == project_id).all()
+        return {"stories": [s.to_dict() for s in stories], "project_id": project_id}
     finally:
         db.close()
 
@@ -1340,7 +1372,7 @@ async def list_project_sprints(project_id: str):
             # Conta stories do sprint
             stories = db.query(Story).filter(
                 Story.project_id == project_id,
-                Story.sprint == sprint.sprint_number
+                Story.sprint_id == sprint.sprint_id
             ).all()
             sprint_data['stories_count'] = len(stories)
             sprint_data['stories_by_status'] = {}
@@ -1364,24 +1396,29 @@ async def create_sprint(data: SprintCreate):
         if not project:
             raise HTTPException(status_code=404, detail="Projeto nao encontrado")
 
+        # Determina o numero do sprint
+        sprint_count = db.query(Sprint).filter(Sprint.project_id == data.project_id).count()
+        sprint_number = data.sprint_number if data.sprint_number else sprint_count + 1
+        sprint_id = f"SPR-{data.project_id}-{sprint_number:03d}"
+
         # Verifica se sprint ja existe
-        existing = db.query(Sprint).filter(
-            Sprint.project_id == data.project_id,
-            Sprint.sprint_number == data.sprint_number
-        ).first()
+        existing = db.query(Sprint).filter(Sprint.sprint_id == sprint_id).first()
         if existing:
             raise HTTPException(status_code=400, detail="Sprint ja existe para este projeto")
 
         repo = SprintRepository(db)
         sprint = repo.create({
+            "sprint_id": sprint_id,
             "project_id": data.project_id,
-            "sprint_number": data.sprint_number,
-            "name": data.name or f"Sprint {data.sprint_number}",
+            "name": data.name or f"Sprint {sprint_number}",
             "goal": data.goal,
             "status": "planned"
         })
 
-        return {"success": True, "sprint": sprint.to_dict()}
+        # Adiciona sprint_number na resposta para compatibilidade com testes
+        sprint_dict = sprint.to_dict()
+        sprint_dict["sprint_number"] = sprint_number
+        return {"success": True, "sprint": sprint_dict}
     finally:
         db.close()
 
