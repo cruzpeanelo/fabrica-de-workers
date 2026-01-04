@@ -1,0 +1,514 @@
+{
+  "started_at": "2026-01-04T13:11:46.592226",
+  "categories": {
+    "AUTH": [
+      {
+        "name": "Login válido",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:11:49.567517"
+      },
+      {
+        "name": "Login inválido",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:11:51.634668"
+      },
+      {
+        "name": "Login sem campos",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:11:53.715399"
+      },
+      {
+        "name": "Logout",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:11:53.950984"
+      },
+      {
+        "name": "Refresh token",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:11:54.451529"
+      },
+      {
+        "name": "Token expirado",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:11:56.490222"
+      },
+      {
+        "name": "Token inválido",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:11:58.544308"
+      },
+      {
+        "name": "Recuperar senha",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:00.570806"
+      },
+      {
+        "name": "Resetar senha",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:02.606227"
+      },
+      {
+        "name": "MFA setup",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:04.713054"
+      },
+      {
+        "name": "MFA verify",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:04.787453"
+      },
+      {
+        "name": "Sessões ativas",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:04.862139"
+      }
+    ],
+    "PROJECTS": [
+      {
+        "name": "Listar projetos",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.135552"
+      },
+      {
+        "name": "Criar projeto",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:05.199145"
+      },
+      {
+        "name": "Buscar projeto",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.199216"
+      },
+      {
+        "name": "Atualizar projeto",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.199240"
+      },
+      {
+        "name": "Deletar projeto (skip)",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.199351"
+      },
+      {
+        "name": "Projeto inexistente",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.316970"
+      },
+      {
+        "name": "Filtrar por tenant",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.446214"
+      },
+      {
+        "name": "Paginação",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.566694"
+      },
+      {
+        "name": "Ordenação",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.692497"
+      },
+      {
+        "name": "Busca",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:05.853392"
+      }
+    ],
+    "STORIES": [
+      {
+        "name": "Listar stories",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.001507"
+      },
+      {
+        "name": "Criar story",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.082263"
+      },
+      {
+        "name": "Buscar story",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.180660"
+      },
+      {
+        "name": "Atualizar story",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.180718"
+      },
+      {
+        "name": "Deletar story (skip)",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.180746"
+      },
+      {
+        "name": "Mover story",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.180764"
+      },
+      {
+        "name": "Filtrar por projeto",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.254514"
+      },
+      {
+        "name": "Filtrar por status",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.346933"
+      },
+      {
+        "name": "Filtrar por sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.421860"
+      },
+      {
+        "name": "Bulk update",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.472972"
+      },
+      {
+        "name": "Story com tasks",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.545448"
+      },
+      {
+        "name": "Story docs",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:06.627377"
+      },
+      {
+        "name": "Criar task",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:07.081134"
+      },
+      {
+        "name": "Criar doc",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.216556"
+      },
+      {
+        "name": "Gerar testes IA",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.291811"
+      }
+    ],
+    "SPRINTS": [
+      {
+        "name": "Listar sprints",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.435937"
+      },
+      {
+        "name": "Criar sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.578980"
+      },
+      {
+        "name": "Buscar sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.630509"
+      },
+      {
+        "name": "Atualizar sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.691473"
+      },
+      {
+        "name": "Iniciar sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.747900"
+      },
+      {
+        "name": "Completar sprint",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.802961"
+      },
+      {
+        "name": "Sprints por projeto",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.871933"
+      },
+      {
+        "name": "Velocity",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.921706"
+      }
+    ],
+    "KANBAN": [
+      {
+        "name": "Carregar board",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:09.968699"
+      },
+      {
+        "name": "API kanban",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.021681"
+      },
+      {
+        "name": "Drag-drop",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.021954"
+      },
+      {
+        "name": "Filtros",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022020"
+      },
+      {
+        "name": "Agrupar epic",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022040"
+      },
+      {
+        "name": "WIP limits",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022053"
+      },
+      {
+        "name": "Bulk select",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022064"
+      },
+      {
+        "name": "Quick actions",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022073"
+      },
+      {
+        "name": "Sidebar",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022083"
+      },
+      {
+        "name": "Modo executivo",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.022093"
+      }
+    ],
+    "UPLOADS": [
+      {
+        "name": "Upload arquivo",
+        "status": "FAILED",
+        "timestamp": "2026-01-04T13:12:10.109937"
+      },
+      {
+        "name": "Upload grande (skip)",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.109985"
+      },
+      {
+        "name": "Tipo inválido",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.110000"
+      },
+      {
+        "name": "Download",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.110010"
+      },
+      {
+        "name": "Visualizar",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.110016"
+      },
+      {
+        "name": "Deletar (skip)",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.110021"
+      }
+    ],
+    "CHAT": [
+      {
+        "name": "Enviar mensagem",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.172022"
+      },
+      {
+        "name": "Histórico",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.248803"
+      },
+      {
+        "name": "Limpar histórico",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.248860"
+      },
+      {
+        "name": "Quick action",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.248919"
+      },
+      {
+        "name": "Sugestões",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.248931"
+      },
+      {
+        "name": "Comandos",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.248941"
+      }
+    ],
+    "ANALYTICS": [
+      {
+        "name": "Dashboard",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.324717"
+      },
+      {
+        "name": "Produtividade",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.881003"
+      },
+      {
+        "name": "Velocity",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:10.943581"
+      },
+      {
+        "name": "Burndown",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.001333"
+      },
+      {
+        "name": "Lead time",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.050052"
+      },
+      {
+        "name": "Cycle time",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.116934"
+      }
+    ],
+    "ADMIN": [
+      {
+        "name": "Painel admin",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.180329"
+      },
+      {
+        "name": "Listar usuários",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.243875"
+      },
+      {
+        "name": "Criar usuário",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.243997"
+      },
+      {
+        "name": "Editar usuário",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.244026"
+      },
+      {
+        "name": "Desativar usuário",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.244043"
+      },
+      {
+        "name": "Config tenant",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.244058"
+      },
+      {
+        "name": "Atualizar tenant",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.244071"
+      },
+      {
+        "name": "Audit logs",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.244086"
+      }
+    ],
+    "TENANT": [
+      {
+        "name": "Isolamento dados",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.285282"
+      },
+      {
+        "name": "Trocar tenant",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.285330"
+      },
+      {
+        "name": "Cross-tenant",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.285344"
+      },
+      {
+        "name": "White label",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.285354"
+      },
+      {
+        "name": "Custom domain",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:11.285363"
+      }
+    ],
+    "SECURITY": [
+      {
+        "name": "CORS",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:13.331139"
+      },
+      {
+        "name": "XSS",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:13.338856"
+      },
+      {
+        "name": "SQL Injection",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:13.351453"
+      },
+      {
+        "name": "Rate limit",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:54.296284"
+      },
+      {
+        "name": "Headers segurança",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503736"
+      },
+      {
+        "name": "Token blacklist",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503814"
+      },
+      {
+        "name": "Brute force",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503838"
+      },
+      {
+        "name": "Path traversal",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503855"
+      },
+      {
+        "name": "JWT tampering",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503869"
+      },
+      {
+        "name": "CSRF",
+        "status": "PASSED",
+        "timestamp": "2026-01-04T13:12:56.503883"
+      }
+    ]
+  },
+  "summary": {
+    "total": 96,
+    "passed": 88,
+    "failed": 8,
+    "skipped": 0
+  },
+  "completed_at": "2026-01-04T13:12:56.557254"
+}

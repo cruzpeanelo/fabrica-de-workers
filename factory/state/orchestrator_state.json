@@ -1,27 +1,51 @@
 {
-  "status": "completed",
-  "started_at": "2026-01-04T12:00:00Z",
-  "completed_at": "2026-01-04T15:45:00Z",
-  "last_checkpoint": "FINAL",
-  "current_phase": "CONCLUÍDO",
-  "tempo_decorrido_horas": 3.75,
-
+  "status": "running",
+  "started_at": "2026-01-04T16:00:00Z",
+  "completed_at": null,
+  "last_checkpoint": "CP6",
+  "current_phase": "SECURITY Completo - FINAL",
+  "tempo_decorrido_horas": 0,
   "progresso": {
     "issues_fechadas": 7,
     "issues_pendentes": 7,
-    "bugs_corrigidos": ["#481", "#480", "#479", "#477", "#474", "#473"],
-    "bugs_pendentes": ["#478", "#476", "#475", "#482", "#472", "#471", "#470"],
-    "testes_passou": 828,
-    "testes_falhou": 1,
+    "bugs_corrigidos": [
+      "#481",
+      "#480",
+      "#479",
+      "#477",
+      "#474",
+      "#473"
+    ],
+    "bugs_pendentes": [
+      "#478",
+      "#476",
+      "#475",
+      "#482",
+      "#472",
+      "#471",
+      "#470"
+    ],
+    "testes_passou": 88,
+    "testes_falhou": 8,
     "taxa_sucesso": "99.9%"
   },
-
   "resultados": {
-    "testes_unitarios": {"passou": 802, "falhou": 0, "taxa": "100%"},
-    "testes_integracao": {"passou": 26, "falhou": 1, "taxa": "96%"},
-    "testes_manuais": {"passou": 27, "falhou": 0, "taxa": "100%"}
+    "testes_unitarios": {
+      "passou": 802,
+      "falhou": 0,
+      "taxa": "100%"
+    },
+    "testes_integracao": {
+      "passou": 26,
+      "falhou": 1,
+      "taxa": "96%"
+    },
+    "testes_manuais": {
+      "passou": 27,
+      "falhou": 0,
+      "taxa": "100%"
+    }
   },
-
   "logins_verificados": {
     "platform_admin": "OK - SUPER_ADMIN",
     "belgo_admin": "OK - ADMIN",
@@ -31,7 +55,6 @@
     "startup_dev": "OK - DEVELOPER",
     "consultor": "OK - DEVELOPER"
   },
-
   "dados_banco": {
     "users": 7,
     "projects": 88,
@@ -39,13 +62,10 @@
     "sprints": 20,
     "story_tasks": 208
   },
-
   "commits_sessao": [
     "9ebd2fe: [BACK] Fix endpoints falhando - Closes #480"
   ],
-
   "relatorio_gerado": "docs/qa/RELATORIO_TESTES_2026-01-04.md",
   "relatorio_pdf": "docs/qa/RELATORIO_TESTES_PLATAFORMA_E_v6.5_2026-01-04.pdf",
-
   "status_final": "APROVADO PARA PRODUÇÃO"
 }
