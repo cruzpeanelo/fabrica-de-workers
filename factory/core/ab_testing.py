@@ -1318,18 +1318,22 @@ class Variant:
 
     def __init__(
         self,
-        variant_id: str,
+        variant_id: str = None,
         approach: str = VariantApproach.SIMPLE.value,
         status: str = VariantStatus.PENDING.value,
         code: Optional[str] = None,
         metrics: Optional[Dict[str, Any]] = None,
         test_results: Optional[Dict[str, Any]] = None,
-        score: float = 0.0
+        score: float = 0.0,
+        name: str = None,  # Alias for variant_id for backward compatibility
+        value: str = None  # Alias for code for backward compatibility
     ):
-        self.variant_id = variant_id
+        self.variant_id = variant_id or name or f"V-{uuid.uuid4().hex[:8]}"
+        self.name = name or variant_id  # Store name for compatibility
         self.approach = approach
         self.status = status
-        self.code = code
+        self.code = code or value
+        self.value = value or code  # Store value for compatibility
         self.metrics = metrics or {}
         self.test_results = test_results or {}
         self.score = score
@@ -1382,11 +1386,12 @@ class ABTest:
         status: str = ABTestStatus.PENDING.value,
         variants: Optional[List[Variant]] = None,
         winner_id: Optional[str] = None,
-        recommendation: Optional[Dict[str, Any]] = None
+        recommendation: Optional[Dict[str, Any]] = None,
+        name: str = None  # Alias for title for backward compatibility
     ):
         self.test_id = test_id or f"ABT-{uuid.uuid4().hex[:8].upper()}"
         self.story_id = story_id
-        self.title = title
+        self.title = title or name or ""  # Accept either title or name
         self.description = description
         self.status = status
         self.variants = variants or []
