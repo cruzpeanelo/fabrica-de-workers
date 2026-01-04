@@ -77,13 +77,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     }
 
     # CSP by environment
+    # Issue #456: Added media-src and frame-src for audio notifications and preview iframes
     CSP_DEVELOPMENT = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+            "https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "img-src 'self' data: https: blob:; "
-        "font-src 'self' data:; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
         "connect-src 'self' ws: wss: http: https:; "
+        "media-src 'self' data: blob:; "
+        "frame-src 'self' http://localhost:3000 http://localhost:8000; "
         "frame-ancestors 'none';"
     )
 
@@ -94,6 +98,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "img-src 'self' data: https:; "
         "font-src 'self'; "
         "connect-src 'self' wss: https:; "
+        "media-src 'self' data: blob:; "
+        "frame-src 'self'; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
         "form-action 'self'; "
