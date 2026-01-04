@@ -17,6 +17,7 @@ import websockets
 from datetime import datetime
 from typing import Dict, List, Tuple
 import sys
+import pytest
 
 BASE_URL = "http://localhost:9001"
 WS_URL = "ws://localhost:9001/ws/notifications"
@@ -38,8 +39,8 @@ def log_test(name: str, passed: bool, details: str = "", duration: float = 0):
     if details and not passed:
         print(f"     └─ {details[:100]}")
 
-def test_section(name: str):
-    """Print section header"""
+def print_section(name: str):
+    """Print section header - helper function, not a test"""
     print(f"\n{'='*60}")
     print(f"  {name}")
     print(f"{'='*60}")
@@ -51,7 +52,7 @@ def test_section(name: str):
 
 def test_server_health():
     """Test if server is running and responding"""
-    test_section("1. SERVER HEALTH")
+    print_section("1. SERVER HEALTH")
 
     start = time.time()
     try:
@@ -77,7 +78,7 @@ def test_server_health():
 
 def test_projects_crud():
     """Test Projects CRUD operations"""
-    test_section("2. PROJECTS CRUD")
+    print_section("2. PROJECTS CRUD")
 
     # List projects
     start = time.time()
@@ -115,9 +116,9 @@ def test_projects_crud():
 # 3. STORIES CRUD TESTS
 # =============================================================================
 
-def test_stories_crud(project_id: str):
-    """Test Stories CRUD operations"""
-    test_section("3. STORIES CRUD")
+def run_stories_crud(project_id: str):
+    """Test Stories CRUD operations - requires project_id from previous test"""
+    print_section("3. STORIES CRUD")
 
     if not project_id:
         log_test("Stories CRUD", False, "No project_id provided")
@@ -181,9 +182,9 @@ def test_stories_crud(project_id: str):
 # 4. TASKS CRUD TESTS
 # =============================================================================
 
-def test_tasks_crud(story_id: str):
+def run_tasks_crud(story_id: str):
     """Test Story Tasks CRUD operations"""
-    test_section("4. STORY TASKS CRUD")
+    print_section("4. STORY TASKS CRUD")
 
     if not story_id:
         log_test("Tasks CRUD", False, "No story_id provided")
@@ -250,9 +251,9 @@ def login(request: LoginRequest):
 # 5. GENERATE TESTS ENDPOINT (NEW FEATURE)
 # =============================================================================
 
-def test_generate_tests(task_id: str):
+def run_generate_tests(task_id: str):
     """Test the new Generate Tests endpoint"""
-    test_section("5. GENERATE TESTS (NEW FEATURE)")
+    print_section("5. GENERATE TESTS (NEW FEATURE)")
 
     # Use existing task if no new task was created
     if not task_id:
@@ -287,9 +288,9 @@ def test_generate_tests(task_id: str):
 # 6. DOCUMENTATION TESTS
 # =============================================================================
 
-def test_documentation(story_id: str):
+def run_documentation(story_id: str):
     """Test Documentation CRUD"""
-    test_section("6. DOCUMENTATION")
+    print_section("6. DOCUMENTATION")
 
     if not story_id:
         log_test("Documentation", False, "No story_id provided")
@@ -317,9 +318,10 @@ def test_documentation(story_id: str):
 # 7. WEBSOCKET NOTIFICATIONS (NEW FEATURE)
 # =============================================================================
 
+@pytest.mark.asyncio
 async def test_websocket_async():
     """Test WebSocket notifications"""
-    test_section("7. WEBSOCKET NOTIFICATIONS (NEW FEATURE)")
+    print_section("7. WEBSOCKET NOTIFICATIONS (NEW FEATURE)")
 
     start = time.time()
     try:
@@ -378,7 +380,7 @@ def test_websocket():
 
 def test_mobile_responsive():
     """Test Mobile responsive CSS elements"""
-    test_section("8. MOBILE RESPONSIVE CSS (NEW FEATURE)")
+    print_section("8. MOBILE RESPONSIVE CSS (NEW FEATURE)")
 
     start = time.time()
     r = requests.get(f"{BASE_URL}/")
@@ -417,9 +419,9 @@ def test_mobile_responsive():
 # 9. CHAT / AI ASSISTANT
 # =============================================================================
 
-def test_chat_assistant(project_id: str):
+def run_chat_assistant(project_id: str):
     """Test Chat/AI Assistant functionality"""
-    test_section("9. CHAT / AI ASSISTANT")
+    print_section("9. CHAT / AI ASSISTANT")
 
     if not project_id:
         log_test("Chat Assistant", False, "No project_id provided")
@@ -457,9 +459,9 @@ def test_chat_assistant(project_id: str):
 # 10. EPICS AND SPRINTS
 # =============================================================================
 
-def test_epics_sprints(project_id: str):
+def run_epics_sprints(project_id: str):
     """Test Epics and Sprints"""
-    test_section("10. EPICS AND SPRINTS")
+    print_section("10. EPICS AND SPRINTS")
 
     if not project_id:
         log_test("Epics/Sprints", False, "No project_id provided")
@@ -502,7 +504,7 @@ def test_epics_sprints(project_id: str):
 
 def test_frontend_elements():
     """Test Frontend HTML/Vue.js elements"""
-    test_section("11. FRONTEND ELEMENTS")
+    print_section("11. FRONTEND ELEMENTS")
 
     start = time.time()
     r = requests.get(f"{BASE_URL}/")
@@ -544,9 +546,9 @@ def test_frontend_elements():
 # 12. CLEANUP
 # =============================================================================
 
-def test_cleanup(project_id: str, story_id: str, task_id: str):
+def run_cleanup(project_id: str, story_id: str, task_id: str):
     """Cleanup test data - only delete test-created items"""
-    test_section("12. CLEANUP")
+    print_section("12. CLEANUP")
 
     # Delete task (only if created by test - starts with E2E)
     if task_id:
@@ -616,16 +618,16 @@ def main():
         sys.exit(1)
 
     project_id = test_projects_crud()
-    story_id = test_stories_crud(project_id)
-    task_id = test_tasks_crud(story_id)
-    test_generate_tests(task_id)
-    test_documentation(story_id)
+    story_id = run_stories_crud(project_id)
+    task_id = run_tasks_crud(story_id)
+    run_generate_tests(task_id)
+    run_documentation(story_id)
     test_websocket()
     test_mobile_responsive()
-    test_chat_assistant(project_id)
-    test_epics_sprints(project_id)
+    run_chat_assistant(project_id)
+    run_epics_sprints(project_id)
     test_frontend_elements()
-    test_cleanup(project_id, story_id, task_id)
+    run_cleanup(project_id, story_id, task_id)
 
     # Print report
     success = print_report()
