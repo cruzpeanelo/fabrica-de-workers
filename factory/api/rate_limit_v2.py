@@ -414,6 +414,7 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
 
     # Paths que nao tem rate limit (ou tem limite maior)
     # Issue #461: Extended exempt paths for testing and auth
+    # Issue #477: Added SPA pages and PWA files to prevent blocking navigation
     EXEMPT_PATHS = {
         "/api/v1/health",
         "/api/v1/docs",
@@ -426,6 +427,24 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         "/api/health",
         "/health",
         "/login",  # HTML login page
+        # Issue #477: SPA pages should not be rate limited
+        "/",
+        "/kanban",
+        "/stories",
+        "/backlog",
+        "/board",
+        "/sprints",
+        "/register",
+        "/forgot-password",
+        "/settings",
+        "/profile",
+        "/notifications",
+        "/help",
+        "/onboarding",
+        # Issue #477: PWA files should not be rate limited
+        "/manifest.json",
+        "/sw.js",
+        "/api/pwa",
     }
 
     async def dispatch(self, request: Request, call_next):
