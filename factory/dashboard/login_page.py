@@ -377,32 +377,32 @@ LOGIN_PAGE_HTML = """
             <div class="demo-section">
                 <div class="demo-title">Credenciais de Demonstracao</div>
                 <div class="demo-grid">
-                    <div class="demo-credential" @click="fillCredentials('platform_admin', 'admin123')">
+                    <div class="demo-credential" @click="fillCredentials('platform_admin', 'Platform@2025!Adm')">
                         <div class="demo-user">platform_admin</div>
                         <div class="demo-role">Super Admin</div>
                         <span class="demo-tenant tenant-multi">Todos</span>
                     </div>
-                    <div class="demo-credential" @click="fillCredentials('belgo_admin', 'belgo123')">
+                    <div class="demo-credential" @click="fillCredentials('belgo_admin', 'Belgo@Admin#2025')">
                         <div class="demo-user">belgo_admin</div>
                         <div class="demo-role">Admin</div>
                         <span class="demo-tenant tenant-belgo">Belgo</span>
                     </div>
-                    <div class="demo-credential" @click="fillCredentials('tech_admin', 'tech123')">
+                    <div class="demo-credential" @click="fillCredentials('tech_admin', 'TechCorp@Admin#2025')">
                         <div class="demo-user">tech_admin</div>
                         <div class="demo-role">Admin</div>
                         <span class="demo-tenant tenant-tech">TechCorp</span>
                     </div>
-                    <div class="demo-credential" @click="fillCredentials('startup_dev', 'startup123')">
+                    <div class="demo-credential" @click="fillCredentials('startup_dev', 'StartupX@Dev#2025')">
                         <div class="demo-user">startup_dev</div>
                         <div class="demo-role">Developer</div>
                         <span class="demo-tenant tenant-startup">StartupX</span>
                     </div>
-                    <div class="demo-credential" @click="fillCredentials('consultor', 'consul123')">
+                    <div class="demo-credential" @click="fillCredentials('consultor', 'Consultor@Multi#2025')">
                         <div class="demo-user">consultor</div>
                         <div class="demo-role">Developer</div>
                         <span class="demo-tenant tenant-multi">Multi-tenant</span>
                     </div>
-                    <div class="demo-credential" @click="fillCredentials('belgo_pm', 'belgo123')">
+                    <div class="demo-credential" @click="fillCredentials('belgo_pm', 'Belgo@PM#2025')">
                         <div class="demo-user">belgo_pm</div>
                         <div class="demo-role">Project Manager</div>
                         <span class="demo-tenant tenant-belgo">Belgo</span>
@@ -537,30 +537,45 @@ LOGIN_PAGE_HTML = """
                         localStorage.setItem('user_data', JSON.stringify(data.user));
 
                         // Get user's tenants
-                        const tenantsResponse = await fetch('/api/user/tenants', {
-                            headers: { 'Authorization': `Bearer ${data.access_token}` }
-                        });
+                        try {
+                            const tenantsResponse = await fetch('/api/user/tenants', {
+                                headers: { 'Authorization': `Bearer ${data.access_token}` }
+                            });
 
-                        if (tenantsResponse.ok) {
-                            const tenantsData = await tenantsResponse.json();
-                            userTenants.value = tenantsData.tenants || [];
+                            if (tenantsResponse.ok) {
+                                const tenantsData = await tenantsResponse.json();
+                                userTenants.value = tenantsData.tenants || [];
 
-                            // Redirect based on number of tenants
-                            if (data.user.role === 'SUPER_ADMIN') {
-                                // Super admin goes to platform portal
-                                localStorage.setItem('current_tenant', userTenants.value[0]?.tenant_id || '');
-                                window.location.href = '/platform';
-                            } else if (userTenants.value.length === 1) {
-                                // Single tenant - go directly
-                                const tenant = userTenants.value[0];
-                                localStorage.setItem('current_tenant', tenant.tenant_id);
-                                window.location.href = '/';
-                            } else if (userTenants.value.length > 1) {
-                                // Multiple tenants - show selector
-                                showTenantSelector.value = true;
+                                // Redirect based on number of tenants
+                                if (data.user?.role === 'SUPER_ADMIN') {
+                                    // Super admin goes to platform portal
+                                    localStorage.setItem('current_tenant', userTenants.value[0]?.tenant_id || 'BELGO-001');
+                                    window.location.href = '/platform';
+                                } else if (userTenants.value.length === 1) {
+                                    // Single tenant - go directly
+                                    const tenant = userTenants.value[0];
+                                    localStorage.setItem('current_tenant', tenant.tenant_id);
+                                    window.location.href = '/';
+                                } else if (userTenants.value.length > 1) {
+                                    // Multiple tenants - show selector
+                                    showTenantSelector.value = true;
+                                } else {
+                                    // No tenants - redirect to main dashboard anyway
+                                    console.warn('User has no tenants, redirecting to dashboard');
+                                    localStorage.setItem('current_tenant', 'BELGO-001');
+                                    window.location.href = '/';
+                                }
                             } else {
-                                errorMessage.value = 'Usuario nao pertence a nenhuma organizacao';
+                                // Tenants endpoint failed - redirect with default tenant
+                                console.warn('Tenants endpoint returned error, redirecting with default');
+                                localStorage.setItem('current_tenant', 'BELGO-001');
+                                window.location.href = data.user?.role === 'SUPER_ADMIN' ? '/platform' : '/';
                             }
+                        } catch (tenantError) {
+                            // Tenants fetch failed - redirect anyway with default tenant
+                            console.error('Failed to fetch tenants:', tenantError);
+                            localStorage.setItem('current_tenant', 'BELGO-001');
+                            window.location.href = data.user?.role === 'SUPER_ADMIN' ? '/platform' : '/';
                         }
 
                     } catch (error) {
