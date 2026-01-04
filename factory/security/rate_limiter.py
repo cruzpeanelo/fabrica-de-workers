@@ -28,10 +28,31 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # =============================================================================
 
-DEFAULT_REQUESTS_PER_MINUTE = 60
-DEFAULT_BURST_SIZE = 10
-AUTH_ENDPOINT_LIMIT = 10  # More restrictive for auth endpoints
-SENSITIVE_ENDPOINT_LIMIT = 30
+import os
+
+# Environment detection
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development").lower() == "production"
+IS_TESTING = os.getenv("TESTING", "").lower() in ("true", "1", "yes")
+
+# Default limits - higher for development, stricter for production
+if IS_PRODUCTION:
+    DEFAULT_REQUESTS_PER_MINUTE = 120
+    DEFAULT_BURST_SIZE = 20
+    AUTH_ENDPOINT_LIMIT = 15
+    SENSITIVE_ENDPOINT_LIMIT = 60
+else:
+    # Development mode - much more lenient
+    DEFAULT_REQUESTS_PER_MINUTE = 600  # 10 requests/second
+    DEFAULT_BURST_SIZE = 100
+    AUTH_ENDPOINT_LIMIT = 60
+    SENSITIVE_ENDPOINT_LIMIT = 300
+
+# Testing mode - effectively disable rate limiting
+if IS_TESTING:
+    DEFAULT_REQUESTS_PER_MINUTE = 10000
+    DEFAULT_BURST_SIZE = 1000
+    AUTH_ENDPOINT_LIMIT = 1000
+    SENSITIVE_ENDPOINT_LIMIT = 5000
 
 
 # =============================================================================
@@ -174,23 +195,33 @@ class RateLimiter:
             burst_size=DEFAULT_BURST_SIZE
         ))
 
-        # Auth endpoints - more restrictive
+        # Auth endpoints - more restrictive (but reasonable)
         self.add_rule(RateLimitRule(
             name="auth_endpoints",
             scope=RateLimitScope.ENDPOINT,
             requests_per_minute=AUTH_ENDPOINT_LIMIT,
-            burst_size=5,
+            burst_size=20 if not IS_PRODUCTION else 5,
             applies_to="/api/auth/*"
         ))
 
-        # Login specifically - very restrictive
+        # Login specifically - restrictive but not blocking normal use
         self.add_rule(RateLimitRule(
             name="login_endpoint",
             scope=RateLimitScope.ENDPOINT,
-            requests_per_minute=5,
-            burst_size=3,
+            requests_per_minute=30 if not IS_PRODUCTION else 5,
+            burst_size=10 if not IS_PRODUCTION else 3,
             applies_to="/api/auth/login"
         ))
+
+        # Whitelist for local development
+        self._whitelisted_ips = {
+            "127.0.0.1",
+            "::1",
+            "localhost",
+        }
+
+        # Whitelist for testing headers
+        self._whitelist_header = "X-Test-Bypass-RateLimit"
 
     # -------------------------------------------------------------------------
     # RULE MANAGEMENT
@@ -228,19 +259,47 @@ class RateLimiter:
     # LIMIT CHECKING
     # -------------------------------------------------------------------------
 
+    def is_whitelisted(self, identifier: str, headers: Optional[Dict[str, str]] = None) -> bool:
+        """Check if identifier is whitelisted from rate limiting."""
+        # Check IP whitelist
+        if identifier in self._whitelisted_ips:
+            return True
+
+        # Check test header (development only)
+        if not IS_PRODUCTION and headers:
+            if headers.get(self._whitelist_header) == "true":
+                return True
+
+        # Check testing mode
+        if IS_TESTING:
+            return True
+
+        return False
+
     def check(
         self,
         identifier: str,
         scope: RateLimitScope = RateLimitScope.IP,
         endpoint: Optional[str] = None,
         tenant_id: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        headers: Optional[Dict[str, str]] = None
     ) -> RateLimitResult:
         """
         Check if request is allowed under rate limits.
 
         Uses sliding window algorithm with token bucket fallback.
         """
+        # Check whitelist first
+        if self.is_whitelisted(identifier, headers):
+            return RateLimitResult(
+                allowed=True,
+                limit=999999,
+                remaining=999999,
+                reset_at=datetime.utcnow() + timedelta(seconds=60),
+                scope="whitelisted"
+            )
+
         # Determine the limit to apply
         limit = self._get_applicable_limit(
             scope, endpoint, tenant_id, user_id
@@ -404,9 +463,24 @@ def check_rate_limit(
     scope: RateLimitScope = RateLimitScope.IP,
     endpoint: Optional[str] = None,
     tenant_id: Optional[str] = None,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    headers: Optional[Dict[str, str]] = None
 ) -> RateLimitResult:
     """Check rate limit for a request."""
     return get_rate_limiter().check(
-        identifier, scope, endpoint, tenant_id, user_id
+        identifier, scope, endpoint, tenant_id, user_id, headers
     )
+
+
+def disable_rate_limiting():
+    """Disable rate limiting entirely (for testing)."""
+    global IS_TESTING
+    IS_TESTING = True
+    logger.info("Rate limiting disabled for testing")
+
+
+def enable_rate_limiting():
+    """Re-enable rate limiting."""
+    global IS_TESTING
+    IS_TESTING = False
+    logger.info("Rate limiting re-enabled")
