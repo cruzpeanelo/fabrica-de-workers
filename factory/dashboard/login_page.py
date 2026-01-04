@@ -347,8 +347,9 @@ LOGIN_PAGE_HTML = """
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Usuario</label>
+                    <label for="login-username" class="form-label">Usuario</label>
                     <input type="text"
+                           id="login-username"
                            class="form-input"
                            :class="{ error: errorMessage }"
                            v-model="username"
@@ -358,8 +359,9 @@ LOGIN_PAGE_HTML = """
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Senha</label>
+                    <label for="login-password" class="form-label">Senha</label>
                     <input type="password"
+                           id="login-password"
                            class="form-input"
                            :class="{ error: errorMessage }"
                            v-model="password"
