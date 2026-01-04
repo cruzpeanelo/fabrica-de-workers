@@ -23,8 +23,10 @@ from typing import Optional, List
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Mudar para diretorio do projeto e adicionar ao path
-os.chdir(r'C:\Users\lcruz\Plataforma E')
-sys.path.insert(0, r'C:\Users\lcruz\Plataforma E')
+# Detecta o diretório raiz do projeto automaticamente (2 níveis acima de factory/dashboard/)
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+os.chdir(_PROJECT_ROOT)
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -181,8 +183,8 @@ try:
 except ImportError as e:
     print(f"[Shutdown] Graceful shutdown not available: {e}")
 
-# Diretorio de uploads
-UPLOAD_DIR = Path(r'C:\Users\lcruz\Plataforma E\uploads')
+# Diretorio de uploads (usa raiz do projeto detectada automaticamente)
+UPLOAD_DIR = _PROJECT_ROOT / 'uploads'
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Mount static files for PWA support
@@ -3799,7 +3801,7 @@ def execute_terminal_command(project_id: str, request: TerminalExecuteRequest):
         if request.cwd:
             cwd = request.cwd
         else:
-            cwd = os.path.join(r'C:\Users\lcruz\Plataforma E\projects', project_id)
+            cwd = str(_PROJECT_ROOT / 'projects' / project_id)
 
         # Ensure directory exists
         os.makedirs(cwd, exist_ok=True)
