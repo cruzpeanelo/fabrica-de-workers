@@ -29,8 +29,39 @@ load_dotenv()
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-# Limites por tier (requests por minuto e por dia)
-TIER_LIMITS = {
+# Rate Limit Mode - configurable by environment
+# Values: 'production' (restrictive) or 'development' (permissive)
+RATE_LIMIT_MODE = os.getenv('RATE_LIMIT_MODE', 'production')
+
+# Legacy QA Mode support (for backwards compatibility)
+IS_QA_MODE = os.getenv("QA_MODE", "").lower() in ("true", "1", "yes") or os.getenv("ENVIRONMENT", "development").lower() != "production"
+
+# Limits para desenvolvimento (mais permissivos)
+DEV_TIER_LIMITS = {
+    "free": {
+        "per_minute": 1000,
+        "per_day": 100000,
+        "burst": 200,
+    },
+    "basic": {
+        "per_minute": 2000,
+        "per_day": 200000,
+        "burst": 400,
+    },
+    "pro": {
+        "per_minute": 5000,
+        "per_day": 500000,
+        "burst": 1000,
+    },
+    "enterprise": {
+        "per_minute": 10000,
+        "per_day": 1000000,
+        "burst": 2000,
+    },
+}
+
+# Limits para produção (restritivos)
+PROD_TIER_LIMITS = {
     "free": {
         "per_minute": 30,
         "per_day": 1000,
@@ -52,6 +83,12 @@ TIER_LIMITS = {
         "burst": 1000,
     },
 }
+
+# Selecionar baseado no modo (RATE_LIMIT_MODE has priority, then legacy IS_QA_MODE)
+if RATE_LIMIT_MODE == 'development' or IS_QA_MODE:
+    TIER_LIMITS = DEV_TIER_LIMITS
+else:
+    TIER_LIMITS = PROD_TIER_LIMITS
 
 # Limites por endpoint especifico (override do tier)
 ENDPOINT_LIMITS = {
@@ -281,6 +318,7 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
     """
 
     # Paths que nao tem rate limit (ou tem limite maior)
+    # Issue #461: Extended exempt paths for testing and auth
     EXEMPT_PATHS = {
         "/api/v1/health",
         "/api/v1/docs",
@@ -288,14 +326,23 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/docs",
         "/redoc",
+        "/api/auth",  # Auth endpoints need to work for login
+        "/api/auth/login",
+        "/api/health",
+        "/health",
+        "/login",  # HTML login page
     }
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
 
-        # Pular paths isentos
+        # Pular paths isentos (Issue #461: support prefix matching)
         if path in self.EXEMPT_PATHS or path.startswith("/static"):
             return await call_next(request)
+        # Also check prefix matching for auth paths
+        for exempt in self.EXEMPT_PATHS:
+            if path.startswith(exempt):
+                return await call_next(request)
 
         # Determinar identificador e tier
         identifier, tier = await self._get_identifier_and_tier(request)
