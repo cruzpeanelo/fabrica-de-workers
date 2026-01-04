@@ -1,0 +1,58 @@
+{
+  "timestamp": "2026-01-03T22:11:46.129376",
+  "status": {
+    "status": "stopping",
+    "started_at": "2026-01-03T20:10:46.038012",
+    "end_time": "2026-01-03T22:10:46.038012",
+    "duration_configured": 7200,
+    "duration_formatted": "2h",
+    "elapsed_seconds": 7260,
+    "elapsed_formatted": "2h 1m",
+    "remaining_seconds": 0,
+    "remaining_formatted": "00:00:00",
+    "progress": 1.0,
+    "progress_percent": "100.0%",
+    "is_unlimited": false,
+    "is_warning": false,
+    "total_paused_seconds": 0,
+    "stats": {
+      "cycles_completed": 240,
+      "tasks_processed": 0,
+      "issues_handled": 0,
+      "agents_spawned": 0,
+      "errors_count": 0,
+      "warnings_shown": 3,
+      "extensions_made": 0
+    }
+  },
+  "summary": {
+    "duration_configured": "2h",
+    "duration_actual": "2h 1m",
+    "started_at": "2026-01-03T20:10:46.038012",
+    "ended_at": "2026-01-03T22:11:46.129561",
+    "status": "stopping",
+    "stats": {
+      "cycles_completed": 240,
+      "tasks_processed": 0,
+      "issues_handled": 0,
+      "agents_spawned": 0,
+      "errors_count": 0,
+      "warnings_shown": 3,
+      "extensions_made": 0
+    },
+    "total_paused_seconds": 0
+  },
+  "config": {
+    "duration_seconds": 7200,
+    "graceful_shutdown_delay": 60,
+    "warn_before_shutdown": 300,
+    "warn_intervals": [
+      300,
+      60,
+      30,
+      10
+    ],
+    "auto_save_state": true,
+    "state_file": "C:\\Users\\lcruz\\Fabrica de Agentes\\factory\\state\\runtime_state.json"
+  }
+}

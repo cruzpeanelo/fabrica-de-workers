@@ -4,7 +4,7 @@
     "pid": 28556,
     "task_id": "task_BACK_1767477444",
     "started_at": "2026-01-03T18:57:24.859401",
-    "status": "running",
+    "status": "terminated",
     "title": "[BACK] Teste de API..."
   }
 }
