@@ -486,6 +486,32 @@ class OKRManager:
 
         return True
 
+    def get_key_results_for_objective(self, objective_id: str) -> List[Dict[str, Any]]:
+        """
+        Retorna todos os key results de um objetivo.
+
+        Args:
+            objective_id: ID do objetivo
+
+        Returns:
+            Lista de key results do objetivo
+        """
+        # Verificar se objetivo existe
+        objective = self.db.query(Objective).filter(
+            Objective.objective_id == objective_id,
+            Objective.is_deleted == False
+        ).first()
+
+        if not objective:
+            return []
+
+        key_results = self.db.query(KeyResult).filter(
+            KeyResult.objective_id == objective_id,
+            KeyResult.is_deleted == False
+        ).order_by(KeyResult.created_at.asc()).all()
+
+        return [kr.to_dict() for kr in key_results]
+
     # =========================================================================
     # PROGRESS CALCULATION
     # =========================================================================
