@@ -3476,6 +3476,19 @@ def list_sprints(project_id: str):
         db.close()
 
 
+@app.get("/api/sprints")
+def list_all_sprints():
+    """Lista todos os sprints (Issue #480 fix)"""
+    db = SessionLocal()
+    try:
+        # SprintRepository não tem get_all, então usar query direto
+        from factory.database.models import Sprint
+        sprints = db.query(Sprint).order_by(Sprint.start_date.desc()).limit(100).all()
+        return [s.to_dict() for s in sprints]
+    finally:
+        db.close()
+
+
 @app.post("/api/sprints")
 def create_sprint(sprint: SprintCreate):
     """Cria sprint"""
@@ -3512,6 +3525,22 @@ def complete_sprint(sprint_id: str):
         if not sprint:
             raise HTTPException(404, "Sprint not found")
         return sprint.to_dict()
+    finally:
+        db.close()
+
+
+# =============================================================================
+# API ENDPOINTS - ACTIVITY LOGS (Issue #480 fix)
+# =============================================================================
+
+@app.get("/api/activity")
+def get_activity(limit: int = 50, project_id: str = None):
+    """Lista atividades recentes"""
+    db = SessionLocal()
+    try:
+        repo = ActivityLogRepository(db)
+        logs = repo.get_recent(limit=limit, project_id=project_id)
+        return [log.to_dict() for log in logs]
     finally:
         db.close()
 
