@@ -73,6 +73,10 @@ class ClaudeModel(str, Enum):
         return names.get(self, self.value)
 
 
+# Alias para compatibilidade com testes
+ModelTier = ClaudeModel
+
+
 class TaskComplexity(str, Enum):
     """Niveis de complexidade de tarefa"""
     SIMPLE = "simple"       # Formatacao, conversao, tarefas triviais
