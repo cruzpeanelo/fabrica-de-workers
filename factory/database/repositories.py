@@ -58,6 +58,7 @@ from .models import (
 )
 
 # Issue #301: Tenant isolation helper
+# Issue #461: Enhanced tenant isolation with strict validation
 import logging
 _tenant_logger = logging.getLogger(__name__)
 
@@ -65,14 +66,41 @@ def _get_current_tenant_id() -> Optional[str]:
     """
     Obtém tenant_id do contexto global (thread-safe).
     Issue #301: Helper para filtro de tenant nos repositories.
+    Issue #461: Added logging for debugging tenant isolation issues.
     """
     try:
         from factory.middleware.tenant_middleware import get_tenant_id
-        return get_tenant_id()
+        tenant_id = get_tenant_id()
+        if tenant_id:
+            _tenant_logger.debug(f"[Issue #461] Tenant context found: {tenant_id}")
+        else:
+            _tenant_logger.warning("[Issue #461] No tenant context available - queries may not be filtered")
+        return tenant_id
     except ImportError:
+        _tenant_logger.warning("[Issue #461] tenant_middleware not available - tenant filtering disabled")
         return None
-    except Exception:
+    except Exception as e:
+        _tenant_logger.error(f"[Issue #461] Error getting tenant context: {e}")
         return None
+
+
+def _require_tenant_id(tenant_id: Optional[str], operation: str = "query") -> str:
+    """
+    Issue #461: Ensures tenant_id is available for data-sensitive operations.
+    Raises exception if tenant_id is missing in production mode.
+    """
+    import os
+    if tenant_id:
+        return tenant_id
+
+    # In development, allow missing tenant for backwards compatibility
+    env = os.getenv("ENV", "development")
+    if env == "development":
+        _tenant_logger.warning(f"[Issue #461] Missing tenant_id for {operation} in development mode")
+        return None
+
+    # In production, this is a security violation
+    raise ValueError(f"[Issue #461] Tenant isolation violation: {operation} requires tenant_id in production")
 
 
 # =============================================================================
@@ -598,13 +626,29 @@ class ActivityLogRepository:
 # =============================================================================
 
 class TaskRepository:
-    """Repositorio para gerenciamento de Tarefas Kanban"""
+    """
+    Repositorio para gerenciamento de Tarefas Kanban.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(Task, 'tenant_id'):
+            query = query.filter(Task.tenant_id == self._tenant_id)
+        return query
 
     def create(self, task_data: dict) -> Task:
-        """Cria nova tarefa"""
+        """Cria nova tarefa (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in task_data and self._tenant_id:
+            task_data["tenant_id"] = self._tenant_id
+
         # Gera task_id automaticamente se nao fornecido
         if "task_id" not in task_data:
             count = self.db.query(Task).count()
@@ -614,10 +658,12 @@ class TaskRepository:
         if "kanban_order" not in task_data:
             project_id = task_data.get("project_id")
             status = task_data.get("status", TaskStatus.BACKLOG.value)
-            max_order = self.db.query(Task).filter(
+            query = self.db.query(Task).filter(
                 Task.project_id == project_id,
                 Task.status == status
-            ).count()
+            )
+            query = self._apply_tenant_filter(query)  # Issue #461
+            max_order = query.count()
             task_data["kanban_order"] = max_order
 
         task = Task(**task_data)
@@ -627,12 +673,15 @@ class TaskRepository:
         return task
 
     def get_by_id(self, task_id: str) -> Optional[Task]:
-        """Busca tarefa por ID"""
-        return self.db.query(Task).filter(Task.task_id == task_id).first()
+        """Busca tarefa por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(Task).filter(Task.task_id == task_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_all(self, project_id: str = None, status: str = None, limit: int = 100) -> List[Task]:
-        """Lista tarefas com filtros opcionais"""
+        """Lista tarefas com filtros opcionais (Issue #461: filtered by tenant)"""
         query = self.db.query(Task)
+        query = self._apply_tenant_filter(query)  # Issue #461
         if project_id:
             query = query.filter(Task.project_id == project_id)
         if status:
@@ -640,16 +689,16 @@ class TaskRepository:
         return query.order_by(Task.kanban_order).limit(limit).all()
 
     def get_by_project(self, project_id: str) -> List[Task]:
-        """Lista tarefas de um projeto"""
-        return self.db.query(Task).filter(
-            Task.project_id == project_id
-        ).order_by(Task.status, Task.kanban_order).all()
+        """Lista tarefas de um projeto (Issue #461: filtered by tenant)"""
+        query = self.db.query(Task).filter(Task.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(Task.status, Task.kanban_order).all()
 
     def get_kanban_board(self, project_id: str) -> Dict[str, List[dict]]:
-        """Retorna board Kanban completo com tarefas agrupadas por status"""
-        tasks = self.db.query(Task).filter(
-            Task.project_id == project_id
-        ).order_by(Task.kanban_order).all()
+        """Retorna board Kanban completo com tarefas agrupadas por status (Issue #461: filtered by tenant)"""
+        query = self.db.query(Task).filter(Task.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        tasks = query.order_by(Task.kanban_order).all()
 
         # Inicializa todas as colunas
         board = {status.value: [] for status in TaskStatus}
@@ -749,18 +798,20 @@ class TaskRepository:
         return False
 
     def count_by_status(self, project_id: str = None) -> Dict[str, int]:
-        """Conta tarefas por status"""
+        """Conta tarefas por status (Issue #461: filtered by tenant)"""
         result = {}
         for status in TaskStatus:
             query = self.db.query(Task).filter(Task.status == status.value)
+            query = self._apply_tenant_filter(query)  # Issue #461
             if project_id:
                 query = query.filter(Task.project_id == project_id)
             result[status.value] = query.count()
         return result
 
     def get_by_assignee(self, assignee: str, project_id: str = None) -> List[Task]:
-        """Lista tarefas por responsavel"""
+        """Lista tarefas por responsavel (Issue #461: filtered by tenant)"""
         query = self.db.query(Task).filter(Task.assignee == assignee)
+        query = self._apply_tenant_filter(query)  # Issue #461
         if project_id:
             query = query.filter(Task.project_id == project_id)
         return query.order_by(Task.status, Task.kanban_order).all()
@@ -1004,13 +1055,29 @@ class StoryRepository:
 # =============================================================================
 
 class StoryTaskRepository:
-    """Repositorio para gerenciamento de Tarefas de Stories"""
+    """
+    Repositorio para gerenciamento de Tarefas de Stories.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(StoryTask, 'tenant_id'):
+            query = query.filter(StoryTask.tenant_id == self._tenant_id)
+        return query
 
     def create(self, task_data: dict) -> StoryTask:
-        """Cria nova task"""
+        """Cria nova task (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in task_data and self._tenant_id:
+            task_data["tenant_id"] = self._tenant_id
+
         if "task_id" not in task_data:
             count = self.db.query(StoryTask).count()
             task_data["task_id"] = f"STSK-{count + 1:04d}"
@@ -1018,9 +1085,9 @@ class StoryTaskRepository:
         # Define task_order
         if "task_order" not in task_data:
             story_id = task_data.get("story_id")
-            max_order = self.db.query(StoryTask).filter(
-                StoryTask.story_id == story_id
-            ).count()
+            query = self.db.query(StoryTask).filter(StoryTask.story_id == story_id)
+            query = self._apply_tenant_filter(query)  # Issue #461
+            max_order = query.count()
             task_data["task_order"] = max_order
 
         task = StoryTask(**task_data)
@@ -1034,14 +1101,16 @@ class StoryTaskRepository:
         return task
 
     def get_by_id(self, task_id: str) -> Optional[StoryTask]:
-        """Busca task por ID"""
-        return self.db.query(StoryTask).filter(StoryTask.task_id == task_id).first()
+        """Busca task por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryTask).filter(StoryTask.task_id == task_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_by_story(self, story_id: str) -> List[StoryTask]:
-        """Lista tasks de uma story"""
-        return self.db.query(StoryTask).filter(
-            StoryTask.story_id == story_id
-        ).order_by(StoryTask.task_order).all()
+        """Lista tasks de uma story (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryTask).filter(StoryTask.story_id == story_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(StoryTask.task_order).all()
 
     def update(self, task_id: str, data: dict) -> Optional[StoryTask]:
         """Atualiza task"""
@@ -1135,13 +1204,29 @@ class StoryTaskRepository:
 # =============================================================================
 
 class StoryDocumentationRepository:
-    """Repositorio para gerenciamento de Documentacao de Stories"""
+    """
+    Repositorio para gerenciamento de Documentacao de Stories.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(StoryDocumentation, 'tenant_id'):
+            query = query.filter(StoryDocumentation.tenant_id == self._tenant_id)
+        return query
 
     def create(self, doc_data: dict) -> StoryDocumentation:
-        """Cria nova documentacao"""
+        """Cria nova documentacao (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in doc_data and self._tenant_id:
+            doc_data["tenant_id"] = self._tenant_id
+
         if "doc_id" not in doc_data:
             count = self.db.query(StoryDocumentation).count()
             doc_data["doc_id"] = f"DOC-{count + 1:04d}"
@@ -1153,27 +1238,31 @@ class StoryDocumentationRepository:
         return doc
 
     def get_by_id(self, doc_id: str) -> Optional[StoryDocumentation]:
-        """Busca documentacao por ID"""
-        return self.db.query(StoryDocumentation).filter(StoryDocumentation.doc_id == doc_id).first()
+        """Busca documentacao por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryDocumentation).filter(StoryDocumentation.doc_id == doc_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_by_story(self, story_id: str) -> List[StoryDocumentation]:
-        """Lista documentacao de uma story"""
-        return self.db.query(StoryDocumentation).filter(
-            StoryDocumentation.story_id == story_id
-        ).order_by(desc(StoryDocumentation.created_at)).all()
+        """Lista documentacao de uma story (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryDocumentation).filter(StoryDocumentation.story_id == story_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(desc(StoryDocumentation.created_at)).all()
 
     def get_by_task(self, task_id: str) -> List[StoryDocumentation]:
-        """Lista documentacao de uma task"""
-        return self.db.query(StoryDocumentation).filter(
-            StoryDocumentation.task_id == task_id
-        ).order_by(desc(StoryDocumentation.created_at)).all()
+        """Lista documentacao de uma task (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryDocumentation).filter(StoryDocumentation.task_id == task_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(desc(StoryDocumentation.created_at)).all()
 
     def get_by_type(self, story_id: str, doc_type: str) -> List[StoryDocumentation]:
-        """Lista documentacao por tipo"""
-        return self.db.query(StoryDocumentation).filter(
+        """Lista documentacao por tipo (Issue #461: filtered by tenant)"""
+        query = self.db.query(StoryDocumentation).filter(
             StoryDocumentation.story_id == story_id,
             StoryDocumentation.doc_type == doc_type
-        ).all()
+        )
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.all()
 
     def update(self, doc_id: str, data: dict) -> Optional[StoryDocumentation]:
         """Atualiza documentacao"""
@@ -1202,13 +1291,29 @@ class StoryDocumentationRepository:
 # =============================================================================
 
 class ChatMessageRepository:
-    """Repositorio para gerenciamento de Mensagens do Chat"""
+    """
+    Repositorio para gerenciamento de Mensagens do Chat.
 
-    def __init__(self, db: Session):
+    Issue #461: Enhanced tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(ChatMessage, 'tenant_id'):
+            query = query.filter(ChatMessage.tenant_id == self._tenant_id)
+        return query
 
     def create(self, message_data: dict) -> ChatMessage:
-        """Cria nova mensagem"""
+        """Cria nova mensagem (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in message_data and self._tenant_id:
+            message_data["tenant_id"] = self._tenant_id
+
         if "message_id" not in message_data:
             import uuid
             message_data["message_id"] = f"MSG-{uuid.uuid4().hex[:8].upper()}"
@@ -1220,15 +1325,19 @@ class ChatMessageRepository:
         return message
 
     def get_by_id(self, message_id: str) -> Optional[ChatMessage]:
-        """Busca mensagem por ID"""
-        return self.db.query(ChatMessage).filter(ChatMessage.message_id == message_id).first()
+        """Busca mensagem por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(ChatMessage).filter(ChatMessage.message_id == message_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_history(self, project_id: str = None, story_id: str = None,
                     tenant_id: str = None, limit: int = 50) -> List[ChatMessage]:
-        """Lista historico de mensagens (Issue #152: filtra por tenant)"""
+        """Lista historico de mensagens (Issue #461: auto-filters by tenant from context)"""
         query = self.db.query(ChatMessage)
-        if tenant_id:
-            query = query.filter(ChatMessage.tenant_id == tenant_id)
+        # Issue #461: Use context tenant if not explicitly passed
+        effective_tenant = tenant_id or self._tenant_id
+        if effective_tenant:
+            query = query.filter(ChatMessage.tenant_id == effective_tenant)
         if project_id:
             query = query.filter(ChatMessage.project_id == project_id)
         if story_id:
@@ -1236,18 +1345,22 @@ class ChatMessageRepository:
         return query.order_by(ChatMessage.created_at).limit(limit).all()
 
     def get_recent(self, tenant_id: str = None, limit: int = 20) -> List[ChatMessage]:
-        """Lista mensagens recentes (Issue #152: filtra por tenant)"""
+        """Lista mensagens recentes (Issue #461: auto-filters by tenant from context)"""
         query = self.db.query(ChatMessage)
-        if tenant_id:
-            query = query.filter(ChatMessage.tenant_id == tenant_id)
+        # Issue #461: Use context tenant if not explicitly passed
+        effective_tenant = tenant_id or self._tenant_id
+        if effective_tenant:
+            query = query.filter(ChatMessage.tenant_id == effective_tenant)
         return query.order_by(desc(ChatMessage.created_at)).limit(limit).all()
 
     def clear_history(self, project_id: str = None, story_id: str = None,
                        tenant_id: str = None) -> int:
-        """Limpa historico de mensagens (Issue #152: filtra por tenant)"""
+        """Limpa historico de mensagens (Issue #461: auto-filters by tenant from context)"""
         query = self.db.query(ChatMessage)
-        if tenant_id:
-            query = query.filter(ChatMessage.tenant_id == tenant_id)
+        # Issue #461: Use context tenant if not explicitly passed
+        effective_tenant = tenant_id or self._tenant_id
+        if effective_tenant:
+            query = query.filter(ChatMessage.tenant_id == effective_tenant)
         if project_id:
             query = query.filter(ChatMessage.project_id == project_id)
         if story_id:
@@ -1262,13 +1375,29 @@ class ChatMessageRepository:
 # =============================================================================
 
 class AttachmentRepository:
-    """Repositorio para gerenciamento de Anexos"""
+    """
+    Repositorio para gerenciamento de Anexos.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        if self._tenant_id and hasattr(Attachment, 'tenant_id'):
+            query = query.filter(Attachment.tenant_id == self._tenant_id)
+        return query
 
     def create(self, attachment_data: dict) -> Attachment:
-        """Cria novo anexo"""
+        """Cria novo anexo (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in attachment_data and self._tenant_id:
+            attachment_data["tenant_id"] = self._tenant_id
+
         if "attachment_id" not in attachment_data:
             import uuid
             attachment_data["attachment_id"] = f"ATT-{uuid.uuid4().hex[:8].upper()}"
@@ -1280,20 +1409,22 @@ class AttachmentRepository:
         return attachment
 
     def get_by_id(self, attachment_id: str) -> Optional[Attachment]:
-        """Busca anexo por ID"""
-        return self.db.query(Attachment).filter(Attachment.attachment_id == attachment_id).first()
+        """Busca anexo por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(Attachment).filter(Attachment.attachment_id == attachment_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_by_story(self, story_id: str) -> List[Attachment]:
-        """Lista anexos de uma story"""
-        return self.db.query(Attachment).filter(
-            Attachment.story_id == story_id
-        ).order_by(desc(Attachment.created_at)).all()
+        """Lista anexos de uma story (Issue #461: filtered by tenant)"""
+        query = self.db.query(Attachment).filter(Attachment.story_id == story_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(desc(Attachment.created_at)).all()
 
     def get_by_task(self, task_id: str) -> List[Attachment]:
-        """Lista anexos de uma task"""
-        return self.db.query(Attachment).filter(
-            Attachment.task_id == task_id
-        ).order_by(desc(Attachment.created_at)).all()
+        """Lista anexos de uma task (Issue #461: filtered by tenant)"""
+        query = self.db.query(Attachment).filter(Attachment.task_id == task_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(desc(Attachment.created_at)).all()
 
     def delete(self, attachment_id: str) -> bool:
         """Remove anexo"""
@@ -1310,13 +1441,30 @@ class AttachmentRepository:
 # =============================================================================
 
 class EpicRepository:
-    """Repositorio para gerenciamento de Epicos"""
+    """
+    Repositorio para gerenciamento de Epicos.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query, model=None):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        target = model or Epic
+        if self._tenant_id and hasattr(target, 'tenant_id'):
+            query = query.filter(target.tenant_id == self._tenant_id)
+        return query
 
     def create(self, epic_data: dict) -> Epic:
-        """Cria novo epico"""
+        """Cria novo epico (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in epic_data and self._tenant_id:
+            epic_data["tenant_id"] = self._tenant_id
+
         if "epic_id" not in epic_data:
             count = self.db.query(Epic).count()
             epic_data["epic_id"] = f"EPIC-{count + 1:04d}"
@@ -1328,14 +1476,16 @@ class EpicRepository:
         return epic
 
     def get_by_id(self, epic_id: str) -> Optional[Epic]:
-        """Busca epico por ID"""
-        return self.db.query(Epic).filter(Epic.epic_id == epic_id).first()
+        """Busca epico por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(Epic).filter(Epic.epic_id == epic_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_by_project(self, project_id: str) -> List[Epic]:
-        """Lista epicos de um projeto"""
-        return self.db.query(Epic).filter(
-            Epic.project_id == project_id
-        ).order_by(Epic.created_at).all()
+        """Lista epicos de um projeto (Issue #461: filtered by tenant)"""
+        query = self.db.query(Epic).filter(Epic.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(Epic.created_at).all()
 
     def update(self, epic_id: str, data: dict) -> Optional[Epic]:
         """Atualiza epico"""
@@ -1359,10 +1509,10 @@ class EpicRepository:
         return False
 
     def get_stories(self, epic_id: str) -> List[Story]:
-        """Lista stories de um epico"""
-        return self.db.query(Story).filter(
-            Story.epic_id == epic_id
-        ).order_by(Story.kanban_order).all()
+        """Lista stories de um epico (Issue #461: filtered by tenant)"""
+        query = self.db.query(Story).filter(Story.epic_id == epic_id)
+        query = self._apply_tenant_filter(query, Story)  # Issue #461
+        return query.order_by(Story.kanban_order).all()
 
 
 # =============================================================================
@@ -1370,13 +1520,30 @@ class EpicRepository:
 # =============================================================================
 
 class SprintRepository:
-    """Repositorio para gerenciamento de Sprints"""
+    """
+    Repositorio para gerenciamento de Sprints.
 
-    def __init__(self, db: Session):
+    Issue #461: Added tenant_id filtering for data segregation.
+    """
+
+    def __init__(self, db: Session, tenant_id: str = None):
         self.db = db
+        # Issue #461: Obtém tenant_id do contexto se não fornecido
+        self._tenant_id = tenant_id or _get_current_tenant_id()
+
+    def _apply_tenant_filter(self, query, model=None):
+        """Issue #461: Aplica filtro de tenant se disponível"""
+        target = model or Sprint
+        if self._tenant_id and hasattr(target, 'tenant_id'):
+            query = query.filter(target.tenant_id == self._tenant_id)
+        return query
 
     def create(self, sprint_data: dict) -> Sprint:
-        """Cria novo sprint"""
+        """Cria novo sprint (Issue #461: auto-assigns tenant_id)"""
+        # Issue #461: Define tenant_id automaticamente se não fornecido
+        if "tenant_id" not in sprint_data and self._tenant_id:
+            sprint_data["tenant_id"] = self._tenant_id
+
         if "sprint_id" not in sprint_data:
             count = self.db.query(Sprint).count()
             sprint_data["sprint_id"] = f"SPR-{count + 1:04d}"
@@ -1388,21 +1555,25 @@ class SprintRepository:
         return sprint
 
     def get_by_id(self, sprint_id: str) -> Optional[Sprint]:
-        """Busca sprint por ID"""
-        return self.db.query(Sprint).filter(Sprint.sprint_id == sprint_id).first()
+        """Busca sprint por ID (Issue #461: filtered by tenant)"""
+        query = self.db.query(Sprint).filter(Sprint.sprint_id == sprint_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def get_by_project(self, project_id: str) -> List[Sprint]:
-        """Lista sprints de um projeto"""
-        return self.db.query(Sprint).filter(
-            Sprint.project_id == project_id
-        ).order_by(Sprint.start_date).all()
+        """Lista sprints de um projeto (Issue #461: filtered by tenant)"""
+        query = self.db.query(Sprint).filter(Sprint.project_id == project_id)
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.order_by(Sprint.start_date).all()
 
     def get_active(self, project_id: str) -> Optional[Sprint]:
-        """Busca sprint ativo de um projeto"""
-        return self.db.query(Sprint).filter(
+        """Busca sprint ativo de um projeto (Issue #461: filtered by tenant)"""
+        query = self.db.query(Sprint).filter(
             Sprint.project_id == project_id,
             Sprint.status == "active"
-        ).first()
+        )
+        query = self._apply_tenant_filter(query)  # Issue #461
+        return query.first()
 
     def update(self, sprint_id: str, data: dict) -> Optional[Sprint]:
         """Atualiza sprint"""
@@ -1427,26 +1598,28 @@ class SprintRepository:
         return sprint
 
     def complete_sprint(self, sprint_id: str) -> Optional[Sprint]:
-        """Finaliza sprint"""
+        """Finaliza sprint (Issue #461: stories filtered by tenant)"""
         sprint = self.get_by_id(sprint_id)
         if sprint:
             sprint.status = "completed"
             sprint.end_date = datetime.utcnow()
-            # Calcula velocity
-            stories = self.db.query(Story).filter(
+            # Calcula velocity (Issue #461: filter stories by tenant)
+            query = self.db.query(Story).filter(
                 Story.sprint_id == sprint_id,
                 Story.status == StoryStatus.DONE.value
-            ).all()
+            )
+            query = self._apply_tenant_filter(query, Story)  # Issue #461
+            stories = query.all()
             sprint.velocity = sum(s.story_points or 0 for s in stories)
             self.db.commit()
             self.db.refresh(sprint)
         return sprint
 
     def get_stories(self, sprint_id: str) -> List[Story]:
-        """Lista stories de um sprint"""
-        return self.db.query(Story).filter(
-            Story.sprint_id == sprint_id
-        ).order_by(Story.kanban_order).all()
+        """Lista stories de um sprint (Issue #461: filtered by tenant)"""
+        query = self.db.query(Story).filter(Story.sprint_id == sprint_id)
+        query = self._apply_tenant_filter(query, Story)  # Issue #461
+        return query.order_by(Story.kanban_order).all()
 
     def delete(self, sprint_id: str) -> bool:
         """Remove sprint"""
