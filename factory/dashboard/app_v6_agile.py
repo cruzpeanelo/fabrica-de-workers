@@ -1464,6 +1464,181 @@ def get_story_board(project_id: str):
         db.close()
 
 
+@app.get("/api/projects/{project_id}/dependency-graph")
+def get_dependency_graph(project_id: str):
+    """
+    Retorna grafo de dependencias entre stories para visualizacao D3.js
+
+    Issue #243: [FRONT] Implementar Dependency Graph visual para stories
+    """
+    db = SessionLocal()
+    try:
+        repo = StoryRepository(db)
+        stories = repo.get_all(project_id=project_id)
+
+        # Build nodes
+        nodes = []
+        for story in stories:
+            nodes.append({
+                "id": story.story_id,
+                "story_id": story.story_id,
+                "title": story.title,
+                "status": story.status.value if hasattr(story.status, 'value') else story.status,
+                "story_points": story.story_points,
+                "epic_id": story.epic_id,
+                "sprint_id": story.sprint_id,
+                "assignee": story.assigned_to,
+                "isBlocked": bool(story.blocked_by and len(story.blocked_by) > 0)
+            })
+
+        # Build links from dependencies
+        links = []
+        node_ids = {n["id"] for n in nodes}
+
+        for story in stories:
+            # blocked_by = this story is blocked BY those stories
+            if story.blocked_by:
+                for blocker_id in story.blocked_by:
+                    if blocker_id in node_ids:
+                        links.append({
+                            "source": blocker_id,
+                            "target": story.story_id,
+                            "type": "blocks"
+                        })
+
+            # dependencies = this story depends ON those stories
+            if story.dependencies:
+                for dep_id in story.dependencies:
+                    if dep_id in node_ids:
+                        links.append({
+                            "source": dep_id,
+                            "target": story.story_id,
+                            "type": "relates_to"
+                        })
+
+        # Calculate critical path (simple: longest chain of blocked stories)
+        critical_path = []
+        if links:
+            # Find stories with most downstream dependencies
+            from collections import defaultdict
+            downstream = defaultdict(set)
+            for link in links:
+                downstream[link["source"]].add(link["target"])
+
+            # BFS to find longest path
+            def get_path_length(start_id, visited=None):
+                if visited is None:
+                    visited = set()
+                if start_id in visited:
+                    return 0, [start_id]
+                visited.add(start_id)
+                max_len = 0
+                max_path = [start_id]
+                for next_id in downstream.get(start_id, []):
+                    length, path = get_path_length(next_id, visited.copy())
+                    if length + 1 > max_len:
+                        max_len = length + 1
+                        max_path = [start_id] + path
+                return max_len, max_path
+
+            # Find node with longest downstream path
+            best_length = 0
+            for node in nodes:
+                length, path = get_path_length(node["id"])
+                if length > best_length:
+                    best_length = length
+                    critical_path = path
+
+        # Mark critical path nodes
+        for node in nodes:
+            node["isCritical"] = node["id"] in critical_path
+
+        # Mark critical path links
+        critical_set = set(critical_path)
+        for link in links:
+            src = link["source"]
+            tgt = link["target"]
+            link["isCritical"] = src in critical_set and tgt in critical_set
+
+        return {
+            "nodes": nodes,
+            "links": links,
+            "critical_path": critical_path,
+            "stats": {
+                "total_stories": len(nodes),
+                "total_dependencies": len(links),
+                "blocked_stories": sum(1 for n in nodes if n["isBlocked"]),
+                "critical_path_length": len(critical_path)
+            }
+        }
+    finally:
+        db.close()
+
+
+@app.post("/api/dependencies")
+def add_dependency(data: dict = Body(...)):
+    """Adiciona dependencia entre stories"""
+    db = SessionLocal()
+    try:
+        source_id = data.get("source_id")
+        target_id = data.get("target_id")
+        dep_type = data.get("type", "blocks")
+
+        if not source_id or not target_id:
+            raise HTTPException(400, "source_id and target_id required")
+
+        repo = StoryRepository(db)
+
+        # Get target story
+        target_story = repo.get_by_id(target_id)
+        if not target_story:
+            raise HTTPException(404, f"Story {target_id} not found")
+
+        # Update blocked_by or dependencies based on type
+        if dep_type == "blocks":
+            blocked_by = target_story.blocked_by or []
+            if source_id not in blocked_by:
+                blocked_by.append(source_id)
+                repo.update(target_id, {"blocked_by": blocked_by})
+        else:
+            dependencies = target_story.dependencies or []
+            if source_id not in dependencies:
+                dependencies.append(source_id)
+                repo.update(target_id, {"dependencies": dependencies})
+
+        return {"success": True, "message": f"Dependency added: {source_id} -> {target_id}"}
+    finally:
+        db.close()
+
+
+@app.delete("/api/dependencies/{source_id}/{target_id}")
+def remove_dependency(source_id: str, target_id: str):
+    """Remove dependencia entre stories"""
+    db = SessionLocal()
+    try:
+        repo = StoryRepository(db)
+        target_story = repo.get_by_id(target_id)
+
+        if not target_story:
+            raise HTTPException(404, f"Story {target_id} not found")
+
+        # Remove from blocked_by
+        blocked_by = target_story.blocked_by or []
+        if source_id in blocked_by:
+            blocked_by.remove(source_id)
+            repo.update(target_id, {"blocked_by": blocked_by})
+
+        # Remove from dependencies
+        dependencies = target_story.dependencies or []
+        if source_id in dependencies:
+            dependencies.remove(source_id)
+            repo.update(target_id, {"dependencies": dependencies})
+
+        return {"success": True, "message": f"Dependency removed: {source_id} -> {target_id}"}
+    finally:
+        db.close()
+
+
 # =============================================================================
 # API ENDPOINTS - STORY TASKS
 # =============================================================================
