@@ -342,9 +342,18 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
             clear_context()
 
     def _is_public_path(self, path: str) -> bool:
-        """Check if path is public"""
+        """Check if path is public
+
+        Issue #461 Fix: Handle "/" specially - only match exactly,
+        not as prefix (otherwise all paths would be public!)
+        """
         for public in self.public_paths:
-            if path == public or path.startswith(public):
+            # Exact match
+            if path == public:
+                return True
+            # Prefix match - but NOT for "/" which would match everything
+            # Issue #461: "/" should only match exactly, not as prefix
+            if public != "/" and len(public) > 1 and path.startswith(public):
                 return True
         return False
 
