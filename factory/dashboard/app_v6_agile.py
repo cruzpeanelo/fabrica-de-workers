@@ -386,6 +386,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Admin Users panel not available: {e}")
 
+# RBAC Integration (Issue #433)
+try:
+    from factory.dashboard.rbac_integration import register_rbac
+    register_rbac(app)
+    print("[Dashboard] RBAC module loaded: /admin/roles, /api/rbac/*")
+except ImportError as e:
+    print(f"[Dashboard] RBAC module not available: {e}")
+
 # Admin Portal (Issue #113)
 try:
     from factory.dashboard.admin_portal import register_admin_portal_endpoints
