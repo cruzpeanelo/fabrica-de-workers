@@ -11,7 +11,7 @@ Schemas padrao para API v1 incluindo:
 
 from datetime import datetime
 from typing import Any, Generic, List, Optional, TypeVar
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import uuid
 
 # Type variable para dados genericos
@@ -233,18 +233,62 @@ class ErrorCodes:
 # Schemas para recursos especificos
 
 class StoryCreate(BaseModel):
-    """Schema para criacao de Story"""
-    title: str = Field(..., min_length=1, max_length=300, description="Titulo da story")
+    """
+    Schema para criacao de Story.
+
+    Issues #518-521: Validacao de campos para edge cases
+    - #518: title nao pode ser vazio ou apenas espacos
+    - #519: title tem max_length=500 caracteres
+    - #520: campos obrigatorios nao aceitam null
+    - #521: story_points deve ser >= 0
+    """
+    title: str = Field(..., min_length=1, max_length=500, description="Titulo da story (1-500 caracteres)")
     description: Optional[str] = Field(None, description="Descricao detalhada")
-    project_id: str = Field(..., description="ID do projeto")
+    project_id: str = Field(..., min_length=1, description="ID do projeto (obrigatorio)")
     persona: Optional[str] = Field(None, max_length=200, description="Como um [usuario]")
     action: Optional[str] = Field(None, description="Eu quero [funcionalidade]")
     benefit: Optional[str] = Field(None, description="Para que [beneficio]")
     acceptance_criteria: Optional[List[str]] = Field(default_factory=list, description="Criterios de aceite")
-    story_points: Optional[int] = Field(None, ge=0, le=21, description="Story points (Fibonacci)")
+    story_points: Optional[int] = Field(None, ge=0, le=21, description="Story points (0-21, valores positivos)")
     priority: Optional[str] = Field("medium", description="Prioridade: low, medium, high, urgent")
     epic_id: Optional[str] = Field(None, description="ID do epic")
     sprint_id: Optional[str] = Field(None, description="ID do sprint")
+
+    @field_validator('title')
+    @classmethod
+    def validate_title_not_empty(cls, v):
+        """Issue #518: Valida que titulo nao seja vazio ou apenas espacos"""
+        if v is None:
+            raise ValueError('title e obrigatorio e nao pode ser null')
+        if not isinstance(v, str):
+            raise ValueError('title deve ser uma string')
+        if v.strip() == '':
+            raise ValueError('title nao pode ser vazio ou conter apenas espacos')
+        return v.strip()
+
+    @field_validator('project_id')
+    @classmethod
+    def validate_project_id_not_empty(cls, v):
+        """Issue #520: Valida que project_id nao seja null ou vazio"""
+        if v is None:
+            raise ValueError('project_id e obrigatorio e nao pode ser null')
+        if not isinstance(v, str):
+            raise ValueError('project_id deve ser uma string')
+        if v.strip() == '':
+            raise ValueError('project_id nao pode ser vazio')
+        return v.strip()
+
+    @field_validator('story_points')
+    @classmethod
+    def validate_story_points_positive(cls, v):
+        """Issue #521: Valida que story_points seja positivo ou zero"""
+        if v is None:
+            return v  # None e permitido (opcional)
+        if not isinstance(v, int):
+            raise ValueError('story_points deve ser um numero inteiro')
+        if v < 0:
+            raise ValueError('story_points deve ser maior ou igual a 0')
+        return v
 
     class Config:
         json_schema_extra = {
@@ -266,19 +310,50 @@ class StoryCreate(BaseModel):
 
 
 class StoryUpdate(BaseModel):
-    """Schema para atualizacao de Story"""
-    title: Optional[str] = Field(None, min_length=1, max_length=300)
+    """
+    Schema para atualizacao de Story.
+
+    Issues #518-521: Validacao de campos para edge cases
+    - #518: title nao pode ser vazio ou apenas espacos (se fornecido)
+    - #519: title tem max_length=500 caracteres
+    - #521: story_points deve ser >= 0
+    """
+    title: Optional[str] = Field(None, min_length=1, max_length=500, description="Titulo da story (1-500 caracteres)")
     description: Optional[str] = None
     persona: Optional[str] = Field(None, max_length=200)
     action: Optional[str] = None
     benefit: Optional[str] = None
     acceptance_criteria: Optional[List[str]] = None
-    story_points: Optional[int] = Field(None, ge=0, le=21)
+    story_points: Optional[int] = Field(None, ge=0, le=21, description="Story points (0-21, valores positivos)")
     priority: Optional[str] = None
     status: Optional[str] = None
     assignee: Optional[str] = None
     epic_id: Optional[str] = None
     sprint_id: Optional[str] = None
+
+    @field_validator('title')
+    @classmethod
+    def validate_title_not_empty(cls, v):
+        """Issue #518: Valida que titulo nao seja vazio ou apenas espacos"""
+        if v is None:
+            return v  # None e permitido em update (significa nao atualizar)
+        if not isinstance(v, str):
+            raise ValueError('title deve ser uma string')
+        if v.strip() == '':
+            raise ValueError('title nao pode ser vazio ou conter apenas espacos')
+        return v.strip()
+
+    @field_validator('story_points')
+    @classmethod
+    def validate_story_points_positive(cls, v):
+        """Issue #521: Valida que story_points seja positivo ou zero"""
+        if v is None:
+            return v  # None e permitido em update
+        if not isinstance(v, int):
+            raise ValueError('story_points deve ser um numero inteiro')
+        if v < 0:
+            raise ValueError('story_points deve ser maior ou igual a 0')
+        return v
 
 
 class TaskCreate(BaseModel):

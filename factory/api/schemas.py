@@ -126,16 +126,18 @@ class StoryCreate(BaseModel):
     """
     Dados para criar uma user story
 
-    Issues #495-498: Validacao de campos
-    - title: obrigatorio, 1-500 caracteres
-    - description: opcional, max 5000 caracteres
+    Issues #495-498, #518-521: Validacao de campos
+    - #518: title nao pode ser vazio ou apenas espacos
+    - #519: title tem max_length=500 caracteres
+    - #520: campos obrigatorios nao aceitam null
+    - #521: points deve ser >= 0 (valores positivos)
     - points: valores Fibonacci (0,1,2,3,5,8,13,21)
     """
     title: str = Field(..., description="Titulo da story (1-500 caracteres)", min_length=1, max_length=500)
     description: Optional[str] = Field(None, description="Descricao detalhada (max 5000 caracteres)", max_length=5000)
     project_id: Optional[str] = Field(None, description="ID do projeto")
     sprint: int = Field(1, ge=1, description="Numero do sprint")
-    points: int = Field(0, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21)")
+    points: int = Field(0, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21, valores positivos)")
     priority: int = Field(5, ge=1, le=9, description="Prioridade (1=critica, 9=backlog)")
     narrative_persona: Optional[str] = Field(None, description="Como [tipo de usuario]")
     narrative_action: Optional[str] = Field(None, description="Eu quero [acao]")
@@ -145,9 +147,13 @@ class StoryCreate(BaseModel):
     @field_validator('points')
     @classmethod
     def validate_fibonacci_points(cls, v):
-        """Issue #498: Valida que points seja um valor Fibonacci valido"""
+        """Issues #498, #521: Valida que points seja um valor Fibonacci valido e positivo"""
         if v is None:
             return 0
+        if not isinstance(v, int):
+            raise ValueError('points deve ser um numero inteiro')
+        if v < 0:
+            raise ValueError('points deve ser maior ou igual a 0 (valores negativos nao sao permitidos)')
         valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
         if v not in valid_points:
             raise ValueError(f'points deve ser um valor Fibonacci: {valid_points}')
@@ -156,9 +162,13 @@ class StoryCreate(BaseModel):
     @field_validator('title')
     @classmethod
     def validate_title_not_empty(cls, v):
-        """Issue #495: Valida que titulo nao seja vazio ou apenas espacos"""
-        if v is None or v.strip() == '':
-            raise ValueError('title nao pode ser vazio')
+        """Issues #495, #518, #520: Valida que titulo nao seja vazio, null ou apenas espacos"""
+        if v is None:
+            raise ValueError('title e obrigatorio e nao pode ser null')
+        if not isinstance(v, str):
+            raise ValueError('title deve ser uma string')
+        if v.strip() == '':
+            raise ValueError('title nao pode ser vazio ou conter apenas espacos')
         return v.strip()
 
     class Config:
@@ -185,24 +195,29 @@ class StoryUpdate(BaseModel):
     """
     Dados para atualizar uma story
 
-    Issues #495-498: Validacao de campos
-    - title: opcional mas se fornecido, 1-500 caracteres
-    - description: opcional, max 5000 caracteres
+    Issues #495-498, #518-521: Validacao de campos
+    - #518: title nao pode ser vazio ou apenas espacos (se fornecido)
+    - #519: title tem max_length=500 caracteres
+    - #521: points deve ser >= 0 (valores positivos)
     - points: valores Fibonacci (0,1,2,3,5,8,13,21)
     """
     title: Optional[str] = Field(None, description="Titulo da story (1-500 caracteres)", min_length=1, max_length=500)
     description: Optional[str] = Field(None, description="Descricao (max 5000 caracteres)", max_length=5000)
     status: Optional[StoryStatusEnum] = Field(None, description="Status")
     sprint: Optional[int] = Field(None, ge=1, description="Sprint")
-    points: Optional[int] = Field(None, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21)")
+    points: Optional[int] = Field(None, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21, valores positivos)")
     priority: Optional[int] = Field(None, ge=1, le=9, description="Prioridade")
 
     @field_validator('points')
     @classmethod
     def validate_fibonacci_points(cls, v):
-        """Issue #498: Valida que points seja um valor Fibonacci valido"""
+        """Issues #498, #521: Valida que points seja um valor Fibonacci valido e positivo"""
         if v is None:
             return v  # None e permitido em update
+        if not isinstance(v, int):
+            raise ValueError('points deve ser um numero inteiro')
+        if v < 0:
+            raise ValueError('points deve ser maior ou igual a 0 (valores negativos nao sao permitidos)')
         valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
         if v not in valid_points:
             raise ValueError(f'points deve ser um valor Fibonacci: {valid_points}')
@@ -211,11 +226,13 @@ class StoryUpdate(BaseModel):
     @field_validator('title')
     @classmethod
     def validate_title_not_empty(cls, v):
-        """Issue #495: Valida que titulo nao seja vazio ou apenas espacos"""
+        """Issues #495, #518: Valida que titulo nao seja vazio ou apenas espacos"""
         if v is None:
             return v  # None e permitido em update (significa nao atualizar)
+        if not isinstance(v, str):
+            raise ValueError('title deve ser uma string')
         if v.strip() == '':
-            raise ValueError('title nao pode ser vazio')
+            raise ValueError('title nao pode ser vazio ou conter apenas espacos')
         return v.strip()
 
 
