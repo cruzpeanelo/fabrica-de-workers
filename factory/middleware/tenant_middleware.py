@@ -26,10 +26,12 @@ Usage:
 Author: Plataforma E
 
 VERSION: Issue #371 Fix - 2025-12-30 - Added /login to PUBLIC_PATHS
+VERSION: Issue #473 Fix - 2026-01-04 - Added /kanban, /stories to PUBLIC_PATHS
+VERSION: Issue #474 Fix - 2026-01-04 - Added PWA files to PUBLIC_PATHS
 """
 
-# Issue #371: Version marker to verify code is loaded
-_MIDDLEWARE_VERSION = "371-fix-2025-12-30"
+# Issue #473, #474: Version marker to verify code is loaded
+_MIDDLEWARE_VERSION = "473-474-fix-2026-01-04"
 print(f"[TenantMiddleware] Loading version: {_MIDDLEWARE_VERSION}")
 
 import os
@@ -149,6 +151,8 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
 
     # Paths that don't require tenant/authentication
     # Issue #371: Added HTML auth pages to prevent auth loop
+    # Issue #473: Added /kanban, /stories as public SPA pages
+    # Issue #474: Added PWA files as public
     PUBLIC_PATHS = [
         "/health",
         "/docs",
@@ -176,6 +180,18 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         # Issue #371: Debug endpoint
         "/api/debug",
         "/api/health",
+        # Issue #473: Public SPA pages
+        "/kanban",
+        "/stories",
+        "/backlog",
+        "/board",
+        "/sprints",
+        "/onboarding",
+        "/help",
+        # Issue #474: PWA files must be public
+        "/manifest.json",
+        "/sw.js",
+        "/api/pwa",
     ]
 
     # Admin roles that can switch tenants
