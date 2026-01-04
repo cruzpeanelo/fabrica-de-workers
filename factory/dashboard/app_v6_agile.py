@@ -42,7 +42,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSo
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 import json
 import asyncio
@@ -941,9 +941,17 @@ def notify(notification_type: str, data: dict):
 # =============================================================================
 
 class StoryCreate(BaseModel):
+    """
+    Schema para criacao de User Story
+
+    Issues #495-498: Validacao de campos
+    - title: obrigatorio, 1-500 caracteres
+    - description: opcional, max 5000 caracteres
+    - story_points: valores Fibonacci (0,1,2,3,5,8,13,21)
+    """
     project_id: str
-    title: str
-    description: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=500, description="Titulo da story (1-500 caracteres)")
+    description: Optional[str] = Field(None, max_length=5000, description="Descricao detalhada (max 5000 caracteres)")
     persona: Optional[str] = None
     action: Optional[str] = None
     benefit: Optional[str] = None
@@ -954,17 +962,44 @@ class StoryCreate(BaseModel):
     epic_id: Optional[str] = None
     sprint_id: Optional[str] = None
     category: Optional[str] = "feature"
-    story_points: Optional[int] = 0
+    story_points: Optional[int] = Field(0, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21)")
     complexity: Optional[str] = "medium"
     estimated_hours: Optional[float] = 0.0
     priority: Optional[str] = "medium"
     assignee: Optional[str] = None
     tags: Optional[List[str]] = []
 
+    @field_validator('story_points')
+    @classmethod
+    def validate_fibonacci_points(cls, v):
+        """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
+        if v is None:
+            return 0
+        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
+        if v not in valid_points:
+            raise ValueError(f'story_points deve ser um valor Fibonacci: {valid_points}')
+        return v
+
+    @field_validator('title')
+    @classmethod
+    def validate_title_not_empty(cls, v):
+        """Issue #495: Valida que titulo nao seja vazio ou apenas espacos"""
+        if v is None or v.strip() == '':
+            raise ValueError('title nao pode ser vazio')
+        return v.strip()
+
 
 class StoryUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
+    """
+    Schema para atualizacao de User Story
+
+    Issues #495-498: Validacao de campos
+    - title: opcional mas se fornecido, 1-500 caracteres
+    - description: opcional, max 5000 caracteres
+    - story_points: valores Fibonacci (0,1,2,3,5,8,13,21)
+    """
+    title: Optional[str] = Field(None, min_length=1, max_length=500, description="Titulo da story (1-500 caracteres)")
+    description: Optional[str] = Field(None, max_length=5000, description="Descricao detalhada (max 5000 caracteres)")
     persona: Optional[str] = None
     action: Optional[str] = None
     benefit: Optional[str] = None
@@ -975,12 +1010,33 @@ class StoryUpdate(BaseModel):
     epic_id: Optional[str] = None
     sprint_id: Optional[str] = None
     category: Optional[str] = None
-    story_points: Optional[int] = None
+    story_points: Optional[int] = Field(None, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21)")
     complexity: Optional[str] = None
     estimated_hours: Optional[float] = None
     priority: Optional[str] = None
     assignee: Optional[str] = None
     tags: Optional[List[str]] = None
+
+    @field_validator('story_points')
+    @classmethod
+    def validate_fibonacci_points(cls, v):
+        """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
+        if v is None:
+            return v  # None e permitido em update
+        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
+        if v not in valid_points:
+            raise ValueError(f'story_points deve ser um valor Fibonacci: {valid_points}')
+        return v
+
+    @field_validator('title')
+    @classmethod
+    def validate_title_not_empty(cls, v):
+        """Issue #495: Valida que titulo nao seja vazio ou apenas espacos"""
+        if v is None:
+            return v  # None e permitido em update (significa nao atualizar)
+        if v.strip() == '':
+            raise ValueError('title nao pode ser vazio')
+        return v.strip()
 
 
 class StoryMove(BaseModel):
