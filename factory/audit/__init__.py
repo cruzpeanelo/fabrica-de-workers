@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Audit Log Module - Issue #339
-=============================
-Comprehensive audit logging for security and compliance.
+Audit Module - Plataforma E
+===========================
+
+Audit logging system for compliance and traceability.
+
+Issue #439: API de Auditoria com Logs de Acoes
 """
 
-from .service import AuditService, get_audit_service, log_action
-from .decorators import audit_log
+from .models import AuditAction, AuditLog
+from .audit_logger import AuditLogger, get_audit_logger
 
 __all__ = [
-    "AuditService",
-    "get_audit_service",
-    "log_action",
-    "audit_log"
+    "AuditAction",
+    "AuditLog",
+    "AuditLogger",
+    "get_audit_logger",
 ]
