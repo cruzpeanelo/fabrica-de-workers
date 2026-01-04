@@ -224,6 +224,46 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Project Preview router not available: {e}")
 
+# Visual Builder Canvas API Router (Base44 Feature)
+try:
+    from factory.api.canvas_routes import router as canvas_router
+    app.include_router(canvas_router)
+    print("[Dashboard] Visual Builder Canvas router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Visual Builder Canvas router not available: {e}")
+
+# Prompt-to-App API Router (Base44 Feature - Sprint 2)
+try:
+    from factory.api.prompt_to_app_routes import router as prompt_to_app_router
+    app.include_router(prompt_to_app_router)
+    print("[Dashboard] Prompt-to-App router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Prompt-to-App router not available: {e}")
+
+# Deploy Cloud API Router (Base44 Feature - Sprint 3)
+try:
+    from factory.api.deploy_routes import router as deploy_router
+    app.include_router(deploy_router)
+    print("[Dashboard] Deploy Cloud router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Deploy Cloud router not available: {e}")
+
+# Custom Domains API Router (Base44 Feature - Sprint 4)
+try:
+    from factory.api.domain_routes import router as domain_router
+    app.include_router(domain_router)
+    print("[Dashboard] Custom Domains router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Custom Domains router not available: {e}")
+
+# GitHub Sync API Router (Base44 Feature - Sprint 5)
+try:
+    from factory.api.github_sync_routes import router as github_sync_router
+    app.include_router(github_sync_router)
+    print("[Dashboard] GitHub Sync router loaded")
+except ImportError as e:
+    print(f"[Dashboard] GitHub Sync router not available: {e}")
+
 # Code Review API Router (Issue #52)
 try:
     from factory.api.code_review_routes import router as code_review_router
@@ -4503,6 +4543,776 @@ async def websocket_notifications(websocket: WebSocket):
 # FRONTEND - HTML/Vue.js
 # =============================================================================
 
+def get_visual_builder_template(project_id: str) -> str:
+    """Template HTML do Visual Builder - Base44 Feature"""
+    return f'''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Builder - Plataforma E</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {{ font-family: 'Inter', sans-serif; }}
+        .component-item {{ transition: all 0.2s; cursor: grab; }}
+        .component-item:hover {{ background: #f0f9ff; transform: translateX(4px); }}
+        .component-item:active {{ cursor: grabbing; }}
+        .canvas-drop-zone {{ min-height: 400px; border: 2px dashed #e5e7eb; border-radius: 8px; transition: all 0.2s; }}
+        .canvas-drop-zone.drag-over {{ border-color: #3b82f6; background: #eff6ff; }}
+        .canvas-component {{ position: absolute; border: 1px solid transparent; cursor: move; transition: box-shadow 0.2s; }}
+        .canvas-component:hover {{ border-color: #3b82f6; }}
+        .canvas-component.selected {{ border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }}
+        .resize-handle {{ position: absolute; width: 8px; height: 8px; background: #3b82f6; border-radius: 2px; }}
+        .resize-handle.se {{ right: -4px; bottom: -4px; cursor: se-resize; }}
+        .resize-handle.sw {{ left: -4px; bottom: -4px; cursor: sw-resize; }}
+        .resize-handle.ne {{ right: -4px; top: -4px; cursor: ne-resize; }}
+        .resize-handle.nw {{ left: -4px; top: -4px; cursor: nw-resize; }}
+        .prop-input {{ font-size: 13px; }}
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-[#003B4A] text-white px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-2 hover:opacity-80">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span>Voltar</span>
+                </a>
+                <div class="h-6 w-px bg-white/30"></div>
+                <h1 class="text-lg font-semibold">Visual Builder</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button @click="undo" :disabled="!canUndo" class="px-3 py-1.5 rounded text-sm disabled:opacity-50 hover:bg-white/10">
+                    Desfazer
+                </button>
+                <button @click="redo" :disabled="!canRedo" class="px-3 py-1.5 rounded text-sm disabled:opacity-50 hover:bg-white/10">
+                    Refazer
+                </button>
+                <div class="h-6 w-px bg-white/30"></div>
+                <select v-model="exportFormat" class="bg-white/10 text-white rounded px-2 py-1.5 text-sm">
+                    <option value="react">React</option>
+                    <option value="vue">Vue</option>
+                    <option value="html">HTML</option>
+                </select>
+                <button @click="exportCode" class="bg-[#FF6C00] hover:bg-[#FF8533] px-4 py-1.5 rounded text-sm font-medium">
+                    Exportar Codigo
+                </button>
+            </div>
+        </header>
+
+        <div class="flex" style="height: calc(100vh - 56px)">
+            <!-- Sidebar - Components -->
+            <aside class="w-64 bg-white border-r overflow-y-auto">
+                <!-- Prompt-to-App Section (Base44 Feature) -->
+                <div class="p-4 border-b bg-gradient-to-br from-orange-50 to-white">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-[#FF6C00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Prompt-to-App
+                        </h2>
+                        <button @click="showPromptExamples = !showPromptExamples"
+                                class="text-xs text-gray-400 hover:text-[#FF6C00]" title="Ver exemplos">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Prompt Input -->
+                    <textarea v-model="promptText"
+                              placeholder="Descreva o que quer criar...&#10;Ex: Crie um formulario de login com email e senha"
+                              class="w-full h-20 text-sm border rounded-lg px-3 py-2 resize-none focus:ring-2 focus:ring-[#FF6C00] focus:border-transparent"
+                              :disabled="isGenerating"></textarea>
+
+                    <!-- Generate Button -->
+                    <button @click="generateFromPrompt"
+                            :disabled="!promptText.trim() || isGenerating"
+                            class="w-full mt-2 bg-gradient-to-r from-[#FF6C00] to-[#FF8533] text-white text-sm py-2 px-4 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <svg v-if="isGenerating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{{{{ isGenerating ? 'Gerando...' : 'Gerar UI' }}}}</span>
+                    </button>
+
+                    <!-- Templates Quick Access -->
+                    <div class="mt-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-500">Templates Rapidos</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            <button v-for="tpl in quickTemplates" :key="tpl.id"
+                                    @click="applyTemplate(tpl.id)"
+                                    class="text-xs px-2 py-1 bg-gray-100 hover:bg-[#FF6C00] hover:text-white rounded transition">
+                                {{{{ tpl.name }}}}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Examples Panel -->
+                    <div v-if="showPromptExamples" class="mt-3 p-2 bg-white rounded-lg border text-xs">
+                        <div class="font-medium text-gray-600 mb-2">Exemplos de prompts:</div>
+                        <div class="space-y-1">
+                            <div v-for="ex in promptExamples.slice(0, 4)" :key="ex"
+                                 @click="promptText = ex"
+                                 class="cursor-pointer text-gray-500 hover:text-[#FF6C00] hover:bg-orange-50 p-1 rounded">
+                                {{{{ ex }}}}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generation Result Info -->
+                    <div v-if="lastGenerationResult" class="mt-3 p-2 bg-green-50 rounded-lg border border-green-200 text-xs">
+                        <div class="flex items-center gap-1 text-green-700 font-medium">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            {{{{ lastGenerationResult.components_count }}}} componentes adicionados
+                        </div>
+                        <div class="text-green-600 mt-1">Layout: {{{{ lastGenerationResult.layout }}}}</div>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    <h2 class="text-sm font-semibold text-gray-700 mb-3">Componentes</h2>
+                    <div v-for="(comps, category) in componentsByCategory" :key="category" class="mb-4">
+                        <h3 class="text-xs font-medium text-gray-500 uppercase mb-2">{{{{ categoryNames[category] || category }}}}</h3>
+                        <div class="space-y-1">
+                            <div v-for="comp in comps" :key="comp.id"
+                                 draggable="true"
+                                 @dragstart="onDragStart($event, comp.id)"
+                                 class="component-item p-2 rounded border text-sm flex items-center gap-2">
+                                <span class="text-gray-400">+</span>
+                                <span>{{{{ comp.name }}}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas -->
+            <main class="flex-1 p-6 overflow-auto bg-gray-50">
+                <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-600">Canvas: {{{{ canvasWidth }}}} x {{{{ canvasHeight }}}}px</span>
+                        <div class="flex items-center gap-2">
+                            <label for="snap-to-grid" class="flex items-center gap-1 text-sm">
+                                <input id="snap-to-grid" type="checkbox" v-model="snapToGrid" class="rounded">
+                                Snap to Grid
+                            </label>
+                            <select v-model="gridSize" class="text-sm border rounded px-2 py-1">
+                                <option :value="4">4px</option>
+                                <option :value="8">8px</option>
+                                <option :value="16">16px</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-drop-zone bg-white relative"
+                     :class="{{'drag-over': isDragOver}}"
+                     :style="{{width: canvasWidth + 'px', height: canvasHeight + 'px'}}"
+                     @dragover.prevent="isDragOver = true"
+                     @dragleave="isDragOver = false"
+                     @drop="onDrop"
+                     @click="clearSelection">
+
+                    <!-- Grid -->
+                    <svg v-if="showGrid" class="absolute inset-0 w-full h-full pointer-events-none" style="opacity: 0.3">
+                        <defs>
+                            <pattern :id="'grid-' + gridSize" :width="gridSize" :height="gridSize" patternUnits="userSpaceOnUse">
+                                <path :d="'M ' + gridSize + ' 0 L 0 0 0 ' + gridSize" fill="none" stroke="#cbd5e1" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" :fill="'url(#grid-' + gridSize + ')'"/>
+                    </svg>
+
+                    <!-- Components -->
+                    <div v-for="comp in canvasComponents" :key="comp.id"
+                         class="canvas-component"
+                         :class="{{selected: selectedIds.includes(comp.id)}}"
+                         :style="getComponentStyle(comp)"
+                         @mousedown.stop="startDrag($event, comp)"
+                         @click.stop="selectComponent(comp.id)">
+                        <div v-html="renderComponentPreview(comp)"></div>
+                        <template v-if="selectedIds.includes(comp.id)">
+                            <div class="resize-handle se" @mousedown.stop="startResize($event, comp, 'se')"></div>
+                        </template>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Properties Panel -->
+            <aside class="w-72 bg-white border-l overflow-y-auto">
+                <div class="p-4">
+                    <h2 class="text-sm font-semibold text-gray-700 mb-3">Propriedades</h2>
+                    <div v-if="selectedComponent">
+                        <div class="text-xs text-gray-500 mb-3">{{{{ selectedComponent.component_id }}}}</div>
+                        <div class="space-y-3">
+                            <div v-for="prop in getComponentProps(selectedComponent.component_id)" :key="prop.name">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">{{{{ prop.label }}}}</label>
+                                <input v-if="prop.type === 'string'"
+                                       type="text"
+                                       :value="selectedComponent.props[prop.name]"
+                                       @input="updateProp(prop.name, $event.target.value)"
+                                       class="w-full border rounded px-2 py-1.5 prop-input">
+                                <input v-else-if="prop.type === 'number'"
+                                       type="number"
+                                       :value="selectedComponent.props[prop.name]"
+                                       @input="updateProp(prop.name, Number($event.target.value))"
+                                       class="w-full border rounded px-2 py-1.5 prop-input">
+                                <input v-else-if="prop.type === 'boolean'"
+                                       type="checkbox"
+                                       :checked="selectedComponent.props[prop.name]"
+                                       @change="updateProp(prop.name, $event.target.checked)"
+                                       class="rounded">
+                                <select v-else-if="prop.type === 'select'"
+                                        :value="selectedComponent.props[prop.name]"
+                                        @change="updateProp(prop.name, $event.target.value)"
+                                        class="w-full border rounded px-2 py-1.5 prop-input">
+                                    <option v-for="opt in prop.options" :key="opt" :value="opt">{{{{ opt }}}}</option>
+                                </select>
+                                <input v-else-if="prop.type === 'color'"
+                                       type="color"
+                                       :value="selectedComponent.props[prop.name]"
+                                       @input="updateProp(prop.name, $event.target.value)"
+                                       class="w-full h-8 rounded cursor-pointer">
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t">
+                            <button @click="duplicateSelected" class="w-full text-sm text-blue-600 hover:bg-blue-50 py-2 rounded">
+                                Duplicar
+                            </button>
+                            <button @click="deleteSelected" class="w-full text-sm text-red-600 hover:bg-red-50 py-2 rounded mt-1">
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else class="text-sm text-gray-400 text-center py-8">
+                        Selecione um componente
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Export Modal -->
+        <div v-if="showExportModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="showExportModal = false">
+            <div class="bg-white rounded-lg shadow-xl w-[800px] max-h-[80vh] overflow-hidden" @click.stop>
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="font-semibold">Codigo Exportado ({{{{ exportFormat.toUpperCase() }}}})</h3>
+                    <button @click="copyExportedCode" class="text-sm text-blue-600 hover:underline">Copiar</button>
+                </div>
+                <pre class="p-4 bg-gray-900 text-green-400 text-sm overflow-auto max-h-[60vh]">{{{{ exportedCode }}}}</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const {{ createApp, ref, computed, onMounted }} = Vue;
+
+        createApp({{
+            setup() {{
+                const projectId = '{project_id}';
+                const canvasId = ref(null);
+                const canvasComponents = ref([]);
+                const selectedIds = ref([]);
+                const isDragOver = ref(false);
+                const canvasWidth = ref(1200);
+                const canvasHeight = ref(800);
+                const gridSize = ref(8);
+                const snapToGrid = ref(true);
+                const showGrid = ref(true);
+                const canUndo = ref(false);
+                const canRedo = ref(false);
+                const exportFormat = ref('react');
+                const showExportModal = ref(false);
+                const exportedCode = ref('');
+                const componentLibrary = ref({{ components: [], categories: [] }});
+
+                // Prompt-to-App state
+                const promptText = ref('');
+                const isGenerating = ref(false);
+                const showPromptExamples = ref(false);
+                const lastGenerationResult = ref(null);
+                const quickTemplates = ref([
+                    {{ id: 'login', name: 'Login' }},
+                    {{ id: 'register', name: 'Cadastro' }},
+                    {{ id: 'contact', name: 'Contato' }},
+                    {{ id: 'dashboard', name: 'Dashboard' }},
+                    {{ id: 'crud', name: 'CRUD' }},
+                    {{ id: 'profile', name: 'Perfil' }}
+                ]);
+                const promptExamples = ref([
+                    'Crie um formulario de login com email e senha',
+                    'Preciso de uma tabela de usuarios com nome, email e status',
+                    'Faca um dashboard com metricas de vendas',
+                    'Crie um formulario de contato com nome, email e mensagem',
+                    'Preciso de um CRUD de produtos',
+                    'Faca um painel com KPIs e graficos'
+                ]);
+
+                const categoryNames = {{
+                    primitives: 'Primitivos',
+                    forms: 'Formularios',
+                    layout: 'Layout',
+                    data: 'Dados',
+                    feedback: 'Feedback',
+                    navigation: 'Navegacao'
+                }};
+
+                const componentsByCategory = computed(() => {{
+                    const result = {{}};
+                    for (const comp of componentLibrary.value.components || []) {{
+                        if (!result[comp.category]) result[comp.category] = [];
+                        result[comp.category].push(comp);
+                    }}
+                    return result;
+                }});
+
+                const selectedComponent = computed(() => {{
+                    if (selectedIds.value.length !== 1) return null;
+                    return canvasComponents.value.find(c => c.id === selectedIds.value[0]);
+                }});
+
+                // Load component library
+                const loadLibrary = async () => {{
+                    try {{
+                        const res = await fetch('/api/canvas/library/components');
+                        componentLibrary.value = await res.json();
+                    }} catch (e) {{
+                        console.error('Error loading library:', e);
+                    }}
+                }};
+
+                // Create/load canvas
+                const initCanvas = async () => {{
+                    try {{
+                        // Try to get existing canvas
+                        const listRes = await fetch(`/api/canvas/project/${{projectId}}`);
+                        const canvases = await listRes.json();
+
+                        if (canvases.length > 0) {{
+                            canvasId.value = canvases[0].id;
+                            await loadCanvas();
+                        }} else {{
+                            // Create new canvas
+                            const createRes = await fetch('/api/canvas/', {{
+                                method: 'POST',
+                                headers: {{ 'Content-Type': 'application/json' }},
+                                body: JSON.stringify({{ project_id: projectId, name: 'Canvas Principal' }})
+                            }});
+                            const canvas = await createRes.json();
+                            canvasId.value = canvas.id;
+                        }}
+                    }} catch (e) {{
+                        console.error('Error initializing canvas:', e);
+                    }}
+                }};
+
+                const loadCanvas = async () => {{
+                    if (!canvasId.value) return;
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}`);
+                        const data = await res.json();
+                        canvasComponents.value = Object.values(data.components || {{}});
+                        canvasWidth.value = data.canvas_width;
+                        canvasHeight.value = data.canvas_height;
+                        gridSize.value = data.grid_size;
+                        snapToGrid.value = data.snap_to_grid;
+                        updateHistoryStatus();
+                    }} catch (e) {{
+                        console.error('Error loading canvas:', e);
+                    }}
+                }};
+
+                const updateHistoryStatus = async () => {{
+                    if (!canvasId.value) return;
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/history-status`);
+                        const status = await res.json();
+                        canUndo.value = status.can_undo;
+                        canRedo.value = status.can_redo;
+                    }} catch (e) {{}}
+                }};
+
+                // Drag and drop
+                let draggedComponentId = null;
+
+                const onDragStart = (e, componentId) => {{
+                    draggedComponentId = componentId;
+                    e.dataTransfer.effectAllowed = 'copy';
+                }};
+
+                const onDrop = async (e) => {{
+                    isDragOver.value = false;
+                    if (!draggedComponentId || !canvasId.value) return;
+
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    let x = e.clientX - rect.left;
+                    let y = e.clientY - rect.top;
+
+                    if (snapToGrid.value) {{
+                        x = Math.round(x / gridSize.value) * gridSize.value;
+                        y = Math.round(y / gridSize.value) * gridSize.value;
+                    }}
+
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/components`, {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{
+                                component_id: draggedComponentId,
+                                position: {{ x, y, width: 200, height: 50 }}
+                            }})
+                        }});
+                        const comp = await res.json();
+                        canvasComponents.value.push(comp);
+                        selectedIds.value = [comp.id];
+                        updateHistoryStatus();
+                    }} catch (e) {{
+                        console.error('Error adding component:', e);
+                    }}
+
+                    draggedComponentId = null;
+                }};
+
+                // Component manipulation
+                let dragState = null;
+
+                const startDrag = (e, comp) => {{
+                    dragState = {{
+                        type: 'move',
+                        comp,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        origX: comp.position.x,
+                        origY: comp.position.y
+                    }};
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }};
+
+                const startResize = (e, comp, handle) => {{
+                    dragState = {{
+                        type: 'resize',
+                        comp,
+                        handle,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        origW: comp.position.width,
+                        origH: comp.position.height
+                    }};
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }};
+
+                const onMouseMove = (e) => {{
+                    if (!dragState) return;
+
+                    const dx = e.clientX - dragState.startX;
+                    const dy = e.clientY - dragState.startY;
+
+                    if (dragState.type === 'move') {{
+                        let newX = dragState.origX + dx;
+                        let newY = dragState.origY + dy;
+
+                        if (snapToGrid.value) {{
+                            newX = Math.round(newX / gridSize.value) * gridSize.value;
+                            newY = Math.round(newY / gridSize.value) * gridSize.value;
+                        }}
+
+                        dragState.comp.position.x = Math.max(0, newX);
+                        dragState.comp.position.y = Math.max(0, newY);
+                    }} else if (dragState.type === 'resize') {{
+                        let newW = Math.max(50, dragState.origW + dx);
+                        let newH = Math.max(30, dragState.origH + dy);
+
+                        if (snapToGrid.value) {{
+                            newW = Math.round(newW / gridSize.value) * gridSize.value;
+                            newH = Math.round(newH / gridSize.value) * gridSize.value;
+                        }}
+
+                        dragState.comp.position.width = newW;
+                        dragState.comp.position.height = newH;
+                    }}
+                }};
+
+                const onMouseUp = async () => {{
+                    if (dragState) {{
+                        // Save to server
+                        try {{
+                            await fetch(`/api/canvas/${{canvasId.value}}/components/${{dragState.comp.id}}`, {{
+                                method: 'PUT',
+                                headers: {{ 'Content-Type': 'application/json' }},
+                                body: JSON.stringify({{ position: dragState.comp.position }})
+                            }});
+                            updateHistoryStatus();
+                        }} catch (e) {{}}
+                    }}
+                    dragState = null;
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }};
+
+                const selectComponent = (id, multi = false) => {{
+                    if (multi) {{
+                        const idx = selectedIds.value.indexOf(id);
+                        if (idx >= 0) {{
+                            selectedIds.value.splice(idx, 1);
+                        }} else {{
+                            selectedIds.value.push(id);
+                        }}
+                    }} else {{
+                        selectedIds.value = [id];
+                    }}
+                }};
+
+                const clearSelection = () => {{
+                    selectedIds.value = [];
+                }};
+
+                const updateProp = async (propName, value) => {{
+                    if (!selectedComponent.value) return;
+                    selectedComponent.value.props[propName] = value;
+
+                    try {{
+                        await fetch(`/api/canvas/${{canvasId.value}}/components/${{selectedComponent.value.id}}`, {{
+                            method: 'PUT',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ props: selectedComponent.value.props }})
+                        }});
+                        updateHistoryStatus();
+                    }} catch (e) {{}}
+                }};
+
+                const duplicateSelected = async () => {{
+                    if (selectedIds.value.length !== 1) return;
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/components/${{selectedIds.value[0]}}/duplicate`, {{
+                            method: 'POST'
+                        }});
+                        const comp = await res.json();
+                        canvasComponents.value.push(comp);
+                        selectedIds.value = [comp.id];
+                        updateHistoryStatus();
+                    }} catch (e) {{}}
+                }};
+
+                const deleteSelected = async () => {{
+                    if (selectedIds.value.length === 0) return;
+                    for (const id of selectedIds.value) {{
+                        try {{
+                            await fetch(`/api/canvas/${{canvasId.value}}/components/${{id}}`, {{ method: 'DELETE' }});
+                            const idx = canvasComponents.value.findIndex(c => c.id === id);
+                            if (idx >= 0) canvasComponents.value.splice(idx, 1);
+                        }} catch (e) {{}}
+                    }}
+                    selectedIds.value = [];
+                    updateHistoryStatus();
+                }};
+
+                const undo = async () => {{
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/undo`, {{ method: 'POST' }});
+                        const data = await res.json();
+                        canvasComponents.value = Object.values(data.components || {{}});
+                        canUndo.value = data.can_undo;
+                        canRedo.value = data.can_redo;
+                    }} catch (e) {{}}
+                }};
+
+                const redo = async () => {{
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/redo`, {{ method: 'POST' }});
+                        const data = await res.json();
+                        canvasComponents.value = Object.values(data.components || {{}});
+                        canUndo.value = data.can_undo;
+                        canRedo.value = data.can_redo;
+                    }} catch (e) {{}}
+                }};
+
+                const exportCode = async () => {{
+                    try {{
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/export`, {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ format: exportFormat.value, include_project: true }})
+                        }});
+                        const data = await res.json();
+                        exportedCode.value = Object.entries(data.files || {{}}).map(([k, v]) => `// ${{k}}\\n${{v}}`).join('\\n\\n');
+                        showExportModal.value = true;
+                    }} catch (e) {{
+                        console.error('Export error:', e);
+                    }}
+                }};
+
+                const copyExportedCode = () => {{
+                    navigator.clipboard.writeText(exportedCode.value);
+                }};
+
+                const getComponentStyle = (comp) => {{
+                    return {{
+                        left: comp.position.x + 'px',
+                        top: comp.position.y + 'px',
+                        width: comp.position.width + 'px',
+                        minHeight: comp.position.height + 'px'
+                    }};
+                }};
+
+                const getComponentProps = (componentId) => {{
+                    const comp = componentLibrary.value.components?.find(c => c.id === componentId);
+                    return comp?.props || [];
+                }};
+
+                const renderComponentPreview = (comp) => {{
+                    const def = componentLibrary.value.components?.find(c => c.id === comp.component_id);
+                    if (!def) return `<div class="p-2 bg-gray-100 text-sm">${{comp.component_id}}</div>`;
+
+                    let html = def.preview_html || `<div>${{def.name}}</div>`;
+                    for (const [key, value] of Object.entries(comp.props || {{}})) {{
+                        html = html.replace(new RegExp(`\\\\{{${{key}}\\\\}}`, 'g'), value || '');
+                    }}
+                    return html;
+                }};
+
+                // Prompt-to-App methods
+                const generateFromPrompt = async () => {{
+                    if (!promptText.value.trim() || !canvasId.value) return;
+
+                    isGenerating.value = true;
+                    lastGenerationResult.value = null;
+
+                    try {{
+                        const res = await fetch('/api/prompt-to-app/generate', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{
+                                prompt: promptText.value,
+                                use_ai: true,
+                                canvas_id: canvasId.value
+                            }})
+                        }});
+
+                        if (!res.ok) throw new Error('Generation failed');
+
+                        const data = await res.json();
+
+                        // Reload canvas to show new components
+                        await loadCanvas();
+
+                        lastGenerationResult.value = {{
+                            components_count: data.components?.length || 0,
+                            layout: data.layout_suggestion || 'vertical',
+                            intent: data.intent
+                        }};
+
+                        // Clear prompt after success
+                        promptText.value = '';
+
+                    }} catch (e) {{
+                        console.error('Error generating from prompt:', e);
+                        alert('Erro ao gerar UI. Tente novamente.');
+                    }} finally {{
+                        isGenerating.value = false;
+                    }}
+                }};
+
+                const applyTemplate = async (templateId) => {{
+                    if (!canvasId.value) return;
+
+                    isGenerating.value = true;
+                    lastGenerationResult.value = null;
+
+                    try {{
+                        const res = await fetch(`/api/prompt-to-app/templates/${{templateId}}/apply`, {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{
+                                template_id: templateId,
+                                canvas_id: canvasId.value
+                            }})
+                        }});
+
+                        if (!res.ok) throw new Error('Template apply failed');
+
+                        const data = await res.json();
+
+                        // Reload canvas to show new components
+                        await loadCanvas();
+
+                        lastGenerationResult.value = {{
+                            components_count: data.components?.length || 0,
+                            layout: data.layout_suggestion || 'vertical',
+                            intent: data.intent
+                        }};
+
+                    }} catch (e) {{
+                        console.error('Error applying template:', e);
+                        alert('Erro ao aplicar template. Tente novamente.');
+                    }} finally {{
+                        isGenerating.value = false;
+                    }}
+                }};
+
+                // Keyboard shortcuts
+                const handleKeydown = (e) => {{
+                    if (e.key === 'Delete' || e.key === 'Backspace') {{
+                        if (selectedIds.value.length && document.activeElement.tagName !== 'INPUT') {{
+                            e.preventDefault();
+                            deleteSelected();
+                        }}
+                    }}
+                    if (e.ctrlKey || e.metaKey) {{
+                        if (e.key === 'z') {{
+                            e.preventDefault();
+                            if (e.shiftKey) redo();
+                            else undo();
+                        }}
+                        if (e.key === 'd') {{
+                            e.preventDefault();
+                            duplicateSelected();
+                        }}
+                    }}
+                }};
+
+                onMounted(async () => {{
+                    await loadLibrary();
+                    await initCanvas();
+                    document.addEventListener('keydown', handleKeydown);
+                }});
+
+                return {{
+                    canvasId, canvasComponents, selectedIds, isDragOver,
+                    canvasWidth, canvasHeight, gridSize, snapToGrid, showGrid,
+                    canUndo, canRedo, exportFormat, showExportModal, exportedCode,
+                    componentLibrary, categoryNames, componentsByCategory, selectedComponent,
+                    // Prompt-to-App
+                    promptText, isGenerating, showPromptExamples, lastGenerationResult,
+                    quickTemplates, promptExamples,
+                    generateFromPrompt, applyTemplate,
+                    // Drag and drop
+                    onDragStart, onDrop, startDrag, startResize,
+                    selectComponent, clearSelection, updateProp,
+                    duplicateSelected, deleteSelected, undo, redo,
+                    exportCode, copyExportedCode,
+                    getComponentStyle, getComponentProps, renderComponentPreview
+                }};
+            }}
+        }}).mount('#app');
+    </script>
+</body>
+</html>'''
+
+
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -8636,6 +9446,27 @@ HTML_TEMPLATE = """
                         <span>Preview do Projeto</span>
                     </button>
 
+                    <!-- Visual Builder Button (Base44 Feature) -->
+                    <button @click="openVisualBuilder"
+                            v-if="selectedProjectId"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-[#FF6C00] to-[#FF8533] text-white rounded transition hover:opacity-90 mt-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                        <span>Visual Builder</span>
+                    </button>
+
+                    <!-- GitHub Sync Button (Base44 Feature - Sprint 5) -->
+                    <button @click="showGitHubSyncModal = true"
+                            v-if="selectedProjectId"
+                            class="w-full flex items-center gap-2 px-3 py-2 text-sm bg-gray-800 text-white rounded transition hover:bg-gray-700 mt-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>GitHub Sync</span>
+                        <span v-if="gitSyncStatus?.uncommitted_changes" class="ml-auto w-2 h-2 bg-yellow-400 rounded-full animate-pulse" title="Mudancas nao commitadas"></span>
+                    </button>
+
                     + Novo Epic
                         </button>
                         <button @click="showNewSprintModal = true"
@@ -8919,7 +9750,7 @@ HTML_TEMPLATE = """
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
+                        <label id="api-key-scopes-label" class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
                         <div class="flex flex-wrap gap-2">
                             <label v-for="scope in ['read', 'write', 'admin', 'webhooks']" :key="scope" class="flex items-center gap-1 px-2 py-1 border rounded cursor-pointer">
                                 <input type="checkbox" :value="scope" v-model="newApiKey.scopes" class="rounded"><span class="text-sm">{{ scope }}</span>
@@ -9139,8 +9970,8 @@ HTML_TEMPLATE = """
                             <h2 class="wizard-title">Primeira {{ translateTerm('story') }}</h2>
                             <p class="wizard-description">Descreva a primeira {{ translateTerm('story') }} do projeto.</p>
                             <div class="wizard-field">
-                                <label>O que voce quer que o sistema faca?</label>
-                                <textarea v-model="wizardData.firstFeature" rows="4" placeholder="Ex: Permitir que os usuarios facam login com email e senha"></textarea>
+                                <label for="wizard-first-feature">O que voce quer que o sistema faca?</label>
+                                <textarea id="wizard-first-feature" v-model="wizardData.firstFeature" rows="4" placeholder="Ex: Permitir que os usuarios facam login com email e senha"></textarea>
                             </div>
                         </div>
 
@@ -9300,11 +10131,11 @@ HTML_TEMPLATE = """
                         <h3 class="text-lg font-semibold mb-4">Configurar Integracao</h3>
                         <div class="border-b bg-gray-50 mb-4"><div class="flex"><button v-for="tab in integrationTabs" :key="tab.id" @click="activeIntegrationTab = tab.id; loadIntegrationConfigs()" :class="['px-4 py-2 text-sm border-b-2', activeIntegrationTab === tab.id ? 'border-[#FF6C00] text-[#FF6C00] bg-white' : 'border-transparent text-gray-500']">{{ tab.label }}<span v-if="integrationConfigs[tab.id]?.connected" class="ml-1 w-2 h-2 bg-green-500 rounded-full inline-block"></span></button></div></div>
                         <div class="bg-white p-4 rounded-lg border">
-                            <div v-if="activeIntegrationTab === 'github'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">Token</label><input type="password" v-model="integrationConfigs.github.token" class="w-full px-3 py-2 border rounded" placeholder="ghp_xxx"></div><div><label class="block text-sm font-medium mb-1">Owner</label><input type="text" v-model="integrationConfigs.github.owner" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Repo</label><input type="text" v-model="integrationConfigs.github.repo" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Branch</label><input type="text" v-model="integrationConfigs.github.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
-                            <div v-if="activeIntegrationTab === 'gitlab'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">URL</label><input type="text" v-model="integrationConfigs.gitlab.url" class="w-full px-3 py-2 border rounded" placeholder="https://gitlab.com"></div><div><label class="block text-sm font-medium mb-1">Token</label><input type="password" v-model="integrationConfigs.gitlab.token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Project ID</label><input type="text" v-model="integrationConfigs.gitlab.project_id" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Branch</label><input type="text" v-model="integrationConfigs.gitlab.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
-                            <div v-if="activeIntegrationTab === 'sap'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label class="block text-sm font-medium mb-1">System URL</label><input type="text" v-model="integrationConfigs.sap.host" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Client</label><input type="text" v-model="integrationConfigs.sap.client" class="w-full px-3 py-2 border rounded" placeholder="100"></div><div><label class="block text-sm font-medium mb-1">Environment</label><select v-model="integrationConfigs.sap.environment" class="w-full px-3 py-2 border rounded"><option value="cloud">Cloud</option><option value="private">Private</option><option value="on_premise">On-Premise</option></select></div><div><label class="block text-sm font-medium mb-1">Username</label><input type="text" v-model="integrationConfigs.sap.username" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Password</label><input type="password" v-model="integrationConfigs.sap.password" class="w-full px-3 py-2 border rounded"></div></div>
-                            <div v-if="activeIntegrationTab === 'salesforce'" class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium mb-1">Client ID</label><input type="text" v-model="integrationConfigs.salesforce.client_id" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Client Secret</label><input type="password" v-model="integrationConfigs.salesforce.client_secret" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Username</label><input type="text" v-model="integrationConfigs.salesforce.username" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Security Token</label><input type="password" v-model="integrationConfigs.salesforce.security_token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Domain</label><select v-model="integrationConfigs.salesforce.domain" class="w-full px-3 py-2 border rounded"><option value="login">Production</option><option value="test">Sandbox</option></select></div></div>
-                            <div v-if="activeIntegrationTab === 'jira'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label class="block text-sm font-medium mb-1">Jira URL</label><input type="text" v-model="integrationConfigs.jira.url" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Email</label><input type="email" v-model="integrationConfigs.jira.email" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">API Token</label><input type="password" v-model="integrationConfigs.jira.token" class="w-full px-3 py-2 border rounded"></div><div><label class="block text-sm font-medium mb-1">Project Key</label><input type="text" v-model="integrationConfigs.jira.project_key" class="w-full px-3 py-2 border rounded"></div></div>
+                            <div v-if="activeIntegrationTab === 'github'" class="grid grid-cols-2 gap-4"><div><label for="github-token" class="block text-sm font-medium mb-1">Token</label><input id="github-token" type="password" v-model="integrationConfigs.github.token" class="w-full px-3 py-2 border rounded" placeholder="ghp_xxx"></div><div><label for="github-owner" class="block text-sm font-medium mb-1">Owner</label><input id="github-owner" type="text" v-model="integrationConfigs.github.owner" class="w-full px-3 py-2 border rounded"></div><div><label for="github-repo" class="block text-sm font-medium mb-1">Repo</label><input id="github-repo" type="text" v-model="integrationConfigs.github.repo" class="w-full px-3 py-2 border rounded"></div><div><label for="github-branch" class="block text-sm font-medium mb-1">Branch</label><input id="github-branch" type="text" v-model="integrationConfigs.github.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
+                            <div v-if="activeIntegrationTab === 'gitlab'" class="grid grid-cols-2 gap-4"><div><label for="gitlab-url" class="block text-sm font-medium mb-1">URL</label><input id="gitlab-url" type="text" v-model="integrationConfigs.gitlab.url" class="w-full px-3 py-2 border rounded" placeholder="https://gitlab.com"></div><div><label for="gitlab-token" class="block text-sm font-medium mb-1">Token</label><input id="gitlab-token" type="password" v-model="integrationConfigs.gitlab.token" class="w-full px-3 py-2 border rounded"></div><div><label for="gitlab-project-id" class="block text-sm font-medium mb-1">Project ID</label><input id="gitlab-project-id" type="text" v-model="integrationConfigs.gitlab.project_id" class="w-full px-3 py-2 border rounded"></div><div><label for="gitlab-branch" class="block text-sm font-medium mb-1">Branch</label><input id="gitlab-branch" type="text" v-model="integrationConfigs.gitlab.branch" class="w-full px-3 py-2 border rounded" placeholder="main"></div></div>
+                            <div v-if="activeIntegrationTab === 'sap'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label for="sap-host" class="block text-sm font-medium mb-1">System URL</label><input id="sap-host" type="text" v-model="integrationConfigs.sap.host" class="w-full px-3 py-2 border rounded"></div><div><label for="sap-client" class="block text-sm font-medium mb-1">Client</label><input id="sap-client" type="text" v-model="integrationConfigs.sap.client" class="w-full px-3 py-2 border rounded" placeholder="100"></div><div><label for="sap-environment" class="block text-sm font-medium mb-1">Environment</label><select id="sap-environment" v-model="integrationConfigs.sap.environment" class="w-full px-3 py-2 border rounded"><option value="cloud">Cloud</option><option value="private">Private</option><option value="on_premise">On-Premise</option></select></div><div><label for="sap-username" class="block text-sm font-medium mb-1">Username</label><input id="sap-username" type="text" v-model="integrationConfigs.sap.username" class="w-full px-3 py-2 border rounded"></div><div><label for="sap-password" class="block text-sm font-medium mb-1">Password</label><input id="sap-password" type="password" v-model="integrationConfigs.sap.password" class="w-full px-3 py-2 border rounded"></div></div>
+                            <div v-if="activeIntegrationTab === 'salesforce'" class="grid grid-cols-2 gap-4"><div><label for="salesforce-client-id" class="block text-sm font-medium mb-1">Client ID</label><input id="salesforce-client-id" type="text" v-model="integrationConfigs.salesforce.client_id" class="w-full px-3 py-2 border rounded"></div><div><label for="salesforce-client-secret" class="block text-sm font-medium mb-1">Client Secret</label><input id="salesforce-client-secret" type="password" v-model="integrationConfigs.salesforce.client_secret" class="w-full px-3 py-2 border rounded"></div><div><label for="salesforce-username" class="block text-sm font-medium mb-1">Username</label><input id="salesforce-username" type="text" v-model="integrationConfigs.salesforce.username" class="w-full px-3 py-2 border rounded"></div><div><label for="salesforce-security-token" class="block text-sm font-medium mb-1">Security Token</label><input id="salesforce-security-token" type="password" v-model="integrationConfigs.salesforce.security_token" class="w-full px-3 py-2 border rounded"></div><div><label for="salesforce-domain" class="block text-sm font-medium mb-1">Domain</label><select id="salesforce-domain" v-model="integrationConfigs.salesforce.domain" class="w-full px-3 py-2 border rounded"><option value="login">Production</option><option value="test">Sandbox</option></select></div></div>
+                            <div v-if="activeIntegrationTab === 'jira'" class="grid grid-cols-2 gap-4"><div class="col-span-2"><label for="jira-url" class="block text-sm font-medium mb-1">Jira URL</label><input id="jira-url" type="text" v-model="integrationConfigs.jira.url" class="w-full px-3 py-2 border rounded"></div><div><label for="jira-email" class="block text-sm font-medium mb-1">Email</label><input id="jira-email" type="email" v-model="integrationConfigs.jira.email" class="w-full px-3 py-2 border rounded"></div><div><label for="jira-token" class="block text-sm font-medium mb-1">API Token</label><input id="jira-token" type="password" v-model="integrationConfigs.jira.token" class="w-full px-3 py-2 border rounded"></div><div><label for="jira-project-key" class="block text-sm font-medium mb-1">Project Key</label><input id="jira-project-key" type="text" v-model="integrationConfigs.jira.project_key" class="w-full px-3 py-2 border rounded"></div></div>
                             <div class="mt-4 flex justify-between"><button @click="testIntegration(activeIntegrationTab)" :disabled="integrationTesting === activeIntegrationTab" class="px-4 py-2 bg-gray-600 text-white rounded disabled:opacity-50">{{ integrationTesting === activeIntegrationTab ? 'Testando...' : 'Testar Conexao' }}</button><button @click="saveIntegration(activeIntegrationTab)" :disabled="integrationSaving === activeIntegrationTab" class="px-4 py-2 bg-[#FF6C00] text-white rounded disabled:opacity-50">{{ integrationSaving === activeIntegrationTab ? 'Salvando...' : 'Salvar' }}</button></div>
                         </div>
                     </div>
@@ -10759,15 +11590,15 @@ HTML_TEMPLATE = """
 
                     <!-- WIP Policy -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Politica</label>
-                        <div class="flex gap-4">
-                            <label class="flex items-center gap-2">
-                                <input type="radio" v-model="wipPolicy" value="soft"
+                        <label id="wip-policy-type-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Politica</label>
+                        <div class="flex gap-4" role="radiogroup" aria-labelledby="wip-policy-type-label">
+                            <label for="wip-policy-soft" class="flex items-center gap-2">
+                                <input id="wip-policy-soft" type="radio" v-model="wipPolicy" value="soft"
                                        class="text-[#003B4A] focus:ring-[#003B4A]">
                                 <span class="text-sm">Soft (aviso visual)</span>
                             </label>
-                            <label class="flex items-center gap-2">
-                                <input type="radio" v-model="wipPolicy" value="hard"
+                            <label for="wip-policy-hard" class="flex items-center gap-2">
+                                <input id="wip-policy-hard" type="radio" v-model="wipPolicy" value="hard"
                                        class="text-[#003B4A] focus:ring-[#003B4A]">
                                 <span class="text-sm">Hard (bloqueia movimentacao)</span>
                             </label>
@@ -10776,7 +11607,7 @@ HTML_TEMPLATE = """
 
                     <!-- WIP Limits per Column -->
                     <div class="space-y-3">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Limites por Coluna</label>
+                        <label id="wip-limits-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Limites por Coluna</label>
                         <div v-for="status in ['ready', 'in_progress', 'review', 'testing']" :key="status"
                              class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                             <span class="text-sm text-gray-700 dark:text-gray-300">{{ getColumnTitle(status) }}</span>
@@ -11090,8 +11921,8 @@ HTML_TEMPLATE = """
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Estimativa (h)</label>
-                            <input v-model.number="newTask.estimated_hours" type="number"
+                            <label for="task-estimated-hours" class="block text-sm font-medium text-gray-700 mb-1">Estimativa (h)</label>
+                            <input id="task-estimated-hours" v-model.number="newTask.estimated_hours" type="number"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2">
                         </div>
                     </div>
@@ -11246,14 +12077,14 @@ HTML_TEMPLATE = """
                     <div v-if="showCreatePokerSession" class="bg-blue-50 rounded-lg p-4 mb-4">
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Sessao</label>
-                                <input v-model="newPokerSession.name" type="text"
+                                <label for="poker-session-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da Sessao</label>
+                                <input id="poker-session-name" v-model="newPokerSession.name" type="text"
                                        class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                        placeholder="Ex: Sprint 5 Planning">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Escala</label>
-                                <select v-model="newPokerSession.scale_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <label for="poker-session-scale" class="block text-sm font-medium text-gray-700 mb-1">Escala</label>
+                                <select id="poker-session-scale" v-model="newPokerSession.scale_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                     <option value="fibonacci">Fibonacci (1,2,3,5,8,13,21)</option>
                                     <option value="modified_fibonacci">Fibonacci Modificado</option>
                                     <option value="tshirt">T-Shirt (XS,S,M,L,XL)</option>
@@ -11262,11 +12093,11 @@ HTML_TEMPLATE = """
                             </div>
                         </div>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Stories para Estimar</label>
-                            <div class="max-h-32 overflow-y-auto border rounded-lg p-2 bg-white">
-                                <label v-for="story in storiesForPoker" :key="story.story_id"
+                            <label id="poker-stories-label" class="block text-sm font-medium text-gray-700 mb-1">Stories para Estimar</label>
+                            <div class="max-h-32 overflow-y-auto border rounded-lg p-2 bg-white" role="group" aria-labelledby="poker-stories-label">
+                                <label v-for="story in storiesForPoker" :key="story.story_id" :for="'poker-story-' + story.story_id"
                                        class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                                    <input type="checkbox" v-model="newPokerSession.story_ids" :value="story.story_id"
+                                    <input :id="'poker-story-' + story.story_id" type="checkbox" v-model="newPokerSession.story_ids" :value="story.story_id"
                                            class="rounded border-gray-300 text-[#FF6C00]">
                                     <span class="text-sm">{{ story.story_id }} - {{ story.title }}</span>
                                     <span v-if="story.story_points" class="text-xs text-gray-500">({{ story.story_points }} pts)</span>
@@ -11416,14 +12247,14 @@ HTML_TEMPLATE = """
                 <div class="p-6 space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
-                            <input v-model="newDesign.title" type="text"
+                            <label for="design-title" class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                            <input id="design-title" v-model="newDesign.title" type="text"
                                    class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                    placeholder="Ex: Arquitetura do Sistema">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                            <select v-model="newDesign.design_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                            <label for="design-type" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                            <select id="design-type" v-model="newDesign.design_type" class="w-full border border-gray-300 rounded-lg px-3 py-2">
                                 <option value="wireframe">Wireframe</option>
                                 <option value="architecture">Arquitetura</option>
                                 <option value="flow">Fluxograma</option>
@@ -11433,8 +12264,8 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
-                        <textarea v-model="newDesign.description" rows="2"
+                        <label for="design-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="design-description" v-model="newDesign.description" rows="2"
                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
                                   placeholder="Breve descricao do diagrama..."></textarea>
                     </div>
@@ -11666,8 +12497,8 @@ HTML_TEMPLATE = """
                 <div class="p-6">
                     <div class="mb-4 flex items-center gap-4">
                         <div>
-                            <label class="text-sm text-gray-500">Sprint:</label>
-                            <select v-model="selectedSprintId" @change="updateBurndownChart"
+                            <label for="burndown-sprint-select" class="text-sm text-gray-500">Sprint:</label>
+                            <select id="burndown-sprint-select" v-model="selectedSprintId" @change="updateBurndownChart"
                                     class="ml-2 border rounded px-2 py-1 text-sm">
                                 <option value="">Todos</option>
                                 <option v-for="s in sprints" :key="s.sprint_id" :value="s.sprint_id">{{ s.name }}</option>
@@ -12059,9 +12890,372 @@ HTML_TEMPLATE = """
                     <span class="fab-item-label">Novo Projeto</span>
                     <span class="fab-item-shortcut">⇧⌘N</span>
                 </button>
+                <div class="fab-separator"></div>
+                <button class="fab-item fab-deploy" role="menuitem" @click="fabAction('deploy')" v-if="selectedProjectId">
+                    <span class="fab-item-icon">🚀</span>
+                    <span class="fab-item-label">Deploy Cloud</span>
+                    <span class="fab-item-shortcut">⇧⌘D</span>
+                </button>
             </div>
         </div>
 
+        <!-- DEPLOY CLOUD MODAL (Base44 Feature - Sprint 3) -->
+        <div v-if="showDeployModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="closeDeployModal">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-[#003B4A] to-[#005066] text-white px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🚀</span>
+                            <div>
+                                <h3 class="font-semibold text-lg">Deploy para Cloud</h3>
+                                <p class="text-sm opacity-80">1-Click Deploy</p>
+                            </div>
+                        </div>
+                        <button @click="closeDeployModal" class="text-white/70 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <!-- Provider Selection -->
+                    <div v-if="!deployStatus || deployStatus.status === 'failed'" class="space-y-4">
+                        <h4 class="font-medium text-gray-700 mb-3">Selecione o Provider</h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button v-for="provider in deployProviders" :key="provider.id"
+                                    @click="selectedDeployProvider = provider"
+                                    :class="[
+                                        'p-4 rounded-lg border-2 text-left transition-all',
+                                        selectedDeployProvider?.id === provider.id
+                                            ? 'border-[#FF6C00] bg-orange-50'
+                                            : 'border-gray-200 hover:border-gray-300',
+                                        !provider.configured && 'opacity-60'
+                                    ]">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span v-if="provider.id === 'aws_lambda'" class="text-xl">☁️</span>
+                                    <span v-else-if="provider.id === 'vercel'" class="text-xl">▲</span>
+                                    <span v-else-if="provider.id === 'gcp_cloud_run'" class="text-xl">🔵</span>
+                                    <span v-else-if="provider.id === 'azure_functions'" class="text-xl">🔷</span>
+                                    <span v-else class="text-xl">💻</span>
+                                    <span class="font-medium text-sm">{{ provider.name }}</span>
+                                </div>
+                                <p class="text-xs text-gray-500">{{ provider.description }}</p>
+                                <p class="text-xs text-green-600 mt-1">{{ provider.free_tier }}</p>
+                                <div v-if="provider.configured" class="flex items-center gap-1 mt-2 text-xs text-green-600">
+                                    <span>✓</span> Configurado
+                                </div>
+                                <div v-else class="flex items-center gap-1 mt-2 text-xs text-orange-500">
+                                    <span>⚠</span> Nao configurado
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Error message -->
+                        <div v-if="deployStatus?.status === 'failed'" class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+                            <strong>Erro:</strong> {{ deployStatus.error || deployStatus.errors?.[0] || 'Erro desconhecido' }}
+                        </div>
+
+                        <!-- Deploy Button -->
+                        <button @click="startDeploy"
+                                :disabled="!selectedDeployProvider || isDeploying"
+                                class="w-full bg-gradient-to-r from-[#FF6C00] to-[#FF8533] text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            <span v-if="isDeploying" class="animate-spin">⏳</span>
+                            <span>🚀</span>
+                            {{ isDeploying ? 'Fazendo Deploy...' : 'Iniciar Deploy' }}
+                        </button>
+                    </div>
+
+                    <!-- Deploy Progress -->
+                    <div v-else-if="deployStatus" class="space-y-4">
+                        <!-- Status Header -->
+                        <div class="flex items-center gap-3 mb-4">
+                            <div :class="[
+                                'w-12 h-12 rounded-full flex items-center justify-center text-2xl',
+                                deployStatus.status === 'completed' ? 'bg-green-100' :
+                                deployStatus.status === 'failed' ? 'bg-red-100' : 'bg-blue-100'
+                            ]">
+                                <span v-if="deployStatus.status === 'completed'">✅</span>
+                                <span v-else-if="deployStatus.status === 'failed'">❌</span>
+                                <span v-else class="animate-pulse">🔄</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">{{ deployStatus.current_step || 'Processando...' }}</h4>
+                                <p class="text-sm text-gray-500">{{ deployStatus.status }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-gradient-to-r from-[#FF6C00] to-[#FF8533] h-3 rounded-full transition-all duration-500"
+                                 :style="{ width: deployStatus.progress + '%' }"></div>
+                        </div>
+                        <p class="text-center text-sm text-gray-500">{{ deployStatus.progress }}%</p>
+
+                        <!-- Logs -->
+                        <div class="bg-gray-900 rounded-lg p-3 max-h-40 overflow-y-auto">
+                            <div v-for="log in deployStatus.logs?.slice(-10)" :key="log" class="text-xs text-green-400 font-mono">
+                                {{ log }}
+                            </div>
+                        </div>
+
+                        <!-- URL if completed -->
+                        <div v-if="deployStatus.status === 'completed' && deployStatus.public_url" class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p class="text-sm text-green-700 font-medium mb-2">🎉 Deploy concluido!</p>
+                            <a :href="deployStatus.public_url" target="_blank"
+                               class="text-[#FF6C00] hover:underline break-all flex items-center gap-1">
+                                {{ deployStatus.public_url }}
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                            </a>
+
+                            <!-- Domain Options -->
+                            <div class="mt-4 pt-4 border-t border-green-200">
+                                <p class="text-sm text-gray-600 mb-2">Configure um dominio:</p>
+                                <div class="flex gap-2">
+                                    <button @click="generateSubdomain"
+                                            class="flex-1 text-xs px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-1">
+                                        <span>🌐</span> Gerar Subdominio
+                                    </button>
+                                    <button @click="showCustomDomainInput = true"
+                                            class="flex-1 text-xs px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center gap-1">
+                                        <span>🔗</span> Dominio Custom
+                                    </button>
+                                </div>
+
+                                <!-- Generated subdomain result -->
+                                <div v-if="generatedDomain" class="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
+                                    <p class="text-xs text-blue-700 font-medium">Subdominio gerado:</p>
+                                    <a :href="'https://' + generatedDomain" target="_blank"
+                                       class="text-sm text-[#FF6C00] hover:underline">
+                                        {{ generatedDomain }}
+                                    </a>
+                                </div>
+
+                                <!-- Custom domain input -->
+                                <div v-if="showCustomDomainInput" class="mt-3">
+                                    <div class="flex gap-2">
+                                        <input v-model="customDomainInput"
+                                               type="text"
+                                               placeholder="app.seusite.com.br"
+                                               class="flex-1 text-sm border rounded px-3 py-2">
+                                        <button @click="addCustomDomain"
+                                                :disabled="!customDomainInput"
+                                                class="px-4 py-2 bg-[#FF6C00] text-white text-sm rounded hover:bg-[#FF8533] disabled:opacity-50">
+                                            Adicionar
+                                        </button>
+                                    </div>
+                                    <p v-if="customDomainInstructions" class="text-xs text-gray-500 mt-2">
+                                        {{ customDomainInstructions }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Close/Retry buttons -->
+                        <div class="flex gap-3">
+                            <button v-if="deployStatus.status === 'completed' || deployStatus.status === 'failed'"
+                                    @click="deployStatus = null"
+                                    class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50">
+                                Novo Deploy
+                            </button>
+                            <button @click="closeDeployModal"
+                                    class="flex-1 bg-gray-100 py-2 rounded-lg hover:bg-gray-200">
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GITHUB SYNC MODAL (Base44 Feature - Sprint 5) -->
+        <div v-if="showGitHubSyncModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" @click.self="showGitHubSyncModal = false">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                <!-- Header -->
+                <div class="bg-gray-900 text-white px-6 py-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                        </svg>
+                        <h2 class="text-lg font-semibold">GitHub Sync</h2>
+                    </div>
+                    <button @click="showGitHubSyncModal = false" class="text-gray-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                    <!-- Not Initialized -->
+                    <div v-if="!gitSyncStatus?.initialized" class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Iniciar Repositorio Git</h3>
+                        <p class="text-sm text-gray-500 mb-6">Configure um repositorio Git para sincronizar o codigo do projeto.</p>
+
+                        <div class="max-w-sm mx-auto mb-4">
+                            <label for="git-remote-url" class="block text-sm font-medium text-gray-700 text-left mb-1">URL do Repositorio (opcional)</label>
+                            <input id="git-remote-url" v-model="gitRemoteUrl"
+                                   type="text"
+                                   placeholder="https://github.com/usuario/repo.git"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-500 focus:border-gray-500">
+                        </div>
+
+                        <button @click="initGitRepo"
+                                :disabled="isGitLoading"
+                                class="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                            <span v-if="isGitLoading" class="flex items-center gap-2">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                                Inicializando...
+                            </span>
+                            <span v-else>Inicializar Repositorio</span>
+                        </button>
+                    </div>
+
+                    <!-- Initialized - Main Content -->
+                    <div v-else>
+                        <!-- Status Section -->
+                        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <div :class="['w-3 h-3 rounded-full', gitSyncStatus?.uncommitted_changes ? 'bg-yellow-400' : 'bg-green-400']"></div>
+                                    <span class="font-medium text-gray-900">{{ gitSyncStatus?.current_branch || 'main' }}</span>
+                                </div>
+                                <button @click="loadGitSyncStatus" class="text-xs text-gray-500 hover:text-gray-700">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div class="text-2xl font-bold text-gray-900">{{ gitSyncStatus?.pending_commits || 0 }}</div>
+                                    <div class="text-xs text-gray-500">Commits pendentes</div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold text-gray-900">{{ gitSyncStatus?.files_changed || 0 }}</div>
+                                    <div class="text-xs text-gray-500">Arquivos alterados</div>
+                                </div>
+                                <div>
+                                    <div class="text-2xl font-bold" :class="gitSyncStatus?.ahead_by > 0 ? 'text-yellow-600' : 'text-green-600'">{{ gitSyncStatus?.ahead_by || 0 }}</div>
+                                    <div class="text-xs text-gray-500">A frente de origin</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <button @click="commitAndPush"
+                                    :disabled="isGitLoading || !gitSyncStatus?.uncommitted_changes"
+                                    class="flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                Commit & Push
+                            </button>
+                            <button @click="pullChanges"
+                                    :disabled="isGitLoading"
+                                    class="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                </svg>
+                                Pull Changes
+                            </button>
+                        </div>
+
+                        <!-- Commit Message -->
+                        <div v-if="gitSyncStatus?.uncommitted_changes" class="mb-6">
+                            <label for="git-commit-message" class="block text-sm font-medium text-gray-700 mb-1">Mensagem do Commit</label>
+                            <textarea id="git-commit-message" v-model="gitCommitMessage"
+                                      rows="2"
+                                      placeholder="feat: Descricao das mudancas..."
+                                      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-gray-500 focus:border-gray-500"></textarea>
+                        </div>
+
+                        <!-- Create Feature Branch -->
+                        <div class="border-t border-gray-200 pt-6 mb-6">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Criar Branch para Story</h3>
+                            <div class="flex gap-2">
+                                <select v-model="selectedStoryForBranch" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                    <option value="">Selecione uma story...</option>
+                                    <option v-for="story in stories" :key="story.story_id" :value="story">
+                                        {{ story.story_id }} - {{ story.title }}
+                                    </option>
+                                </select>
+                                <button @click="createFeatureBranch"
+                                        :disabled="!selectedStoryForBranch || isGitLoading"
+                                        class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-[#FF8533] disabled:opacity-50">
+                                    Criar Branch
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Version History -->
+                        <div class="border-t border-gray-200 pt-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-semibold text-gray-900">Historico de Versoes</h3>
+                                <button @click="loadVersionHistory" class="text-xs text-gray-500 hover:text-gray-700">Atualizar</button>
+                            </div>
+                            <div v-if="gitVersions.length > 0" class="space-y-2 max-h-48 overflow-y-auto">
+                                <div v-for="version in gitVersions" :key="version.version_id"
+                                     class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 group">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-900 truncate">{{ version.message }}</div>
+                                        <div class="text-xs text-gray-500">{{ version.short_hash }} - {{ formatDate(version.timestamp) }}</div>
+                                    </div>
+                                    <button @click="rollbackToVersion(version.version_id)"
+                                            class="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded">
+                                        Rollback
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-else class="text-center py-4 text-sm text-gray-500">
+                                Nenhum commit ainda
+                            </div>
+                        </div>
+
+                        <!-- Remote Config -->
+                        <div v-if="!gitSyncStatus?.remote_url" class="border-t border-gray-200 pt-6 mt-6">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">Configurar Repositorio Remoto</h3>
+                            <div class="flex gap-2">
+                                <input v-model="gitRemoteUrl"
+                                       type="text"
+                                       placeholder="https://github.com/usuario/repo.git"
+                                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <button @click="configureRemote"
+                                        :disabled="!gitRemoteUrl || isGitLoading"
+                                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                                    Conectar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div v-if="isGitLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <div class="flex flex-col items-center">
+                            <svg class="animate-spin w-8 h-8 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span class="text-sm text-gray-600">{{ gitLoadingMessage }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- PROJECT PREVIEW DASHBOARD MODAL (Issue #73) -->
         <div v-if="showProjectPreview && selectedProjectId"
@@ -13029,6 +14223,439 @@ HTML_TEMPLATE = """
                     case 'project':
                         showProjectWizard.value = true;
                         break;
+                    case 'deploy':
+                        if (selectedProjectId.value) {
+                            showDeployModal.value = true;
+                            loadDeployProviders();
+                        } else {
+                            addToast('warning', 'Selecione um Projeto', 'Para fazer deploy, primeiro selecione um projeto.');
+                        }
+                        break;
+                }
+            };
+
+            // ========== BASE44 FEATURE - DEPLOY 1-CLICK CLOUD ==========
+            const showDeployModal = ref(false);
+            const deployProviders = ref([]);
+            const selectedDeployProvider = ref(null);
+            const deployStatus = ref(null);
+            const isDeploying = ref(false);
+
+            const loadDeployProviders = async () => {
+                try {
+                    const res = await fetch('/api/deploy/providers');
+                    deployProviders.value = await res.json();
+                    if (deployProviders.value.length > 0) {
+                        selectedDeployProvider.value = deployProviders.value.find(p => p.configured) || deployProviders.value[0];
+                    }
+                } catch (e) {
+                    console.error('Error loading providers:', e);
+                }
+            };
+
+            const startDeploy = async () => {
+                if (!selectedProjectId.value || !selectedDeployProvider.value) return;
+
+                isDeploying.value = true;
+                deployStatus.value = { status: 'pending', progress: 0, logs: ['Iniciando deploy...'] };
+
+                try {
+                    const res = await fetch('/api/deploy/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            provider: selectedDeployProvider.value.id
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        // Iniciar polling do status
+                        pollDeployStatus(data.deployment_id);
+                    } else {
+                        deployStatus.value = { status: 'failed', error: data.detail || 'Erro no deploy' };
+                        isDeploying.value = false;
+                    }
+                } catch (e) {
+                    deployStatus.value = { status: 'failed', error: e.message };
+                    isDeploying.value = false;
+                }
+            };
+
+            const pollDeployStatus = async (deploymentId) => {
+                const maxAttempts = 60;
+                let attempts = 0;
+
+                const poll = async () => {
+                    try {
+                        const res = await fetch(`/api/deploy/${deploymentId}`);
+                        const data = await res.json();
+
+                        deployStatus.value = data;
+
+                        if (data.status === 'completed') {
+                            isDeploying.value = false;
+                            addToast('success', 'Deploy Concluido!', `URL: ${data.public_url}`);
+                        } else if (data.status === 'failed') {
+                            isDeploying.value = false;
+                            addToast('error', 'Deploy Falhou', data.errors?.[0] || 'Erro desconhecido');
+                        } else if (attempts < maxAttempts) {
+                            attempts++;
+                            setTimeout(poll, 2000);
+                        } else {
+                            isDeploying.value = false;
+                            deployStatus.value.status = 'timeout';
+                        }
+                    } catch (e) {
+                        console.error('Error polling status:', e);
+                        isDeploying.value = false;
+                    }
+                };
+
+                poll();
+            };
+
+            const closeDeployModal = () => {
+                showDeployModal.value = false;
+                if (!isDeploying.value) {
+                    deployStatus.value = null;
+                }
+            };
+
+            // ========== BASE44 FEATURE - CUSTOM DOMAINS (Sprint 4) ==========
+            const showCustomDomainInput = ref(false);
+            const customDomainInput = ref('');
+            const customDomainInstructions = ref('');
+            const generatedDomain = ref('');
+            const projectDomains = ref([]);
+
+            const generateSubdomain = async () => {
+                if (!selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch('/api/domains/subdomain', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            project_name: currentProjectName.value || selectedProjectId.value
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        generatedDomain.value = data.domain;
+                        addToast('success', 'Subdominio Criado!', `Seu app esta disponivel em ${data.domain}`);
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha ao gerar subdominio');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                }
+            };
+
+            const addCustomDomain = async () => {
+                if (!selectedProjectId.value || !customDomainInput.value) return;
+
+                try {
+                    const res = await fetch('/api/domains/custom', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            domain: customDomainInput.value,
+                            deployment_id: deployStatus.value?.deployment_id
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        customDomainInstructions.value = 'Configure seu DNS:\n' +
+                            '1. Adicione CNAME apontando para cname.plataformae.app\n' +
+                            '2. Adicione TXT _plataformae com o token de verificacao\n' +
+                            'Apos configurar, o SSL sera emitido automaticamente.';
+                        addToast('success', 'Dominio Adicionado', 'Configure o DNS conforme as instrucoes');
+                        await loadProjectDomains();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha ao adicionar dominio');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                }
+            };
+
+            const loadProjectDomains = async () => {
+                if (!selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch(`/api/domains/project/${selectedProjectId.value}/list`);
+                    if (res.ok) {
+                        projectDomains.value = await res.json();
+                    }
+                } catch (e) {
+                    console.error('Error loading domains:', e);
+                }
+            };
+
+            const verifyDomainDns = async (domainId) => {
+                try {
+                    const res = await fetch(`/api/domains/${domainId}/verify`, {
+                        method: 'POST'
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            addToast('success', 'DNS Verificado!', 'Certificado SSL sendo emitido...');
+                        } else {
+                            addToast('warning', 'Aguardando DNS', data.message);
+                        }
+                        await loadProjectDomains();
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na verificacao');
+                }
+            };
+
+            // ========== BASE44 FEATURE - GITHUB SYNC (Sprint 5) ==========
+            const showGitHubSyncModal = ref(false);
+            const gitSyncStatus = ref(null);
+            const gitRemoteUrl = ref('');
+            const gitCommitMessage = ref('');
+            const gitVersions = ref([]);
+            const isGitLoading = ref(false);
+            const gitLoadingMessage = ref('');
+            const selectedStoryForBranch = ref(null);
+
+            const loadGitSyncStatus = async () => {
+                if (!selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch(`/api/github-sync/status/${selectedProjectId.value}`);
+                    if (res.ok) {
+                        gitSyncStatus.value = await res.json();
+                    }
+                } catch (e) {
+                    console.error('Error loading git status:', e);
+                }
+            };
+
+            const initGitRepo = async () => {
+                if (!selectedProjectId.value) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Inicializando repositorio...';
+
+                try {
+                    const res = await fetch('/api/github-sync/init', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            remote_url: gitRemoteUrl.value || null
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        addToast('success', 'Repositorio Inicializado!', data.message || 'Git pronto para uso');
+                        await loadGitSyncStatus();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha ao inicializar');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
+                }
+            };
+
+            const commitAndPush = async () => {
+                if (!selectedProjectId.value) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Commitando e enviando...';
+
+                try {
+                    // Full sync: commit + pull + push
+                    const message = gitCommitMessage.value || `Sync changes from Plataforma E`;
+                    const res = await fetch(`/api/github-sync/sync/${selectedProjectId.value}?message=${encodeURIComponent(message)}`, {
+                        method: 'POST'
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            addToast('success', 'Sincronizado!', 'Mudancas enviadas para GitHub');
+                            gitCommitMessage.value = '';
+                        } else if (data.status === 'conflict') {
+                            addToast('warning', 'Conflitos', 'Resolva os conflitos manualmente');
+                        } else {
+                            addToast('info', 'Sync Parcial', data.message);
+                        }
+                        await loadGitSyncStatus();
+                        await loadVersionHistory();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha no sync');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
+                }
+            };
+
+            const pullChanges = async () => {
+                if (!selectedProjectId.value) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Baixando mudancas...';
+
+                try {
+                    const res = await fetch('/api/github-sync/pull', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        addToast('success', 'Atualizado!', data.message || 'Mudancas recebidas');
+                        await loadGitSyncStatus();
+                    } else {
+                        const error = await res.json();
+                        if (error.detail?.conflicts) {
+                            addToast('warning', 'Conflitos', 'Resolva os conflitos manualmente');
+                        } else {
+                            addToast('error', 'Erro', error.detail || 'Falha no pull');
+                        }
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
+                }
+            };
+
+            const createFeatureBranch = async () => {
+                if (!selectedProjectId.value || !selectedStoryForBranch.value) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Criando branch...';
+
+                try {
+                    const story = selectedStoryForBranch.value;
+                    const res = await fetch('/api/github-sync/branch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            story_id: story.story_id,
+                            story_title: story.title
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        addToast('success', 'Branch Criada!', `Branch: ${data.branch_name || 'feature/' + story.story_id}`);
+                        selectedStoryForBranch.value = null;
+                        await loadGitSyncStatus();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha ao criar branch');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
+                }
+            };
+
+            const loadVersionHistory = async () => {
+                if (!selectedProjectId.value) return;
+
+                try {
+                    const res = await fetch(`/api/github-sync/versions/${selectedProjectId.value}?limit=20`);
+                    if (res.ok) {
+                        gitVersions.value = await res.json();
+                    }
+                } catch (e) {
+                    console.error('Error loading versions:', e);
+                }
+            };
+
+            const rollbackToVersion = async (versionId) => {
+                if (!selectedProjectId.value || !versionId) return;
+                if (!confirm('Tem certeza que deseja fazer rollback? Esta acao cria um backup antes de reverter.')) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Revertendo versao...';
+
+                try {
+                    const res = await fetch('/api/github-sync/rollback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            version_id: versionId
+                        })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        addToast('success', 'Rollback Concluido!', data.message || 'Versao restaurada');
+                        await loadGitSyncStatus();
+                        await loadVersionHistory();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha no rollback');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
+                }
+            };
+
+            const configureRemote = async () => {
+                if (!selectedProjectId.value || !gitRemoteUrl.value) return;
+
+                isGitLoading.value = true;
+                gitLoadingMessage.value = 'Configurando repositorio remoto...';
+
+                try {
+                    const res = await fetch('/api/github-sync/configure', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: selectedProjectId.value,
+                            remote_url: gitRemoteUrl.value,
+                            branch: 'main',
+                            branch_strategy: 'feature',
+                            auto_push: true,
+                            auto_pull: true
+                        })
+                    });
+
+                    if (res.ok) {
+                        addToast('success', 'Conectado!', 'Repositorio remoto configurado');
+                        await loadGitSyncStatus();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro', error.detail || 'Falha ao configurar');
+                    }
+                } catch (e) {
+                    addToast('error', 'Erro', 'Falha na conexao');
+                } finally {
+                    isGitLoading.value = false;
                 }
             };
 
@@ -17376,6 +19003,16 @@ Process ${data.status}`);
                 markOnboardingStepDone('view_preview'); // Issue #132
             };
 
+            // Open Visual Builder (Base44 Feature)
+            const openVisualBuilder = () => {
+                const projectId = selectedProjectId.value;
+                if (projectId) {
+                    window.open(`/visual-builder/${projectId}`, '_blank');
+                } else {
+                    addToast('warning', 'Aviso', 'Selecione um projeto primeiro');
+                }
+            };
+
             // Refresh preview data
             const refreshPreviewData = async () => {
                 await loadPreviewData();
@@ -17644,6 +19281,19 @@ Process ${data.status}`);
                 showProjectPreview, previewData, previewActiveTab, previewViewportMode,
                 previewLoading, openProjectPreview, refreshPreviewData, loadPreviewData,
                 startAppPreview, runProjectTests, buildProject, openAppPreview,
+                // Visual Builder (Base44 Feature)
+                openVisualBuilder,
+                // Deploy Cloud (Base44 Feature - Sprint 3)
+                showDeployModal, deployProviders, selectedDeployProvider, deployStatus, isDeploying,
+                loadDeployProviders, startDeploy, pollDeployStatus, closeDeployModal,
+                // Custom Domains (Base44 Feature - Sprint 4)
+                showCustomDomainInput, customDomainInput, customDomainInstructions, generatedDomain, projectDomains,
+                generateSubdomain, addCustomDomain, loadProjectDomains, verifyDomainDns,
+                // GitHub Sync (Base44 Feature - Sprint 5)
+                showGitHubSyncModal, gitSyncStatus, gitRemoteUrl, gitCommitMessage, gitVersions,
+                isGitLoading, gitLoadingMessage, selectedStoryForBranch,
+                loadGitSyncStatus, initGitRepo, commitAndPush, pullChanges, createFeatureBranch,
+                loadVersionHistory, rollbackToVersion, configureRemote,
                 openFileViewer, openDocViewer,
                 // File Viewer
                 showFileViewer, fileViewerData, closeFileViewer, downloadViewerFile, copyFileContent, openInNewTab,
@@ -18085,6 +19735,12 @@ def billing_page():
 def executive_page():
     """Executive Dashboard - SPA route"""
     return HTML_TEMPLATE
+
+
+@app.get("/visual-builder/{project_id}", response_class=HTMLResponse)
+def visual_builder_page(project_id: str):
+    """Visual Builder - Base44 Feature"""
+    return get_visual_builder_template(project_id)
 
 
 # Issue #305: Additional SPA routes for auth and user pages
