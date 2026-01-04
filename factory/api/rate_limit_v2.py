@@ -155,23 +155,35 @@ class InMemoryRateLimitStore:
         per_minute: int,
         per_day: int
     ) -> Tuple[bool, Dict]:
-        """Check rate limit and increment counter if allowed."""
+        """Check rate limit and increment counter if allowed.
+
+        Issue #508: Fixed to properly enforce rate limits by:
+        1. Always filtering to valid timestamps before counting
+        2. Updating buckets with filtered lists to prevent stale data
+        3. More aggressive cleanup to ensure accurate counting
+        """
         now = time.time()
 
         with self._lock:
-            if now - self._last_cleanup > self._cleanup_interval:
+            # Issue #508: More aggressive cleanup - every 30 seconds
+            if now - self._last_cleanup > 30:
                 self._cleanup_old_entries(now)
                 self._last_cleanup = now
 
             minute_cutoff = now - 60
             day_cutoff = now - 86400
 
+            # Issue #508: Filter to only valid timestamps
             minute_requests = [
                 ts for ts in self._minute_buckets[identifier] if ts > minute_cutoff
             ]
             day_requests = [
                 ts for ts in self._day_buckets[identifier] if ts > day_cutoff
             ]
+
+            # Issue #508: Update buckets with filtered lists to ensure accuracy
+            self._minute_buckets[identifier] = minute_requests
+            self._day_buckets[identifier] = day_requests
 
             minute_count = len(minute_requests)
             day_count = len(day_requests)
@@ -186,18 +198,24 @@ class InMemoryRateLimitStore:
                 "fallback_mode": True,
             }
 
+            # Issue #508: Check if limit is exceeded BEFORE incrementing
             if minute_count >= per_minute:
                 info["exceeded"] = "minute"
-                info["retry_after"] = 60 - (now % 60)
+                info["retry_after"] = max(1, int(60 - (now - minute_requests[0]))) if minute_requests else 60
                 return False, info
 
             if day_count >= per_day:
                 info["exceeded"] = "day"
-                info["retry_after"] = 86400 - (now % 86400)
+                info["retry_after"] = max(1, int(86400 - (now - day_requests[0]))) if day_requests else 86400
                 return False, info
 
+            # Issue #508: Add current request timestamp to buckets
             self._minute_buckets[identifier].append(now)
             self._day_buckets[identifier].append(now)
+
+            # Update remaining count after adding current request
+            info["remaining_minute"] = max(0, per_minute - minute_count - 1)
+            info["remaining_day"] = max(0, per_day - day_count - 1)
 
             return True, info
 
@@ -490,7 +508,7 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         # Determinar identificador e tier
         identifier, tier = await self._get_identifier_and_tier(request)
 
-        # Issue #485: For auth endpoints, use strict limits regardless of tier
+        # Issue #508: For auth endpoints, use strict limits regardless of tier
         if is_auth_endpoint:
             allowed, info = await self._check_auth_rate_limit(identifier, path)
         else:
@@ -502,7 +520,14 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
                 endpoint=path
             )
 
+        # Issue #508: Return 429 immediately when rate limit exceeded
         if not allowed:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"[RateLimit] Blocked request to {path} from {identifier}: "
+                f"limit={info.get('limit_minute')}, exceeded={info.get('exceeded')}"
+            )
             return self._rate_limit_exceeded_response(info)
 
         # Processar request
