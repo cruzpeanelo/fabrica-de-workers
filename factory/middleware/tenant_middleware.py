@@ -28,6 +28,7 @@ Author: Plataforma E
 VERSION: Issue #371 Fix - 2025-12-30 - Added /login to PUBLIC_PATHS
 VERSION: Issue #473 Fix - 2026-01-04 - Added /kanban, /stories to PUBLIC_PATHS
 VERSION: Issue #474 Fix - 2026-01-04 - Added PWA files to PUBLIC_PATHS
+VERSION: Issue #483 Fix - 2026-01-04 - Added /api/v1/models to PUBLIC_PATHS
 """
 
 # Issue #473, #474: Version marker to verify code is loaded
@@ -192,6 +193,8 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         "/manifest.json",
         "/sw.js",
         "/api/pwa",
+        # Issue #483: Public API endpoints
+        "/api/v1/models",
     ]
 
     # Admin roles that can switch tenants
