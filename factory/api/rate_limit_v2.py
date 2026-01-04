@@ -12,9 +12,11 @@ Sistema avancado de rate limiting com suporte a:
 import os
 import time
 import hashlib
+import threading
 from datetime import datetime
 from typing import Optional, Tuple, Dict
 from functools import wraps
+from collections import defaultdict
 
 from fastapi import HTTPException, Request, Response, status
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -96,6 +98,106 @@ ENDPOINT_LIMITS = {
     "/api/v1/stories/execute": {"per_minute": 5},  # Execucao e muito cara
     "/api/v1/webhooks": {"per_minute": 30},
 }
+
+
+# =============================================================================
+# IN-MEMORY RATE LIMIT STORAGE (Issue #469: Proper fallback)
+# =============================================================================
+
+class InMemoryRateLimitStore:
+    """
+    Thread-safe in-memory rate limit storage for fallback when Redis is unavailable.
+    Issue #469: Implements actual rate limiting instead of allowing unlimited requests.
+    """
+
+    def __init__(self):
+        self._minute_buckets: Dict[str, list] = defaultdict(list)
+        self._day_buckets: Dict[str, list] = defaultdict(list)
+        self._lock = threading.Lock()
+        self._last_cleanup = time.time()
+        self._cleanup_interval = 60  # Cleanup every 60 seconds
+
+    def _cleanup_old_entries(self, now: float):
+        """Remove expired entries from buckets."""
+        minute_cutoff = now - 60
+        day_cutoff = now - 86400
+
+        for key in list(self._minute_buckets.keys()):
+            self._minute_buckets[key] = [
+                ts for ts in self._minute_buckets[key] if ts > minute_cutoff
+            ]
+            if not self._minute_buckets[key]:
+                del self._minute_buckets[key]
+
+        for key in list(self._day_buckets.keys()):
+            self._day_buckets[key] = [
+                ts for ts in self._day_buckets[key] if ts > day_cutoff
+            ]
+            if not self._day_buckets[key]:
+                del self._day_buckets[key]
+
+    def check_and_increment(
+        self,
+        identifier: str,
+        per_minute: int,
+        per_day: int
+    ) -> Tuple[bool, Dict]:
+        """Check rate limit and increment counter if allowed."""
+        now = time.time()
+
+        with self._lock:
+            if now - self._last_cleanup > self._cleanup_interval:
+                self._cleanup_old_entries(now)
+                self._last_cleanup = now
+
+            minute_cutoff = now - 60
+            day_cutoff = now - 86400
+
+            minute_requests = [
+                ts for ts in self._minute_buckets[identifier] if ts > minute_cutoff
+            ]
+            day_requests = [
+                ts for ts in self._day_buckets[identifier] if ts > day_cutoff
+            ]
+
+            minute_count = len(minute_requests)
+            day_count = len(day_requests)
+
+            info = {
+                "limit_minute": per_minute,
+                "remaining_minute": max(0, per_minute - minute_count),
+                "limit_day": per_day,
+                "remaining_day": max(0, per_day - day_count),
+                "reset_minute": int(now + 60),
+                "reset_day": int(now + 86400),
+                "fallback_mode": True,
+            }
+
+            if minute_count >= per_minute:
+                info["exceeded"] = "minute"
+                info["retry_after"] = 60 - (now % 60)
+                return False, info
+
+            if day_count >= per_day:
+                info["exceeded"] = "day"
+                info["retry_after"] = 86400 - (now % 86400)
+                return False, info
+
+            self._minute_buckets[identifier].append(now)
+            self._day_buckets[identifier].append(now)
+
+            return True, info
+
+
+_memory_store: Optional[InMemoryRateLimitStore] = None
+
+
+def _get_memory_store() -> InMemoryRateLimitStore:
+    """Get or create the in-memory rate limit store."""
+    global _memory_store
+    if _memory_store is None:
+        _memory_store = InMemoryRateLimitStore()
+    return _memory_store
 
 
 # =============================================================================
@@ -232,31 +334,24 @@ class TieredRateLimiter:
 
         except Exception as e:
             print(f"[RateLimitV2] Erro Redis: {e}")
-            # Fail open
-            return True, {
-                "limit_minute": limits.get("per_minute", 100),
-                "remaining_minute": limits.get("per_minute", 100),
-                "error": str(e)
-            }
+            # Issue #469: Fall back to memory-based limiting instead of allowing all
+            return await self._check_rate_limit_memory(identifier, limits)
 
     async def _check_rate_limit_memory(
         self,
         identifier: str,
         limits: dict
     ) -> Tuple[bool, Dict]:
-        """Fallback em memoria (para desenvolvimento sem Redis)"""
-        # Implementacao simples em memoria
-        # Em producao, sempre usar Redis
+        """
+        Fallback em memoria (Issue #469: Now implements actual rate limiting)
+
+        Uses thread-safe in-memory storage when Redis is unavailable.
+        """
         per_minute = limits.get("per_minute", 100)
         per_day = limits.get("per_day", 1000)
 
-        return True, {
-            "limit_minute": per_minute,
-            "remaining_minute": per_minute,
-            "limit_day": per_day,
-            "remaining_day": per_day,
-            "note": "Rate limiting em modo fallback (sem Redis)"
-        }
+        store = _get_memory_store()
+        return store.check_and_increment(identifier, per_minute, per_day)
 
     async def get_usage_stats(self, identifier: str) -> Dict:
         """Retorna estatisticas de uso"""
