@@ -315,12 +315,20 @@ class Webhook(Base):
 
     def record_success(self):
         """Registra entrega bem-sucedida"""
+        if self.deliveries_total is None:
+            self.deliveries_total = 0
         self.deliveries_total += 1
         self.consecutive_failures = 0
         self.last_delivery_at = datetime.utcnow()
 
     def record_failure(self, reason: str):
         """Registra falha na entrega"""
+        if self.deliveries_total is None:
+            self.deliveries_total = 0
+        if self.deliveries_failed is None:
+            self.deliveries_failed = 0
+        if self.consecutive_failures is None:
+            self.consecutive_failures = 0
         self.deliveries_total += 1
         self.deliveries_failed += 1
         self.consecutive_failures += 1
