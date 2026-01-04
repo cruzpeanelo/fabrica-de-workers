@@ -58,6 +58,23 @@ class ResultMessage:
     output: str = ""
 
 
+# Singleton instance for get_spawner
+_spawner_instance: Optional["TerminalSpawner"] = None
+
+
+def get_spawner() -> "TerminalSpawner":
+    """
+    Retorna a instancia singleton do TerminalSpawner.
+
+    Returns:
+        TerminalSpawner: Instancia unica do spawner
+    """
+    global _spawner_instance
+    if _spawner_instance is None:
+        _spawner_instance = TerminalSpawner()
+    return _spawner_instance
+
+
 class TerminalSpawner:
     """Gerenciador de terminais Git Bash para agentes."""
 
@@ -97,6 +114,16 @@ class TerminalSpawner:
         # Carregar terminais ativos
         self.active_terminals: Dict[str, TerminalInfo] = {}
         self._load_terminals()
+
+    @property
+    def terminals(self) -> Dict[str, TerminalInfo]:
+        """
+        Alias para active_terminals para compatibilidade com orchestrator_routes.
+
+        Returns:
+            Dict[str, TerminalInfo]: Dicionario de terminais ativos
+        """
+        return self.active_terminals
 
     def _find_git_bash(self) -> Optional[str]:
         """Encontra o executavel do Git Bash."""

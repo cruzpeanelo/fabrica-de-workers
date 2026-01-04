@@ -26,7 +26,8 @@ import os
 # Adicionar path do projeto
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from factory.core.terminal_spawner import get_spawner, AgentType
+from factory.core.terminal_spawner import get_spawner, TaskMessage
+from factory.agents.agent_knowledge import AgentType
 from factory.core.runtime_manager import (
     RuntimeManager, RuntimeConfig, RuntimeStatus,
     parse_duration, format_duration, format_time_remaining,
@@ -168,7 +169,6 @@ def spawn_agent():
     spawner = get_spawner()
 
     # Criar task message
-    from factory.core.terminal_spawner import TaskMessage
     from datetime import datetime
 
     task = TaskMessage(
