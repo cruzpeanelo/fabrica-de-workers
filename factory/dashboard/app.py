@@ -135,15 +135,18 @@ if HAS_MIDDLEWARE:
     app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS - Restrict to specific origins for security
+# Issue #484: Added localhost:3000 for frontend development servers (React/Vue/Angular)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:9001",
         "http://localhost:9000",
         "http://localhost:8000",
+        "http://localhost:3000",
         "http://127.0.0.1:9001",
         "http://127.0.0.1:9000",
-        "http://127.0.0.1:8000"
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
