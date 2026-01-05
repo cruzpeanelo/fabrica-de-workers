@@ -174,3 +174,86 @@ Ao completar uma tarefa:
 - SEMPRE garantir acessibilidade
 - SEMPRE testar responsividade
 - Se design ambiguo, seguir Design System Belgo
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+- **Dashboard Principal**: Port 9001 (`factory/dashboard/app_v6_agile.py`)
+- **SPA**: Single Page Application com navegação client-side
+- **API**: FastAPI com 100+ endpoints REST
+
+### Telas Existentes (20+ páginas)
+| Rota | Tela | Criticidade |
+|------|------|-------------|
+| `/` | Dashboard Home | ALTA |
+| `/login` | Login/Auth | ALTA |
+| `/kanban` | Kanban Board | ALTA |
+| `/stories` | Lista de Stories | ALTA |
+| `/sprints` | Sprint Management | MEDIA |
+| `/projects` | Lista de Projetos | MEDIA |
+| `/analytics` | Dashboard Analytics | MEDIA |
+| `/admin` | Portal Admin | ALTA |
+| `/profile` | Perfil do Usuário | BAIXA |
+| `/settings` | Configurações | BAIXA |
+| `/workers` | Monitor de Workers | BAIXA |
+| `/visual-builder/{id}` | Visual Builder | MEDIA |
+
+### Componentes Reutilizáveis Existentes
+- **Cards**: Story cards, task cards, project cards
+- **Modals**: Create/Edit story, task details, confirmação
+- **Forms**: Login, create story, create sprint
+- **Tables**: Lista de stories, tasks, sprints
+- **Kanban**: Colunas drag-and-drop
+- **Charts**: Analytics, burndown, velocity
+
+### Sistema de Temas Belgo (USAR!)
+```css
+:root {
+  --belgo-primary: #003B4A;    /* Azul Belgo */
+  --belgo-secondary: #FF6C00;  /* Laranja Belgo */
+  --success: #10B981;          /* Verde */
+  --error: #EF4444;            /* Vermelho */
+  --warning: #F59E0B;          /* Amarelo */
+  --bg-light: #F3F4F6;         /* Cinza claro */
+  --bg-dark: #1F2937;          /* Cinza escuro */
+}
+```
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Solução |
+|-------|----------|---------|
+| #475-476 | Acessibilidade | ARIA labels, contraste |
+| #486-489 | UI bugs | Corrigidos |
+
+### Padrões de Acessibilidade (WCAG 2.1)
+- Contraste mínimo 4.5:1 para texto
+- Focus visible em todos elementos interativos
+- Labels em todos os inputs
+- ARIA landmarks em regiões principais
+- Skip links para navegação
+- Alt text em todas imagens
+
+### JavaScript Patterns
+```javascript
+// Usar fetch para API calls
+async function loadStories() {
+    const response = await fetch('/api/stories', {
+        headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response.json();
+}
+
+// Usar event delegation
+document.querySelector('.kanban-board')
+    .addEventListener('click', handleKanbanClick);
+```
+
+### Arquivos Críticos
+- `factory/dashboard/app_v6_agile.py` - Dashboard principal
+- `factory/dashboard/static/` - CSS, JS, icons
+- `factory/dashboard/templates/` - HTML templates

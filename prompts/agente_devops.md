@@ -192,3 +192,97 @@ Ao completar uma tarefa:
 - SEMPRE ter rollback plan
 - SEMPRE validar health antes de finalizar
 - NUNCA expor secrets em logs ou commits
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+- **Dashboard Principal**: Port 9001 (`factory/dashboard/app_v6_agile.py`)
+- **Workers Dashboard**: Port 9000 (`factory/dashboard/app.py`)
+- **Banco de Dados**: SQLite (dev) / PostgreSQL (prod)
+- **Cache**: Redis para filas e cache
+- **API**: FastAPI com 100+ endpoints REST
+
+### Docker Compose Existente
+```yaml
+# docker-compose.yml já configurado:
+services:
+  app:
+    build: .
+    ports: ["9001:9001"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+```
+
+### Health Checks Implementados
+| Endpoint | Resposta | Uso |
+|----------|----------|-----|
+| `/health` | `{"status": "healthy"}` | Kubernetes liveness |
+| `/api/health` | `{"status": "ok", "db": "connected"}` | Readiness probe |
+
+### GitHub Actions CI/CD
+```yaml
+# .github/workflows/ci.yml já existe:
+- Python 3.11
+- pytest com coverage
+- Lint com ruff
+- Type check com mypy
+```
+
+### Estrutura de Logs
+```python
+# Logs estruturados em JSON:
+{
+    "timestamp": "2026-01-05T10:30:00Z",
+    "level": "INFO",
+    "service": "dashboard",
+    "tenant_id": "TENANT-001",
+    "message": "Story created",
+    "story_id": "STR-0001"
+}
+```
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Solução |
+|-------|----------|---------|
+| #528 | subprocess.run bloqueante | asyncio.create_subprocess_exec |
+| #532 | Context compaction | Auto-compact implementado |
+
+### Portas do Projeto (Padrão)
+| Serviço | Porta | Status |
+|---------|-------|--------|
+| Dashboard Agile | 9001 | ATIVO |
+| Workers | 9000 | ATIVO |
+| PostgreSQL | 5432 | Configurado |
+| Redis | 6379 | Configurado |
+| Prometheus | 9090 | Opcional |
+| Grafana | 3000 | Opcional |
+
+### Observabilidade Existente
+- **Métricas**: Prometheus (opcional)
+- **Dashboards**: Grafana (opcional)
+- **Logs**: Stdout em JSON
+- **Traces**: Não implementado ainda
+
+### Variáveis de Ambiente
+```bash
+# .env.example já documenta:
+ANTHROPIC_API_KEY=sk-ant-...
+DATABASE_URL=sqlite:///factory/database/factory.db
+DASHBOARD_PORT=9001
+REDIS_URL=redis://localhost:6379
+SECRET_KEY=your-secret-key
+```
+
+### Arquivos Críticos
+- `docker-compose.yml` - Ambiente local
+- `Dockerfile` - Build da aplicação
+- `.github/workflows/` - CI/CD pipelines
+- `k8s/` - Manifests Kubernetes

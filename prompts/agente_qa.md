@@ -427,3 +427,100 @@ for failure in report.failures:
 - Issues geradas por execucao
 - Tempo medio de execucao
 - Trend de regressoes
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+- **Dashboard Principal**: Port 9001 (`factory/dashboard/app_v6_agile.py`)
+- **Workers Dashboard**: Port 9000 (`factory/dashboard/app.py`)
+- **Banco de Dados**: SQLite + SQLAlchemy (multi-tenant)
+- **API**: FastAPI com 100+ endpoints REST
+
+### Telas para Testar (20+ páginas)
+| Rota | Tela | Criticidade |
+|------|------|-------------|
+| `/` | Dashboard Home | ALTA |
+| `/login` | Login/Auth | ALTA |
+| `/kanban` | Kanban Board | ALTA |
+| `/stories` | Lista de Stories | ALTA |
+| `/sprints` | Sprint Management | MEDIA |
+| `/projects` | Lista de Projetos | MEDIA |
+| `/analytics` | Dashboard Analytics | MEDIA |
+| `/admin` | Portal Admin | ALTA |
+| `/profile` | Perfil do Usuário | BAIXA |
+| `/settings` | Configurações | BAIXA |
+| `/workers` | Monitor de Workers | BAIXA |
+| `/visual-builder/{id}` | Visual Builder | MEDIA |
+
+### Endpoints API a Validar
+| Endpoint | Método | Validação |
+|----------|--------|-----------|
+| `/api/stories` | GET/POST | Fibonacci points, title min_length |
+| `/api/stories/{id}` | PUT/DELETE | Validação de owner/tenant |
+| `/api/stories/{id}/move` | PATCH | Transição de status válida |
+| `/api/story-tasks` | GET/POST | Task vinculada à story |
+| `/api/auth/login` | POST | Rate limiting, credenciais |
+| `/api/auth/me` | GET | JWT válido |
+| `/health` | GET | Sempre 200 OK |
+
+### Tabelas de Lookup (NÃO criar duplicadas!)
+O banco já possui 9 tabelas de lookup com 156+ registros:
+| Tabela | Uso em Testes |
+|--------|---------------|
+| `status_lookup` | Validar transições de status |
+| `priority_lookup` | Validar prioridades válidas |
+| `story_points_lookup` | Validar Fibonacci: [0,1,2,3,5,8,13,21] |
+| `task_type_lookup` | Validar tipos de task |
+| `role_lookup` | Testar permissões por role |
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Status |
+|-------|----------|--------|
+| #528 | subprocess.run bloqueante | CORRIGIDO |
+| #529 | Race condition em set | CORRIGIDO |
+| #530 | Null safety em orchestrator | CORRIGIDO |
+| #495-498 | Validação de campos | CORRIGIDO |
+| #518-521 | Input validation | CORRIGIDO |
+| #475-476 | Acessibilidade | CORRIGIDO |
+| #484-485 | Rate limiting | CORRIGIDO |
+
+### Cenários de Teste Críticos
+1. **Login Flow**: Credenciais válidas/inválidas, rate limiting
+2. **Kanban Drag-Drop**: Move entre colunas, WIP limits
+3. **Story CRUD**: Criar com Fibonacci, editar, deletar
+4. **Multi-tenancy**: Isolamento entre tenants
+5. **Permissões**: Admin vs Developer vs Viewer
+
+### Fixtures de Teste (usar!)
+```python
+# conftest.py já tem:
+@pytest.fixture
+def db_session():
+    """Sessão de teste com rollback"""
+
+@pytest.fixture
+def auth_client():
+    """Cliente com token JWT válido"""
+
+@pytest.fixture
+def admin_client():
+    """Cliente com role ADMIN"""
+```
+
+### Validação de Story Points
+```python
+# SEMPRE usar FIBONACCI_POINTS do banco/constants
+from factory.constants.lookups import FIBONACCI_POINTS
+# [0, 1, 2, 3, 5, 8, 13, 21]
+
+# Testar valores inválidos
+invalid_points = [4, 6, 7, 9, 10, 15, 22]
+```
+
+### Arquivos Críticos para Testar
+- `factory/api/schemas.py` - Validação Pydantic
+- `factory/database/models.py` - Modelos SQLAlchemy
+- `factory/middleware/auth_middleware.py` - Autenticação
+- `factory/security/rate_limiter.py` - Rate limiting

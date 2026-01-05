@@ -181,3 +181,84 @@ Ao completar uma tarefa:
 - SEMPRE ter criterios de aceite claros
 - SEMPRE definir DoD (Definition of Done)
 - Se requisito ambiguo, assumir MVP minimo
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Produto Atual: Plataforma E
+Sistema de desenvolvimento autônomo que combina:
+- **Dashboard Agile v6.5**: Gestão de User Stories com Kanban
+- **Workers Claude**: Processamento autônomo de tarefas
+- **App Generator**: Geração de aplicações testáveis
+
+### Features Implementadas (Backlog Atual)
+| Feature | Status | Criticidade |
+|---------|--------|-------------|
+| Dashboard Agile | Implementado | ALTA |
+| Kanban Board | Implementado | ALTA |
+| User Stories CRUD | Implementado | ALTA |
+| Story Tasks | Implementado | ALTA |
+| Sprint Management | Implementado | MEDIA |
+| Multi-tenancy | Implementado | ALTA |
+| Assistente IA (Chat) | Implementado | MEDIA |
+| App Generator | Implementado | MEDIA |
+| Visual Builder | Em Progresso | MEDIA |
+| Analytics Dashboard | Parcial | MEDIA |
+
+### Personas da Plataforma
+| Persona | Descrição | Necessidades Principais |
+|---------|-----------|------------------------|
+| SUPER_ADMIN | Admin da plataforma | Gerenciar tenants, config global |
+| ADMIN | Admin do tenant | Gerenciar projetos, users |
+| PROJECT_MANAGER | PM | Kanban, sprints, reports |
+| TECH_LEAD | Lead técnico | Code review, stories |
+| DEVELOPER | Dev | Tasks, código |
+| QA_ENGINEER | QA | Testes, bugs |
+| STAKEHOLDER | Patrocinador | KPIs, reports |
+| VIEWER | Somente leitura | Dashboard read-only |
+
+### Story Points (Fibonacci)
+```
+Valores válidos: [0, 1, 2, 3, 5, 8, 13, 21]
+
+Complexidade:
+- 0-1: Trivial
+- 2-3: Baixa
+- 5-8: Média
+- 13-21: Alta/Muito Alta
+```
+
+### Status de Story (Flow)
+```
+Backlog → Ready → In Progress → Review → Testing → Done
+```
+
+### Definition of Done Padrão
+- [ ] Código implementado e testado
+- [ ] Testes unitários passando (>80%)
+- [ ] Code review aprovado
+- [ ] Documentação atualizada
+- [ ] Deploy em staging
+- [ ] QA validado
+
+### Métricas de Produto Disponíveis
+- Velocity por sprint
+- Burndown chart
+- Lead time de stories
+- Cycle time por status
+- WIP por coluna
+
+### Issues Já Corrigidas (NÃO criar duplicadas!)
+| Área | Issues Corrigidas |
+|------|-------------------|
+| Validação | #495-498, #518-521 |
+| Performance | #528, #529 |
+| Segurança | #484, #485 |
+| UI/UX | #475, #476 |
+
+### Roadmap Atual
+1. **Q1 2026**: Melhorias no Visual Builder
+2. **Q2 2026**: Integrações corporativas (SAP, Jira)
+3. **Q3 2026**: Analytics avançado
+4. **Q4 2026**: Marketplace de templates

@@ -192,3 +192,76 @@ Ao completar uma tarefa:
 - SEMPRE validar licenca antes de propor
 - SEMPRE criar PoC para validar
 - Se projeto nao for compativel, documentar razao
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Stack Tecnológico Atual
+| Camada | Tecnologia | Versão |
+|--------|------------|--------|
+| Backend | FastAPI | 0.100+ |
+| ORM | SQLAlchemy | 2.0 |
+| Validação | Pydantic | 2.0 |
+| Database | SQLite/PostgreSQL | 3.x/16 |
+| Cache | Redis | 7.x |
+| IA | Claude API | Anthropic |
+| Frontend | HTML/CSS/JS | Vanilla |
+
+### Tecnologias Já Avaliadas
+| Tecnologia | Status | Decisão |
+|------------|--------|---------|
+| FastAPI | ✅ Adotado | Framework principal |
+| SQLAlchemy 2.0 | ✅ Adotado | ORM async |
+| Pydantic 2.0 | ✅ Adotado | Validação |
+| Redis | ✅ Adotado | Cache/Filas |
+| Claude API | ✅ Adotado | IA principal |
+| React/Vue | ❌ Descartado | Vanilla JS suficiente |
+| GraphQL | ❌ Descartado | REST mais simples |
+
+### Áreas para Inovação
+1. **Agentes Autônomos**: Melhorar loop de auto-correção
+2. **Geração de Código**: App Generator mais robusto
+3. **Visual Builder**: Drag-and-drop de componentes
+4. **Integrações**: SAP, Salesforce, Jira
+5. **Analytics**: Dashboards preditivos
+
+### PoCs Realizadas
+| PoC | Resultado | Status |
+|-----|-----------|--------|
+| Claude como code reviewer | Sucesso | Integrado |
+| Geração automática de tests | Sucesso | Integrado |
+| Whisper para voice-to-story | Em avaliação | PoC |
+| Visual Builder | Em progresso | Implementando |
+
+### Integrações Planejadas
+| Integração | Prioridade | Complexidade |
+|------------|------------|--------------|
+| Jira Sync | Alta | Média |
+| GitHub Issues | Alta | Baixa |
+| SAP S/4HANA | Média | Alta |
+| Salesforce | Média | Alta |
+| Microsoft Teams | Média | Média |
+
+### Licenças Compatíveis
+- MIT ✅
+- Apache 2.0 ✅
+- BSD ✅
+- LGPL ⚠️ (avaliar)
+- GPL ❌ (evitar)
+- Proprietária ❌
+
+### Benchmarks de Referência
+| Métrica | Atual | Meta |
+|---------|-------|------|
+| API Response Time | <500ms | <200ms |
+| Story Creation | <1s | <500ms |
+| Kanban Load | <2s | <1s |
+| Worker Processing | ~30s/story | <20s |
+
+### Issues Já Corrigidas (contexto!)
+| Issue | Inovação Aplicada |
+|-------|------------------|
+| #528 | asyncio para processos |
+| #529 | Lock para concorrência |
+| Lookups | Cache com TTL |

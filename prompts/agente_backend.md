@@ -157,3 +157,94 @@ Ao completar uma tarefa:
 - SEMPRE commitar codigo funcional
 - SEMPRE rodar testes antes de commitar
 - Se teste falhar, corrigir automaticamente
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+- **Dashboard Principal**: Port 9001 (`factory/dashboard/app_v6_agile.py`)
+- **Workers Dashboard**: Port 9000
+- **Banco de Dados**: SQLite + SQLAlchemy (multi-tenant)
+- **API**: FastAPI com 100+ endpoints REST
+
+### Tabelas de Lookup Existentes (NÃO criar duplicadas!)
+O banco já possui 9 tabelas de lookup com 156+ registros:
+| Tabela | Descrição |
+|--------|-----------|
+| `status_lookup` | Status de story/task/project (16 registros) |
+| `priority_lookup` | Prioridades low/medium/high/urgent (4) |
+| `complexity_lookup` | Mapeamento points→complexidade (4) |
+| `story_points_lookup` | Valores Fibonacci [0,1,2,3,5,8,13,21] (8) |
+| `task_type_lookup` | development/review/test/etc (8) |
+| `role_lookup` | admin/developer/viewer/etc (5) |
+| `system_config` | Configurações do sistema (8) |
+| `agent_skill_lookup` | Keywords para classificação (98) |
+| `wip_limit_lookup` | Limites WIP do kanban (5) |
+
+### Serviço de Lookup (USAR SEMPRE!)
+```python
+from factory.services import LookupService
+
+# Buscar status do banco (com cache)
+statuses = LookupService.get_statuses("story")
+priorities = LookupService.get_priorities()
+story_points = LookupService.get_story_points()
+
+# Validar Fibonacci
+if not LookupService.is_valid_story_points(points):
+    raise ValueError("Invalid story points")
+```
+
+### Constantes Centralizadas
+```python
+# SEMPRE importar de constants, NUNCA hardcode!
+from factory.constants.lookups import (
+    FIBONACCI_POINTS,  # [0, 1, 2, 3, 5, 8, 13, 21]
+    STORY_STATUS,      # Lista de status de story
+    TASK_STATUS,       # Lista de status de task
+    PRIORITIES,        # Lista de prioridades
+)
+```
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Solução |
+|-------|----------|---------|
+| #528 | subprocess.run bloqueante | asyncio.create_subprocess_exec |
+| #529 | Race condition em set | asyncio.Lock adicionado |
+| #495-498 | Validação de campos | Pydantic field_validator |
+| #518-521 | Input validation | min_length, max_length |
+
+### Padrões de Validação (SEGUIR!)
+```python
+from pydantic import BaseModel, Field, field_validator
+from factory.constants.lookups import FIBONACCI_POINTS
+
+class StoryCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=500)
+    points: int = Field(0, ge=0)
+
+    @field_validator('points')
+    @classmethod
+    def validate_fibonacci(cls, v):
+        if v not in FIBONACCI_POINTS:
+            raise ValueError(f'Must be Fibonacci: {FIBONACCI_POINTS}')
+        return v
+```
+
+### Endpoints Principais
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/api/stories` | GET/POST | CRUD de stories |
+| `/api/stories/{id}` | GET/PUT/DELETE | Story individual |
+| `/api/stories/{id}/move` | PATCH | Move no kanban |
+| `/api/story-tasks` | GET/POST | Subtarefas |
+| `/api/projects` | GET/POST | Projetos |
+| `/api/sprints` | GET/POST | Sprints |
+| `/health` | GET | Health check |
+
+### Arquivos Críticos
+- `factory/api/schemas.py` - Validação Pydantic
+- `factory/database/models.py` - Modelos SQLAlchemy
+- `factory/database/lookup_models.py` - Tabelas de lookup
+- `factory/services/lookup_service.py` - Cache de lookups

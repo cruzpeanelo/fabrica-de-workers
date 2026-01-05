@@ -185,3 +185,84 @@ Ao completar uma tarefa:
 - SEMPRE priorizar vulnerabilidades criticas
 - SEMPRE testar que fix funciona
 - Em caso de emergencia, escalar para humano
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura de Segurança Atual
+- **Autenticação**: JWT com refresh tokens
+- **MFA**: Implementado via TOTP
+- **RBAC**: Roles em `role_lookup` (admin, developer, viewer)
+- **Multi-tenancy**: Isolamento por `tenant_id`
+
+### Configurações de Segurança Existentes
+```python
+# factory/security/cors_config.py
+CORS_CONFIG = {
+    "allow_origins": ["http://localhost:9001"],
+    "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    "allow_headers": ["Authorization", "Content-Type"],
+    "allow_credentials": True
+}
+
+# factory/security/security_headers.py
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Strict-Transport-Security": "max-age=31536000"
+}
+```
+
+### Rate Limiting Implementado
+```python
+# factory/security/rate_limiter.py
+RATE_LIMITS = {
+    "login": "5/minute",
+    "api": "100/minute",
+    "upload": "10/minute"
+}
+```
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Solução |
+|-------|----------|---------|
+| #484 | Validação de auth | Middleware atualizado |
+| #485 | Rate limiting | Implementado |
+| #461 | _is_public_path bypass | Corrigido |
+
+### Tabelas de Segurança
+| Tabela | Descrição |
+|--------|-----------|
+| `role_lookup` | Papéis e permissões |
+| `users` | Usuários com hash de senha |
+| `sessions` | Sessões ativas |
+| `audit_log` | Log de auditoria |
+
+### Endpoints de Auth (JÁ IMPLEMENTADOS)
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/api/auth/login` | POST | Login com JWT |
+| `/api/auth/logout` | POST | Logout |
+| `/api/auth/refresh` | POST | Refresh token |
+| `/api/auth/me` | GET | Usuário atual |
+| `/api/security/mfa/setup` | POST | Setup MFA |
+| `/api/security/mfa/verify` | POST | Verificar MFA |
+| `/api/security/api-keys` | POST | Criar API key |
+
+### Middleware de Segurança
+```python
+# factory/middleware/auth_middleware.py
+# Já implementado - não duplicar!
+- JWT validation
+- Role checking
+- Tenant isolation
+- Rate limiting
+- Security headers
+```
+
+### Arquivos Críticos
+- `factory/auth/` - JWT, OAuth, MFA
+- `factory/security/` - CORS, headers, rate limit
+- `factory/middleware/` - Auth, validation, tenant

@@ -142,3 +142,108 @@ Ao completar uma tarefa:
 - SEMPRE documentar decisoes em ADRs
 - SEMPRE considerar impacto em outros modulos
 - Se houver ambiguidade, escolher opcao mais simples
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (Port 9001)                     │
+│              factory/dashboard/app_v6_agile.py              │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                      FastAPI REST API                        │
+│                      factory/api/*.py                        │
+│    ┌──────────┬──────────┬──────────┬──────────┬─────────┐  │
+│    │ stories  │  tasks   │ projects │  sprints │  auth   │  │
+│    └──────────┴──────────┴──────────┴──────────┴─────────┘  │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                   Core Business Logic                        │
+│                   factory/core/*.py                          │
+│    ┌──────────────┬────────────────┬────────────────────┐   │
+│    │ orchestrator │ autonomous_loop│ handoff_manager    │   │
+│    └──────────────┴────────────────┴────────────────────┘   │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                     Data Layer                               │
+│    ┌──────────────────┐  ┌──────────────────────────────┐   │
+│    │ SQLAlchemy Models │  │ LookupService (Cache)        │   │
+│    │ factory/database/ │  │ factory/services/            │   │
+│    └──────────────────┘  └──────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Estrutura de Diretórios
+```
+factory/
+├── api/              # 100+ endpoints REST
+│   ├── schemas.py    # Validação Pydantic
+│   ├── routes.py     # Rotas principais
+│   └── *_routes.py   # Rotas por domínio
+├── core/             # Lógica de negócio
+│   ├── orchestrator.py      # Coordenador de agentes
+│   ├── autonomous_loop.py   # Loop autônomo
+│   └── handoff_manager.py   # Passagem entre agentes
+├── database/         # Persistência
+│   ├── models.py           # Entidades principais
+│   └── lookup_models.py    # Tabelas de lookup
+├── services/         # Serviços compartilhados
+│   └── lookup_service.py   # Cache de lookups
+├── constants/        # Constantes centralizadas
+│   └── lookups.py         # FIBONACCI_POINTS, STATUS, etc.
+├── middleware/       # Middlewares HTTP
+├── security/         # CORS, Rate limiting
+└── dashboard/        # UI e templates
+```
+
+### Padrões Estabelecidos (SEGUIR!)
+| Padrão | Implementação |
+|--------|---------------|
+| Validação | Pydantic com `@field_validator` |
+| ORM | SQLAlchemy 2.0 (async e sync) |
+| Lookups | `LookupService` com cache 5min |
+| Multi-tenancy | `tenant_id` em todos modelos |
+| Constantes | Importar de `factory.constants.lookups` |
+| Commits | `[AGENT] Issue #N: descrição` |
+
+### Tabelas de Lookup (9 tabelas, 156+ registros)
+| Tabela | Propósito |
+|--------|-----------|
+| `status_lookup` | Status de story/task/project |
+| `priority_lookup` | Prioridades (low→urgent) |
+| `complexity_lookup` | Points→Complexidade |
+| `story_points_lookup` | Fibonacci válidos |
+| `task_type_lookup` | Tipos de task |
+| `role_lookup` | Papéis de usuário |
+| `system_config` | Configurações |
+| `agent_skill_lookup` | Keywords dos agentes |
+| `wip_limit_lookup` | Limites WIP kanban |
+
+### ADRs Existentes
+| ADR | Decisão |
+|-----|---------|
+| ADR-001 | SQLite para dev, PostgreSQL para prod |
+| ADR-002 | Multi-tenancy por tenant_id em todos modelos |
+| ADR-003 | LookupService com cache para eliminar hardcode |
+| ADR-004 | Validação Fibonacci centralizada em constants |
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Decisão Arquitetural |
+|-------|---------------------|
+| #528 | Usar asyncio para subprocessos |
+| #529 | Lock para estruturas compartilhadas |
+| #530 | Null safety com Optional typing |
+| Lookups | Tabelas de lookup no banco |
+
+### Arquivos Críticos
+- `factory/database/models.py` - Modelos principais
+- `factory/database/lookup_models.py` - Tabelas de referência
+- `factory/services/lookup_service.py` - Cache de lookups
+- `factory/constants/lookups.py` - Constantes fallback
+- `factory/core/orchestrator.py` - Coordenador

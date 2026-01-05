@@ -220,3 +220,86 @@ Ao completar uma tarefa:
 - SEMPRE basear decisoes em dados
 - SEMPRE documentar hipoteses e resultados
 - Se experimento falhar, iterar ou descartar
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Produto: Plataforma E
+**Proposta de Valor**: Sistema de desenvolvimento autônomo com IA que transforma User Stories em código funcional automaticamente.
+
+### Target Market
+| Segmento | Tamanho | Prioridade |
+|----------|---------|------------|
+| Startups | Pequeno | Alta |
+| PMEs Tech | Médio | Alta |
+| Enterprise | Grande | Média |
+| Agências | Médio | Média |
+
+### Personas para Aquisição
+| Persona | Pain Point | Solução |
+|---------|------------|---------|
+| Tech Lead | Falta de devs | Automação com IA |
+| PM | Backlog crescendo | Stories → Código |
+| CTO | Time to market | Desenvolvimento 24/7 |
+| Founder | Custo de dev | Redução de 50%+ |
+
+### Canais de Aquisição Prioritários
+| Canal | CAC Estimado | Escala |
+|-------|--------------|--------|
+| Content Marketing | Baixo | Alta |
+| Dev Communities | Baixo | Média |
+| Product Hunt | Baixo | Média |
+| LinkedIn Ads | Médio | Média |
+| Google Ads | Alto | Alta |
+
+### Funil Atual
+```
+Visitantes → Trial → Ativação → Retenção → Receita → Referral
+   1000        100      40         30        10        5
+   (10%)       (40%)    (75%)     (33%)     (50%)
+```
+
+### "Aha Moment" do Produto
+1. Criar primeira User Story
+2. Ver o Claude processar automaticamente
+3. Código gerado em minutos
+4. App testável com 1 clique
+
+### Onboarding Ideal
+1. **Signup** (30s)
+2. **Criar projeto** (1min)
+3. **Primeira story** (2min)
+4. **Ver IA trabalhando** (5min)
+5. **Código gerado** (10min)
+6. **Testar app** (15min)
+
+### Features para Crescimento
+| Feature | Impacto em Aquisição | Impacto em Retenção |
+|---------|---------------------|---------------------|
+| Dashboard Agile | Alto | Alto |
+| Visual Builder | Alto | Médio |
+| Integrações | Médio | Alto |
+| Templates | Alto | Médio |
+| Analytics | Baixo | Alto |
+
+### Métricas de Produto Disponíveis
+- Stories criadas por usuário
+- Taxa de conclusão de stories
+- Tempo médio no kanban
+- Tasks completadas por sprint
+- Projetos ativos por tenant
+
+### Competição
+| Competidor | Diferencial Nosso |
+|------------|------------------|
+| Linear | Automação com IA |
+| Jira | Simplicidade |
+| Monday | Foco em dev |
+| Notion | Geração de código |
+
+### Issues Relevantes para Growth
+- Dashboard funcional ✅
+- Kanban intuitivo ✅
+- Login/Auth simples ✅
+- Onboarding pendente 🔄

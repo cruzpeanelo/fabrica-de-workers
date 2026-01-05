@@ -148,3 +148,94 @@ Ao completar revisao:
 - SEMPRE manter logs de decisoes
 - SEMPRE notificar em erros criticos
 - Escalar para humano apenas em emergencias
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Arquitetura Atual
+- **Dashboard Principal**: Port 9001 (`factory/dashboard/app_v6_agile.py`)
+- **Workers Dashboard**: Port 9000 (`factory/dashboard/app.py`)
+- **Banco de Dados**: SQLite + SQLAlchemy (multi-tenant)
+- **API**: FastAPI com 100+ endpoints REST
+- **Orquestrador**: `factory/core/orchestrator.py` (refatorado)
+
+### Estrutura de Diretórios
+```
+factory/
+├── api/          # Rotas REST (stories, tasks, projects, auth)
+├── core/         # Lógica de negócio (orchestrator, autonomous_loop, handoff_manager)
+├── database/     # Modelos SQLAlchemy + lookup tables
+├── dashboard/    # UI e templates
+├── services/     # LookupService com cache
+├── constants/    # Constantes centralizadas (FIBONACCI_POINTS, STATUS, etc.)
+├── agents/       # Base de agentes e instruções
+└── config/       # Configurações do sistema
+```
+
+### Tabelas de Lookup Existentes (NÃO criar duplicadas!)
+O banco já possui 9 tabelas de lookup com 156+ registros:
+| Tabela | Conteúdo | Registros |
+|--------|----------|-----------|
+| `status_lookup` | Status de story/task/project | 16 |
+| `priority_lookup` | Prioridades (low/medium/high/urgent) | 4 |
+| `complexity_lookup` | Mapeamento points→complexidade | 4 |
+| `story_points_lookup` | Valores Fibonacci válidos | 8 |
+| `task_type_lookup` | Tipos de task | 8 |
+| `role_lookup` | Papéis de usuário | 5 |
+| `system_config` | Configurações do sistema | 8 |
+| `agent_skill_lookup` | Keywords→Agente (classificação) | 98 |
+| `wip_limit_lookup` | Limites WIP do kanban | 5 |
+
+### Issues Já Corrigidas (NÃO reabrir!)
+| Issue | Problema | Solução |
+|-------|----------|---------|
+| #528 | subprocess.run bloqueante | asyncio.create_subprocess_exec |
+| #529 | Race condition em set | asyncio.Lock adicionado |
+| #530 | Null safety em orchestrator | Validações adicionadas |
+| #532 | Context compaction | Auto-compact implementado |
+
+### Padrões de Código Estabelecidos
+- **FIBONACCI_POINTS**: Importar de `factory.constants.lookups`
+- **Status/Prioridades**: Usar `LookupService` (nunca hardcode!)
+- **Validações**: Usar Pydantic com `@field_validator`
+- **Multi-tenancy**: Todos os modelos têm `tenant_id`
+- **Commits**: Formato `[AGENT] Issue #N: descrição`
+
+### Fluxo de Handoff entre Agentes
+```
+[ORCH] distribui → [BACK]/[FRONT]/[SEC]/[DEVOPS]
+     ↓
+[BACK] completa → [QA] testa
+     ↓
+[QA] passa → [DEVOPS] deploy
+     ↓
+[QA] falha → [BACK] corrige
+     ↓
+[SEC] crítico → [ORCH] escala
+```
+
+### Classificação de Issues (agent_skill_lookup)
+As keywords de classificação estão no banco, não hardcode:
+- **SEC**: security, auth, jwt, csrf, xss, cors, rbac, mfa
+- **DEVOPS**: docker, k8s, deploy, infra, terraform, helm
+- **FRONT**: ui, ux, frontend, component, mobile, pwa, css
+- **QA**: test, pytest, coverage, e2e, quality
+- **BACK**: api, backend, database, endpoint, rest, sql
+
+### Endpoints Principais da API
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/api/stories` | GET/POST | CRUD de stories |
+| `/api/stories/{id}/move` | PATCH | Move no kanban |
+| `/api/story-tasks` | GET/POST | Subtarefas |
+| `/api/projects` | GET/POST | Projetos |
+| `/api/sprints` | GET/POST | Sprints |
+| `/api/chat/message` | POST | Assistente IA |
+| `/health` | GET | Health check |
+
+### Arquivos Críticos do Orquestrador
+- `factory/core/orchestrator.py` - Loop principal (refatorado)
+- `factory/core/handoff_manager.py` - Gerencia passagem entre agentes
+- `factory/core/context_manager.py` - Gerencia contexto dos agentes
+- `factory/config/automation.py` - Configurações de automação

@@ -196,3 +196,73 @@ Ao completar uma tarefa:
 - SEMPRE basear em dados reais
 - SEMPRE calcular ROI antes de propor
 - Se custo critico detectado, escalar para humano
+
+---
+
+## Conhecimento da Plataforma (Atualizado 2026-01-05)
+
+### Estrutura de Custos Atual
+
+#### Custos de Infraestrutura (Dev)
+| Serviço | Custo Mensal | Notas |
+|---------|--------------|-------|
+| Claude API | ~$50-200 | Por uso (tokens) |
+| Servidor Dev | $0 | Local |
+| Database | $0 | SQLite local |
+| Total Dev | ~$50-200 | Variável |
+
+#### Custos de Produção (Estimado)
+| Serviço | Custo Mensal | Escala |
+|---------|--------------|--------|
+| Cloud (AWS/GCP) | $100-500 | Por usuário |
+| PostgreSQL | $50-200 | RDS/Cloud SQL |
+| Redis | $20-50 | ElastiCache |
+| Claude API | $200-1000 | Por volume |
+| Total Prod | ~$400-2000 | Inicial |
+
+### Modelo de Pricing (Proposta)
+| Plano | Preço | Usuários | Features |
+|-------|-------|----------|----------|
+| Free | $0 | 1 | 1 projeto, 10 stories |
+| Starter | $29/mês | 5 | 3 projetos, 100 stories |
+| Pro | $99/mês | 20 | Ilimitado, analytics |
+| Enterprise | Custom | Ilimitado | White-label, SLA |
+
+### Métricas Financeiras a Monitorar
+| KPI | Meta | Como Medir |
+|-----|------|------------|
+| CAC | <$100 | Marketing / Novos users |
+| LTV | >$300 | ARPU × Retenção média |
+| LTV:CAC | >3:1 | LTV / CAC |
+| Churn | <5%/mês | Users perdidos / Total |
+| MRR | Crescendo | Receita recorrente |
+
+### Custo por Story (Claude API)
+```
+Média de tokens por story:
+- Input: ~2000 tokens
+- Output: ~1500 tokens
+- Custo: ~$0.05-0.10 por story
+
+Volume mensal (100 stories):
+- Custo estimado: $5-10
+```
+
+### ROI de Features
+| Feature | Custo Dev | Receita Esperada | ROI |
+|---------|-----------|------------------|-----|
+| Visual Builder | 80h | +$500/mês | 3 meses |
+| Integrações SAP | 120h | +$2000/mês | 2 meses |
+| Analytics | 40h | +$200/mês | 4 meses |
+
+### Issues com Impacto Financeiro
+| Issue | Impacto | Status |
+|-------|---------|--------|
+| #528 | Performance -30% | Corrigido |
+| #529 | Race conditions | Corrigido |
+| Lookups | Cache reduz DB calls | Implementado |
+
+### Otimizações Realizadas
+- Cache de lookups (5min TTL) → -50% queries
+- Async subprocess → -30% tempo de resposta
+- Lock em estruturas → 0 race conditions
