@@ -876,8 +876,8 @@ class StoryRepository:
 
     def get_all(self, project_id: str = None, status: str = None,
                 epic_id: str = None, sprint_id: str = None, limit: int = 100,
-                include_deleted: bool = False) -> List[Story]:
-        """Lista stories com filtros opcionais (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""
+                offset: int = 0, include_deleted: bool = False) -> List[Story]:
+        """Lista stories com filtros e paginacao (Issue #150, #301, #478)"""
         query = self.db.query(Story)
         query = self._apply_tenant_filter(query)  # Issue #301
         if not include_deleted:
@@ -890,7 +890,8 @@ class StoryRepository:
             query = query.filter(Story.epic_id == epic_id)
         if sprint_id:
             query = query.filter(Story.sprint_id == sprint_id)
-        return query.order_by(Story.kanban_order).limit(limit).all()
+        # Issue #478: Paginacao para performance
+        return query.order_by(Story.kanban_order).offset(offset).limit(limit).all()
 
     def get_by_project(self, project_id: str, include_deleted: bool = False) -> List[Story]:
         """Lista stories de um projeto (Issue #150: filtra soft delete, Issue #301: filtra tenant)"""

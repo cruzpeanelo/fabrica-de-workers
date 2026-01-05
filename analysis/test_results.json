@@ -1,0 +1,405 @@
+{
+  "start_time": "2026-01-04T15:22:17.135435",
+  "smoke_tests": [
+    {
+      "name": "Health Check",
+      "endpoint": "/health",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "API Health",
+      "endpoint": "/api/health",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "Dashboard Load",
+      "endpoint": "/",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "Login Page",
+      "endpoint": "/login",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200
+      ]
+    }
+  ],
+  "critical_tests": [
+    {
+      "name": "Auth - Login API",
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401,
+        422
+      ]
+    },
+    {
+      "name": "Stories - List",
+      "endpoint": "/api/stories",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Projects - List",
+      "endpoint": "/api/projects",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Kanban Page",
+      "endpoint": "/kanban",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200,
+        302
+      ]
+    },
+    {
+      "name": "Stories Page",
+      "endpoint": "/stories",
+      "method": "GET",
+      "passed": true,
+      "status_code": 200,
+      "expected": [
+        200,
+        302
+      ]
+    },
+    {
+      "name": "Sprints - List",
+      "endpoint": "/api/sprints",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    }
+  ],
+  "api_tests": [
+    {
+      "name": "Auth - Me",
+      "endpoint": "/api/v1/auth/me",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Stories - Create",
+      "endpoint": "/api/stories",
+      "method": "POST",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        201,
+        401,
+        422
+      ]
+    },
+    {
+      "name": "Projects - Files",
+      "endpoint": "/api/projects/1/files",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401,
+        404
+      ]
+    },
+    {
+      "name": "Epics - List",
+      "endpoint": "/api/epics",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Chat - History",
+      "endpoint": "/api/chat/history",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Analytics - Metrics",
+      "endpoint": "/api/analytics/metrics",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Analytics - Velocity",
+      "endpoint": "/api/analytics/velocity",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Search",
+      "endpoint": "/api/search?q=test",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Templates - List",
+      "endpoint": "/api/templates",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Activity Log",
+      "endpoint": "/api/activity",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Jobs - List",
+      "endpoint": "/api/v1/jobs",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Queue - Stats",
+      "endpoint": "/api/v1/queue/stats",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Workers - List",
+      "endpoint": "/api/v1/workers",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Models - List",
+      "endpoint": "/api/v1/models",
+      "method": "GET",
+      "passed": false,
+      "status_code": 401,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "Admin - Users",
+      "endpoint": "/api/admin/users",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401,
+        403
+      ]
+    },
+    {
+      "name": "Security - Data",
+      "endpoint": "/api/security/data",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401
+      ]
+    },
+    {
+      "name": "Branding - Current",
+      "endpoint": "/api/branding/current/branding",
+      "method": "GET",
+      "passed": true,
+      "status_code": 401,
+      "expected": [
+        200,
+        401,
+        404
+      ]
+    }
+  ],
+  "persona_tests": [
+    {
+      "name": "Persona - Admin",
+      "passed": true,
+      "status_code": 401,
+      "persona": "Admin"
+    },
+    {
+      "name": "Persona - Developer",
+      "passed": true,
+      "status_code": 401,
+      "persona": "Developer"
+    },
+    {
+      "name": "Persona - Viewer",
+      "passed": true,
+      "status_code": 401,
+      "persona": "Viewer"
+    }
+  ],
+  "security_tests": [
+    {
+      "name": "XSS Prevention",
+      "passed": true,
+      "details": "Payload nao refletido"
+    },
+    {
+      "name": "SQL Injection Basic",
+      "passed": true,
+      "status_code": 400
+    },
+    {
+      "name": "Auth Required on Stories",
+      "passed": true,
+      "status_code": 401
+    },
+    {
+      "name": "CORS Security",
+      "passed": true,
+      "details": "N/A"
+    },
+    {
+      "name": "Security Headers",
+      "passed": true,
+      "found_headers": [
+        "X-Content-Type-Options",
+        "X-Frame-Options"
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "test_name": "Models - List",
+      "endpoint": "/api/v1/models",
+      "error": "Status 401",
+      "expected": [
+        200
+      ],
+      "actual": 401,
+      "category": "BACK"
+    }
+  ],
+  "issues_created": [
+    {
+      "title": "[BACK] [Bug] Models - List",
+      "url": "https://github.com/cruzpeanelo/E/issues/483",
+      "number": "483",
+      "agent": "BACK"
+    }
+  ],
+  "summary": {
+    "smoke_tests": {
+      "total": 4,
+      "passed": 4
+    },
+    "critical_tests": {
+      "total": 6,
+      "passed": 6
+    },
+    "api_tests": {
+      "total": 17,
+      "passed": 16
+    },
+    "persona_tests": {
+      "total": 3,
+      "passed": 3
+    },
+    "security_tests": {
+      "total": 5,
+      "passed": 5
+    },
+    "total_tests": 35,
+    "total_passed": 34,
+    "total_failures": 1,
+    "issues_created": 1,
+    "end_time": "2026-01-04T15:23:32.386289",
+    "pass_rate": "97.1%"
+  }
+}

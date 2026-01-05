@@ -3,20 +3,26 @@
     {
       "path": "/",
       "name": "Home/Dashboard",
-      "status": "ERROR",
-      "error": "Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n"
+      "status": 200,
+      "has_content": true,
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/executive",
       "name": "Executive Dashboard",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Dashboard Executivo - Fabrica de Agentes"
     },
     {
       "path": "/analytics",
       "name": "Analytics Page",
-      "status": "ERROR",
-      "error": "Page.goto: Navigation to \"http://localhost:9001/analytics\" is interrupted by ano"
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Analytics - Fabrica de Agentes"
     },
     {
       "path": "/billing",
@@ -29,8 +35,10 @@
     {
       "path": "/admin",
       "name": "Admin Panel",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/admin/users",
@@ -38,7 +46,7 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Administracao de Usuarios - Plataforma E"
+      "title": "Administracao de Usuarios - Fabrica de Agentes"
     },
     {
       "path": "/admin/portal",
@@ -46,39 +54,47 @@
       "status": 200,
       "has_content": true,
       "has_error": false,
-      "title": "Portal de Administracao - Plataforma E"
+      "title": "Portal de Administracao - Fabrica de Agentes"
     },
     {
       "path": "/security",
       "name": "Security Settings",
       "status": 200,
       "has_content": true,
-      "has_error": false,
-      "title": "Plataforma E - Dashboard Agile"
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/integrations",
       "name": "Integrations Panel",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/workers",
       "name": "Workers Monitor",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/projects",
       "name": "Projects List",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": true,
+      "title": "Fabrica de Agentes - Dashboard Agile"
     },
     {
       "path": "/docs",
       "name": "Documentation",
-      "status": "ERROR",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
+      "status": 200,
+      "has_content": true,
+      "has_error": false,
+      "title": "Fabrica de Agentes - Dashboard Agile v6.0 - Swagge"
     }
   ],
   "apis": [
@@ -89,7 +105,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "[{\"story_id\":\"STR-0001\",\"tenant_id\":null,\"project_id\":\"belgo-bpm-platform\",\"title\":\"Modelagem do Ban"
+      "preview": "[{\"story_id\":\"STR-0065\",\"tenant_id\":\"STARTUP-001\",\"project_id\":\"STARTUP-MVP\",\"title\":\"User Dashboard"
     },
     {
       "path": "/api/projects",
@@ -98,7 +114,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "[{\"project_id\":\"checklist-dti\",\"tenant_id\":null,\"name\":\"ChecklistDTI - Issue Tracking\",\"description\""
+      "preview": "[{\"project_id\":\"STARTUP-MVP\",\"tenant_id\":\"STARTUP-001\",\"name\":\"MVP Product\",\"description\":\"Minimum v"
     },
     {
       "path": "/api/jobs",
@@ -116,7 +132,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "{\"kpis\":{\"completion_rate\":54.0,\"avg_velocity\":0.0,\"avg_lead_time\":0,\"avg_cycle_time\":0,\"throughput\""
+      "preview": "{\"kpis\":{\"completion_rate\":46.2,\"avg_velocity\":0.0,\"avg_lead_time\":0,\"avg_cycle_time\":0,\"throughput\""
     },
     {
       "path": "/api/executive/metrics",
@@ -125,7 +141,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "{\"summary\":{\"total_stories\":50,\"done_stories\":27,\"in_progress_stories\":20,\"total_points\":334,\"comple"
+      "preview": "{\"summary\":{\"total_stories\":65,\"done_stories\":30,\"in_progress_stories\":23,\"total_points\":449,\"comple"
     },
     {
       "path": "/api/analytics/productivity",
@@ -134,7 +150,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "{\"period\":{\"start_date\":\"2025-11-30T17:29:16.798098\",\"end_date\":\"2025-12-30T17:29:16.798098\",\"days\":"
+      "preview": "{\"period\":{\"start_date\":\"2025-12-05T11:27:50.573156\",\"end_date\":\"2026-01-04T11:27:50.573156\",\"days\":"
     },
     {
       "path": "/api/analytics/insights",
@@ -143,7 +159,7 @@
       "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "{\"summary\":\"O projeto apresenta s\u00e9rios problemas organizacionais com 54% das stories n\u00e3o atribu\u00eddas "
+      "preview": "{\"summary\":\"O projeto apresenta s\u00e9rios problemas de organiza\u00e7\u00e3o e atribui\u00e7\u00e3o de trabalho, com 100% d"
     },
     {
       "path": "/api/workers/status",
@@ -166,53 +182,12 @@
     {
       "path": "/health",
       "name": "Health Check",
-      "status": 404,
-      "ok": false,
+      "status": 200,
+      "ok": true,
       "hasData": true,
       "isJson": true,
-      "preview": "{\"detail\":\"Not Found\"}"
+      "preview": "{\"status\":\"healthy\",\"timestamp\":\"2026-01-04T11:28:08.917343\",\"service\":\"fabrica-de-agentes\",\"version"
     }
   ],
-  "issues": [
-    {
-      "type": "page",
-      "path": "/",
-      "error": "Page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n"
-    },
-    {
-      "type": "page",
-      "path": "/executive",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    },
-    {
-      "type": "page",
-      "path": "/analytics",
-      "error": "Page.goto: Navigation to \"http://localhost:9001/analytics\" is interrupted by ano"
-    },
-    {
-      "type": "page",
-      "path": "/admin",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    },
-    {
-      "type": "page",
-      "path": "/integrations",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    },
-    {
-      "type": "page",
-      "path": "/workers",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    },
-    {
-      "type": "page",
-      "path": "/projects",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    },
-    {
-      "type": "page",
-      "path": "/docs",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://localho"
-    }
-  ]
+  "issues": []
 }

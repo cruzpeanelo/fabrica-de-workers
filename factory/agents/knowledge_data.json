@@ -1,0 +1,5226 @@
+{
+  "platform": {
+    "version": "7.0",
+    "last_sync": "2026-01-04T09:44:45.073225",
+    "name": "Plataforma E",
+    "description": "Sistema de Desenvolvimento Autonomo com Agentes IA",
+    "architecture": {
+      "layers": [
+        "Apresentacao (Dashboard Vue.js 3)",
+        "API (FastAPI)",
+        "Servicos (Core)",
+        "Repositorios (DAL)",
+        "Database (SQLAlchemy)"
+      ],
+      "patterns": [
+        "Repository",
+        "Factory",
+        "Strategy",
+        "Observer",
+        "Singleton"
+      ],
+      "stack": {
+        "backend": "FastAPI + SQLAlchemy + PostgreSQL/SQLite",
+        "frontend": "Vue.js 3 + Tailwind CSS",
+        "ia": "Claude API (Opus/Sonnet/Haiku)",
+        "queue": "Redis",
+        "auth": "JWT + OAuth2 + SSO + MFA"
+      }
+    },
+    "api_modules": {
+      "core_routes.py": {
+        "prefix": "/api/v1",
+        "endpoints": [
+          "GET /jobs",
+          "POST /jobs",
+          "GET /jobs/{id}",
+          "GET /queue",
+          "POST /queue/clear",
+          "GET /workers",
+          "POST /workers/start",
+          "POST /workers/stop"
+        ],
+        "description": "Jobs, filas Redis, workers Claude"
+      },
+      "admin_routes.py": {
+        "prefix": "/api/admin",
+        "endpoints": [
+          "GET /users",
+          "POST /users",
+          "PUT /users/{id}",
+          "DELETE /users/{id}",
+          "GET /roles",
+          "POST /roles",
+          "PUT /roles/{id}",
+          "DELETE /roles/{id}"
+        ],
+        "description": "Gestao de usuarios e roles"
+      },
+      "tenant_routes.py": {
+        "prefix": "/api/admin/tenants",
+        "endpoints": [
+          "GET /",
+          "POST /",
+          "GET /{id}",
+          "PUT /{id}",
+          "DELETE /{id}",
+          "GET /{id}/members",
+          "POST /{id}/members",
+          "DELETE /{id}/members/{uid}",
+          "GET /{id}/settings",
+          "PUT /{id}/settings",
+          "POST /{id}/invite",
+          "GET /{id}/invites"
+        ],
+        "description": "Multi-tenancy, settings, membros"
+      },
+      "branding_routes.py": {
+        "prefix": "/api/tenant",
+        "endpoints": [
+          "GET /{id}/branding",
+          "PUT /{id}/branding",
+          "GET /slug/{slug}/branding",
+          "GET /by-domain/{domain}",
+          "GET /{id}/branding/css"
+        ],
+        "description": "White-label, customizacao visual"
+      },
+      "analytics_routes.py": {
+        "prefix": "/api/analytics",
+        "endpoints": [
+          "GET /productivity",
+          "GET /velocity",
+          "GET /burndown",
+          "GET /ab-tests",
+          "POST /ab-tests",
+          "GET /ab-tests/{id}/results"
+        ],
+        "description": "Metricas, produtividade, AB tests"
+      },
+      "auth.py": {
+        "prefix": "/api/auth",
+        "endpoints": [
+          "POST /login",
+          "POST /logout",
+          "POST /refresh",
+          "POST /forgot-password",
+          "POST /reset-password",
+          "GET /me",
+          "PUT /me"
+        ],
+        "description": "Autenticacao JWT"
+      },
+      "story_routes.py": {
+        "prefix": "/api/stories",
+        "endpoints": [
+          "GET /",
+          "POST /",
+          "GET /{id}",
+          "PUT /{id}",
+          "DELETE /{id}",
+          "PATCH /{id}/move",
+          "GET /{id}/tasks",
+          "POST /{id}/tasks",
+          "GET /{id}/docs",
+          "POST /{id}/docs"
+        ],
+        "description": "User Stories Agile"
+      },
+      "kanban_routes.py": {
+        "prefix": "/api/kanban",
+        "endpoints": [
+          "GET /board",
+          "GET /columns",
+          "PATCH /move",
+          "GET /wip-limits",
+          "PUT /wip-limits"
+        ],
+        "description": "Kanban board, WIP limits"
+      },
+      "security_routes.py": {
+        "prefix": "/api/security",
+        "endpoints": [
+          "GET /csrf-token",
+          "POST /validate-csrf",
+          "GET /sessions",
+          "DELETE /sessions/{id}",
+          "GET /audit-log"
+        ],
+        "description": "CSRF, autenticacao, autorizacao"
+      },
+      "chat_routes.py": {
+        "prefix": "/api/chat",
+        "endpoints": [
+          "GET /history",
+          "POST /message",
+          "DELETE /history"
+        ],
+        "description": "Chat assistente IA"
+      },
+      "health_routes.py": {
+        "prefix": "/health",
+        "endpoints": [
+          "GET /",
+          "GET /detailed",
+          "GET /ready",
+          "GET /live"
+        ],
+        "description": "Health checks"
+      },
+      "audit_routes.py": {
+        "prefix": "/api/audit",
+        "endpoints": [
+          "GET /logs",
+          "GET /logs/{id}",
+          "GET /stats",
+          "GET /export",
+          "GET /user/{user_id}"
+        ],
+        "description": "Logs de auditoria"
+      },
+      "tag_routes.py": {
+        "prefix": "/api/tags",
+        "endpoints": [
+          "GET /",
+          "POST /",
+          "PUT /{id}",
+          "DELETE /{id}",
+          "POST /bulk",
+          "GET /cloud"
+        ],
+        "description": "Sistema de tags"
+      },
+      "report_routes.py": {
+        "prefix": "/api/reports",
+        "endpoints": [
+          "GET /",
+          "POST /generate",
+          "GET /{id}",
+          "GET /{id}/download",
+          "POST /schedule"
+        ],
+        "description": "Geracao de relatorios"
+      },
+      "cache_routes.py": {
+        "prefix": "/api/cache",
+        "endpoints": [
+          "GET /stats",
+          "POST /clear",
+          "DELETE /{key}"
+        ],
+        "description": "Gestao de cache"
+      },
+      "okr_routes.py": {
+        "prefix": "/api/okr",
+        "endpoints": [
+          "GET /objectives",
+          "POST /objectives",
+          "PUT /objectives/{id}",
+          "GET /key-results",
+          "POST /key-results",
+          "PUT /key-results/{id}"
+        ],
+        "description": "OKR (Objectives & Key Results)"
+      },
+      "marketplace_routes.py": {
+        "prefix": "/api/marketplace",
+        "endpoints": [
+          "GET /items",
+          "GET /items/{id}",
+          "POST /items/{id}/download",
+          "GET /reviews",
+          "POST /reviews"
+        ],
+        "description": "Marketplace de templates"
+      },
+      "webhook_routes.py": {
+        "prefix": "/api/webhooks",
+        "endpoints": [
+          "GET /",
+          "POST /",
+          "PUT /{id}",
+          "DELETE /{id}",
+          "POST /{id}/test"
+        ],
+        "description": "Webhooks customizados"
+      }
+    },
+    "models": {
+      "projetos": [
+        "Project",
+        "ProjectStatus",
+        "ProjectMember",
+        "ProjectRole"
+      ],
+      "stories": [
+        "Story",
+        "StoryStatus",
+        "StoryComplexity",
+        "StoryCategory",
+        "StoryPriority"
+      ],
+      "tasks": [
+        "StoryTask",
+        "StoryTaskType",
+        "StoryTaskStatus",
+        "TaskPriority"
+      ],
+      "documentacao": [
+        "StoryDocumentation",
+        "DocType",
+        "StoryDesign",
+        "DesignType"
+      ],
+      "chat": [
+        "ChatMessage",
+        "MessageRole",
+        "Attachment"
+      ],
+      "planejamento": [
+        "Epic",
+        "Sprint",
+        "TimeEntry",
+        "KanbanPolicy",
+        "WipLimit"
+      ],
+      "usuarios": [
+        "User",
+        "Role",
+        "Permission",
+        "UserRole",
+        "ProjectRole"
+      ],
+      "auditoria": [
+        "AuditLog",
+        "ActivityLog",
+        "TenantAuditLog"
+      ],
+      "multi_tenant": [
+        "Tenant",
+        "TenantSettings",
+        "BrandingConfig",
+        "TenantMember",
+        "TenantInvite"
+      ],
+      "billing": [
+        "TenantPlan",
+        "TenantUsageLog",
+        "Subscription"
+      ],
+      "agentes": [
+        "Agent",
+        "AgentStatus",
+        "Skill",
+        "SkillType"
+      ],
+      "metricas": [
+        "ProductivityMetric",
+        "ProductivitySnapshot",
+        "FlowMetric"
+      ],
+      "okr": [
+        "Objective",
+        "KeyResult",
+        "OKRStatus",
+        "OKRPeriod"
+      ],
+      "ab_testing": [
+        "ABTest",
+        "ABTestVariant",
+        "ABTestStatus"
+      ],
+      "execucao": [
+        "ExecutionLog",
+        "ExecutionStatus",
+        "CodeVersion",
+        "CodeBranch"
+      ],
+      "marketplace": [
+        "MarketplaceItem",
+        "MarketplaceReview",
+        "MarketplaceDownload"
+      ],
+      "planejamento_agil": [
+        "PlanningSession",
+        "Retrospective",
+        "RetroActionItem"
+      ]
+    },
+    "services": {
+      "autonomous_loop.py": "Loop geracao -> linting -> testes -> correcao",
+      "job_queue.py": "Fila Redis com workers",
+      "agent_runner.py": "Executar agentes autonomos",
+      "app_generator.py": "Gerar FastAPI apps testaveis",
+      "story_generator.py": "Geracao de user stories com IA",
+      "code_reviewer.py": "Code review automatico",
+      "chatbot_builder.py": "Builder para chatbots IA",
+      "audit_logger.py": "Logging centralizado de auditoria",
+      "approval_workflow.py": "Fluxos de aprovacao",
+      "analytics.py": "Analise de metricas",
+      "capacity_planning.py": "Planejamento de capacidade",
+      "tech_debt_analyzer.py": "Analise de debito tecnico",
+      "ab_testing.py": "A/B testing framework",
+      "marketplace.py": "Gerenciamento do marketplace",
+      "okr_manager.py": "Gestao de OKRs",
+      "multi_tenant.py": "Servicos multi-tenant",
+      "tenant_isolation.py": "Isolamento de dados por tenant",
+      "backup_manager.py": "Backup automatico",
+      "version_control.py": "Controle de versao",
+      "workflow_engine.py": "Motor de workflows customizados",
+      "activity_logger.py": "Log de atividades do usuario",
+      "model_selector.py": "Selecao automatica de modelo Claude",
+      "preview_manager.py": "Preview de projetos",
+      "sandbox_executor.py": "Executar codigo em sandbox",
+      "docker_generator.py": "Gerar Dockerfiles",
+      "secrets_manager.py": "Gestao de secrets",
+      "resource_limiter.py": "Limitador de recursos",
+      "pair_programming.py": "Pair programming em tempo real",
+      "refactoring_engine.py": "Motor de refatoracao",
+      "productivity_analytics.py": "Analytics de produtividade",
+      "runtime_manager.py": "Gerenciador de runtime",
+      "execution_recorder.py": "Gravar execucoes",
+      "execution_replayer.py": "Replay de execucoes"
+    },
+    "dashboards": {
+      "agile_v6": {
+        "file": "app_v6_agile.py",
+        "port": 9001,
+        "features": [
+          "Stories",
+          "Tasks",
+          "Chat IA",
+          "Docs",
+          "App Testing"
+        ]
+      },
+      "kanban_v5": {
+        "file": "app_v5_kanban.py",
+        "port": 9001,
+        "features": [
+          "Kanban simples",
+          "Drag/Drop"
+        ]
+      },
+      "workers_v4": {
+        "file": "app.py",
+        "port": 9000,
+        "features": [
+          "Fila de jobs",
+          "Monitoramento workers"
+        ]
+      }
+    },
+    "personas": {
+      "SUPER_ADMIN": {
+        "level": 0,
+        "permissions": [
+          "*:*"
+        ],
+        "description": "Acesso total a todos os tenants"
+      },
+      "ADMIN": {
+        "level": 10,
+        "permissions": [
+          "projects:*",
+          "users:*",
+          "roles:*",
+          "tenants:*",
+          "billing:*"
+        ],
+        "description": "Gestao completa do tenant"
+      },
+      "PROJECT_MANAGER": {
+        "level": 30,
+        "permissions": [
+          "stories:*",
+          "tasks:*",
+          "epics:*",
+          "sprints:*",
+          "team:*"
+        ],
+        "description": "Gestao de projetos"
+      },
+      "TECH_LEAD": {
+        "level": 40,
+        "permissions": [
+          "stories:*",
+          "tasks:*",
+          "code:*",
+          "reviews:*",
+          "architecture:*"
+        ],
+        "description": "Lideranca tecnica"
+      },
+      "DEVELOPER": {
+        "level": 50,
+        "permissions": [
+          "tasks:read",
+          "tasks:update",
+          "jobs:*",
+          "code:*",
+          "docs:read"
+        ],
+        "description": "Desenvolvimento"
+      },
+      "QA_ENGINEER": {
+        "level": 60,
+        "permissions": [
+          "tasks:read",
+          "tasks:update",
+          "tests:*",
+          "code:read",
+          "docs:*"
+        ],
+        "description": "Quality Assurance"
+      },
+      "API_CLIENT": {
+        "level": 70,
+        "permissions": [
+          "api:read",
+          "api:execute"
+        ],
+        "description": "Acesso via API"
+      },
+      "STAKEHOLDER": {
+        "level": 80,
+        "permissions": [
+          "reports:read",
+          "metrics:read",
+          "dashboards:read"
+        ],
+        "description": "Visao executiva"
+      },
+      "VIEWER": {
+        "level": 100,
+        "permissions": [
+          "*:read"
+        ],
+        "description": "Apenas visualizacao"
+      }
+    },
+    "rbac_resources": [
+      "projects",
+      "stories",
+      "tasks",
+      "epics",
+      "sprints",
+      "documentation",
+      "users",
+      "roles",
+      "workers",
+      "jobs",
+      "chat",
+      "audit",
+      "settings",
+      "tenants"
+    ],
+    "rbac_actions": [
+      "create",
+      "read",
+      "update",
+      "delete",
+      "execute",
+      "assign",
+      "manage"
+    ],
+    "multi_tenant": {
+      "isolation": {
+        "model": "TenantMixin em todos os modelos principais",
+        "index": "Indice composto (tenant_id + campo) para performance",
+        "filter": "Filtros automaticos em queries"
+      },
+      "branding": {
+        "fields": [
+          "logo_light",
+          "logo_dark",
+          "favicon",
+          "primary_color",
+          "secondary_color",
+          "accent_color",
+          "background_color",
+          "text_color",
+          "font_primary",
+          "font_secondary",
+          "footer_text",
+          "display_name",
+          "tagline"
+        ],
+        "cache_ttl": 300
+      },
+      "plans": [
+        "Free",
+        "Pro",
+        "Enterprise"
+      ],
+      "status": [
+        "active",
+        "suspended",
+        "archived"
+      ]
+    },
+    "integrations": {
+      "SAP": {
+        "modules": [
+          "ECC",
+          "S/4 HANA",
+          "CPI"
+        ],
+        "features": [
+          "RFC",
+          "OData",
+          "iFlows"
+        ]
+      },
+      "Salesforce": {
+        "modules": [
+          "Sales Cloud",
+          "Service Cloud",
+          "Marketing Cloud"
+        ],
+        "features": [
+          "Object analysis",
+          "Apex",
+          "LWC",
+          "Flow"
+        ]
+      },
+      "Microsoft": {
+        "modules": [
+          "Teams",
+          "Azure DevOps",
+          "Graph API"
+        ],
+        "features": [
+          "Notifications",
+          "DM",
+          "Pipelines",
+          "Sync"
+        ]
+      },
+      "BI": {
+        "tools": [
+          "Power BI",
+          "Tableau",
+          "Excel"
+        ],
+        "features": [
+          "Export",
+          "Dashboards",
+          "Reports"
+        ]
+      }
+    },
+    "issues": {
+      "implemented": [
+        {
+          "number": 455,
+          "title": "[Bug] Login page - 404 for static resources",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 454,
+          "title": "[Bug] Billing page - TypeError reading 'total' undefined",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 453,
+          "title": "[Bug] HTTP 429 Too Many Requests - Rate Limiting muito restritivo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 452,
+          "title": "[Bug] CSP blocking media and frame - data:audio and localhost:3000",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 451,
+          "title": "[Bug] currentUser is not defined - Error in checkActiveTimer",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 450,
+          "title": "[FRONT] Dashboard de Performance APM",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 449,
+          "title": "[INOV] Research: Vector Search para Stories Similares",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 448,
+          "title": "[INOV] POC: Event Sourcing para Audit Trail",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 447,
+          "title": "[BACK] Cache Manager - Camada de Cache Distribuido",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 446,
+          "title": "[BACK] Report Generator - Geracao de Relatorios",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 445,
+          "title": "[BACK] CLI Tool - Interface de Linha de Comando",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 444,
+          "title": "[BACK] APM - Application Performance Monitoring",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 443,
+          "title": "[BACK] Plugin System - Arquitetura de Extensibilidade",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 442,
+          "title": "[DEVOPS] Health Check Endpoints Avancados com Metricas de Sistema",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 441,
+          "title": "[BACK] Sistema de Tags e Categorias para Organizacao de Stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 440,
+          "title": "[FRONT] Componente de Comentarios e Discussoes em Stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 439,
+          "title": "[BACK] API de Auditoria com Logs de Acoes e Rastreabilidade",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 438,
+          "title": "[FRONT] Dashboard de Velocidade do Time com Graficos de Sprint",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 437,
+          "title": "[QA] Fix missing fixtures in test_e2e_dashboard.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 436,
+          "title": "[QA] Fix hardcoded paths in app_v6_agile.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 435,
+          "title": "[DEVOPS] Feature: Backup & Disaster Recovery Strategy",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 434,
+          "title": "[PROD] Feature: Analytics & Business Metrics Dashboard",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 433,
+          "title": "[PROD] Feature: RBAC - Role-Based Access Control",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 432,
+          "title": "[PROD] Feature: Sistema de Notificações Push/Email",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 431,
+          "title": "[QA] Corrigir testes falhando - Multi-tenant enums e E2E async",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 430,
+          "title": "[ORCH] Bug: TenantAuditLog model missing from tenant_models.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 429,
+          "title": "[FRONT] Componentes de Data e Midia Mobile - Parte 5",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 428,
+          "title": "[FRONT] Componentes Utilitarios Mobile - Parte 4",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 427,
+          "title": "[FRONT] Componentes de Formulario e Navegacao Mobile - Parte 3",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 426,
+          "title": "[FRONT] Componentes avancados para App Mobile - Parte 2",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 425,
+          "title": "[ORCH] Bug: NameError 'Request' not defined em factory/api/auth.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 424,
+          "title": "[ORCH] Bug: get_session e get_engine não existem em factory.database.connection",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 423,
+          "title": "[FRONT] Componentes reutilizaveis para App Mobile",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 422,
+          "title": "[QA] Validar Enterprise Components CSS #421",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 421,
+          "title": "[FRONT] Componentes visuais para Dashboards Enterprise",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 420,
+          "title": "[DEVOPS] Consolidar diretórios Kubernetes: k8s/ vs kubernetes/",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 419,
+          "title": "[DEVOPS] Documentar decisão arquitetural: Custom Migrations vs Alembic",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 418,
+          "title": "[QA] Validar fix OAuth hardcoded admin #137",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 417,
+          "title": "[ORCH] Bug: JWT_SECRET_KEY e ACCESS_TOKEN_EXPIRE_MINUTES não exportados de factory.config",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 416,
+          "title": "[ORCH] Corrigir imports quebrados em factory/security/__init__.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 415,
+          "title": "[QA] Validar rotas de segurança #414",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 414,
+          "title": "[BACK] Registrar rotas de segurança no app principal",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 413,
+          "title": "[INOV] Bug no TenantIsolationMiddleware - subdomain extraction retorna valor incorreto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 412,
+          "title": "[QA] Validar CSRF Protection #411",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 411,
+          "title": "[SEC] Implementar CSRF Protection para forms e mutations",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 410,
+          "title": "[QA] Validar Session Management #409",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 409,
+          "title": "[SEC] Implementar Session Management com Timeout e Concurrent Sessions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 408,
+          "title": "[QA] Validar Issue #244 - Planning Poker",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 407,
+          "title": "[QA] Validar Issue #240 - Sprint Retrospective",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 406,
+          "title": "[QA] Validar Issue #403 - Fix MFA Mock Vulnerability",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 405,
+          "title": "[INOV] Metricas Agile retornam dados mockados em vez de dados reais",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 404,
+          "title": "[QA] Validar Issue #402 - Brute Force Protection",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 403,
+          "title": "[SEC] Endpoints MFA retornam dados mockados - Vulnerabilidade de seguranca",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 402,
+          "title": "[SEC] Brute Force Protection - Bloqueio de Login por Tentativas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 401,
+          "title": "[DEVOPS] Database schema desatualizado - Coluna external_references nao existe",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 400,
+          "title": "[QA] Validar Issue #399 - CORS Multi-tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 399,
+          "title": "[SEC] CORS Multi-tenant - Allowed Origins por Tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 398,
+          "title": "[QA] Validar Filtros Persistentes e Atalhos de Teclado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 397,
+          "title": "[QA] Validar Issue #396 - Security Headers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 396,
+          "title": "[SEC] Security Headers Middleware (HSTS, CSP, X-Frame-Options)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 395,
+          "title": "[QA] Validar Issue #393 - Rate Limiting",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 394,
+          "title": "[QA] Validar Fidelidade Mobile - StoryCard e APIs",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 393,
+          "title": "[SEC] Rate Limiting por Tenant/Usuario",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 392,
+          "title": "[QA] Validar Mobile Multi-Tenant e White Label",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 391,
+          "title": "[QA] Validar Rotas SPA - /kanban, /stories, /backlog",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 390,
+          "title": "[QA] Validar Issue #380 - API Sandbox",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 389,
+          "title": "[DEVOPS] Health check do banco retorna unhealthy - SQL expression error",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 388,
+          "title": "[QA] Validar Mobile Security #384",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 387,
+          "title": "[FRONT] Criar modelo TenantBranding no banco de dados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 386,
+          "title": "[QA] Criar testes para validar Multi-Tenant Mobile",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 385,
+          "title": "[FRONT] Corrigir App Mobile - Multi-Tenant e White Label no React Native",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 384,
+          "title": "[SEC] Implementar seguranca Mobile - Refresh Token e IP Validation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 383,
+          "title": "[FRONT] Implementar endpoints de Tenant Branding para Mobile",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 382,
+          "title": "[DEVOPS] Makefile com comandos de desenvolvimento",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 381,
+          "title": "[BACK] Core Sandbox - Executor Seguro de Código",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 380,
+          "title": "[BACK] API Sandbox - Endpoint de Execução de Código",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 379,
+          "title": "[DEVOPS] Helm Charts para Kubernetes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 378,
+          "title": "[DEVOPS] Implementar Observabilidade (Prometheus + Grafana)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 377,
+          "title": "[QA] Validar fix login page auth loop #371",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 376,
+          "title": "[DEVOPS] Inconsistência de portas Docker (9000 vs 9001)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 375,
+          "title": "[DEVOPS] Script de inicialização local (start.sh/start.bat)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 374,
+          "title": "[QA] Validar fix ADMIN permissions #353",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 373,
+          "title": "[QA] NameError: backref nao definido em models.py - Testes nao rodam",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 372,
+          "title": "[FRONT] Rotas SPA faltando - /kanban, /stories, /backlog retornam 404",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 371,
+          "title": "[SEC] Pagina /login exige autenticacao JWT - Loop impossivel",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 370,
+          "title": "[QA] Testar Sandbox Terminal UI (Issue #202)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 369,
+          "title": "[QA] Validar Security Event Notifications #359",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 368,
+          "title": "[ORCH] App Mobile nao respeita Multi-Tenant e White Label",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 367,
+          "title": "[QA] Validar JWT Token Blacklist #358",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 366,
+          "title": "[SEC] Implementar Rate Limiting e Retry com Backoff Exponencial",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 365,
+          "title": "[BACK] Implementar Cache Layer para Integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 364,
+          "title": "[BACK] Implementar Sincronização Bidirecional Jira <-> Sistema",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 363,
+          "title": "[BACK] Implementar Webhook Handlers para Integrações Externas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 362,
+          "title": "[DEVOPS] Implementar Storage Persistente para Backups de Deploy",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 361,
+          "title": "[QA] Validar Input Validation Middleware #357",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 360,
+          "title": "[DEVOPS] Implementar API Routes para Monitoring de Integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 359,
+          "title": "[SEC] Implementar Security Event Notifications",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 358,
+          "title": "[SEC] Implementar JWT Blacklist e Token Revocation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 357,
+          "title": "[BACK] Implementar Input Validation Middleware",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 356,
+          "title": "[QA] Testar App Mobile React Native (Issue #262)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 355,
+          "title": "[QA] Testes de Worker Flow e Repositories falhando",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 354,
+          "title": "[QA] Testes de Billing falhando - TypeErrors e AttributeErrors",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 353,
+          "title": "[BACK] Role ADMIN sem permissao de leitura em stories/projects",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 352,
+          "title": "[QA] Validar implementacoes de seguranca - #343 e #344",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 351,
+          "title": "[QA] Testar Onboarding Tour (Issue #204)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 350,
+          "title": "[QA] Testar User Mode - Modo Básico/Avançado (Issue #204)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 349,
+          "title": "[QA] Testar Issue #342 - Password Policies",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 348,
+          "title": "[QA] Testar Issue #339 - Audit Log",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 347,
+          "title": "[QA] Testar Issue #345 - Security Headers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 346,
+          "title": "[DEVOPS] Atualizar testes unit para schemas atuais",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 345,
+          "title": "[SEC] Implementar Security Headers e CSP avançado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 344,
+          "title": "[SEC] Implementar Encryption at Rest para dados sensíveis",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 343,
+          "title": "[SEC] Implementar IP Whitelisting e Geo-blocking por tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 342,
+          "title": "[DEVOPS] Implementar Password Policies configuráveis por tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 341,
+          "title": "[SEC] Implementar API Key Management para integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 340,
+          "title": "[SEC] Implementar Two-Factor Authentication (2FA/MFA)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 339,
+          "title": "[SEC] Implementar Audit Log detalhado com trail de segurança",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 338,
+          "title": "[QA] Testar Issue #212 - Ambientes Dev/Staging/Prod",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 337,
+          "title": "[BACK] URGENTE: Conflito de merge em repositories.py",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 336,
+          "title": "[QA] Testar: Bug #319 - API tasks story_id no body CORRIGIDO",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 335,
+          "title": "[BACK] Completar Jira Sync Skill - TODOs pendentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 334,
+          "title": "[QA] Testar: Bug #316 - ImportError Agent/AgentRepository CORRIGIDO",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 333,
+          "title": "[DEVOPS] Implementar Health Check e Monitoring para integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 332,
+          "title": "[DEVOPS] Implementar integração real no Deploy Manager",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 331,
+          "title": "[QA] Testar: Bug #317 - MetaData tabela tenants duplicada CORRIGIDO",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 330,
+          "title": "[QA] Testar Animações #234",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 329,
+          "title": "[QA] Testar Feedback Visual #203",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 328,
+          "title": "[QA] Testar Empty States #219",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 327,
+          "title": "[QA] Testar Onboarding Tour #232",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 326,
+          "title": "[QA] Criar testes unitários para integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 325,
+          "title": "[QA] Testar Issue #206 - Stateless Deployment",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 324,
+          "title": "[QA] Testar Issue #205 - Auto-scaling e Health Checks",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 323,
+          "title": "[QA] Testar Issue #209 - Distributed Tracing e APM",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 322,
+          "title": "[QA] Testar mudanças UI - Issues #308, #217, #218, #215, #214",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 321,
+          "title": "[ORCH] Terminal A disponível - Sem issues pendentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ORCH"
+        },
+        {
+          "number": 320,
+          "title": "[QA] Testar implementações de segurança - Terminal B",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 319,
+          "title": "[BACK] Bug: API de tasks exige story_id no body apesar de estar na URL",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 318,
+          "title": "[BACK] Bug: Endpoints retornam dados mock em caso de erro",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 317,
+          "title": "[BACK] Bug: Erro MetaData - Tabela tenants duplicada",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 316,
+          "title": "[QA] Bug: Testes quebrados - ImportError Agent e AgentRepository",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 315,
+          "title": "[DEVOPS] Completar analyzers SAP ECC (Table, BADI, Config)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 314,
+          "title": "[BACK] Adicionar tenant isolation em todas as integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 313,
+          "title": "[BACK] Implementar Azure DevOps Repos e Pipelines API",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 312,
+          "title": "[BACK] Implementar Azure DevOps Skills para sistema de agentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 311,
+          "title": "[BACK] Implementar Jira Agile API (Sprints, Boards, Epics)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 310,
+          "title": "[BACK] Implementar Jira Skills para sistema de agentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 309,
+          "title": "[SEC] Pagina /security timeout - nao carrega",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 308,
+          "title": "[FRONT] Bug: Modal de criar story não abre ao clicar no botão",
+          "state": "CLOSED",
+          "points": 3,
+          "agent": "FRONT"
+        },
+        {
+          "number": 307,
+          "title": "[BACK] Endpoints de API faltantes (webhooks, health, epics GET)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 306,
+          "title": "[BACK] API Global Search retornando 500",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 305,
+          "title": "[SEC] Paginas SPA faltantes retornando 404 (login, register, settings, etc)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 304,
+          "title": "[DEVOPS] Criar documentação de configuração de integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 303,
+          "title": "[BACK] Implementar verificação de assinatura de webhooks",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 302,
+          "title": "[SEC] Padronizar token refresh automático em todas integrações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 301,
+          "title": "[BACK] Garantir filtro de tenant em todos os endpoints da API",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 300,
+          "title": "[DEVOPS] Implementar sistema de deploy configurável por tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 299,
+          "title": "[BACK] Implementar Azure Key Vault para gerenciamento de credenciais",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 298,
+          "title": "[BACK] Implementar integração SharePoint via Microsoft Graph API",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 297,
+          "title": "[BACK] API Chat History - tenant_id passado como inteiro em vez de string",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 296,
+          "title": "[FRONT] Admin Portal sem conteudo visivel (formularios e secoes)",
+          "state": "CLOSED",
+          "points": 1,
+          "agent": "FRONT"
+        },
+        {
+          "number": 295,
+          "title": "[BACK] Admin Users falta botao de adicionar usuario e campo de busca",
+          "state": "CLOSED",
+          "points": 1,
+          "agent": "BACK"
+        },
+        {
+          "number": 294,
+          "title": "[FRONT] Story cards nao aparecem no Kanban apesar de 50 stories na API",
+          "state": "CLOSED",
+          "points": 1,
+          "agent": "FRONT"
+        },
+        {
+          "number": 293,
+          "title": "[BACK] Tenant Selector Global + Context Switching",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 292,
+          "title": "[PROD] Navegação Adaptativa por Role/Persona",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 291,
+          "title": "[BACK] Multiplos overlays bloqueando interacao do usuario",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 290,
+          "title": "[BACK] Enforcement de Permissões nos Endpoints",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 289,
+          "title": "[FRONT] Dashboards Adaptáveis por Persona",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 288,
+          "title": "[BACK] Portal do Tenant Admin",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 287,
+          "title": "[FRONT] Portal do Platform Owner (Super Admin)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 286,
+          "title": "[ARCH] Epic: Reorganização de Visões por Persona",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "ARCH"
+        },
+        {
+          "number": 285,
+          "title": "[DEVOPS] Script de migration add_tenant_id_columns.py nao funciona - import incorreto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 284,
+          "title": "[FRONT] Elementos UI nao visiveis: Breadcrumb, Search, FAB, Command Palette",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 283,
+          "title": "[SEC] Paginas retornando 404: /admin, /security, /workers, /projects",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 282,
+          "title": "[DEVOPS] Workflow de aprovação configurável",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 281,
+          "title": "[BACK] OKRs e metas integradas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 280,
+          "title": "[BACK] Assistente IA contextual avancado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 279,
+          "title": "[BACK] Planejamento de capacidade do time",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 278,
+          "title": "[BACK] Operacoes em lote avancadas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 277,
+          "title": "[BACK] Editor de temas customizados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 276,
+          "title": "[BACK] Importar dados de outras ferramentas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 275,
+          "title": "[BACK] Sistema avancado de webhooks outbound",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 274,
+          "title": "[FRONT] Dashboard de auditoria para admins",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 273,
+          "title": "[BACK] Central de ajuda integrada",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 272,
+          "title": "[SEC] Dashboard pessoal My Work",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 271,
+          "title": "[BACK] Busca global avancada com filtros",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 270,
+          "title": "[BACK] Melhorias avancadas de acessibilidade",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 269,
+          "title": "[BACK] Lazy loading e virtualizacao de listas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 268,
+          "title": "[BACK] GraphQL API para integrações avancadas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 267,
+          "title": "[FRONT] Visualizacao em calendario de entregas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 266,
+          "title": "[FRONT] Sistema de gamificacao e conquistas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 265,
+          "title": "[BACK] Modo foco com timer Pomodoro",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 264,
+          "title": "[DEVOPS] Integracao com calendario (Google/Outlook)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 263,
+          "title": "[BACK] Integracao com Slack bidirecional",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 262,
+          "title": "[FRONT] App mobile nativo (React Native)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 261,
+          "title": "[BACK] Push notifications nativas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 260,
+          "title": "[BACK] Modo offline com sincronizacao",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 259,
+          "title": "[BACK] Progressive Web App completo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 258,
+          "title": "[FRONT] Dashboard de metricas Agile",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 257,
+          "title": "[INOV] Relatorios agendados por email",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 256,
+          "title": "[BACK] Exportar dados em CSV e Excel",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 255,
+          "title": "[BACK] Exportar relatorios em PDF profissional",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 254,
+          "title": "[BACK] Templates de story por projeto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 253,
+          "title": "[BACK] Preferencias de usuario persistentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 252,
+          "title": "[FRONT] Colunas customizaveis no Kanban",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 251,
+          "title": "[BACK] Campos customizados por projeto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 250,
+          "title": "[BACK] Assistente de escrita de criterios de aceite",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 249,
+          "title": "[BACK] Previsao de riscos e blockers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 248,
+          "title": "[BACK] Sugestoes de quebra de stories grandes",
+          "state": "CLOSED",
+          "points": 8,
+          "agent": "BACK"
+        },
+        {
+          "number": 247,
+          "title": "[BACK] Deteccao de duplicatas e stories relacionadas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 246,
+          "title": "[INOV] Auto-categorização de stories com NLP",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 245,
+          "title": "[INOV] Estimativas inteligentes com Machine Learning",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 244,
+          "title": "[BACK] Implementar Planning Poker integrado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 243,
+          "title": "[FRONT] Implementar Dependency Graph visual para stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 242,
+          "title": "[BACK] Implementar Colaboração em Tempo Real com cursores",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 241,
+          "title": "[BACK] Erro 500 na API - coluna tenant_id nao existe na tabela stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 240,
+          "title": "[BACK] Implementar Sprint Retrospective integrado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 239,
+          "title": "[BACK] SyntaxWarning: invalid escape sequence em app_v6_agile.py linha 7969",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 238,
+          "title": "[PROD] Onboarding Tour overlay bloqueia interacao com botoes da interface",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 237,
+          "title": "[FRONT] Implementar WIP Limits e políticas de fluxo no Kanban",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 236,
+          "title": "[BACK] Implementar Bulk Actions para operações em massa",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 235,
+          "title": "[BACK] Implementar filtros persistentes e salvos por usuário",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 234,
+          "title": "[BACK] Implementar animações e micro-interações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 233,
+          "title": "[BACK] Implementar Activity Feed em tempo real",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 232,
+          "title": "[PROD] Implementar Onboarding Tour interativo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 231,
+          "title": "[FRONT] Implementar Quality Dashboard com métricas de código",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 230,
+          "title": "[FRONT] Implementar Roadmap Timeline com visualização de epics",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 229,
+          "title": "[BACK] Implementar Sprint Planning View com drag-drop",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 228,
+          "title": "[FRONT] Implementar Team Health Dashboard com métricas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 227,
+          "title": "[FRONT] Implementar Notification Center com bell icon",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 226,
+          "title": "[INOV] Implementar Keyboard Shortcuts Panel e atalhos globais",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 225,
+          "title": "[BACK] Implementar Comments e Threads em Stories/Tasks",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 224,
+          "title": "[BACK] Implementar Time Tracking inline em Tasks",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 223,
+          "title": "[BACK] Implementar Story Templates para criação rápida",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 222,
+          "title": "[FRONT] Implementar Quick Create FAB (Floating Action Button)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 221,
+          "title": "[BACK] Implementar Global Search com autocomplete e filtros",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 220,
+          "title": "[FRONT] Implementar Breadcrumb Navigation global",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 219,
+          "title": "[BACK] Implementar Empty States elegantes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 218,
+          "title": "[FRONT] Implementar Skeleton Loaders elegantes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 217,
+          "title": "[FRONT] Implementar Dark Mode toggle persistente",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 216,
+          "title": "[BACK] Implementar Command Palette global (Cmd+K) - Padrão moderno de navegação",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 215,
+          "title": "[BACK] Melhorar responsividade para dispositivos móveis",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 214,
+          "title": "[BACK] Implementar suporte multi-idioma (PT-BR, EN-US)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 213,
+          "title": "[QA] Expor API pública documentada para integrações externas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 212,
+          "title": "[FRONT] Implementar separação formal de ambientes (Dev/Staging/Prod)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 211,
+          "title": "[FRONT] Implementar orquestração de fluxos de trabalho complexos",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 210,
+          "title": "[QA] Aumentar cobertura de testes para 80%+",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 209,
+          "title": "[SEC] Implementar distributed tracing e APM",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 208,
+          "title": "[BACK] Implementar versionamento e histórico de workers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 207,
+          "title": "[SEC] Fortalecer rate limiting e proteção contra abusos",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 206,
+          "title": "[SEC] Eliminar dependência de filesystem local para stateless",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 205,
+          "title": "[SEC] Preparar arquitetura para auto-scaling horizontal",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 204,
+          "title": "[FRONT] Criar modo simplificado e glossário contextual",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 203,
+          "title": "[FRONT] Melhorar feedback visual e mensagens de erro",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 202,
+          "title": "[FRONT] Implementar ambiente de teste/sandbox integrado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 201,
+          "title": "[SEC] Implementar validação e sanitização de código de usuários",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 200,
+          "title": "[SEC] Implementar criptografia de dados sensíveis em repouso",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 199,
+          "title": "[DEVOPS] Implementar sistema de backup automatizado e DR",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 198,
+          "title": "[SEC] Implementar sandbox/isolamento para execução de workers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 197,
+          "title": "[SEC] Sensitive data exposed - need immediate API key rotation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 196,
+          "title": "[BACK] Secrets managed via environment variables only",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 195,
+          "title": "[FRONT] Add omnichannel input selector",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 194,
+          "title": "[DEVOPS] Sensitive data may be exposed in API responses",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 193,
+          "title": "[DEVOPS] No enum validation for status/priority fields",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 192,
+          "title": "[SEC] JWT keys stored in plaintext file",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 191,
+          "title": "[SEC] Jira webhook missing HMAC signature validation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 190,
+          "title": "[SEC] No request body size limits",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 189,
+          "title": "[BACK] Orphan models not used",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 188,
+          "title": "[BACK] ActivityLogRepository searches globally without tenant filter",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 187,
+          "title": "[FRONT] Integrate RBAC admin into main dashboard navigation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 186,
+          "title": "[FRONT] Create executive dashboard with KPIs",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 185,
+          "title": "[FRONT] Add document/video upload interface",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 184,
+          "title": "[BACK] No check constraint on story_points",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 183,
+          "title": "[BACK] Async engine but sync repositories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 182,
+          "title": "[BACK] No transaction boundaries in repositories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 181,
+          "title": "[BACK] 25+ TODO comments in code generators",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 180,
+          "title": "[BACK] SAP RFC requires complex local SDK setup",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 179,
+          "title": "[BACK] Power BI connector methods may need completion",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 178,
+          "title": "[SEC] PersonaBuilder doesn't validate permission format",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 177,
+          "title": "[SEC] @require_permission decorator unreliable user extraction",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 176,
+          "title": "[SEC] OAuth scopes not aligned with RBAC permissions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 175,
+          "title": "[BACK] No Alembic migration system",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 174,
+          "title": "[DEVOPS] Audit log doesn't record permission changes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 173,
+          "title": "[DEVOPS] Idempotency key not required by default",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 172,
+          "title": "[DEVOPS] Generic exception handling exposes database errors",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 171,
+          "title": "[BACK] Environment variable validation missing at startup",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 170,
+          "title": "[DEVOPS] Only 2 replicas for API - needs 3+ for HA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 169,
+          "title": "[DEVOPS] Terraform state in local file",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 168,
+          "title": "[DEVOPS] No external secrets management",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 167,
+          "title": "[DEVOPS] Kubernetes secrets not encrypted at rest",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 166,
+          "title": "[DEVOPS] Database password too weak",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 165,
+          "title": "[DEVOPS] Redis without authentication",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 164,
+          "title": "[DEVOPS] MinIO using default credentials",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 163,
+          "title": "[BACK] GitLab integration missing documentation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 162,
+          "title": "[BACK] Webhook callbacks not implemented",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 161,
+          "title": "[BACK] Duplicate GitHub integration implementations",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 160,
+          "title": "[FRONT] File and Doc viewers are stubs - not functional",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 159,
+          "title": "[FRONT] Expose billing dashboard in main navigation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 158,
+          "title": "[FRONT] Create tenant selector for multi-tenant users",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 157,
+          "title": "[FRONT] Add Analytics/BI dashboard with charts",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 156,
+          "title": "[FRONT] Create Settings > Security panel for MFA and API keys",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 155,
+          "title": "[FRONT] Add voice input button for story creation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 154,
+          "title": "[FRONT] Add Integrations menu for SAP/GitHub/GitLab configuration",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 153,
+          "title": "[BACK] Missing indexes on frequently queried columns",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 152,
+          "title": "[BACK] Missing tenant filtering in ChatMessageRepository.get_recent()",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 151,
+          "title": "[BACK] N+1 query risk in story progress calculation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 150,
+          "title": "[BACK] Soft delete filter not enforced in repository queries",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 149,
+          "title": "[BACK] Missing tenant_id in child models",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 148,
+          "title": "[SEC] SSO user provisioning defaults to VIEWER only",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 147,
+          "title": "[SEC] ABAC policies hardcoded - lost on restart",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 146,
+          "title": "[SEC] Three permission systems (RBAC/Personas/ABAC) not integrated",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 145,
+          "title": "[SEC] Permission cache ignores project_id scope",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 144,
+          "title": "[SEC] Role-to-Persona mapping incomplete",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 143,
+          "title": "[SEC] MANAGER role missing delete permissions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 142,
+          "title": "[SEC] DEVELOPER role over-privileged - can delete stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 141,
+          "title": "[SEC] Rate limiting fails open when Redis unavailable",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 140,
+          "title": "[SEC] Tenant context extraction incomplete - always returns admin",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 139,
+          "title": "[SEC] WhatsApp webhook missing Twilio signature validation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 138,
+          "title": "[SEC] Default admin credentials accepted in all environments",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 137,
+          "title": "[SEC] OAuth authorize endpoint uses hardcoded admin user_id",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 136,
+          "title": "[SEC] Missing admin authorization in 7 billing endpoints",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 135,
+          "title": "[FRONT] Dashboard Simplificado para Usuários de Negócio",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 134,
+          "title": "[SEC] Wizards e Assistentes Passo-a-Passo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 133,
+          "title": "[FRONT] Interface Sem Jargões Técnicos",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 132,
+          "title": "[FRONT] Onboarding Guiado para Novos Usuários",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 131,
+          "title": "[PROD] Omnichannel Hub - Central Unificada de Inputs",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 130,
+          "title": "[BACK] Assistente Virtual por Vídeo (Video Chat)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 129,
+          "title": "[FRONT] Integração WhatsApp para Captura de Requisitos",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 128,
+          "title": "[QA] Processamento de Documentos Office (Word, Excel, PowerPoint)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 127,
+          "title": "[FRONT] Captura de Requisitos por Voz (Speech-to-Text)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 126,
+          "title": "[DEVOPS] Migração para Cloud (Checklist de Deploy)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 125,
+          "title": "[DEVOPS] Configuração Local vs Produção (Feature Flags)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 124,
+          "title": "[DEVOPS] Dados de Teste e Seed para Multi-tenancy",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 123,
+          "title": "[DEVOPS] Setup Local Completo com Docker Compose",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 122,
+          "title": "[SEC] CRÍTICO: Isolamento Total de Dados Entre Tenants (Zero Data Leakage)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 121,
+          "title": "[FIN] Sistema de Cobrança por Uso (Usage-Based Billing)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FIN"
+        },
+        {
+          "number": 120,
+          "title": "[BACK] Hierarquia Tenant → Projeto → Acesso",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 119,
+          "title": "[BACK] Sistema Completo de Personalização por Tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 118,
+          "title": "[FIN] Sistema de Metering e Usage Tracking Completo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FIN"
+        },
+        {
+          "number": 117,
+          "title": "[BACK] Conectores Nativos para Power BI, Tableau e Excel",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 116,
+          "title": "[BACK] Gateway de Integrações com Isolamento de Tenant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 115,
+          "title": "[BACK] Endpoints de Analytics para Power BI e BI Tools",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 114,
+          "title": "[FRONT] [Arquitetura] API-First Design Pattern",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 113,
+          "title": "[BACK] [Admin] Portal de Administração Multi-nível",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 112,
+          "title": "[SEC] Sistema de Perfis e Personas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 111,
+          "title": "[FRONT] [UI/UX] Visões e Dashboards por Perfil de Usuário",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 110,
+          "title": "[DEVOPS] Multi-AZ Real para Todos Componentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 109,
+          "title": "[BACK] OAuth 2.0 para API",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 108,
+          "title": "[BACK] Idempotência em Endpoints de Criação",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 107,
+          "title": "[BACK] Paginação Baseada em Cursor",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 106,
+          "title": "[SEC] Security Scanning Completo no CI",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 105,
+          "title": "[BACK] Middleware de Tenant Global",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 104,
+          "title": "[BACK] Limites de Plano Enforcement",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 103,
+          "title": "[SEC] MFA/2FA Implementation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 102,
+          "title": "[BACK] GitHub/GitLab Integration Completa",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 101,
+          "title": "[BACK] Endpoints SAP S/4HANA e ECC",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 100,
+          "title": "[DEVOPS] CI/CD Deployment Automático Real",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 99,
+          "title": "[DEVOPS] WAF (Web Application Firewall)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 98,
+          "title": "[DEVOPS] Plano de Disaster Recovery Documentado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 97,
+          "title": "[DEVOPS] Backup Automatizado Database e PVCs",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 96,
+          "title": "[DEVOPS] Stack de Métricas Prometheus/Grafana",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 95,
+          "title": "[DEVOPS] Terraform Remote State com Locking",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 94,
+          "title": "[DEVOPS] Secrets Management Externo (Vault)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 93,
+          "title": "[SEC] Kubernetes Pod Security Standards (PSS)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 92,
+          "title": "[DEVOPS] Scan de Vulnerabilidades em Imagens Docker",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 91,
+          "title": "[BACK] SDKs para Múltiplas Linguagens",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 90,
+          "title": "[BACK] Versionamento Semântico e Deprecation Policy",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 89,
+          "title": "[INOV] [Admin] Painel de Billing e Usage",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 88,
+          "title": "[FRONT] [Admin] Dashboard de Monitoramento de Workers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 87,
+          "title": "[INOV] [Admin] Painel de Administração de Usuários",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 86,
+          "title": "[SEC] Audit Logging Completo para SOC2/GDPR",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 85,
+          "title": "[SEC] Resource-Level Authorization (ABAC)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 84,
+          "title": "[SEC] SAML Response Signature Validation",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 83,
+          "title": "[SEC] JWT Authentication - Remover Credenciais Hardcoded",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 82,
+          "title": "[BACK] Unificação dos Modelos Tenant Duplicados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 81,
+          "title": "[BACK] Isolamento de Dados nos Modelos Principais",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 80,
+          "title": "[FRONT] [UI/UX] Acessibilidade WCAG 2.1 AA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 79,
+          "title": "[SEC] [UI/UX] Sistema de Design Tokens Completo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 78,
+          "title": "[BACK] Bug: Sincronização project_id com nome da pasta",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 77,
+          "title": "[DEVOPS] App Generator: Deploy com Docker",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 76,
+          "title": "[FRONT] App Generator: Suporte a Frontend React/Vue",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 75,
+          "title": "[BACK] App Generator: Suporte a Node.js/Express",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 74,
+          "title": "[QA] Ambiente de Teste Integrado - Executar e Testar Aplicações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 73,
+          "title": "[FRONT] Project Preview Dashboard - Visão Unificada do Projeto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 72,
+          "title": "[FRONT] Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 71,
+          "title": "[QA] A/B Testing de Código Gerado",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 70,
+          "title": "[PROD] Replay e Debug de Execuções",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 69,
+          "title": "[PROD] Importação de Projetos Existentes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 68,
+          "title": "[FRONT] Modo Offline e PWA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 67,
+          "title": "[FRONT] Agente de Suporte ao Cliente (Chatbot Builder)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 66,
+          "title": "[PROD] Ambiente de Preview e Staging Automático",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 65,
+          "title": "[PROD] Analytics de Produtividade e Time Insights",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 64,
+          "title": "[QA] Documentação Automática com IA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 63,
+          "title": "[PROD] Estimativa Inteligente de Esforço",
+          "state": "CLOSED",
+          "points": 5,
+          "agent": "PROD"
+        },
+        {
+          "number": 62,
+          "title": "[PROD] Multi-tenancy e White Label",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 61,
+          "title": "[PROD] API Pública e SDK para Desenvolvedores",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 60,
+          "title": "[PROD] Refatoração Automática e Debt Reduction",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 59,
+          "title": "[PROD] Pair Programming com IA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 58,
+          "title": "[PROD] Versionamento e Histórico de Código",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 57,
+          "title": "[PROD] Análise de Segurança Automatizada (SAST/DAST)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 56,
+          "title": "[PROD] Marketplace de Templates e Skills",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 55,
+          "title": "[PROD] Notificações em Tempo Real (WebSocket + Slack/Teams)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 54,
+          "title": "[PROD] Integração com Jira/Azure DevOps",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 53,
+          "title": "[QA] Geração Automática de Testes",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 52,
+          "title": "[PROD] Code Review Assistido por IA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 51,
+          "title": "[DEVOPS] Integração CI/CD com GitHub Actions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 50,
+          "title": "[FRONT] Dashboard Executivo com Business Intelligence",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 49,
+          "title": "[FRONT] Filtros avançados no Kanban",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 48,
+          "title": "[FRONT] [UI] Animações e micro-interações",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 47,
+          "title": "[FRONT] Confirmação de ações destrutivas",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 46,
+          "title": "[FRONT] Onboarding e empty states",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 45,
+          "title": "[BACK] [A11y] Melhorias de acessibilidade",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 44,
+          "title": "[FRONT] Templates de Stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 43,
+          "title": "[FRONT] Melhorias no Chat Assistant",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 42,
+          "title": "[PROD] Sprint Burndown Chart",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 41,
+          "title": "[PROD] Swimlanes - Agrupar por Epic ou Assignee",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "PROD"
+        },
+        {
+          "number": 40,
+          "title": "[FRONT] Bulk actions para múltiplas stories",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 39,
+          "title": "[FRONT] Quick actions e menu de contexto",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 38,
+          "title": "[FRONT] Drag and drop com melhor feedback visual",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 37,
+          "title": "[FRONT] [UI] Suporte a Dark Mode",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 36,
+          "title": "[FRONT] [UI] Responsividade mobile",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 35,
+          "title": "[FRONT] Atalhos de teclado para ações comuns",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 34,
+          "title": "[FRONT] Loading states e skeleton screens",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 33,
+          "title": "[FRONT] Sistema de notificações toast",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 32,
+          "title": "[FRONT] Campo de busca para stories no Kanban",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 31,
+          "title": "[BACK] fix: SQLiteJobQueue missing API parity methods",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 30,
+          "title": "[DEVOPS] [v5.0] Kubernetes Deployment",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 29,
+          "title": "[FRONT] [v4.0] Testar Fluxo Completo de Workers",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 28,
+          "title": "[BACK] [v4.0] Sistema de Logs Estruturados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 27,
+          "title": "[BACK] [v4.0] Integracao MCP Tools",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 26,
+          "title": "[BACK] [v4.0] Suporte a Multiplos Modelos Claude",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 25,
+          "title": "[BACK] [v4.0] WebSocket para Atualizacoes em Tempo Real",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 24,
+          "title": "[BACK] [NOTIFICACOES] Sistema Centralizado de Notificacoes Multi-Canal",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 23,
+          "title": "[INOV] [MICROSOFT] Integracao com Exchange/Outlook (Email)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 22,
+          "title": "[BACK] [MICROSOFT] Integracao com Microsoft Teams",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 21,
+          "title": "[BACK] [SAP] Integracao com SAP S/4HANA",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 20,
+          "title": "[FRONT] [SAP] Integracao com SAP ECC (ERP Central Component)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 19,
+          "title": "[FRONT] [SAP] Integracao com SAP Cloud Platform Integration (CPI)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 18,
+          "title": "[GROWTH] [SALESFORCE] Integracao Completa com Salesforce CRM",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "GROWTH"
+        },
+        {
+          "number": 17,
+          "title": "[DEVOPS] [CLOUD] Infrastructure as Code com Terraform",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 16,
+          "title": "[BACK] [CLOUD] Integracao Automatica com AWS, Azure e GCP",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 15,
+          "title": "[FIN] [SAAS] Modelo Multi-Tenant com Billing e Subscriptions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FIN"
+        },
+        {
+          "number": 14,
+          "title": "[BACK] [ENTERPRISE] Integracao com Jira e Azure DevOps",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 13,
+          "title": "[SEC] [ENTERPRISE] Integracao SSO via SAML 2.0 e Azure AD",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 12,
+          "title": "[SEC] [ENTERPRISE] Gerenciador de Acessos e Perfis (RBAC)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "SEC"
+        },
+        {
+          "number": 11,
+          "title": "[INOV] [ENTERPRISE] Suporte a Multiplas LLMs (Azure OpenAI, AWS Bedrock, Google Vertex)",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 10,
+          "title": "[INOV] [BAIXA] Adicionar Suporte a Mais Linguagens",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 9,
+          "title": "[DEVOPS] [BAIXA] Configurar CI/CD com GitHub Actions",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 8,
+          "title": "[DEVOPS] [BAIXA] Containerizacao com Docker",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 7,
+          "title": "[INOV] [BAIXA] Integracao Automatica com GitHub",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "INOV"
+        },
+        {
+          "number": 6,
+          "title": "[BACK] [MEDIA] Implementar Sistema de Logs Estruturados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 5,
+          "title": "[QA] [MEDIA] Completar Documentacao OpenAPI/Swagger",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 4,
+          "title": "[FRONT] [MEDIA] Criar Suite de Testes Automatizados",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 3,
+          "title": "[QA] [ALTA] Validar e Documentar Skills de Processamento Multimidia",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        },
+        {
+          "number": 2,
+          "title": "[FRONT] [ALTA] Testar Fluxo Completo de Desenvolvimento Autonomo",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 1,
+          "title": "[QA] [ALTA] Testar Modo Inteligente com Claude AI",
+          "state": "CLOSED",
+          "points": 0,
+          "agent": "QA"
+        }
+      ],
+      "pending": [
+        {
+          "number": 460,
+          "title": "[BACK] Missing resources - HTTP 404 errors",
+          "state": "OPEN",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 459,
+          "title": "[FRONT] Clickable elements too small - UX/Accessibility issue",
+          "state": "OPEN",
+          "points": 0,
+          "agent": "FRONT"
+        },
+        {
+          "number": 458,
+          "title": "[DEVOPS] Rate limiting too aggressive - HTTP 429 errors",
+          "state": "OPEN",
+          "points": 0,
+          "agent": "DEVOPS"
+        },
+        {
+          "number": 457,
+          "title": "[BACK] Login authentication not working",
+          "state": "OPEN",
+          "points": 0,
+          "agent": "BACK"
+        },
+        {
+          "number": 456,
+          "title": "[SEC] CSP blocking media and frame resources",
+          "state": "OPEN",
+          "points": 0,
+          "agent": "SEC"
+        }
+      ]
+    },
+    "tests": {
+      "summary": {
+        "passed": 408,
+        "failed": 28,
+        "skipped": 7,
+        "errors": 8
+      },
+      "failing_categories": {
+        "multi_tenant": {
+          "count": 11,
+          "issues": [
+            "Enums ADMIN/USER/GUEST",
+            "to_dict()",
+            "has_permission()"
+          ]
+        },
+        "e2e_dashboard": {
+          "count": 9,
+          "issues": [
+            "Fixtures faltando",
+            "pytest-asyncio config"
+          ]
+        },
+        "hardcoded_paths": {
+          "count": 4,
+          "issues": [
+            "C:\\Users\\lcruz\\Plataforma E"
+          ]
+        }
+      },
+      "coverage_target": 80
+    },
+    "branding_defaults": {
+      "primary_color": "#003B4A",
+      "secondary_color": "#FF6C00",
+      "success_color": "#10B981",
+      "background_color": "#F3F4F6",
+      "text_color": "#1F2937"
+    },
+    "codebase_scan": {
+      "endpoints": [
+        "/inputs/api",
+        "/block",
+        "/tasks",
+        "/webhooks/whatsapp",
+        "/tableau/wdc/{project_id}",
+        "/{session_id}",
+        "/{story_id}/snapshot",
+        "/estimate/hours-to-points",
+        "/policies",
+        "/{story_id}/merge",
+        "/backup-codes/count",
+        "/workers/{worker_id}",
+        "/{project_id}/members",
+        "/cycle-time",
+        "/stories/{story_id}/execute",
+        "/tasks/{task_id}/force-restart",
+        "/api/v1/expensive-operation",
+        "/invoices/{invoice_id}/void",
+        "/execute",
+        "/azure-devops",
+        "/{story_id}/branches",
+        "/startup",
+        "/api-keys/me",
+        "/{project_id}/members/{user_id}",
+        "/{story_id}/versions",
+        "/openapi.yaml",
+        "/inputs/document/status",
+        "/{chatbot_id}/export/widget",
+        "/{project_id}/docker-stop",
+        "/switch-tenant",
+        "/endpoint",
+        "/events/{source}",
+        "/users/{user_id}/activate",
+        "/story-tasks/{task_id}/tests",
+        "/models",
+        "/{integration_type}/sync",
+        "/users/invites",
+        "/requests/{request_id}",
+        "/workflows/default",
+        "/{project_id}/apply-refactoring",
+        "/backup-codes/regenerate",
+        "/sync-sprint",
+        "/integrations",
+        "/velocity",
+        "/queue/stats",
+        "/requests/{request_id}/reject",
+        "/devices/{device_id}",
+        "/objectives/{objective_id}/progress",
+        "/team/performance",
+        "/by-domain/{domain}",
+        "/stories/{story_id}/run-tests",
+        "/inputs/hub/history",
+        "/type",
+        "/invoices/{invoice_id}/mark-paid",
+        "/current/branding",
+        "/staging",
+        "/{chatbot_id}/documents/{document_id}",
+        "/change-password",
+        "/{chatbot_id}/pause",
+        "/types",
+        "/webhooks",
+        "/{tenant_id}/invites",
+        "/{execution_id}/analysis",
+        "/billing/overview",
+        "/validate",
+        "/stats",
+        "/story-tasks/{task_id}/review-code",
+        "/{tenant_id}/usage/history",
+        "/story",
+        "/oauth/outlook/authorize",
+        "/cache/{tenant_id}",
+        "/{project_id}/file-content",
+        "/destroy-all",
+        "/webhooks/{webhook_id}",
+        "/stories/by-status",
+        "/channels",
+        "/stories/{story_id}/review-code",
+        "/items/{item_id}/install",
+        "/ab-tests/{test_id}/generate-variants",
+        "/refresh",
+        "/whitelist/{identifier}",
+        "/requests",
+        "/oauth/google/callback",
+        "/settings",
+        "/{chatbot_id}/faqs/{faq_id}",
+        "/context/{story_id}",
+        "/users",
+        "/sessions",
+        "/metrics/{project_id}",
+        "/origins",
+        "/{project_id}/reject-refactoring",
+        "/templates/personality",
+        "/generate-tasks",
+        "/integrations/status",
+        "/{preview_id}/start",
+        "/status/{source}",
+        "/generate-monthly-invoices",
+        "/history",
+        "/sprints",
+        "/odata/stories",
+        "/ab-tests/{test_id}/run-tests",
+        "/popular",
+        "/dashboard-type",
+        "/{project_id}/docker-run",
+        "/{tenant_id}/config",
+        "/featured",
+        "/ab-tests/{test_id}/compare",
+        "/{story_id}/branch",
+        "/publish/story-template",
+        "/inputs/document",
+        "/templates/{template_id}/apply",
+        "/cumulative-flow",
+        "/protected",
+        "/retry-all-failed",
+        "/capabilities",
+        "/pending",
+        "/{chatbot_id}/faqs",
+        "/sprints/{sprint_id}/allocate",
+        "/logout-all-devices",
+        "/connect",
+        "/health/detailed",
+        "/github",
+        "/all",
+        "/tenants",
+        "/context/pause-low-priority",
+        "/events",
+        "/tasks/{task_id}/start",
+        "/{source}",
+        "/requests/{request_id}/approve",
+        "/required",
+        "/jira",
+        "/ab-tests/{test_id}/select-winner",
+        "/{tenant_id}",
+        "/summary",
+        "/policies/{project_id}",
+        "/search",
+        "/{chatbot_id}/analytics",
+        "/inputs/whatsapp",
+        "/{project_id}/tech-debt-analysis",
+        "/{integration_type}",
+        "/config",
+        "/inputs/hub",
+        "/projects/{project_id}/stories",
+        "/lockouts",
+        "/tenant/{tenant_id}",
+        "/current-tenant",
+        "/{tenant_id}/branding",
+        "/api/v1/bulk-operations",
+        "/users/stats",
+        "/setup/complete",
+        "/live",
+        "/inputs/status",
+        "/save",
+        "/custom-query",
+        "/tasks/{task_id}/fail",
+        "/bi/tableau/wdc/{project_id}",
+        "/branch",
+        "/navigation",
+        "/objectives/{objective_id}/key-results",
+        "/objectives/{objective_id}",
+        "/my-status",
+        "/tasks/{task_id}/retry",
+        "/{project_id}/executions",
+        "/proxy",
+        "/oauth/outlook/callback",
+        "/devices",
+        "/{preview_id}/qrcode",
+        "/key-results/{key_result_id}/value",
+        "/metrics/json",
+        "/monitoring/stop",
+        "/members/invites/{invite_id}",
+        "/jobs",
+        "/usage-breakdown",
+        "/events/{event_id}",
+        "/odata/metrics",
+        "/branding.css",
+        "/notify/story",
+        "/ab-tests/{test_id}",
+        "/objectives/{objective_id}/projects/{project_id}",
+        "/stop-all",
+        "/keys/info",
+        "/objectives/{objective_id}/projects",
+        "/story/{story_id}",
+        "/tenants/{tenant_id}/suspend",
+        "/setup/cancel",
+        "/register-device",
+        "/{tenant_id}/invites/{invite_id}",
+        "/objectives/{objective_id}/activate",
+        "/sprints/{sprint_id}/recommendations",
+        "/invoices/{invoice_id}",
+        "/projects/{project_id}",
+        "/lockouts/{identifier}",
+        "/dashboard",
+        "/{integration_type}/connect",
+        "/modules",
+        "/{project_id}/execution-patterns",
+        "/security/badge/{project_id}",
+        "/explain-code",
+        "/suggestions",
+        "/bi/powerbi/config",
+        "/invoices/{invoice_id}/finalize",
+        "/inputs/email",
+        "/{project_id}/tech-debt",
+        "/api/v1/projects",
+        "/",
+        "/api/expensive",
+        "/usage-events",
+        "/projects/{project_id}/security-scan",
+        "/billing",
+        "/story-meeting",
+        "/recovery/start",
+        "/users/{user_id}/permissions",
+        "/sprints/{sprint_id}/members",
+        "/persona",
+        "/tasks/{task_id}/state",
+        "/story-tasks/{task_id}/generate-tests-v2",
+        "/inputs/voice",
+        "/workers/active",
+        "/{integration_type}/disconnect",
+        "/okrs/summary",
+        "/objectives/{objective_id}/hierarchy",
+        "/projects",
+        "/api/versions",
+        "/requests/{request_id}/cancel",
+        "/inputs/whatsapp/status",
+        "/generate-invoice",
+        "/join/{token}",
+        "/tasks/{task_id}/resume-prompt",
+        "/permissions",
+        "/batch",
+        "/stories/{story_id}/approval-status",
+        "/{preview_id}/health",
+        "/security/alerts/configure",
+        "/stories/{story_id}/coverage",
+        "/sprints/{sprint_id}/members/{user_id}",
+        "/items/{item_id}/reviews",
+        "/logout",
+        "/usage/{tenant_id}",
+        "/{chatbot_id}/publish",
+        "/objectives",
+        "/tasks/failed",
+        "/{project_id}/files",
+        "/requests/{request_id}/status",
+        "/slug/{slug}/branding",
+        "/objectives/{objective_id}/stories/{story_id}",
+        "/powerbi/config",
+        "/sprints/{sprint_id}/members/bulk",
+        "/templates/responses",
+        "/tableau/schema",
+        "/api-keys/{key_id}",
+        "/sprints/{sprint_id}/alerts",
+        "/{tenant_id}/audit",
+        "/{execution_id}/rerun",
+        "/rules/{name}",
+        "/export/excel",
+        "/stories/{story_id}/generate-tests",
+        "/stories/timeline",
+        "/{tenant_id}/members",
+        "/snippets",
+        "/api/endpoint",
+        "/recovery/complete",
+        "/members/invites",
+        "/items",
+        "/{story_id}/diff",
+        "/{project_id}/docker-build",
+        "/metrics",
+        "/login",
+        "/{project_id}/docker-logs",
+        "/snippets/{snippet_id}",
+        "/{tenant_id}/settings",
+        "/requests/{request_id}/request-changes",
+        "/providers",
+        "/{story_id}/timeline",
+        "/interactivity",
+        "/tasks/{task_id}",
+        "/invoices",
+        "/commands",
+        "/current-usage",
+        "/workflows/{workflow_id}",
+        "/queue/peek",
+        "/tasks/{task_id}/heartbeat",
+        "/tenants/{tenant_id}/activate",
+        "/{chatbot_id}/export/json",
+        "/{tenant_id}/sso",
+        "/{execution_id}/replay",
+        "/{execution_id}/timeline",
+        "/{project_id}/accept-refactoring",
+        "/configure",
+        "/security/alerts/stats",
+        "/user/{user_id}",
+        "/webhook",
+        "/categories",
+        "/openapi.json",
+        "/users/{user_id}/roles",
+        "/{project_id}/settings",
+        "/{execution_id}/steps/{step_id}",
+        "/{story_id}/versions/{version_hash}",
+        "/{chatbot_id}",
+        "/{chatbot_id}/conversations",
+        "/labels",
+        "/ai/generate",
+        "/sprints/{sprint_id}/summary",
+        "/workflows",
+        "/{project_id}/docker-generate",
+        "/bi/export/excel",
+        "/security/alerts",
+        "/user/{user_id}/downloads",
+        "/notify",
+        "/setup/start",
+        "/languages",
+        "/my-origin",
+        "/story-tasks/{task_id}/code-review",
+        "/monitoring/start",
+        "/verify/bypass",
+        "/integrations/{integration_type}",
+        "/config/{tenant_id}",
+        "/{chatbot_id}/conversations/{conversation_id}/feedback",
+        "/my-limit",
+        "/ab-tests/{test_id}/auto-select",
+        "/health",
+        "/models/{model_key}",
+        "/items/{item_id}/review",
+        "/test",
+        "/tasks/running",
+        "/statistics",
+        "/{preview_id}/logs",
+        "/cache",
+        "/projects/{project_id}/security-status",
+        "/disable",
+        "/items/{item_id}",
+        "/{story_id}/rollback/preview",
+        "/gitlab",
+        "/{story_id}/branches/compare",
+        "/templates",
+        "/tenants/{tenant_id}",
+        "/{tenant_id}/usage",
+        "/{chatbot_id}/chat",
+        "/odata/$metadata",
+        "/tasks/{task_id}/context",
+        "/oauth/google/authorize",
+        "/status",
+        "/{tenant_id}/branding/css",
+        "/models/select",
+        "/context/adjust-concurrency",
+        "/audit-logs",
+        "/{preview_id}/stop",
+        "/api-keys",
+        "/verify",
+        "/modules/{module_name}",
+        "/users/invite",
+        "/members/{member_id}",
+        "/workers",
+        "/metrics/{project_id}/snapshot",
+        "/validate-ip",
+        "/members/invite",
+        "/reset",
+        "/key-results/{key_result_id}",
+        "/{project_id}/preview",
+        "/{story_id}/versions/{version_hash}/file",
+        "/{project_id}/execution-stats",
+        "/stories",
+        "/workflows/{workflow_id}/stages",
+        "/tasks/{task_id}/complete",
+        "/{tenant_id}/members/{user_id}",
+        "/keys/cleanup",
+        "/admin",
+        "/stories/{story_id}/ab-tests",
+        "/policy",
+        "/tableau/data",
+        "/{project_id}/docker-deploy",
+        "/wip-overview/{project_id}",
+        "/burndown",
+        "/stories/{story_id}/submit",
+        "/{execution_id}",
+        "/objectives/{objective_id}/complete",
+        "/defaults",
+        "/keys/rotate",
+        "/{integration_type}/configure",
+        "/objectives/{objective_id}/stories",
+        "/chat",
+        "/rules",
+        "/stories/{story_id}/ab-test",
+        "/attempts/{identifier}",
+        "/metrics/health",
+        "/{story_id}/rollback",
+        "/users/invites/{invite_id}",
+        "/disconnect",
+        "/check",
+        "/export/csv",
+        "/whitelist",
+        "/security/alerts/config/{tenant_id}",
+        "/cleanup",
+        "/users/{user_id}",
+        "/refine-story",
+        "/estimate/points-to-hours",
+        "/compare",
+        "/{project_id}/docker-status",
+        "/{chatbot_id}/conversations/{conversation_id}",
+        "/inputs/hub/stats",
+        "/inputs/voice/status",
+        "/projects/{project_id}/health",
+        "/inputs/whatsapp/conversations",
+        "/members",
+        "/process-overdue",
+        "/ready",
+        "/current",
+        "/overview",
+        "/{preview_id}",
+        "/oauth/authorize",
+        "/me",
+        "/ab-tests/{test_id}/winner-code",
+        "/{story_id}/diff/file",
+        "/{chatbot_id}/documents",
+        "/users/{user_id}/check-permission",
+        "/{execution_id}/export",
+        "/oauth/callback",
+        "/configs",
+        "/validate-move/{project_id}",
+        "/jobs/{job_id}"
+      ],
+      "models": [
+        "ABACPolicy",
+        "Epic",
+        "User",
+        "Skill",
+        "FactoryEvent",
+        "TenantInvite",
+        "RetroVote",
+        "ABTest",
+        "ExecutionLog",
+        "ActivityLog",
+        "AgentPerformance",
+        "Permission",
+        "KanbanPolicy",
+        "Comment",
+        "PlanningSession",
+        "ABTestVariant",
+        "Role",
+        "Tenant",
+        "MarketplaceItem",
+        "AuditLog",
+        "KeyResult",
+        "Template",
+        "Agent",
+        "PlanningVote",
+        "Task",
+        "TenantConfig",
+        "OKRStoryLink",
+        "RetroActionItem",
+        "ProductivitySnapshot",
+        "MarketplaceDownload",
+        "CodeBranch",
+        "TimeEntry",
+        "CommentMention",
+        "Project",
+        "Worker",
+        "CodeVersion",
+        "UserRole",
+        "BrandingConfig",
+        "MarketplaceReview",
+        "StoryDesign",
+        "StoryEstimate",
+        "TenantAuditLog",
+        "ChatMessage",
+        "Attachment",
+        "TenantSettings",
+        "Sprint",
+        "CommentReaction",
+        "Job",
+        "Retrospective",
+        "TenantUsageLog",
+        "Story",
+        "StoryDocumentation",
+        "OKRProjectLink",
+        "FlowMetric",
+        "StoryTask",
+        "Objective",
+        "ProjectMember",
+        "RetroItem",
+        "FailureHistory",
+        "TenantMember",
+        "ProductivityMetric"
+      ],
+      "tests": {
+        "files": [
+          "tests\\test_audit_logger.py",
+          "tests\\test_billing.py",
+          "tests\\test_collaboration.py",
+          "tests\\test_e2e_dashboard.py",
+          "tests\\test_full_flow.py",
+          "tests\\test_mfa.py",
+          "tests\\test_mobile_integration.py",
+          "tests\\test_qa_complete.py",
+          "tests\\test_tenant_branding_api.py",
+          "tests\\test_tenant_isolation.py",
+          "tests\\test_terminal_integration.py",
+          "tests\\test_wip_limits.py",
+          "tests\\test_worker_flow.py",
+          "tests\\integration\\test_api.py",
+          "tests\\unit\\test_analytics.py",
+          "tests\\unit\\test_apm.py",
+          "tests\\unit\\test_apm_dashboard.py",
+          "tests\\unit\\test_audit.py",
+          "tests\\unit\\test_backup_manager.py",
+          "tests\\unit\\test_cache_manager.py",
+          "tests\\unit\\test_capacity_planning.py",
+          "tests\\unit\\test_categorizer.py",
+          "tests\\unit\\test_claude_integration.py",
+          "tests\\unit\\test_cli.py",
+          "tests\\unit\\test_comments.py",
+          "tests\\unit\\test_config.py",
+          "tests\\unit\\test_dependency_graph.py",
+          "tests\\unit\\test_estimator.py",
+          "tests\\unit\\test_event_sourcing.py",
+          "tests\\unit\\test_health_check.py",
+          "tests\\unit\\test_models.py",
+          "tests\\unit\\test_multi_tenant.py",
+          "tests\\unit\\test_notifications.py",
+          "tests\\unit\\test_plugin_system.py",
+          "tests\\unit\\test_quality_dashboard.py",
+          "tests\\unit\\test_rbac.py",
+          "tests\\unit\\test_report_generator.py",
+          "tests\\unit\\test_repositories.py",
+          "tests\\unit\\test_roadmap_timeline.py",
+          "tests\\unit\\test_story_vector_search.py",
+          "tests\\unit\\test_tags.py",
+          "tests\\unit\\test_time_tracking.py",
+          "tests\\unit\\test_velocity.py",
+          "tests\\unit\\test_version_control.py",
+          "tests\\unit\\test_workflow_engine.py"
+        ],
+        "count": 45
+      },
+      "scanned_at": "2026-01-04T09:44:45.160268"
+    }
+  },
+  "agents": {
+    "ORCH": {
+      "name": "Orquestrador",
+      "role": "Tech Lead",
+      "responsibilities": [
+        "Coordenar os 11 agentes da equipe",
+        "Distribuir tarefas baseado em especializacao",
+        "Fazer code review e aprovar PRs",
+        "Resolver conflitos entre agentes",
+        "Garantir qualidade do codigo"
+      ],
+      "managed_files": [
+        "factory/core/agent_supervisor.py",
+        "factory/core/orchestrator.py",
+        "factory/core/handoff_manager.py"
+      ],
+      "team": [
+        "ARCH (Arquiteto)",
+        "BACK (Backend)",
+        "FRONT (Frontend)",
+        "DEVOPS (DevOps)",
+        "SEC (Security)",
+        "QA (Quality)",
+        "PROD (Produto)",
+        "INOV (Inovacao)",
+        "FIN (Financeiro)",
+        "GROWTH (Growth)"
+      ],
+      "handoff_rules": {
+        "QA": "Apos qualquer implementacao",
+        "SEC": "Se envolver seguranca ou auth",
+        "DEVOPS": "Para deploy ou infraestrutura"
+      },
+      "implemented_features": [
+        "#430 [ORCH] Bug: TenantAuditLog model missing from tenant_models.py",
+        "#425 [ORCH] Bug: NameError 'Request' not defined em factory/api/auth.py",
+        "#424 [ORCH] Bug: get_session e get_engine não existem em factory.database.connection",
+        "#417 [ORCH] Bug: JWT_SECRET_KEY e ACCESS_TOKEN_EXPIRE_MINUTES não exportados de factory.config",
+        "#416 [ORCH] Corrigir imports quebrados em factory/security/__init__.py",
+        "#368 [ORCH] App Mobile nao respeita Multi-Tenant e White Label",
+        "#321 [ORCH] Terminal A disponível - Sem issues pendentes"
+      ],
+      "pending_features": []
+    },
+    "ARCH": {
+      "name": "Arquiteto",
+      "role": "System Architect",
+      "responsibilities": [
+        "Definir arquitetura do sistema",
+        "Tomar decisoes tecnicas estrategicas",
+        "Estabelecer padroes de codigo",
+        "Organizar estrutura de diretorios",
+        "Planejar refatoracoes"
+      ],
+      "managed_files": [
+        "factory/database/models.py",
+        "docs/ARQUITETURA.md",
+        "factory/config.py"
+      ],
+      "patterns": [
+        "Repository",
+        "Factory",
+        "Strategy",
+        "Observer"
+      ],
+      "key_decisions": {
+        "multi_tenant": "TenantMixin em todos os modelos",
+        "soft_delete": "SoftDeleteMixin com auditoria",
+        "layers": "Apresentacao -> API -> Servicos -> Repositorios -> DB"
+      },
+      "implemented_features": [
+        "#286 [ARCH] Epic: Reorganização de Visões por Persona"
+      ],
+      "pending_features": []
+    },
+    "BACK": {
+      "name": "Backend",
+      "role": "Backend Engineer",
+      "responsibilities": [
+        "Desenvolver APIs REST",
+        "Implementar logica de negocio",
+        "Gerenciar banco de dados",
+        "Otimizar performance"
+      ],
+      "managed_files": [
+        "factory/api/",
+        "factory/core/",
+        "factory/database/"
+      ],
+      "implemented_features": [
+        "#454 [Bug] Billing page - TypeError reading 'total' undefined",
+        "#447 [BACK] Cache Manager - Camada de Cache Distribuido",
+        "#446 [BACK] Report Generator - Geracao de Relatorios",
+        "#445 [BACK] CLI Tool - Interface de Linha de Comando",
+        "#444 [BACK] APM - Application Performance Monitoring",
+        "#443 [BACK] Plugin System - Arquitetura de Extensibilidade",
+        "#441 [BACK] Sistema de Tags e Categorias para Organizacao de Stories",
+        "#439 [BACK] API de Auditoria com Logs de Acoes e Rastreabilidade",
+        "#414 [BACK] Registrar rotas de segurança no app principal",
+        "#381 [BACK] Core Sandbox - Executor Seguro de Código",
+        "#380 [BACK] API Sandbox - Endpoint de Execução de Código",
+        "#365 [BACK] Implementar Cache Layer para Integrações",
+        "#364 [BACK] Implementar Sincronização Bidirecional Jira <-> Sistema",
+        "#363 [BACK] Implementar Webhook Handlers para Integrações Externas",
+        "#357 [BACK] Implementar Input Validation Middleware",
+        "#353 [BACK] Role ADMIN sem permissao de leitura em stories/projects",
+        "#337 [BACK] URGENTE: Conflito de merge em repositories.py",
+        "#335 [BACK] Completar Jira Sync Skill - TODOs pendentes",
+        "#319 [BACK] Bug: API de tasks exige story_id no body apesar de estar na URL",
+        "#318 [BACK] Bug: Endpoints retornam dados mock em caso de erro",
+        "#317 [BACK] Bug: Erro MetaData - Tabela tenants duplicada",
+        "#314 [BACK] Adicionar tenant isolation em todas as integrações",
+        "#313 [BACK] Implementar Azure DevOps Repos e Pipelines API",
+        "#312 [BACK] Implementar Azure DevOps Skills para sistema de agentes",
+        "#311 [BACK] Implementar Jira Agile API (Sprints, Boards, Epics)",
+        "#310 [BACK] Implementar Jira Skills para sistema de agentes",
+        "#307 [BACK] Endpoints de API faltantes (webhooks, health, epics GET)",
+        "#306 [BACK] API Global Search retornando 500",
+        "#303 [BACK] Implementar verificação de assinatura de webhooks",
+        "#301 [BACK] Garantir filtro de tenant em todos os endpoints da API",
+        "#299 [BACK] Implementar Azure Key Vault para gerenciamento de credenciais",
+        "#298 [BACK] Implementar integração SharePoint via Microsoft Graph API",
+        "#297 [BACK] API Chat History - tenant_id passado como inteiro em vez de string",
+        "#295 [BACK] Admin Users falta botao de adicionar usuario e campo de busca",
+        "#293 [BACK] Tenant Selector Global + Context Switching",
+        "#291 [BACK] Multiplos overlays bloqueando interacao do usuario",
+        "#290 [BACK] Enforcement de Permissões nos Endpoints",
+        "#288 [BACK] Portal do Tenant Admin",
+        "#281 [BACK] OKRs e metas integradas",
+        "#280 [BACK] Assistente IA contextual avancado",
+        "#279 [BACK] Planejamento de capacidade do time",
+        "#278 [BACK] Operacoes em lote avancadas",
+        "#277 [BACK] Editor de temas customizados",
+        "#276 [BACK] Importar dados de outras ferramentas",
+        "#275 [BACK] Sistema avancado de webhooks outbound",
+        "#273 [BACK] Central de ajuda integrada",
+        "#271 [BACK] Busca global avancada com filtros",
+        "#270 [BACK] Melhorias avancadas de acessibilidade",
+        "#269 [BACK] Lazy loading e virtualizacao de listas",
+        "#268 [BACK] GraphQL API para integrações avancadas",
+        "#265 [BACK] Modo foco com timer Pomodoro",
+        "#263 [BACK] Integracao com Slack bidirecional",
+        "#261 [BACK] Push notifications nativas",
+        "#260 [BACK] Modo offline com sincronizacao",
+        "#259 [BACK] Progressive Web App completo",
+        "#256 [BACK] Exportar dados em CSV e Excel",
+        "#255 [BACK] Exportar relatorios em PDF profissional",
+        "#254 [BACK] Templates de story por projeto",
+        "#253 [BACK] Preferencias de usuario persistentes",
+        "#251 [BACK] Campos customizados por projeto",
+        "#250 [BACK] Assistente de escrita de criterios de aceite",
+        "#249 [BACK] Previsao de riscos e blockers",
+        "#248 [BACK] Sugestoes de quebra de stories grandes",
+        "#247 [BACK] Deteccao de duplicatas e stories relacionadas",
+        "#244 [BACK] Implementar Planning Poker integrado",
+        "#242 [BACK] Implementar Colaboração em Tempo Real com cursores",
+        "#241 [BACK] Erro 500 na API - coluna tenant_id nao existe na tabela stories",
+        "#240 [BACK] Implementar Sprint Retrospective integrado",
+        "#239 [BACK] SyntaxWarning: invalid escape sequence em app_v6_agile.py linha 7969",
+        "#236 [BACK] Implementar Bulk Actions para operações em massa",
+        "#235 [BACK] Implementar filtros persistentes e salvos por usuário",
+        "#234 [BACK] Implementar animações e micro-interações",
+        "#233 [BACK] Implementar Activity Feed em tempo real",
+        "#229 [BACK] Implementar Sprint Planning View com drag-drop",
+        "#225 [BACK] Implementar Comments e Threads em Stories/Tasks",
+        "#224 [BACK] Implementar Time Tracking inline em Tasks",
+        "#223 [BACK] Implementar Story Templates para criação rápida",
+        "#221 [BACK] Implementar Global Search com autocomplete e filtros",
+        "#219 [BACK] Implementar Empty States elegantes",
+        "#216 [BACK] Implementar Command Palette global (Cmd+K) - Padrão moderno de navegação",
+        "#215 [BACK] Melhorar responsividade para dispositivos móveis",
+        "#214 [BACK] Implementar suporte multi-idioma (PT-BR, EN-US)",
+        "#208 [BACK] Implementar versionamento e histórico de workers",
+        "#196 [BACK] Secrets managed via environment variables only",
+        "#189 [BACK] Orphan models not used",
+        "#188 [BACK] ActivityLogRepository searches globally without tenant filter",
+        "#184 [BACK] No check constraint on story_points",
+        "#183 [BACK] Async engine but sync repositories",
+        "#182 [BACK] No transaction boundaries in repositories",
+        "#181 [BACK] 25+ TODO comments in code generators",
+        "#180 [BACK] SAP RFC requires complex local SDK setup",
+        "#179 [BACK] Power BI connector methods may need completion",
+        "#175 [BACK] No Alembic migration system",
+        "#171 [BACK] Environment variable validation missing at startup",
+        "#163 [BACK] GitLab integration missing documentation",
+        "#162 [BACK] Webhook callbacks not implemented",
+        "#161 [BACK] Duplicate GitHub integration implementations",
+        "#153 [BACK] Missing indexes on frequently queried columns",
+        "#152 [BACK] Missing tenant filtering in ChatMessageRepository.get_recent()",
+        "#151 [BACK] N+1 query risk in story progress calculation",
+        "#150 [BACK] Soft delete filter not enforced in repository queries",
+        "#149 [BACK] Missing tenant_id in child models",
+        "#130 [BACK] Assistente Virtual por Vídeo (Video Chat)",
+        "#120 [BACK] Hierarquia Tenant → Projeto → Acesso",
+        "#119 [BACK] Sistema Completo de Personalização por Tenant",
+        "#117 [BACK] Conectores Nativos para Power BI, Tableau e Excel",
+        "#116 [BACK] Gateway de Integrações com Isolamento de Tenant",
+        "#115 [BACK] Endpoints de Analytics para Power BI e BI Tools",
+        "#113 [BACK] [Admin] Portal de Administração Multi-nível",
+        "#109 [BACK] OAuth 2.0 para API",
+        "#108 [BACK] Idempotência em Endpoints de Criação",
+        "#107 [BACK] Paginação Baseada em Cursor",
+        "#105 [BACK] Middleware de Tenant Global",
+        "#104 [BACK] Limites de Plano Enforcement",
+        "#102 [BACK] GitHub/GitLab Integration Completa",
+        "#101 [BACK] Endpoints SAP S/4HANA e ECC",
+        "#91 [BACK] SDKs para Múltiplas Linguagens",
+        "#90 [BACK] Versionamento Semântico e Deprecation Policy",
+        "#82 [BACK] Unificação dos Modelos Tenant Duplicados",
+        "#81 [BACK] Isolamento de Dados nos Modelos Principais",
+        "#78 [BACK] Bug: Sincronização project_id com nome da pasta",
+        "#75 [BACK] App Generator: Suporte a Node.js/Express",
+        "#45 [BACK] [A11y] Melhorias de acessibilidade",
+        "#31 [BACK] fix: SQLiteJobQueue missing API parity methods",
+        "#28 [BACK] [v4.0] Sistema de Logs Estruturados",
+        "#27 [BACK] [v4.0] Integracao MCP Tools",
+        "#26 [BACK] [v4.0] Suporte a Multiplos Modelos Claude",
+        "#25 [BACK] [v4.0] WebSocket para Atualizacoes em Tempo Real",
+        "#24 [BACK] [NOTIFICACOES] Sistema Centralizado de Notificacoes Multi-Canal",
+        "#22 [BACK] [MICROSOFT] Integracao com Microsoft Teams",
+        "#21 [BACK] [SAP] Integracao com SAP S/4HANA",
+        "#16 [BACK] [CLOUD] Integracao Automatica com AWS, Azure e GCP",
+        "#14 [BACK] [ENTERPRISE] Integracao com Jira e Azure DevOps",
+        "#6 [BACK] [MEDIA] Implementar Sistema de Logs Estruturados"
+      ],
+      "pending_features": [
+        "#460 [BACK] Missing resources - HTTP 404 errors",
+        "#457 [BACK] Login authentication not working"
+      ],
+      "do_not_duplicate": [
+        "/api/v1/jobs",
+        "/api/v1/stories",
+        "/api/v1/users",
+        "/api/admin/tenants",
+        "/api/auth/login"
+      ]
+    },
+    "FRONT": {
+      "name": "Frontend",
+      "role": "Frontend Engineer",
+      "responsibilities": [
+        "Desenvolver interfaces de usuario",
+        "Criar componentes reutilizaveis",
+        "Implementar responsividade",
+        "Garantir acessibilidade"
+      ],
+      "managed_files": [
+        "factory/dashboard/",
+        "factory/dashboard/static/"
+      ],
+      "dashboards": {
+        "agile_v6": {
+          "port": 9001,
+          "file": "app_v6_agile.py"
+        },
+        "kanban_v5": {
+          "port": 9001,
+          "file": "app_v5_kanban.py"
+        },
+        "workers_v4": {
+          "port": 9000,
+          "file": "app.py"
+        }
+      },
+      "branding": {
+        "primary": "#003B4A",
+        "secondary": "#FF6C00"
+      },
+      "implemented_features": [
+        "#455 [Bug] Login page - 404 for static resources",
+        "#451 [Bug] currentUser is not defined - Error in checkActiveTimer",
+        "#450 [FRONT] Dashboard de Performance APM",
+        "#440 [FRONT] Componente de Comentarios e Discussoes em Stories",
+        "#438 [FRONT] Dashboard de Velocidade do Time com Graficos de Sprint",
+        "#429 [FRONT] Componentes de Data e Midia Mobile - Parte 5",
+        "#428 [FRONT] Componentes Utilitarios Mobile - Parte 4",
+        "#427 [FRONT] Componentes de Formulario e Navegacao Mobile - Parte 3",
+        "#426 [FRONT] Componentes avancados para App Mobile - Parte 2",
+        "#423 [FRONT] Componentes reutilizaveis para App Mobile",
+        "#421 [FRONT] Componentes visuais para Dashboards Enterprise",
+        "#387 [FRONT] Criar modelo TenantBranding no banco de dados",
+        "#385 [FRONT] Corrigir App Mobile - Multi-Tenant e White Label no React Native",
+        "#383 [FRONT] Implementar endpoints de Tenant Branding para Mobile",
+        "#372 [FRONT] Rotas SPA faltando - /kanban, /stories, /backlog retornam 404",
+        "#308 [FRONT] Bug: Modal de criar story não abre ao clicar no botão",
+        "#296 [FRONT] Admin Portal sem conteudo visivel (formularios e secoes)",
+        "#294 [FRONT] Story cards nao aparecem no Kanban apesar de 50 stories na API",
+        "#289 [FRONT] Dashboards Adaptáveis por Persona",
+        "#287 [FRONT] Portal do Platform Owner (Super Admin)",
+        "#284 [FRONT] Elementos UI nao visiveis: Breadcrumb, Search, FAB, Command Palette",
+        "#274 [FRONT] Dashboard de auditoria para admins",
+        "#267 [FRONT] Visualizacao em calendario de entregas",
+        "#266 [FRONT] Sistema de gamificacao e conquistas",
+        "#262 [FRONT] App mobile nativo (React Native)",
+        "#258 [FRONT] Dashboard de metricas Agile",
+        "#252 [FRONT] Colunas customizaveis no Kanban",
+        "#243 [FRONT] Implementar Dependency Graph visual para stories",
+        "#237 [FRONT] Implementar WIP Limits e políticas de fluxo no Kanban",
+        "#231 [FRONT] Implementar Quality Dashboard com métricas de código",
+        "#230 [FRONT] Implementar Roadmap Timeline com visualização de epics",
+        "#228 [FRONT] Implementar Team Health Dashboard com métricas",
+        "#227 [FRONT] Implementar Notification Center com bell icon",
+        "#222 [FRONT] Implementar Quick Create FAB (Floating Action Button)",
+        "#220 [FRONT] Implementar Breadcrumb Navigation global",
+        "#218 [FRONT] Implementar Skeleton Loaders elegantes",
+        "#217 [FRONT] Implementar Dark Mode toggle persistente",
+        "#212 [FRONT] Implementar separação formal de ambientes (Dev/Staging/Prod)",
+        "#211 [FRONT] Implementar orquestração de fluxos de trabalho complexos",
+        "#204 [FRONT] Criar modo simplificado e glossário contextual",
+        "#203 [FRONT] Melhorar feedback visual e mensagens de erro",
+        "#202 [FRONT] Implementar ambiente de teste/sandbox integrado",
+        "#195 [FRONT] Add omnichannel input selector",
+        "#187 [FRONT] Integrate RBAC admin into main dashboard navigation",
+        "#186 [FRONT] Create executive dashboard with KPIs",
+        "#185 [FRONT] Add document/video upload interface",
+        "#160 [FRONT] File and Doc viewers are stubs - not functional",
+        "#159 [FRONT] Expose billing dashboard in main navigation",
+        "#158 [FRONT] Create tenant selector for multi-tenant users",
+        "#157 [FRONT] Add Analytics/BI dashboard with charts",
+        "#156 [FRONT] Create Settings > Security panel for MFA and API keys",
+        "#155 [FRONT] Add voice input button for story creation",
+        "#154 [FRONT] Add Integrations menu for SAP/GitHub/GitLab configuration",
+        "#135 [FRONT] Dashboard Simplificado para Usuários de Negócio",
+        "#133 [FRONT] Interface Sem Jargões Técnicos",
+        "#132 [FRONT] Onboarding Guiado para Novos Usuários",
+        "#129 [FRONT] Integração WhatsApp para Captura de Requisitos",
+        "#127 [FRONT] Captura de Requisitos por Voz (Speech-to-Text)",
+        "#114 [FRONT] [Arquitetura] API-First Design Pattern",
+        "#111 [FRONT] [UI/UX] Visões e Dashboards por Perfil de Usuário",
+        "#88 [FRONT] [Admin] Dashboard de Monitoramento de Workers",
+        "#80 [FRONT] [UI/UX] Acessibilidade WCAG 2.1 AA",
+        "#76 [FRONT] App Generator: Suporte a Frontend React/Vue",
+        "#73 [FRONT] Project Preview Dashboard - Visão Unificada do Projeto",
+        "#72 [FRONT] Design Hub - Mockups, Wireframes e Arquitetura (Draw.io)",
+        "#68 [FRONT] Modo Offline e PWA",
+        "#67 [FRONT] Agente de Suporte ao Cliente (Chatbot Builder)",
+        "#50 [FRONT] Dashboard Executivo com Business Intelligence",
+        "#49 [FRONT] Filtros avançados no Kanban",
+        "#48 [FRONT] [UI] Animações e micro-interações",
+        "#47 [FRONT] Confirmação de ações destrutivas",
+        "#46 [FRONT] Onboarding e empty states",
+        "#44 [FRONT] Templates de Stories",
+        "#43 [FRONT] Melhorias no Chat Assistant",
+        "#40 [FRONT] Bulk actions para múltiplas stories",
+        "#39 [FRONT] Quick actions e menu de contexto",
+        "#38 [FRONT] Drag and drop com melhor feedback visual",
+        "#37 [FRONT] [UI] Suporte a Dark Mode",
+        "#36 [FRONT] [UI] Responsividade mobile",
+        "#35 [FRONT] Atalhos de teclado para ações comuns",
+        "#34 [FRONT] Loading states e skeleton screens",
+        "#33 [FRONT] Sistema de notificações toast",
+        "#32 [FRONT] Campo de busca para stories no Kanban",
+        "#29 [FRONT] [v4.0] Testar Fluxo Completo de Workers",
+        "#20 [FRONT] [SAP] Integracao com SAP ECC (ERP Central Component)",
+        "#19 [FRONT] [SAP] Integracao com SAP Cloud Platform Integration (CPI)",
+        "#4 [FRONT] [MEDIA] Criar Suite de Testes Automatizados",
+        "#2 [FRONT] [ALTA] Testar Fluxo Completo de Desenvolvimento Autonomo"
+      ],
+      "pending_features": [
+        "#459 [FRONT] Clickable elements too small - UX/Accessibility issue"
+      ]
+    },
+    "DEVOPS": {
+      "name": "DevOps",
+      "role": "Platform Engineer",
+      "responsibilities": [
+        "Gerenciar infraestrutura",
+        "Configurar CI/CD",
+        "Containerizar aplicacoes",
+        "Monitorar sistemas"
+      ],
+      "managed_files": [
+        "docker-compose.yml",
+        "k8s/",
+        ".github/workflows/",
+        "factory/health/",
+        "factory/observability/"
+      ],
+      "implemented_features": [
+        "#442 [DEVOPS] Health Check Endpoints Avancados com Metricas de Sistema",
+        "#435 [DEVOPS] Feature: Backup & Disaster Recovery Strategy",
+        "#420 [DEVOPS] Consolidar diretórios Kubernetes: k8s/ vs kubernetes/",
+        "#419 [DEVOPS] Documentar decisão arquitetural: Custom Migrations vs Alembic",
+        "#401 [DEVOPS] Database schema desatualizado - Coluna external_references nao existe",
+        "#389 [DEVOPS] Health check do banco retorna unhealthy - SQL expression error",
+        "#382 [DEVOPS] Makefile com comandos de desenvolvimento",
+        "#379 [DEVOPS] Helm Charts para Kubernetes",
+        "#378 [DEVOPS] Implementar Observabilidade (Prometheus + Grafana)",
+        "#376 [DEVOPS] Inconsistência de portas Docker (9000 vs 9001)",
+        "#375 [DEVOPS] Script de inicialização local (start.sh/start.bat)",
+        "#362 [DEVOPS] Implementar Storage Persistente para Backups de Deploy",
+        "#360 [DEVOPS] Implementar API Routes para Monitoring de Integrações",
+        "#346 [DEVOPS] Atualizar testes unit para schemas atuais",
+        "#342 [DEVOPS] Implementar Password Policies configuráveis por tenant",
+        "#333 [DEVOPS] Implementar Health Check e Monitoring para integrações",
+        "#332 [DEVOPS] Implementar integração real no Deploy Manager",
+        "#315 [DEVOPS] Completar analyzers SAP ECC (Table, BADI, Config)",
+        "#304 [DEVOPS] Criar documentação de configuração de integrações",
+        "#300 [DEVOPS] Implementar sistema de deploy configurável por tenant",
+        "#285 [DEVOPS] Script de migration add_tenant_id_columns.py nao funciona - import incorreto",
+        "#282 [DEVOPS] Workflow de aprovação configurável",
+        "#264 [DEVOPS] Integracao com calendario (Google/Outlook)",
+        "#199 [DEVOPS] Implementar sistema de backup automatizado e DR",
+        "#194 [DEVOPS] Sensitive data may be exposed in API responses",
+        "#193 [DEVOPS] No enum validation for status/priority fields",
+        "#174 [DEVOPS] Audit log doesn't record permission changes",
+        "#173 [DEVOPS] Idempotency key not required by default",
+        "#172 [DEVOPS] Generic exception handling exposes database errors",
+        "#170 [DEVOPS] Only 2 replicas for API - needs 3+ for HA",
+        "#169 [DEVOPS] Terraform state in local file",
+        "#168 [DEVOPS] No external secrets management",
+        "#167 [DEVOPS] Kubernetes secrets not encrypted at rest",
+        "#166 [DEVOPS] Database password too weak",
+        "#165 [DEVOPS] Redis without authentication",
+        "#164 [DEVOPS] MinIO using default credentials",
+        "#126 [DEVOPS] Migração para Cloud (Checklist de Deploy)",
+        "#125 [DEVOPS] Configuração Local vs Produção (Feature Flags)",
+        "#124 [DEVOPS] Dados de Teste e Seed para Multi-tenancy",
+        "#123 [DEVOPS] Setup Local Completo com Docker Compose",
+        "#110 [DEVOPS] Multi-AZ Real para Todos Componentes",
+        "#100 [DEVOPS] CI/CD Deployment Automático Real",
+        "#99 [DEVOPS] WAF (Web Application Firewall)",
+        "#98 [DEVOPS] Plano de Disaster Recovery Documentado",
+        "#97 [DEVOPS] Backup Automatizado Database e PVCs",
+        "#96 [DEVOPS] Stack de Métricas Prometheus/Grafana",
+        "#95 [DEVOPS] Terraform Remote State com Locking",
+        "#94 [DEVOPS] Secrets Management Externo (Vault)",
+        "#92 [DEVOPS] Scan de Vulnerabilidades em Imagens Docker",
+        "#77 [DEVOPS] App Generator: Deploy com Docker",
+        "#51 [DEVOPS] Integração CI/CD com GitHub Actions",
+        "#30 [DEVOPS] [v5.0] Kubernetes Deployment",
+        "#17 [DEVOPS] [CLOUD] Infrastructure as Code com Terraform",
+        "#9 [DEVOPS] [BAIXA] Configurar CI/CD com GitHub Actions",
+        "#8 [DEVOPS] [BAIXA] Containerizacao com Docker"
+      ],
+      "monitoring_endpoints": [
+        "/health",
+        "/health/detailed",
+        "/health/ready",
+        "/health/live"
+      ],
+      "pending_features": [
+        "#458 [DEVOPS] Rate limiting too aggressive - HTTP 429 errors"
+      ]
+    },
+    "SEC": {
+      "name": "Security",
+      "role": "Security Engineer",
+      "responsibilities": [
+        "Implementar autenticacao e autorizacao",
+        "Identificar vulnerabilidades",
+        "Garantir compliance",
+        "Realizar auditorias de seguranca"
+      ],
+      "managed_files": [
+        "factory/auth/",
+        "factory/audit/",
+        "factory/middleware/security_headers.py"
+      ],
+      "implemented_features": [
+        "#452 [Bug] CSP blocking media and frame - data:audio and localhost:3000",
+        "#411 [SEC] Implementar CSRF Protection para forms e mutations",
+        "#409 [SEC] Implementar Session Management com Timeout e Concurrent Sessions",
+        "#403 [SEC] Endpoints MFA retornam dados mockados - Vulnerabilidade de seguranca",
+        "#402 [SEC] Brute Force Protection - Bloqueio de Login por Tentativas",
+        "#399 [SEC] CORS Multi-tenant - Allowed Origins por Tenant",
+        "#396 [SEC] Security Headers Middleware (HSTS, CSP, X-Frame-Options)",
+        "#393 [SEC] Rate Limiting por Tenant/Usuario",
+        "#384 [SEC] Implementar seguranca Mobile - Refresh Token e IP Validation",
+        "#371 [SEC] Pagina /login exige autenticacao JWT - Loop impossivel",
+        "#366 [SEC] Implementar Rate Limiting e Retry com Backoff Exponencial",
+        "#359 [SEC] Implementar Security Event Notifications",
+        "#358 [SEC] Implementar JWT Blacklist e Token Revocation",
+        "#345 [SEC] Implementar Security Headers e CSP avançado",
+        "#344 [SEC] Implementar Encryption at Rest para dados sensíveis",
+        "#343 [SEC] Implementar IP Whitelisting e Geo-blocking por tenant",
+        "#341 [SEC] Implementar API Key Management para integrações",
+        "#340 [SEC] Implementar Two-Factor Authentication (2FA/MFA)",
+        "#339 [SEC] Implementar Audit Log detalhado com trail de segurança",
+        "#309 [SEC] Pagina /security timeout - nao carrega",
+        "#305 [SEC] Paginas SPA faltantes retornando 404 (login, register, settings, etc)",
+        "#302 [SEC] Padronizar token refresh automático em todas integrações",
+        "#283 [SEC] Paginas retornando 404: /admin, /security, /workers, /projects",
+        "#272 [SEC] Dashboard pessoal My Work",
+        "#209 [SEC] Implementar distributed tracing e APM",
+        "#207 [SEC] Fortalecer rate limiting e proteção contra abusos",
+        "#206 [SEC] Eliminar dependência de filesystem local para stateless",
+        "#205 [SEC] Preparar arquitetura para auto-scaling horizontal",
+        "#201 [SEC] Implementar validação e sanitização de código de usuários",
+        "#200 [SEC] Implementar criptografia de dados sensíveis em repouso",
+        "#198 [SEC] Implementar sandbox/isolamento para execução de workers",
+        "#197 [SEC] Sensitive data exposed - need immediate API key rotation",
+        "#192 [SEC] JWT keys stored in plaintext file",
+        "#191 [SEC] Jira webhook missing HMAC signature validation",
+        "#190 [SEC] No request body size limits",
+        "#178 [SEC] PersonaBuilder doesn't validate permission format",
+        "#177 [SEC] @require_permission decorator unreliable user extraction",
+        "#176 [SEC] OAuth scopes not aligned with RBAC permissions",
+        "#148 [SEC] SSO user provisioning defaults to VIEWER only",
+        "#147 [SEC] ABAC policies hardcoded - lost on restart",
+        "#146 [SEC] Three permission systems (RBAC/Personas/ABAC) not integrated",
+        "#145 [SEC] Permission cache ignores project_id scope",
+        "#144 [SEC] Role-to-Persona mapping incomplete",
+        "#143 [SEC] MANAGER role missing delete permissions",
+        "#142 [SEC] DEVELOPER role over-privileged - can delete stories",
+        "#141 [SEC] Rate limiting fails open when Redis unavailable",
+        "#140 [SEC] Tenant context extraction incomplete - always returns admin",
+        "#139 [SEC] WhatsApp webhook missing Twilio signature validation",
+        "#138 [SEC] Default admin credentials accepted in all environments",
+        "#137 [SEC] OAuth authorize endpoint uses hardcoded admin user_id",
+        "#136 [SEC] Missing admin authorization in 7 billing endpoints",
+        "#134 [SEC] Wizards e Assistentes Passo-a-Passo",
+        "#122 [SEC] CRÍTICO: Isolamento Total de Dados Entre Tenants (Zero Data Leakage)",
+        "#112 [SEC] Sistema de Perfis e Personas",
+        "#106 [SEC] Security Scanning Completo no CI",
+        "#103 [SEC] MFA/2FA Implementation",
+        "#93 [SEC] Kubernetes Pod Security Standards (PSS)",
+        "#86 [SEC] Audit Logging Completo para SOC2/GDPR",
+        "#85 [SEC] Resource-Level Authorization (ABAC)",
+        "#84 [SEC] SAML Response Signature Validation",
+        "#83 [SEC] JWT Authentication - Remover Credenciais Hardcoded",
+        "#79 [SEC] [UI/UX] Sistema de Design Tokens Completo",
+        "#13 [SEC] [ENTERPRISE] Integracao SSO via SAML 2.0 e Azure AD",
+        "#12 [SEC] [ENTERPRISE] Gerenciador de Acessos e Perfis (RBAC)"
+      ],
+      "security_features": {
+        "auth": [
+          "JWT",
+          "OAuth2",
+          "SSO",
+          "MFA",
+          "API Keys"
+        ],
+        "headers": [
+          "HSTS",
+          "CSP",
+          "X-Frame-Options",
+          "X-Content-Type-Options"
+        ],
+        "rbac": {
+          "resources": 14,
+          "actions": 7,
+          "personas": 9
+        }
+      },
+      "pending_features": [
+        "#456 [SEC] CSP blocking media and frame resources"
+      ]
+    },
+    "QA": {
+      "name": "QA",
+      "role": "QA Engineer",
+      "responsibilities": [
+        "Escrever testes automatizados",
+        "Garantir qualidade do codigo",
+        "Criar documentacao tecnica",
+        "Validar implementacoes"
+      ],
+      "managed_files": [
+        "tests/",
+        "tests/unit/",
+        "tests/integration/"
+      ],
+      "test_status": {
+        "passed": 408,
+        "failed": 28,
+        "target_coverage": 80
+      },
+      "failing_tests": {
+        "multi_tenant": 11,
+        "e2e_dashboard": 9,
+        "hardcoded_paths": 4
+      },
+      "implemented_features": [
+        "#453 [Bug] HTTP 429 Too Many Requests - Rate Limiting muito restritivo",
+        "#437 [QA] Fix missing fixtures in test_e2e_dashboard.py",
+        "#436 [QA] Fix hardcoded paths in app_v6_agile.py",
+        "#431 [QA] Corrigir testes falhando - Multi-tenant enums e E2E async",
+        "#422 [QA] Validar Enterprise Components CSS #421",
+        "#418 [QA] Validar fix OAuth hardcoded admin #137",
+        "#415 [QA] Validar rotas de segurança #414",
+        "#412 [QA] Validar CSRF Protection #411",
+        "#410 [QA] Validar Session Management #409",
+        "#408 [QA] Validar Issue #244 - Planning Poker",
+        "#407 [QA] Validar Issue #240 - Sprint Retrospective",
+        "#406 [QA] Validar Issue #403 - Fix MFA Mock Vulnerability",
+        "#404 [QA] Validar Issue #402 - Brute Force Protection",
+        "#400 [QA] Validar Issue #399 - CORS Multi-tenant",
+        "#398 [QA] Validar Filtros Persistentes e Atalhos de Teclado",
+        "#397 [QA] Validar Issue #396 - Security Headers",
+        "#395 [QA] Validar Issue #393 - Rate Limiting",
+        "#394 [QA] Validar Fidelidade Mobile - StoryCard e APIs",
+        "#392 [QA] Validar Mobile Multi-Tenant e White Label",
+        "#391 [QA] Validar Rotas SPA - /kanban, /stories, /backlog",
+        "#390 [QA] Validar Issue #380 - API Sandbox",
+        "#388 [QA] Validar Mobile Security #384",
+        "#386 [QA] Criar testes para validar Multi-Tenant Mobile",
+        "#377 [QA] Validar fix login page auth loop #371",
+        "#374 [QA] Validar fix ADMIN permissions #353",
+        "#373 [QA] NameError: backref nao definido em models.py - Testes nao rodam",
+        "#370 [QA] Testar Sandbox Terminal UI (Issue #202)",
+        "#369 [QA] Validar Security Event Notifications #359",
+        "#367 [QA] Validar JWT Token Blacklist #358",
+        "#361 [QA] Validar Input Validation Middleware #357",
+        "#356 [QA] Testar App Mobile React Native (Issue #262)",
+        "#355 [QA] Testes de Worker Flow e Repositories falhando",
+        "#354 [QA] Testes de Billing falhando - TypeErrors e AttributeErrors",
+        "#352 [QA] Validar implementacoes de seguranca - #343 e #344",
+        "#351 [QA] Testar Onboarding Tour (Issue #204)",
+        "#350 [QA] Testar User Mode - Modo Básico/Avançado (Issue #204)",
+        "#349 [QA] Testar Issue #342 - Password Policies",
+        "#348 [QA] Testar Issue #339 - Audit Log",
+        "#347 [QA] Testar Issue #345 - Security Headers",
+        "#338 [QA] Testar Issue #212 - Ambientes Dev/Staging/Prod",
+        "#336 [QA] Testar: Bug #319 - API tasks story_id no body CORRIGIDO",
+        "#334 [QA] Testar: Bug #316 - ImportError Agent/AgentRepository CORRIGIDO",
+        "#331 [QA] Testar: Bug #317 - MetaData tabela tenants duplicada CORRIGIDO",
+        "#330 [QA] Testar Animações #234",
+        "#329 [QA] Testar Feedback Visual #203",
+        "#328 [QA] Testar Empty States #219",
+        "#327 [QA] Testar Onboarding Tour #232",
+        "#326 [QA] Criar testes unitários para integrações",
+        "#325 [QA] Testar Issue #206 - Stateless Deployment",
+        "#324 [QA] Testar Issue #205 - Auto-scaling e Health Checks",
+        "#323 [QA] Testar Issue #209 - Distributed Tracing e APM",
+        "#322 [QA] Testar mudanças UI - Issues #308, #217, #218, #215, #214",
+        "#320 [QA] Testar implementações de segurança - Terminal B",
+        "#316 [QA] Bug: Testes quebrados - ImportError Agent e AgentRepository",
+        "#213 [QA] Expor API pública documentada para integrações externas",
+        "#210 [QA] Aumentar cobertura de testes para 80%+",
+        "#128 [QA] Processamento de Documentos Office (Word, Excel, PowerPoint)",
+        "#74 [QA] Ambiente de Teste Integrado - Executar e Testar Aplicações",
+        "#71 [QA] A/B Testing de Código Gerado",
+        "#64 [QA] Documentação Automática com IA",
+        "#53 [QA] Geração Automática de Testes",
+        "#5 [QA] [MEDIA] Completar Documentacao OpenAPI/Swagger",
+        "#3 [QA] [ALTA] Validar e Documentar Skills de Processamento Multimidia",
+        "#1 [QA] [ALTA] Testar Modo Inteligente com Claude AI"
+      ],
+      "pending_features": []
+    },
+    "PROD": {
+      "name": "Produto",
+      "role": "Product Manager",
+      "responsibilities": [
+        "Definir features e requisitos",
+        "Gerenciar backlog e roadmap",
+        "Escrever user stories",
+        "Priorizar entregas"
+      ],
+      "managed_files": [
+        "docs/ROADMAP.md",
+        "docs/VISAO_NEGOCIOS.md"
+      ],
+      "backlog": {
+        "implemented": 41,
+        "pending": 14
+      },
+      "agile_artifacts": {
+        "stories": "6 colunas (backlog -> done)",
+        "epics": "Agrupamento de stories",
+        "sprints": "Ciclos de desenvolvimento"
+      },
+      "okr_support": "factory/core/okr_manager.py",
+      "implemented_features": [
+        "#434 [PROD] Feature: Analytics & Business Metrics Dashboard",
+        "#433 [PROD] Feature: RBAC - Role-Based Access Control",
+        "#432 [PROD] Feature: Sistema de Notificações Push/Email",
+        "#292 [PROD] Navegação Adaptativa por Role/Persona",
+        "#238 [PROD] Onboarding Tour overlay bloqueia interacao com botoes da interface",
+        "#232 [PROD] Implementar Onboarding Tour interativo",
+        "#131 [PROD] Omnichannel Hub - Central Unificada de Inputs",
+        "#70 [PROD] Replay e Debug de Execuções",
+        "#69 [PROD] Importação de Projetos Existentes",
+        "#66 [PROD] Ambiente de Preview e Staging Automático",
+        "#65 [PROD] Analytics de Produtividade e Time Insights",
+        "#63 [PROD] Estimativa Inteligente de Esforço",
+        "#62 [PROD] Multi-tenancy e White Label",
+        "#61 [PROD] API Pública e SDK para Desenvolvedores",
+        "#60 [PROD] Refatoração Automática e Debt Reduction",
+        "#59 [PROD] Pair Programming com IA",
+        "#58 [PROD] Versionamento e Histórico de Código",
+        "#57 [PROD] Análise de Segurança Automatizada (SAST/DAST)",
+        "#56 [PROD] Marketplace de Templates e Skills",
+        "#55 [PROD] Notificações em Tempo Real (WebSocket + Slack/Teams)",
+        "#54 [PROD] Integração com Jira/Azure DevOps",
+        "#52 [PROD] Code Review Assistido por IA",
+        "#42 [PROD] Sprint Burndown Chart",
+        "#41 [PROD] Swimlanes - Agrupar por Epic ou Assignee"
+      ],
+      "pending_features": []
+    },
+    "INOV": {
+      "name": "Inovacao",
+      "role": "R&D/Innovation",
+      "responsibilities": [
+        "Pesquisar novas tecnologias",
+        "Criar provas de conceito",
+        "Buscar projetos GitHub para incorporar",
+        "Fazer benchmarks"
+      ],
+      "managed_files": [
+        "factory/agents/specialized_agents.py",
+        "factory/agents/skills/"
+      ],
+      "research_topics": [
+        "#449 Vector Search (FAISS)",
+        "#448 Event Sourcing"
+      ],
+      "specialized_agents": 53,
+      "agent_categories": [
+        "Frontend (5)",
+        "Backend (5)",
+        "SAP ECC (11)",
+        "SAP S/4 (6)",
+        "Salesforce (5)",
+        "Power BI (3)",
+        "Azure (5)",
+        "Databricks (4)"
+      ],
+      "implemented_features": [
+        "#449 [INOV] Research: Vector Search para Stories Similares",
+        "#448 [INOV] POC: Event Sourcing para Audit Trail",
+        "#413 [INOV] Bug no TenantIsolationMiddleware - subdomain extraction retorna valor incorreto",
+        "#405 [INOV] Metricas Agile retornam dados mockados em vez de dados reais",
+        "#257 [INOV] Relatorios agendados por email",
+        "#246 [INOV] Auto-categorização de stories com NLP",
+        "#245 [INOV] Estimativas inteligentes com Machine Learning",
+        "#226 [INOV] Implementar Keyboard Shortcuts Panel e atalhos globais",
+        "#89 [INOV] [Admin] Painel de Billing e Usage",
+        "#87 [INOV] [Admin] Painel de Administração de Usuários",
+        "#23 [INOV] [MICROSOFT] Integracao com Exchange/Outlook (Email)",
+        "#11 [INOV] [ENTERPRISE] Suporte a Multiplas LLMs (Azure OpenAI, AWS Bedrock, Google Vertex)",
+        "#10 [INOV] [BAIXA] Adicionar Suporte a Mais Linguagens",
+        "#7 [INOV] [BAIXA] Integracao Automatica com GitHub"
+      ],
+      "pending_features": []
+    },
+    "FIN": {
+      "name": "Financeiro",
+      "role": "FinOps/CFO",
+      "responsibilities": [
+        "Analisar custos e rentabilidade",
+        "Definir pricing",
+        "Monitorar metricas financeiras",
+        "Garantir escalabilidade economica"
+      ],
+      "managed_files": [
+        "factory/billing/"
+      ],
+      "pricing_models": {
+        "plans": [
+          "Free",
+          "Pro",
+          "Enterprise"
+        ],
+        "models": [
+          "TenantPlan",
+          "TenantUsageLog",
+          "Subscription"
+        ]
+      },
+      "api_quotas": "API Keys com rate limiting por tier",
+      "implemented_features": [
+        "#121 [FIN] Sistema de Cobrança por Uso (Usage-Based Billing)",
+        "#118 [FIN] Sistema de Metering e Usage Tracking Completo",
+        "#15 [FIN] [SAAS] Modelo Multi-Tenant com Billing e Subscriptions"
+      ],
+      "pending_features": []
+    },
+    "GROWTH": {
+      "name": "Growth",
+      "role": "Go-to-Market",
+      "responsibilities": [
+        "Planejar lancamentos",
+        "Estrategias de marketing",
+        "Aquisicao e retencao de usuarios",
+        "Go-to-market"
+      ],
+      "managed_files": [
+        "factory/core/marketplace.py",
+        "factory/core/analytics.py",
+        "factory/core/ab_testing.py"
+      ],
+      "features": {
+        "marketplace": "Templates e extensoes",
+        "ab_testing": "Experimentos controlados",
+        "analytics": "Metricas de engajamento"
+      },
+      "white_label": "Customizacao por cliente",
+      "implemented_features": [
+        "#18 [GROWTH] [SALESFORCE] Integracao Completa com Salesforce CRM"
+      ],
+      "pending_features": []
+    }
+  },
+  "learning": {
+    "ORCH": [],
+    "ARCH": [],
+    "BACK": [],
+    "FRONT": [],
+    "DEVOPS": [],
+    "SEC": [],
+    "QA": [],
+    "PROD": [],
+    "INOV": [],
+    "FIN": [],
+    "GROWTH": []
+  },
+  "saved_at": "2026-01-04T09:44:45.160336"
+}

@@ -1,0 +1,348 @@
+{
+  "screens": [
+    {
+      "name": "Login",
+      "path": "/login",
+      "status": "warning",
+      "issues": [
+        "Console: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "elements_found": [
+        "form: 1",
+        "input: 2",
+        "button: 1"
+      ],
+      "elements_missing": [],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        }
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/01_login.png"
+    },
+    {
+      "name": "Dashboard Principal",
+      "path": "/",
+      "status": "error",
+      "issues": [
+        "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt",
+        "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG",
+        "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+      ],
+      "elements_found": [
+        ".kanban-column: 6",
+        ".story-card: 5"
+      ],
+      "elements_missing": [
+        ".sidebar"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (http://localhost:9001/:9979:81)\n    at http://localhost:9001/:12824:17\n    at https://unpkg.com/vue@3/dist/vue.global.prod.js:7:3074\n    at tD (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20801)\n    at tF (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20869)\n    at t.__weh.t.__weh (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:2959)\n    at tZ (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:22589)\n    at ea (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:23394)\n    at mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:24140)\n    at t.mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:54086)"
+        },
+        {
+          "type": "error",
+          "text": "Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        },
+        {
+          "type": "error",
+          "text": "Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        }
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/02_home.png"
+    },
+    {
+      "name": "Lista de Projetos",
+      "path": "/projects",
+      "status": "error",
+      "issues": [
+        "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt",
+        "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG",
+        "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+      ],
+      "elements_found": [
+        ".grid: 1"
+      ],
+      "elements_missing": [
+        ".project-card",
+        "table"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (http://localhost:9001/projects:9979:81)\n    at http://localhost:9001/projects:12824:17\n    at https://unpkg.com/vue@3/dist/vue.global.prod.js:7:3074\n    at tD (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20801)\n    at tF (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20869)\n    at https://unpkg.com/vue@3/dist/vue.global.prod.js:7:2959\n    at tZ (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:22589)\n    at ea (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:23394)\n    at mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:24140)\n    at Object.mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:54086)"
+        },
+        {
+          "type": "error",
+          "text": "Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        },
+        {
+          "type": "error",
+          "text": "Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        }
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/03_projects.png"
+    },
+    {
+      "name": "Dashboard Executivo",
+      "path": "/executive",
+      "status": "ok",
+      "issues": [],
+      "elements_found": [],
+      "elements_missing": [
+        ".chart",
+        ".kpi",
+        ".metric"
+      ],
+      "console_errors": [],
+      "http_status": 200,
+      "screenshot": "analysis/04_executive.png"
+    },
+    {
+      "name": "Analytics",
+      "path": "/analytics",
+      "status": "ok",
+      "issues": [],
+      "elements_found": [
+        "canvas: 4"
+      ],
+      "elements_missing": [
+        ".chart",
+        ".graph"
+      ],
+      "console_errors": [],
+      "http_status": 200,
+      "screenshot": "analysis/05_analytics.png"
+    },
+    {
+      "name": "Faturamento",
+      "path": "/billing",
+      "status": "error",
+      "issues": [
+        "Console: Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Console: Error loading usage: TypeError: Cannot read properties of undefined (reading 'total')\n    at loadUsa",
+        "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "elements_found": [],
+      "elements_missing": [
+        ".invoice",
+        ".plan",
+        ".subscription"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "Error loading usage: TypeError: Cannot read properties of undefined (reading 'total')\n    at loadUsageStats (http://localhost:9001/billing:643:85)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        },
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+        }
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/06_billing.png"
+    },
+    {
+      "name": "Admin Panel",
+      "path": "/admin",
+      "status": "error",
+      "issues": [
+        "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt",
+        "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG",
+        "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+      ],
+      "elements_found": [],
+      "elements_missing": [
+        ".admin",
+        ".settings",
+        "form"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (http://localhost:9001/admin:9979:81)\n    at http://localhost:9001/admin:12824:17\n    at https://unpkg.com/vue@3/dist/vue.global.prod.js:7:3074\n    at tD (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20801)\n    at tF (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:20869)\n    at https://unpkg.com/vue@3/dist/vue.global.prod.js:7:2959\n    at tZ (https://unpkg.com/vue@3/dist/vue.global.prod.js:5:22589)\n    at ea (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:23394)\n    at mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:24140)\n    at Object.mount (https://unpkg.com/vue@3/dist/vue.global.prod.js:7:54086)"
+        },
+        {
+          "type": "error",
+          "text": "Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        },
+        {
+          "type": "error",
+          "text": "Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'frame-src' was not explicitly set, so 'default-src' is used as a fallback.\n"
+        }
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/07_admin.png"
+    },
+    {
+      "name": "Gestao Usuarios",
+      "path": "/admin/users",
+      "status": "warning",
+      "issues": [
+        "HTTP 429",
+        "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+      ],
+      "elements_found": [],
+      "elements_missing": [
+        "table",
+        ".user",
+        "tr"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        }
+      ],
+      "http_status": 429,
+      "screenshot": "analysis/08_admin_users.png"
+    },
+    {
+      "name": "Workers",
+      "path": "/workers",
+      "status": "warning",
+      "issues": [
+        "HTTP 429",
+        "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+      ],
+      "elements_found": [],
+      "elements_missing": [
+        ".worker",
+        ".status",
+        ".queue"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        }
+      ],
+      "http_status": 429,
+      "screenshot": "analysis/09_workers.png"
+    },
+    {
+      "name": "Integracoes",
+      "path": "/integrations",
+      "status": "warning",
+      "issues": [
+        "HTTP 429",
+        "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+      ],
+      "elements_found": [],
+      "elements_missing": [
+        ".integration",
+        ".card",
+        ".connection"
+      ],
+      "console_errors": [
+        {
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        }
+      ],
+      "http_status": 429,
+      "screenshot": "analysis/10_integrations.png"
+    }
+  ],
+  "issues": [
+    {
+      "screen": "Login",
+      "issue": "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "screen": "Login",
+      "issue": "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "screen": "Dashboard Principal",
+      "issue": "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt"
+    },
+    {
+      "screen": "Dashboard Principal",
+      "issue": "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG"
+    },
+    {
+      "screen": "Dashboard Principal",
+      "issue": "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+    },
+    {
+      "screen": "Lista de Projetos",
+      "issue": "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt"
+    },
+    {
+      "screen": "Lista de Projetos",
+      "issue": "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG"
+    },
+    {
+      "screen": "Lista de Projetos",
+      "issue": "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+    },
+    {
+      "screen": "Faturamento",
+      "issue": "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "screen": "Faturamento",
+      "issue": "Console: Error loading usage: TypeError: Cannot read properties of undefined (reading 'total')\n    at loadUsa"
+    },
+    {
+      "screen": "Faturamento",
+      "issue": "Console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "screen": "Admin Panel",
+      "issue": "Console: Error checking active timer: ReferenceError: currentUser is not defined\n    at checkActiveTimer (htt"
+    },
+    {
+      "screen": "Admin Panel",
+      "issue": "Console: Refused to load media from 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZG"
+    },
+    {
+      "screen": "Admin Panel",
+      "issue": "Console: Refused to frame 'http://localhost:3000/' because it violates the following Content Security Policy "
+    },
+    {
+      "screen": "Gestao Usuarios",
+      "issue": "HTTP 429"
+    },
+    {
+      "screen": "Gestao Usuarios",
+      "issue": "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    },
+    {
+      "screen": "Workers",
+      "issue": "HTTP 429"
+    },
+    {
+      "screen": "Workers",
+      "issue": "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    },
+    {
+      "screen": "Integracoes",
+      "issue": "HTTP 429"
+    },
+    {
+      "screen": "Integracoes",
+      "issue": "Console: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+    }
+  ],
+  "timestamp": "2026-01-04T09:01:19.719918"
+}

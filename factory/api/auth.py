@@ -29,6 +29,53 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
+# ISSUE #472: IP BINDING FUNCTIONS
+# =============================================================================
+
+def create_ip_hash(ip_address: str) -> str:
+    """Cria hash do IP para binding de token - Issue #472"""
+    if not ip_address:
+        return None
+    # Usar apenas os primeiros 3 octetos para tolerancia a NAT
+    ip_parts = ip_address.split('.')[:3] if '.' in ip_address else [ip_address]
+    ip_prefix = '.'.join(ip_parts)
+    return hashlib.sha256(ip_prefix.encode()).hexdigest()[:16]
+
+
+def create_ua_hash(user_agent: str) -> str:
+    """Cria hash do User-Agent para binding de token - Issue #472"""
+    if not user_agent:
+        return None
+    # Normalizar UA (browser + OS basicos)
+    ua_normalized = user_agent.split()[0] if user_agent else ''
+    return hashlib.sha256(ua_normalized.encode()).hexdigest()[:16]
+
+
+def validate_token_binding(token_ip_hash: str, token_ua_hash: str,
+                           request_ip: str, request_ua: str) -> bool:
+    """Valida se token esta vinculado ao IP/UA correto - Issue #472"""
+    # Se token nao tem binding, permitir (backward compatibility)
+    if not token_ip_hash and not token_ua_hash:
+        return True
+    
+    # Validar IP hash se presente
+    if token_ip_hash:
+        current_ip_hash = create_ip_hash(request_ip)
+        if current_ip_hash != token_ip_hash:
+            logger.warning(f'[Auth] IP binding mismatch: expected={token_ip_hash[:8]}..., got={current_ip_hash[:8] if current_ip_hash else None}...')
+            return False
+    
+    # Validar UA hash se presente
+    if token_ua_hash:
+        current_ua_hash = create_ua_hash(request_ua)
+        if current_ua_hash != token_ua_hash:
+            logger.warning(f'[Auth] UA binding mismatch')
+            return False
+    
+    return True
+
+
+# =============================================================================
 # CONFIGURATION - Secure Key Management
 # =============================================================================
 
@@ -353,13 +400,16 @@ def get_password_hash(password: str) -> str:
 # TOKEN FUNCTIONS
 # =============================================================================
 
-def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta = None,
+                       ip_address: str = None, user_agent: str = None) -> str:
     """
-    Cria JWT token
+    Cria JWT token com IP/UA binding opcional - Issue #472
 
     Args:
         data: Dados para incluir no token (sub=username, role=role)
         expires_delta: Tempo de expiracao customizado
+        ip_address: IP do cliente para binding (Issue #472)
+        user_agent: User-Agent do cliente para binding (Issue #472)
 
     Returns:
         Token JWT encoded
@@ -372,6 +422,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
+
+    # Issue #472: Adicionar IP/UA binding
+    if ip_address:
+        to_encode["ip_hash"] = create_ip_hash(ip_address)
+    if user_agent:
+        to_encode["ua_hash"] = create_ua_hash(user_agent)
 
     # Adicionar key_id para suporte a rotacao
     key_manager = get_key_manager()
@@ -522,15 +578,22 @@ auth_router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 
 @auth_router.post("/login", response_model=Token)
-async def login(credentials: UserLogin):
+async def login(credentials: UserLogin, request: Request = None):
     """
-    Autentica usuario e retorna token JWT
+    Autentica usuario e retorna token JWT com IP binding
 
     Credenciais devem estar configuradas no banco de dados ou
     via variaveis de ambiente (DEFAULT_ADMIN_USER/DEFAULT_ADMIN_PASS).
 
     Issue #138: Em produção, credenciais default são bloqueadas.
+    Issue #472: Token vinculado ao IP/UA do cliente.
     """
+    # Issue #472: Extrair IP e User-Agent para binding
+    client_ip = None
+    user_agent = None
+    if request:
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("User-Agent")
     # Issue #138: Verificar se credenciais estão na lista de bloqueio (produção)
     from factory.config import is_credential_blocked
     if is_credential_blocked(credentials.username, credentials.password):
@@ -551,7 +614,9 @@ async def login(credentials: UserLogin):
             if credentials.username == default_user and credentials.password == default_pass:
                 logger.info(f"[Auth] Login via credenciais de ambiente: {default_user}")
                 token = create_access_token(
-                    data={"sub": default_user, "role": "ADMIN"}
+                    data={"sub": default_user, "role": "ADMIN"},
+                    ip_address=client_ip,
+                    user_agent=user_agent
                 )
                 expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
@@ -589,7 +654,9 @@ async def login(credentials: UserLogin):
                         "sub": user.username,
                         "role": user.role,
                         "force_password_change": force_change
-                    }
+                    },
+                    ip_address=client_ip,
+                    user_agent=user_agent
                 )
                 expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 

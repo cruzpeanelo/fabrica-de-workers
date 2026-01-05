@@ -61,6 +61,16 @@ DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "127.0.0.1")
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "9001"))
 DASHBOARD_TITLE = "Plataforma E v6.5"
 
+# Paths Configuration
+from pathlib import Path
+BASE_DIR = Path(__file__).parent.parent.parent
+PROJECTS_DIR = BASE_DIR / "projects"
+UPLOADS_DIR = BASE_DIR / "uploads"
+
+# Create directories if they don't exist
+PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
 __all__ = [
     # Main functions
     "is_feature_enabled",
@@ -101,4 +111,9 @@ __all__ = [
     "DASHBOARD_HOST",
     "DASHBOARD_PORT",
     "DASHBOARD_TITLE",
+
+    # Paths Configuration
+    "BASE_DIR",
+    "PROJECTS_DIR",
+    "UPLOADS_DIR",
 ]

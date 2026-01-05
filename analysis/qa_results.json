@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-01-04T11:43:24.813299",
+  "screens": [
+    {
+      "name": "Login",
+      "path": "/login",
+      "status": "warning",
+      "issues": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "elements": {
+        "username_field": 1,
+        "password_field": 1,
+        "login_button": 1,
+        "logo": 1
+      },
+      "screenshot": "analysis/qa_01_login.png"
+    },
+    {
+      "name": "Login",
+      "path": "/login",
+      "status": "ok",
+      "issues": [],
+      "http_status": 200,
+      "screenshot": "analysis/qa_login.png"
+    },
+    {
+      "name": "Dashboard Principal",
+      "path": "/",
+      "status": "error",
+      "issues": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 200,
+      "screenshot": "analysis/qa_dashboard_principal.png"
+    },
+    {
+      "name": "Projetos",
+      "path": "/projects",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_projetos.png"
+    },
+    {
+      "name": "Analytics",
+      "path": "/analytics",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_analytics.png"
+    },
+    {
+      "name": "Executive",
+      "path": "/executive",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_executive.png"
+    },
+    {
+      "name": "Admin",
+      "path": "/admin",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_admin.png"
+    },
+    {
+      "name": "Billing",
+      "path": "/billing",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_billing.png"
+    },
+    {
+      "name": "Settings",
+      "path": "/settings",
+      "status": "warning",
+      "issues": [
+        "HTTP 401",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "http_status": 401,
+      "screenshot": "analysis/qa_settings.png"
+    }
+  ],
+  "issues": [
+    {
+      "agent": "[FRONT]",
+      "title": "Clickable elements too small",
+      "description": "31 elements smaller than 44px",
+      "severity": "low",
+      "created_at": "2026-01-04T11:44:11.977273"
+    }
+  ],
+  "ux_analysis": [
+    {
+      "screen": "Dashboard Principal",
+      "metrics": {
+        "overlays": {
+          "count": 0,
+          "visible": 0
+        },
+        "z_index_layers": 10,
+        "max_z_index": 10000,
+        "content_area_percent": 100,
+        "small_clickables": 31
+      },
+      "issues": [
+        "Too many small clickable elements: 31"
+      ]
+    }
+  ],
+  "segregation_tests": [
+    {
+      "test": "multi_tenancy_segregation",
+      "status": "ok",
+      "issues": []
+    }
+  ],
+  "summary": {
+    "total_screens": 9,
+    "screens_ok": 1,
+    "screens_warning": 7,
+    "screens_error": 1,
+    "total_issues": 1,
+    "issues_by_agent": {
+      "[FRONT]": 1
+    }
+  }
+}

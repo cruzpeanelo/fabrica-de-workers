@@ -67,18 +67,22 @@ class ResourceType(str, Enum):
     STORAGE_GB = "storage_gb"
 
 
-# Default limits per plan
+# Environment detection for QA/Development mode
+import os
+IS_QA_MODE = os.getenv("QA_MODE", "").lower() in ("true", "1", "yes") or os.getenv("ENVIRONMENT", "development").lower() != "production"
+
+# Default limits per plan (increased for QA/Development)
 DEFAULT_PLAN_LIMITS: Dict[str, Dict[str, int]] = {
     PlanType.FREE.value: {
-        ResourceType.PROJECTS.value: 2,
-        ResourceType.STORIES.value: 50,
-        ResourceType.WORKERS.value: 1,
-        ResourceType.AGENTS.value: 1,
-        ResourceType.USERS.value: 3,
-        ResourceType.API_CALLS_PER_DAY.value: 100,
-        ResourceType.API_CALLS_PER_MINUTE.value: 10,
-        ResourceType.TOKENS_PER_MONTH.value: 10000,
-        ResourceType.STORAGE_GB.value: 1,
+        ResourceType.PROJECTS.value: 100 if IS_QA_MODE else 2,
+        ResourceType.STORIES.value: 1000 if IS_QA_MODE else 50,
+        ResourceType.WORKERS.value: 10 if IS_QA_MODE else 1,
+        ResourceType.AGENTS.value: 10 if IS_QA_MODE else 1,
+        ResourceType.USERS.value: 50 if IS_QA_MODE else 3,
+        ResourceType.API_CALLS_PER_DAY.value: 1000000 if IS_QA_MODE else 100,  # 1M for QA
+        ResourceType.API_CALLS_PER_MINUTE.value: 10000 if IS_QA_MODE else 10,
+        ResourceType.TOKENS_PER_MONTH.value: 10000000 if IS_QA_MODE else 10000,
+        ResourceType.STORAGE_GB.value: 100 if IS_QA_MODE else 1,
     },
     PlanType.PRO.value: {
         ResourceType.PROJECTS.value: 20,

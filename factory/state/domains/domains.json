@@ -1,0 +1,74 @@
+{
+  "domains": [
+    {
+      "domain_id": "dom-fb8dc792",
+      "project_id": "test-project",
+      "domain": "meu-app-incrivel.plataformae.app",
+      "domain_type": "subdomain",
+      "status": "active",
+      "subdomain": "meu-app-incrivel",
+      "dns_records": [],
+      "verification_token": "",
+      "ssl_certificate": {
+        "issued": true,
+        "issuer": "Let's Encrypt (Wildcard)",
+        "valid_from": "2026-01-04T14:27:27.261133",
+        "valid_until": "2026-04-04T14:27:27.261200",
+        "is_valid": true,
+        "days_until_expiry": 89,
+        "auto_renew": true
+      },
+      "deployment_id": null,
+      "target_url": null,
+      "created_at": "2026-01-04T14:27:27.261251",
+      "updated_at": "2026-01-04T14:27:27.261253",
+      "verified_at": null,
+      "activated_at": "2026-01-04T14:27:27.261236",
+      "error_message": null
+    },
+    {
+      "domain_id": "dom-4170aa58",
+      "project_id": "test-project",
+      "domain": "app.meusite.com.br",
+      "domain_type": "custom",
+      "status": "dns_pending",
+      "subdomain": null,
+      "dns_records": [
+        {
+          "record_type": "CNAME",
+          "name": "app.meusite.com.br",
+          "value": "cname.plataformae.app",
+          "ttl": 3600,
+          "verified": false,
+          "verified_at": null
+        },
+        {
+          "record_type": "TXT",
+          "name": "_plataformae.app.meusite.com.br",
+          "value": "plataformae-verify-4441c4dc23c6ca13f05dfa4077417848",
+          "ttl": 3600,
+          "verified": false,
+          "verified_at": null
+        }
+      ],
+      "verification_token": "plataformae-verify-4441c4dc23c6ca13f05dfa4077417848",
+      "ssl_certificate": {
+        "issued": false,
+        "issuer": "",
+        "valid_from": null,
+        "valid_until": null,
+        "is_valid": false,
+        "days_until_expiry": 0,
+        "auto_renew": true
+      },
+      "deployment_id": null,
+      "target_url": null,
+      "created_at": "2026-01-04T14:27:27.263126",
+      "updated_at": "2026-01-04T14:27:27.263128",
+      "verified_at": null,
+      "activated_at": null,
+      "error_message": null
+    }
+  ],
+  "updated_at": "2026-01-04T14:27:27.263164"
+}

@@ -1261,19 +1261,30 @@ def list_stories(
     project_id: Optional[str] = None,
     status: Optional[str] = None,
     epic_id: Optional[str] = None,
-    sprint_id: Optional[str] = None
+    sprint_id: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
 ):
-    """Lista stories com filtros"""
+    """Lista stories com filtros e paginacao - Issue #478 Performance"""
     db = SessionLocal()
     try:
         repo = StoryRepository(db)
+        # Issue #478: Limitar para performance
+        limit = min(limit, 200)  # Max 200 por request
         stories = repo.get_all(
             project_id=project_id,
             status=status,
             epic_id=epic_id,
-            sprint_id=sprint_id
+            sprint_id=sprint_id,
+            limit=limit,
+            offset=offset
         )
-        return [s.to_dict() for s in stories]
+        return {
+            "items": [s.to_dict() for s in stories],
+            "limit": limit,
+            "offset": offset,
+            "count": len(stories)
+        }
     finally:
         db.close()
 
@@ -8032,6 +8043,24 @@ HTML_TEMPLATE = """
             .filter-bar { gap: 4px !important; }
             .filter-bar select, .filter-bar input { font-size: 14px !important; padding: 8px !important; }
         }
+
+        /* Issue #482: WCAG 2.1 Accessibility - 44x44px minimum for all clickable elements */
+        button:not(.modal-close):not(.toast-close),
+        a.btn, .btn, .clickable,
+        .story-card-action, .kanban-action-btn, .quick-action-btn,
+        input[type="button"], input[type="submit"], input[type="reset"] {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        .icon-btn, .close-btn, button[aria-label] {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        input[type="checkbox"], input[type="radio"] { min-width: 20px; min-height: 20px; }
+        select { min-height: 44px; }
 
         /* Issue #215: Touch-friendly buttons for all devices */
         @media (hover: none) and (pointer: coarse) {

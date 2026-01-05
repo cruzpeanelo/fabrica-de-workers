@@ -1,0 +1,308 @@
+{
+  "timestamp": "2026-01-04T17:25:24.204932",
+  "duration_seconds": 1.009296,
+  "summary": {
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "pass_rate": "100.0%"
+  },
+  "by_priority": {
+    "CRITICAL": {
+      "total": 8,
+      "passed": 8,
+      "pass_rate": "100.0%"
+    },
+    "HIGH": {
+      "total": 11,
+      "passed": 11,
+      "pass_rate": "100.0%"
+    },
+    "MEDIUM": {
+      "total": 7,
+      "passed": 7,
+      "pass_rate": "100.0%"
+    }
+  },
+  "failures": [],
+  "results": [
+    {
+      "module": "sandbox_executor",
+      "test_name": "Blocked patterns detection",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.019550323486328125,
+      "details": {
+        "blocked_commands_tested": 5
+      }
+    },
+    {
+      "module": "sandbox_executor",
+      "test_name": "Secure default config",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0035762786865234375,
+      "details": {
+        "network_mode": "none",
+        "read_only_root": true,
+        "no_new_privileges": true,
+        "user": "1000:1000",
+        "cap_drop": [
+          "ALL"
+        ]
+      }
+    },
+    {
+      "module": "sandbox_executor",
+      "test_name": "Resource limits enforced",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.002384185791015625,
+      "details": {
+        "cpu_limit": 0.5,
+        "memory_limit": "256m",
+        "timeout_seconds": 60
+      }
+    },
+    {
+      "module": "sandbox_executor",
+      "test_name": "Dangerous imports blocked",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.012159347534179688,
+      "details": {
+        "imports_tested": 6
+      }
+    },
+    {
+      "module": "secrets_manager",
+      "test_name": "Cryptography library available",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.00095367431640625,
+      "details": {}
+    },
+    {
+      "module": "secrets_manager",
+      "test_name": "Encryption round-trip",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 56.01930618286133,
+      "details": {
+        "original_len": 18,
+        "encrypted_len": 124
+      }
+    },
+    {
+      "module": "secrets_manager",
+      "test_name": "Different keys produce different ciphertext",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 48.616647720336914,
+      "details": {}
+    },
+    {
+      "module": "secrets_manager",
+      "test_name": "Wrong key fails decryption",
+      "priority": "CRITICAL",
+      "passed": true,
+      "error": null,
+      "duration_ms": 40.924787521362305,
+      "details": {}
+    },
+    {
+      "module": "approval_workflow",
+      "test_name": "Create workflow with stages",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.08368492126464844,
+      "details": {
+        "stages_count": 2
+      }
+    },
+    {
+      "module": "approval_workflow",
+      "test_name": "Approval rules configuration",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.007867813110351562,
+      "details": {}
+    },
+    {
+      "module": "approval_workflow",
+      "test_name": "Status transitions",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.01239776611328125,
+      "details": {
+        "initial_status": "ApprovalStatus.PENDING"
+      }
+    },
+    {
+      "module": "approval_workflow",
+      "test_name": "Self-approval prevention",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.00476837158203125,
+      "details": {}
+    },
+    {
+      "module": "execution_recorder",
+      "test_name": "Create execution and add steps",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.09059906005859375,
+      "details": {
+        "steps_count": 1
+      }
+    },
+    {
+      "module": "execution_recorder",
+      "test_name": "File change tracking with diff",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0553131103515625,
+      "details": {}
+    },
+    {
+      "module": "execution_recorder",
+      "test_name": "Timeline generation",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.04410743713378906,
+      "details": {
+        "timeline_events": 4
+      }
+    },
+    {
+      "module": "resource_limiter",
+      "test_name": "Default limits reasonable",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0059604644775390625,
+      "details": {
+        "max_cpu_percent": 50.0,
+        "max_memory_mb": 512,
+        "max_execution_time": 600
+      }
+    },
+    {
+      "module": "resource_limiter",
+      "test_name": "Network disabled by default",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0026226043701171875,
+      "details": {}
+    },
+    {
+      "module": "resource_limiter",
+      "test_name": "Usage tracking",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.027179718017578125,
+      "details": {}
+    },
+    {
+      "module": "resource_limiter",
+      "test_name": "Rate limiting enforced",
+      "priority": "HIGH",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0152587890625,
+      "details": {}
+    },
+    {
+      "module": "okr_manager",
+      "test_name": "OKRManager has CRUD methods",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.00286102294921875,
+      "details": {}
+    },
+    {
+      "module": "okr_manager",
+      "test_name": "Key Result CRUD methods",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.0016689300537109375,
+      "details": {}
+    },
+    {
+      "module": "okr_manager",
+      "test_name": "OKR Period enum values",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.008821487426757812,
+      "details": {
+        "periods": [
+          "quarterly",
+          "yearly",
+          "monthly",
+          "custom"
+        ]
+      }
+    },
+    {
+      "module": "ab_testing",
+      "test_name": "Create A/B test with variants",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.07224082946777344,
+      "details": {}
+    },
+    {
+      "module": "ab_testing",
+      "test_name": "Traffic allocation method exists",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.001430511474609375,
+      "details": {}
+    },
+    {
+      "module": "model_selector",
+      "test_name": "Model tiers defined",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.010251998901367188,
+      "details": {
+        "tiers": [
+          "claude-opus-4-5-20251101",
+          "claude-sonnet-4-20250514",
+          "claude-haiku-3-5-20241022"
+        ]
+      }
+    },
+    {
+      "module": "model_selector",
+      "test_name": "Select model method exists",
+      "priority": "MEDIUM",
+      "passed": true,
+      "error": null,
+      "duration_ms": 0.001430511474609375,
+      "details": {}
+    }
+  ]
+}

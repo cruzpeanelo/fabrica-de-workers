@@ -1,0 +1,746 @@
+{
+  "total": 90,
+  "passed": 75,
+  "failed": 15,
+  "pass_rate": "83.3%",
+  "duration_seconds": 286.21304,
+  "failures": [
+    {
+      "category": "Security",
+      "test": "Rate limiting",
+      "passed": false,
+      "details": "No rate limit detected after 50 requests",
+      "timestamp": "2026-01-04T17:51:30.904771"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as ADMIN",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:39.075416"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as DEVELOPER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:41.146779"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as VIEWER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:43.183167"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as PROJECT_MANAGER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:45.229798"
+    },
+    {
+      "category": "Performance",
+      "test": "Health check: 2041ms",
+      "passed": false,
+      "details": "Exceeded 200ms limit",
+      "timestamp": "2026-01-04T17:51:52.786268"
+    },
+    {
+      "category": "Performance",
+      "test": "Stories list: 2026ms",
+      "passed": false,
+      "details": "Exceeded 1000ms limit",
+      "timestamp": "2026-01-04T17:51:54.813143"
+    },
+    {
+      "category": "Performance",
+      "test": "Projects list: 2034ms",
+      "passed": false,
+      "details": "Exceeded 1000ms limit",
+      "timestamp": "2026-01-04T17:51:56.846968"
+    },
+    {
+      "category": "Performance",
+      "test": "Kanban board: 2049ms",
+      "passed": false,
+      "details": "Exceeded 2000ms limit",
+      "timestamp": "2026-01-04T17:51:58.896034"
+    },
+    {
+      "category": "Performance",
+      "test": "Concurrent: 0/20 OK",
+      "passed": false,
+      "details": "Too many failures",
+      "timestamp": "2026-01-04T17:52:03.040803"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Empty story title",
+      "passed": false,
+      "details": "Accepted empty: 401",
+      "timestamp": "2026-01-04T17:52:05.072019"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Very long title (10K chars)",
+      "passed": false,
+      "details": "Accepted long input",
+      "timestamp": "2026-01-04T17:52:07.113596"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Null values",
+      "passed": false,
+      "details": "Accepted nulls: 401",
+      "timestamp": "2026-01-04T17:52:11.199411"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Negative story points",
+      "passed": false,
+      "details": "Accepted negative",
+      "timestamp": "2026-01-04T17:52:13.236723"
+    },
+    {
+      "category": "Database",
+      "test": "Auth for CRUD",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:52:29.609253"
+    }
+  ],
+  "results": [
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: ' OR '1'='1...",
+      "timestamp": "2026-01-04T17:47:45.456942"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: '; DROP TABLE storie...",
+      "timestamp": "2026-01-04T17:47:47.500613"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: 1; SELECT * FROM use...",
+      "timestamp": "2026-01-04T17:47:49.551276"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: ' UNION SELECT * FRO...",
+      "timestamp": "2026-01-04T17:47:51.602705"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: admin'--...",
+      "timestamp": "2026-01-04T17:47:53.644505"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: search",
+      "passed": true,
+      "details": "Protected against: 1' AND '1'='1...",
+      "timestamp": "2026-01-04T17:47:55.701874"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: ' OR '1'='1...",
+      "timestamp": "2026-01-04T17:47:57.732800"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: '; DROP TABLE storie...",
+      "timestamp": "2026-01-04T17:47:59.785569"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: 1; SELECT * FROM use...",
+      "timestamp": "2026-01-04T17:48:01.819491"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: ' UNION SELECT * FRO...",
+      "timestamp": "2026-01-04T17:48:03.870592"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: admin'--...",
+      "timestamp": "2026-01-04T17:48:05.919822"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: filter",
+      "passed": true,
+      "details": "Protected against: 1' AND '1'='1...",
+      "timestamp": "2026-01-04T17:48:07.952762"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: ' OR '1'='1...",
+      "timestamp": "2026-01-04T17:48:09.979837"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: '; DROP TABLE storie...",
+      "timestamp": "2026-01-04T17:48:12.001864"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: 1; SELECT * FROM use...",
+      "timestamp": "2026-01-04T17:48:14.039255"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: ' UNION SELECT * FRO...",
+      "timestamp": "2026-01-04T17:48:16.074020"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: admin'--...",
+      "timestamp": "2026-01-04T17:48:18.105535"
+    },
+    {
+      "category": "Security",
+      "test": "SQLi: name",
+      "passed": true,
+      "details": "Protected against: 1' AND '1'='1...",
+      "timestamp": "2026-01-04T17:48:20.159502"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:24.364614"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:26.390011"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:28.416643"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:30.445036"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:32.482345"
+    },
+    {
+      "category": "Security",
+      "test": "XSS in story title",
+      "passed": true,
+      "details": "Rejected with 400",
+      "timestamp": "2026-01-04T17:48:34.522782"
+    },
+    {
+      "category": "Security",
+      "test": "CSRF protection",
+      "passed": true,
+      "details": "Blocked cross-origin request",
+      "timestamp": "2026-01-04T17:48:36.581806"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/users",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:38.622575"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/users",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:40.683326"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/users",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:42.737079"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/users",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:44.778954"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/users",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:46.820426"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/tenants",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:48.845524"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/tenants",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:50.890089"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/tenants",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:52.952641"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/tenants",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:54.983247"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/admin/tenants",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:57.026728"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/stories",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:48:59.073016"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/stories",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:01.093952"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/stories",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:03.121295"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/stories",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:05.161942"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/stories",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:07.193211"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/projects",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:09.237698"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/projects",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:11.273519"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/projects",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:13.337448"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/projects",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:15.376024"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/projects",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:17.436140"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/sprints",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:19.484308"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/sprints",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:21.522588"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/sprints",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:23.579179"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/sprints",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:25.616636"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/sprints",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:27.646410"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/kanban/columns",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:29.668057"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/kanban/columns",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:31.700676"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/kanban/columns",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:33.747536"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/kanban/columns",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:35.798311"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/kanban/columns",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:37.862957"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/analytics/dashboard",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:39.893190"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/analytics/dashboard",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:41.933706"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/analytics/dashboard",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:43.980151"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/analytics/dashboard",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:46.020725"
+    },
+    {
+      "category": "Security",
+      "test": "Auth bypass: /api/analytics/dashboard",
+      "passed": true,
+      "details": "Blocked: 401",
+      "timestamp": "2026-01-04T17:49:48.095632"
+    },
+    {
+      "category": "Security",
+      "test": "Rate limiting",
+      "passed": false,
+      "details": "No rate limit detected after 50 requests",
+      "timestamp": "2026-01-04T17:51:30.904771"
+    },
+    {
+      "category": "Security",
+      "test": "Data exposure: /api/users/99999",
+      "passed": true,
+      "details": "No sensitive data exposed",
+      "timestamp": "2026-01-04T17:51:32.943516"
+    },
+    {
+      "category": "Security",
+      "test": "Data exposure: /api/stories/nonexistent",
+      "passed": true,
+      "details": "No sensitive data exposed",
+      "timestamp": "2026-01-04T17:51:34.988096"
+    },
+    {
+      "category": "Security",
+      "test": "Data exposure: /api/admin/config",
+      "passed": true,
+      "details": "No sensitive data exposed",
+      "timestamp": "2026-01-04T17:51:37.032773"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as ADMIN",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:39.075416"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as DEVELOPER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:41.146779"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as VIEWER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:43.183167"
+    },
+    {
+      "category": "Permissions",
+      "test": "Login as PROJECT_MANAGER",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:51:45.229798"
+    },
+    {
+      "category": "Isolation",
+      "test": "Login BELGO-001",
+      "passed": true,
+      "details": "Status 401",
+      "timestamp": "2026-01-04T17:51:48.060450"
+    },
+    {
+      "category": "Isolation",
+      "test": "Login TECH-001",
+      "passed": true,
+      "details": "Status 401",
+      "timestamp": "2026-01-04T17:51:50.743911"
+    },
+    {
+      "category": "Performance",
+      "test": "Health check: 2041ms",
+      "passed": false,
+      "details": "Exceeded 200ms limit",
+      "timestamp": "2026-01-04T17:51:52.786268"
+    },
+    {
+      "category": "Performance",
+      "test": "Stories list: 2026ms",
+      "passed": false,
+      "details": "Exceeded 1000ms limit",
+      "timestamp": "2026-01-04T17:51:54.813143"
+    },
+    {
+      "category": "Performance",
+      "test": "Projects list: 2034ms",
+      "passed": false,
+      "details": "Exceeded 1000ms limit",
+      "timestamp": "2026-01-04T17:51:56.846968"
+    },
+    {
+      "category": "Performance",
+      "test": "Kanban board: 2049ms",
+      "passed": false,
+      "details": "Exceeded 2000ms limit",
+      "timestamp": "2026-01-04T17:51:58.896034"
+    },
+    {
+      "category": "Performance",
+      "test": "Analytics dashboard: 2043ms",
+      "passed": true,
+      "details": "Under 3000ms limit",
+      "timestamp": "2026-01-04T17:52:00.938854"
+    },
+    {
+      "category": "Performance",
+      "test": "Concurrent: 0/20 OK",
+      "passed": false,
+      "details": "Too many failures",
+      "timestamp": "2026-01-04T17:52:03.040803"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Empty story title",
+      "passed": false,
+      "details": "Accepted empty: 401",
+      "timestamp": "2026-01-04T17:52:05.072019"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Very long title (10K chars)",
+      "passed": false,
+      "details": "Accepted long input",
+      "timestamp": "2026-01-04T17:52:07.113596"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Unicode characters",
+      "passed": true,
+      "details": "Handled: 401",
+      "timestamp": "2026-01-04T17:52:09.159692"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Null values",
+      "passed": false,
+      "details": "Accepted nulls: 401",
+      "timestamp": "2026-01-04T17:52:11.199411"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Negative story points",
+      "passed": false,
+      "details": "Accepted negative",
+      "timestamp": "2026-01-04T17:52:13.236723"
+    },
+    {
+      "category": "EdgeCase",
+      "test": "Invalid JSON",
+      "passed": true,
+      "details": "Rejected invalid JSON",
+      "timestamp": "2026-01-04T17:52:15.264504"
+    },
+    {
+      "category": "Integration",
+      "test": "GITHUB status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:17.321015"
+    },
+    {
+      "category": "Integration",
+      "test": "GITLAB status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:19.362834"
+    },
+    {
+      "category": "Integration",
+      "test": "JIRA status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:21.423751"
+    },
+    {
+      "category": "Integration",
+      "test": "SAP status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:23.460002"
+    },
+    {
+      "category": "Integration",
+      "test": "SALESFORCE status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:25.501377"
+    },
+    {
+      "category": "Integration",
+      "test": "TEAMS status",
+      "passed": true,
+      "details": "Responded: 401",
+      "timestamp": "2026-01-04T17:52:27.548203"
+    },
+    {
+      "category": "WebSocket",
+      "test": "Connection",
+      "passed": true,
+      "details": "WebSocket module not installed (skipped)",
+      "timestamp": "2026-01-04T17:52:27.548712"
+    },
+    {
+      "category": "Database",
+      "test": "Auth for CRUD",
+      "passed": false,
+      "details": "Cannot login: 401",
+      "timestamp": "2026-01-04T17:52:29.609253"
+    }
+  ]
+}
