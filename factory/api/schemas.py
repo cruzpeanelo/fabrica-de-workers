@@ -147,7 +147,7 @@ class StoryCreate(BaseModel):
     narrative_benefit: Optional[str] = Field(None, description="Para que [beneficio]")
     acceptance_criteria: Optional[List[str]] = Field(None, description="Criterios de aceite")
 
-    @field_validator('points')
+    @field_validator('points', mode='after')
     @classmethod
     def validate_fibonacci_points(cls, v):
         """Issues #498, #521: Valida que points seja um valor Fibonacci valido e positivo"""
@@ -210,7 +210,7 @@ class StoryUpdate(BaseModel):
     points: Optional[int] = Field(None, ge=0, description="Story points (Fibonacci: 0,1,2,3,5,8,13,21, valores positivos)")
     priority: Optional[int] = Field(None, ge=1, le=9, description="Prioridade")
 
-    @field_validator('points')
+    @field_validator('points', mode='after')
     @classmethod
     def validate_fibonacci_points(cls, v):
         """Issues #498, #521: Valida que points seja um valor Fibonacci valido e positivo"""

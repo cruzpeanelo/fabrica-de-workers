@@ -972,7 +972,7 @@ class StoryCreate(BaseModel):
     assignee: Optional[str] = None
     tags: Optional[List[str]] = []
 
-    @field_validator('story_points')
+    @field_validator('story_points', mode='after')
     @classmethod
     def validate_fibonacci_points(cls, v):
         """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
@@ -1019,7 +1019,7 @@ class StoryUpdate(BaseModel):
     assignee: Optional[str] = None
     tags: Optional[List[str]] = None
 
-    @field_validator('story_points')
+    @field_validator('story_points', mode='after')
     @classmethod
     def validate_fibonacci_points(cls, v):
         """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
