@@ -38,6 +38,9 @@ try:
 except ImportError:
     pass
 
+# Import centralized constants
+from factory.constants.lookups import FIBONACCI_POINTS
+
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query, WebSocket, WebSocketDisconnect, Cookie, Response, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -975,9 +978,8 @@ class StoryCreate(BaseModel):
         """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
         if v is None:
             return 0
-        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
-        if v not in valid_points:
-            raise ValueError(f'story_points deve ser um valor Fibonacci: {valid_points}')
+        if v not in FIBONACCI_POINTS:
+            raise ValueError(f'story_points deve ser um valor Fibonacci: {FIBONACCI_POINTS}')
         return v
 
     @field_validator('title')
@@ -1023,9 +1025,8 @@ class StoryUpdate(BaseModel):
         """Issue #498: Valida que story_points seja um valor Fibonacci valido"""
         if v is None:
             return v  # None e permitido em update
-        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
-        if v not in valid_points:
-            raise ValueError(f'story_points deve ser um valor Fibonacci: {valid_points}')
+        if v not in FIBONACCI_POINTS:
+            raise ValueError(f'story_points deve ser um valor Fibonacci: {FIBONACCI_POINTS}')
         return v
 
     @field_validator('title')

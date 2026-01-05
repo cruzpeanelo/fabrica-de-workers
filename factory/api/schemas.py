@@ -10,6 +10,9 @@ from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
+# Import centralized constants
+from factory.constants.lookups import FIBONACCI_POINTS
+
 
 # =============================================================================
 # ENUMS
@@ -154,9 +157,8 @@ class StoryCreate(BaseModel):
             raise ValueError('points deve ser um numero inteiro')
         if v < 0:
             raise ValueError('points deve ser maior ou igual a 0 (valores negativos nao sao permitidos)')
-        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
-        if v not in valid_points:
-            raise ValueError(f'points deve ser um valor Fibonacci: {valid_points}')
+        if v not in FIBONACCI_POINTS:
+            raise ValueError(f'points deve ser um valor Fibonacci: {FIBONACCI_POINTS}')
         return v
 
     @field_validator('title')
@@ -218,9 +220,8 @@ class StoryUpdate(BaseModel):
             raise ValueError('points deve ser um numero inteiro')
         if v < 0:
             raise ValueError('points deve ser maior ou igual a 0 (valores negativos nao sao permitidos)')
-        valid_points = [0, 1, 2, 3, 5, 8, 13, 21]
-        if v not in valid_points:
-            raise ValueError(f'points deve ser um valor Fibonacci: {valid_points}')
+        if v not in FIBONACCI_POINTS:
+            raise ValueError(f'points deve ser um valor Fibonacci: {FIBONACCI_POINTS}')
         return v
 
     @field_validator('title')

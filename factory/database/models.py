@@ -10,8 +10,8 @@ Multi-Tenancy v5.0 (Issues #81, #82):
 """
 from sqlalchemy import Column, Integer, String, Text, DateTime, Date, JSON, ForeignKey, Boolean, Float, Index, UniqueConstraint, CheckConstraint
 
-# Issue #184: Valores válidos de Story Points (Fibonacci)
-FIBONACCI_POINTS = [0, 1, 2, 3, 5, 8, 13, 21]
+# Issue #184: Import centralized Fibonacci points
+from factory.constants.lookups import FIBONACCI_POINTS
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from enum import Enum

@@ -138,6 +138,7 @@ class AgentOrchestrator:
         self._running = False
         self._paused = False
         self._processed_issues: set = set()
+        self._lock = asyncio.Lock()  # Fix #529: Lock para acesso thread-safe
 
     def classify_issue(self, title: str) -> str:
         """
@@ -163,25 +164,28 @@ class AgentOrchestrator:
             Lista de issues novas nao processadas
         """
         try:
-            result = subprocess.run(
-                ["gh", "issue", "list", "--state", "open", "--limit", "50",
-                 "--json", "number,title,labels,state"],
-                capture_output=True,
-                text=True,
+            # Fix #528: Usar asyncio.create_subprocess_exec em vez de subprocess.run
+            proc = await asyncio.create_subprocess_exec(
+                "gh", "issue", "list", "--state", "open", "--limit", "50",
+                "--json", "number,title,labels,state",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
                 cwd=str(BASE_DIR)
             )
+            stdout, stderr = await proc.communicate()
 
-            if result.returncode != 0:
-                logger.error(f"Erro ao buscar issues: {result.stderr}")
+            if proc.returncode != 0:
+                logger.error(f"Erro ao buscar issues: {stderr.decode()}")
                 return []
 
-            issues = json.loads(result.stdout)
+            issues = json.loads(stdout.decode())
 
-            # Filtrar issues ja processadas
-            new_issues = [
-                issue for issue in issues
-                if issue["number"] not in self._processed_issues
-            ]
+            # Fix #529: Proteger acesso ao set com lock
+            async with self._lock:
+                new_issues = [
+                    issue for issue in issues
+                    if issue["number"] not in self._processed_issues
+                ]
 
             return new_issues
 
@@ -220,7 +224,9 @@ gh issue close {issue['number']} -c "Implementado"
             result = await runner.run_task(task)
 
             if result["success"]:
-                self._processed_issues.add(issue["number"])
+                # Fix #529: Proteger escrita no set com lock
+                async with self._lock:
+                    self._processed_issues.add(issue["number"])
                 self.state.issues_processed += 1
 
                 # Criar handoff para QA

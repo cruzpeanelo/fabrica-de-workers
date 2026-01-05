@@ -17,6 +17,17 @@ from .models import (
     TaskStatus,
     TaskPriority
 )
+from .lookup_models import (
+    StatusLookup,
+    PriorityLookup,
+    ComplexityLookup,
+    StoryPointsLookup,
+    TaskTypeLookup,
+    RoleLookup,
+    SystemConfig,
+    AgentSkillLookup,
+    WipLimitLookup
+)
 from .repositories import TaskRepository
 
 __all__ = [
@@ -35,6 +46,16 @@ __all__ = [
     "User",
     "ActivityLog",
     "Task",
+    # Lookup Models
+    "StatusLookup",
+    "PriorityLookup",
+    "ComplexityLookup",
+    "StoryPointsLookup",
+    "TaskTypeLookup",
+    "RoleLookup",
+    "SystemConfig",
+    "AgentSkillLookup",
+    "WipLimitLookup",
     # Enums
     "ProjectStatus",
     "JobStatus",
