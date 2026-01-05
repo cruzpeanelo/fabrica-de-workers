@@ -79,10 +79,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     # CSP by environment
     # Issue #456: Added media-src and frame-src for audio notifications and preview iframes
     # Issue #471: Removed 'unsafe-eval' from development CSP for security
-    # Use nonce-based scripts or redesign features that require eval()
+    # Issue #533: Re-added 'unsafe-eval' for Vue 3 runtime template compilation
+    # Vue 3's vue.global.js requires eval() for template compilation in browser
+    # In production, use pre-compiled templates (SFC with build step)
     CSP_DEVELOPMENT = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
             "https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "img-src 'self' data: https: blob:; "
