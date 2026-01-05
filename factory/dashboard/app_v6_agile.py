@@ -1148,6 +1148,15 @@ class ChatMessageCreate(BaseModel):
     filter_status: Optional[str] = None  # Active filter status
 
 
+class ProjectCreate(BaseModel):
+    """Schema para criacao de projeto - Issue #523"""
+    name: str = Field(..., min_length=1, max_length=200, description="Nome do projeto")
+    description: Optional[str] = Field(None, description="Descricao do projeto")
+    project_type: Optional[str] = Field("web-app", description="Tipo: web-app, api-service, data-analysis, mobile-app")
+    config: Optional[Dict[str, Any]] = Field(None, description="Configuracoes adicionais")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Tags do projeto")
+
+
 class EpicCreate(BaseModel):
     project_id: str
     title: str
@@ -1160,6 +1169,25 @@ class SprintCreate(BaseModel):
     name: str
     goal: Optional[str] = None
     capacity: Optional[int] = 0
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+class CommentCreate(BaseModel):
+    """Schema para criacao de comentario - Issue #526"""
+    content: str = Field(..., min_length=1, description="Conteudo do comentario")
+    author_id: Optional[str] = Field(None, description="ID do autor")
+    author_name: Optional[str] = Field(None, description="Nome do autor")
+    parent_id: Optional[str] = Field(None, description="ID do comentario pai (para replies)")
+
+
+class TenantCreateSchema(BaseModel):
+    """Schema para criacao de tenant - Issue #527"""
+    name: str = Field(..., min_length=2, max_length=200, description="Nome do tenant")
+    email: str = Field(..., description="Email de contato")
+    plan: Optional[str] = Field("trial", description="Plano: free, trial, pro, enterprise")
+    slug: Optional[str] = Field(None, description="Slug unico para o tenant")
+    description: Optional[str] = Field(None, description="Descricao do tenant")
 
 
 # =============================================================================
@@ -1810,6 +1838,101 @@ def delete_story_task(task_id: str):
         if repo.delete(task_id):
             return {"message": "Task deleted"}
         raise HTTPException(404, "Task not found")
+    finally:
+        db.close()
+
+
+# =============================================================================
+# API ENDPOINTS - STORY COMMENTS (Issue #526)
+# =============================================================================
+
+@app.get("/api/stories/{story_id}/comments")
+def list_story_comments(story_id: str):
+    """
+    Lista comentarios de uma story
+
+    Issue #526: Implementar comentarios em stories
+    """
+    db = SessionLocal()
+    try:
+        # Verificar se story existe
+        story_repo = StoryRepository(db)
+        story = story_repo.get_by_id(story_id)
+        if not story:
+            raise HTTPException(status_code=404, detail="Story not found")
+
+        # Buscar comentarios
+        from factory.database.models import Comment
+        comments = db.query(Comment).filter(
+            Comment.commentable_type == "story",
+            Comment.commentable_id == story_id,
+            Comment.is_deleted == False
+        ).order_by(Comment.created_at.desc()).all()
+
+        return [c.to_dict() if hasattr(c, 'to_dict') else {
+            "id": c.id,
+            "comment_id": c.comment_id,
+            "content": c.content,
+            "author_id": c.author_id,
+            "author_name": c.author_name,
+            "parent_id": c.parent_id,
+            "created_at": c.created_at.isoformat() if c.created_at else None
+        } for c in comments]
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Se model Comment nao existir, retornar lista vazia
+        return []
+    finally:
+        db.close()
+
+
+@app.post("/api/stories/{story_id}/comments", status_code=201)
+def create_story_comment(story_id: str, comment: CommentCreate):
+    """
+    Cria um comentario em uma story
+
+    Issue #526: Implementar POST /api/stories/{id}/comments
+    """
+    db = SessionLocal()
+    try:
+        # Verificar se story existe
+        story_repo = StoryRepository(db)
+        story = story_repo.get_by_id(story_id)
+        if not story:
+            raise HTTPException(status_code=404, detail="Story not found")
+
+        # Criar comentario
+        from factory.database.models import Comment
+        from uuid import uuid4
+
+        new_comment = Comment(
+            comment_id=f"COM-{uuid4().hex[:8].upper()}",
+            commentable_type="story",
+            commentable_id=story_id,
+            content=comment.content,
+            author_id=comment.author_id or "system",
+            author_name=comment.author_name or "System",
+            parent_id=comment.parent_id
+        )
+
+        db.add(new_comment)
+        db.commit()
+        db.refresh(new_comment)
+
+        return {
+            "id": new_comment.id,
+            "comment_id": new_comment.comment_id,
+            "content": new_comment.content,
+            "author_id": new_comment.author_id,
+            "author_name": new_comment.author_name,
+            "created_at": new_comment.created_at.isoformat() if new_comment.created_at else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
 
@@ -3533,6 +3656,35 @@ def list_epics(project_id: str):
         db.close()
 
 
+@app.post("/api/projects/{project_id}/epics", status_code=201)
+def create_epic_for_project(project_id: str, epic: EpicCreate):
+    """
+    Cria um novo epico para o projeto
+
+    Issue #524: Implementar POST /api/projects/{id}/epics
+    """
+    db = SessionLocal()
+    try:
+        # Verificar se projeto existe
+        project_repo = ProjectRepository(db)
+        project = project_repo.get_by_id(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Criar epic
+        repo = EpicRepository(db)
+        epic_data = epic.dict()
+        epic_data["project_id"] = project_id  # Garantir que usa o project_id da URL
+        new_epic = repo.create(epic_data)
+        return new_epic.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+
+
 @app.get("/api/epics")
 def list_all_epics(project_id: str = Query(None)):
     """Lista todos os epics ou filtra por projeto"""
@@ -3568,6 +3720,35 @@ def list_sprints(project_id: str):
         repo = SprintRepository(db)
         sprints = repo.get_by_project(project_id)
         return [s.to_dict() for s in sprints]
+    finally:
+        db.close()
+
+
+@app.post("/api/projects/{project_id}/sprints", status_code=201)
+def create_sprint_for_project(project_id: str, sprint: SprintCreate):
+    """
+    Cria um novo sprint para o projeto
+
+    Issue #525: Implementar POST /api/projects/{id}/sprints
+    """
+    db = SessionLocal()
+    try:
+        # Verificar se projeto existe
+        project_repo = ProjectRepository(db)
+        project = project_repo.get_by_id(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Criar sprint
+        repo = SprintRepository(db)
+        sprint_data = sprint.dict()
+        sprint_data["project_id"] = project_id  # Garantir que usa o project_id da URL
+        new_sprint = repo.create(sprint_data)
+        return new_sprint.to_dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
 
@@ -3661,6 +3842,66 @@ def list_tenants(current_tenant: Optional[str] = Cookie(None)):
                 'plan': t.plan
             })
         return result
+    finally:
+        db.close()
+
+
+@app.post("/api/tenants", status_code=201)
+def create_tenant(tenant: TenantCreateSchema):
+    """
+    Cria um novo tenant
+
+    Issue #527: Implementar POST /api/tenants
+
+    Nota: Apenas SUPER_ADMIN deveria poder criar tenants.
+    A autorizacao e verificada pelo middleware de autorizacao.
+    """
+    db = SessionLocal()
+    try:
+        from uuid import uuid4
+        import re
+
+        # Gerar slug se nao fornecido
+        slug = tenant.slug
+        if not slug:
+            # Gerar slug a partir do nome
+            slug = re.sub(r'[^a-z0-9]+', '-', tenant.name.lower()).strip('-')
+
+        # Verificar se slug ja existe
+        existing = db.query(Tenant).filter(Tenant.slug == slug).first()
+        if existing:
+            slug = f"{slug}-{uuid4().hex[:4]}"
+
+        # Gerar tenant_id
+        tenant_id = f"TNT-{uuid4().hex[:8].upper()}"
+
+        # Criar tenant
+        new_tenant = Tenant(
+            tenant_id=tenant_id,
+            name=tenant.name,
+            slug=slug,
+            email=tenant.email,
+            plan=tenant.plan or "trial",
+            description=tenant.description,
+            status="active"
+        )
+
+        db.add(new_tenant)
+        db.commit()
+        db.refresh(new_tenant)
+
+        return {
+            "tenant_id": new_tenant.tenant_id,
+            "name": new_tenant.name,
+            "slug": new_tenant.slug,
+            "email": new_tenant.email,
+            "plan": new_tenant.plan,
+            "status": new_tenant.status,
+            "created_at": new_tenant.created_at.isoformat() if new_tenant.created_at else None
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
 
@@ -4080,6 +4321,42 @@ def list_projects(current_tenant: Optional[str] = Cookie(None)):
         if current_tenant:
             projects = [p for p in projects if getattr(p, 'tenant_id', None) == current_tenant or not getattr(p, 'tenant_id', None)]
         return [p.to_dict() for p in projects]
+    finally:
+        db.close()
+
+
+@app.post("/api/projects", status_code=201)
+def create_project(project: ProjectCreate, current_tenant: Optional[str] = Cookie(None)):
+    """
+    Cria um novo projeto
+
+    Issue #523: Implementar POST /api/projects
+    """
+    db = SessionLocal()
+    try:
+        repo = ProjectRepository(db)
+
+        # Gerar project_id unico
+        from uuid import uuid4
+        project_id = f"PRJ-{uuid4().hex[:8].upper()}"
+
+        # Criar dados do projeto
+        project_data = {
+            "project_id": project_id,
+            "name": project.name,
+            "description": project.description,
+            "project_type": project.project_type or "web-app",
+            "status": "PLANNING",
+            "config": project.config or {},
+            "tags": project.tags or [],
+            "tenant_id": current_tenant,
+            "progress": 0.0
+        }
+
+        new_project = repo.create(project_data)
+        return new_project.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
     finally:
         db.close()
 
