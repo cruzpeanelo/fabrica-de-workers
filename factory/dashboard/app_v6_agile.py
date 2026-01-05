@@ -4896,7 +4896,7 @@ def get_visual_builder_template(project_id: str) -> str:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visual Builder - Plataforma E</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -5689,7 +5689,7 @@ HTML_TEMPLATE = """
     <!-- Splash Screen for iOS -->
     <link rel="apple-touch-startup-image" href="/static/icons/icon-512x512.png">
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -5719,8 +5719,15 @@ HTML_TEMPLATE = """
     <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <style>
         /* v-cloak: Hide Vue templates until mounted */
-        [v-cloak] { display: none !important; }
-        [v-cloak]::before { content: "Carregando..." !important; display: block !important; }
+        /* Using visibility instead of display for fallback animation (Issue #534) */
+        @keyframes vue-fallback {
+            to { visibility: visible !important; opacity: 1 !important; }
+        }
+        [v-cloak] {
+            visibility: hidden !important;
+            opacity: 0;
+            animation: vue-fallback 0s 3s forwards;
+        }
 
         * { font-family: 'Inter', sans-serif; }
         :root {
@@ -9398,6 +9405,30 @@ HTML_TEMPLATE = """
         </style>
 </head>
 <body class="bg-gray-100">
+    <!-- Loading Indicator (Issue #534) - Hidden when Vue mounts -->
+    <div id="vue-loading" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;">
+            <div style="width:48px;height:48px;border:4px solid #e5e7eb;border-top-color:#003B4A;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px;"></div>
+            <p style="color:#003B4A;font-size:16px;font-weight:500;">Carregando Plataforma E...</p>
+            <p style="color:#6b7280;font-size:12px;margin-top:8px;">Aguarde enquanto preparamos o sistema</p>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>
+    <!-- Fallback: remove loading after 2s if Vue doesn't mount -->
+    <script>
+        window.__vueLoadingTimeout = setTimeout(function() {
+            console.warn('[Fallback] Vue did not mount in 2s, removing loading indicator');
+            var loading = document.getElementById('vue-loading');
+            if (loading) loading.remove();
+            var app = document.getElementById('app');
+            if (app) {
+                app.removeAttribute('v-cloak');
+                app.style.display = 'block';
+                app.style.visibility = 'visible';
+                app.style.opacity = '1';
+            }
+        }, 2000);
+    </script>
     <div id="app" v-cloak :class="{ 'dark': isDarkMode }">
         <!-- Mobile Overlay -->
         <div class="mobile-overlay" :class="{ 'visible': mobileMenuOpen || mobileChatOpen }" @click="mobileMenuOpen = false; mobileChatOpen = false"></div>
@@ -14736,9 +14767,9 @@ HTML_TEMPLATE = """
 
                     if (res.ok) {
                         const data = await res.json();
-                        customDomainInstructions.value = 'Configure seu DNS:\n' +
-                            '1. Adicione CNAME apontando para cname.plataformae.app\n' +
-                            '2. Adicione TXT _plataformae com o token de verificacao\n' +
+                        customDomainInstructions.value = 'Configure seu DNS:\\n' +
+                            '1. Adicione CNAME apontando para cname.plataformae.app\\n' +
+                            '2. Adicione TXT _plataformae com o token de verificacao\\n' +
                             'Apos configurar, o SSL sera emitido automaticamente.';
                         addToast('success', 'Dominio Adicionado', 'Configure o DNS conforme as instrucoes');
                         await loadProjectDomains();
@@ -19798,8 +19829,38 @@ Process ${data.status}`);
     // Register directives
     app.directive('click-outside', clickOutsideDirective);
 
-    // Mount
-    app.mount('#app');
+    // Mount Vue with error handling (Issue #534)
+    try {
+        app.mount('#app');
+        console.log('[Vue] App mounted successfully');
+        // Cancel fallback timeout
+        if (window.__vueLoadingTimeout) {
+            clearTimeout(window.__vueLoadingTimeout);
+            window.__vueLoadingTimeout = null;
+        }
+        // Dispatch event for loading indicator
+        window.dispatchEvent(new Event('vue:mounted'));
+        // Remove loading indicator
+        const loadingEl = document.getElementById('vue-loading');
+        if (loadingEl) loadingEl.remove();
+    } catch (e) {
+        console.error('[Vue] Mount failed:', e);
+        // Cancel fallback timeout
+        if (window.__vueLoadingTimeout) {
+            clearTimeout(window.__vueLoadingTimeout);
+            window.__vueLoadingTimeout = null;
+        }
+        // Remove v-cloak to show content even if Vue fails
+        const appEl = document.getElementById('app');
+        if (appEl) {
+            appEl.removeAttribute('v-cloak');
+            appEl.style.display = 'block';
+            appEl.style.opacity = '1';
+        }
+        // Remove loading indicator on error too
+        const loadingEl = document.getElementById('vue-loading');
+        if (loadingEl) loadingEl.remove();
+    }
     </script>
 
     <!-- PWA Initialization (Issue #259) -->
