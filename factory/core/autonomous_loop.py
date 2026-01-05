@@ -62,9 +62,9 @@ class StepResult:
     success: bool
     message: str
     output: str = ""
-    errors: List[str] = None
+    errors: List[str] = field(default_factory=list)
     can_fix: bool = False
-    fix_suggestions: List[str] = None
+    fix_suggestions: List[str] = field(default_factory=list)
 
 
 class AutonomousLoop:

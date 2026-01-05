@@ -12,6 +12,7 @@ Author: Plataforma E
 
 import json
 import logging
+import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional, List
@@ -136,7 +137,6 @@ class HandoffManager:
 
     def _generate_id(self) -> str:
         """Gera ID unico para handoff."""
-        import uuid
         return f"hnd_{uuid.uuid4().hex[:8]}"
 
     def get_next_agents(self, from_agent: str, status: str) -> List[str]:
