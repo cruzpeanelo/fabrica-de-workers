@@ -169,6 +169,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
 
     # Paths that skip authorization (public + auth)
     # Issue #371: Added login/register/forgot-password to prevent auth loop
+    # Issue #fix: SPA pages - frontend handles auth, backend just serves HTML
     SKIP_PATHS = [
         "/health",
         "/docs",
@@ -194,6 +195,26 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
         # Issue #371: Debug endpoint
         "/api/debug",
         "/api/health",
+        # Issue #fix: SPA pages (frontend Vue handles access control)
+        "/kanban",
+        "/stories",
+        "/backlog",
+        "/board",
+        "/sprints",
+        "/projects",
+        "/analytics",
+        "/admin",
+        "/platform",
+        "/profile",
+        "/settings",
+        "/security",
+        "/integrations",
+        "/ai-chat",
+        "/executive",
+        "/capacity",
+        "/notification-center",
+        "/onboarding",
+        "/help",
     ]
 
     def __init__(

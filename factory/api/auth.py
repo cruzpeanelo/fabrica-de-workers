@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional, Dict, List
 import logging
 
-from fastapi import Depends, HTTPException, status, Request, APIRouter
+from fastapi import Depends, HTTPException, status, Request, APIRouter, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -577,8 +577,8 @@ from fastapi import APIRouter, Request
 auth_router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 
-@auth_router.post("/login", response_model=Token)
-async def login(credentials: UserLogin, request: Request = None):
+@auth_router.post("/login")
+async def login(credentials: UserLogin, request: Request = None, response: Response = None):
     """
     Autentica usuario e retorna token JWT com IP binding
 
@@ -587,6 +587,7 @@ async def login(credentials: UserLogin, request: Request = None):
 
     Issue #138: Em produção, credenciais default são bloqueadas.
     Issue #472: Token vinculado ao IP/UA do cliente.
+    Issue #FIX: Sets cookie for page-level RBAC authentication.
     """
     # Issue #472: Extrair IP e User-Agent para binding
     client_ip = None
@@ -620,6 +621,17 @@ async def login(credentials: UserLogin, request: Request = None):
                 )
                 expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
+                # Issue #FIX: Set cookie for page-level RBAC
+                if response:
+                    response.set_cookie(
+                        key="access_token",
+                        value=token,
+                        max_age=86400,
+                        httponly=True,
+                        samesite="lax",
+                        secure=False
+                    )
+
                 return Token(
                     access_token=token,
                     token_type="bearer",
@@ -649,10 +661,28 @@ async def login(credentials: UserLogin, request: Request = None):
                 # Issue #138: Verificar se usuário precisa trocar senha
                 force_change = getattr(user, 'force_password_change', False)
 
+                # Issue #fix: Get user's tenant_id for RBAC
+                tenant_id = None
+                tenant_ids = []
+                try:
+                    from factory.database.tenant_models import TenantMember
+                    members = db.query(TenantMember).filter(
+                        TenantMember.user_id == user.id,
+                        TenantMember.status == "active"
+                    ).all()
+                    if members:
+                        tenant_ids = [m.tenant_id for m in members]
+                        tenant_id = tenant_ids[0]  # Primary tenant
+                except Exception as e:
+                    logger.warning(f"[Auth] Could not get tenant membership: {e}")
+
                 token = create_access_token(
                     data={
                         "sub": user.username,
                         "role": user.role,
+                        "user_id": user.id,
+                        "tenant_id": tenant_id,
+                        "tenant_ids": tenant_ids,
                         "force_password_change": force_change
                     },
                     ip_address=client_ip,
@@ -665,6 +695,17 @@ async def login(credentials: UserLogin, request: Request = None):
                 db.commit()
 
                 logger.info(f"[Auth] Login bem sucedido: {user.username}")
+
+                # Issue #FIX: Set cookie for page-level RBAC
+                if response:
+                    response.set_cookie(
+                        key="access_token",
+                        value=token,
+                        max_age=86400,
+                        httponly=True,
+                        samesite="lax",
+                        secure=False
+                    )
 
                 return Token(
                     access_token=token,

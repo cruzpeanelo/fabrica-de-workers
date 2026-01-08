@@ -4,6 +4,7 @@ Admin Routes - Rotas de Administracao de Usuarios
 ===================================================
 
 Issue #87 - Painel de Administracao de Usuarios
+Issue #TBD - Sistema de Multiplos Perfis por Usuario
 
 Este modulo define as rotas REST para administracao de usuarios:
 
@@ -14,9 +15,14 @@ Usuarios:
     PUT    /api/v1/admin/users/{id}         - Atualizar usuario
     DELETE /api/v1/admin/users/{id}         - Desativar usuario
 
-Roles:
+Roles (Legacy - Deprecated):
     GET    /api/v1/admin/users/{id}/roles   - Listar roles do usuario
     POST   /api/v1/admin/users/{id}/roles   - Atribuir role
+
+Profiles (New - Multiple Profiles System):
+    POST   /api/v1/admin/users/{id}/profiles            - Atribuir multiplos perfis
+    GET    /api/v1/admin/users/{id}/profiles            - Listar perfis do usuario
+    DELETE /api/v1/admin/users/{id}/profiles/{profile}  - Remover perfil
 
 Convites:
     GET    /api/v1/admin/users/invites      - Listar convites
@@ -37,7 +43,13 @@ from pydantic import BaseModel, EmailStr, Field
 from factory.database.connection import SessionLocal
 
 # Services
-from factory.core.user_service import UserService, RBACService
+from factory.core.user_service import (
+    UserService,
+    RBACService,
+    assign_profiles,
+    get_user_profiles,
+    remove_user_profile
+)
 
 # Auth
 from factory.api.auth import get_current_user, TokenData
@@ -92,6 +104,24 @@ class UserFilters(BaseModel):
     status: Optional[str] = Field(None, description="Status: active, inactive, pending")
     role: Optional[str] = Field(None, description="Role do usuario")
     search: Optional[str] = Field(None, description="Busca por nome ou email")
+
+
+class AssignProfilesRequest(BaseModel):
+    """Schema para atribuição de múltiplos perfis a um usuário"""
+    profile_ids: List[str] = Field(..., min_items=1, description="Lista de profile_ids para atribuir")
+    scope: str = Field("global", description="Escopo: global, tenant, project")
+    scope_id: Optional[str] = Field(None, description="ID do tenant ou projeto (se scope != global)")
+
+
+class ProfileAssignmentResponse(BaseModel):
+    """Schema de resposta de perfil atribuído"""
+    profile_id: str
+    profile_name: str
+    scope: str
+    scope_id: Optional[str]
+    is_primary: bool
+    active: bool
+    assigned_at: Optional[str]
 
 
 # =============================================================================
@@ -371,6 +401,223 @@ async def assign_role(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# =============================================================================
+# ENDPOINTS - PROFILES (Multiple Profiles per User)
+# =============================================================================
+
+@router.post("/users/{user_id}/profiles", response_model=Dict[str, Any])
+async def assign_user_profiles(
+    user_id: int,
+    data: AssignProfilesRequest,
+    db=Depends(get_db),
+    current_user: TokenData = Depends(require_admin)
+):
+    """
+    Atribui múltiplos perfis a um usuário
+
+    Body:
+    {
+        "profile_ids": ["dev_frontend", "qa_manual"],
+        "scope": "global",  // ou "tenant", "project"
+        "scope_id": null    // ou tenant_id/project_id
+    }
+
+    Regras de hierarquia:
+    - SUPER_ADMIN: Pode atribuir qualquer perfil
+    - ADMIN: Pode atribuir perfis com level >= 10 (não pode criar SUPER_ADMIN)
+    - Tenant Admin não pode criar outro SUPER_ADMIN
+    - Tenant Admin não pode se auto-demover
+
+    Requer: role admin
+    """
+    try:
+        # Validar hierarquia: verificar se current_user pode atribuir os perfis solicitados
+        if not _can_assign_profiles(current_user, data.profile_ids, db):
+            raise HTTPException(
+                status_code=403,
+                detail="Você não tem permissão para atribuir esses perfis. "
+                       "ADMIN não pode criar SUPER_ADMIN."
+            )
+
+        # Validar que não está tentando se auto-demover
+        if user_id == current_user.user_id and current_user.role == "ADMIN":
+            # Verificar se está removendo o perfil admin de si mesmo
+            from factory.database.models import Profile
+            profiles = db.query(Profile).filter(Profile.profile_id.in_(data.profile_ids)).all()
+            admin_profile_exists = any(p.profile_id in ["super_admin", "admin"] for p in profiles)
+
+            if not admin_profile_exists:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não pode remover seu próprio perfil de administrador"
+                )
+
+        # Atribuir perfis
+        result = assign_profiles(
+            user_id=user_id,
+            profile_ids=data.profile_ids,
+            scope=data.scope,
+            scope_id=data.scope_id,
+            assigned_by=current_user.user_id,
+            db=db
+        )
+
+        # Buscar perfis atualizados
+        profiles = get_user_profiles(
+            user_id=user_id,
+            scope=data.scope,
+            scope_id=data.scope_id,
+            db=db
+        )
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "profiles_removed": result.get("profiles_removed", 0),
+            "profiles_added": result.get("profiles_added", 0),
+            "profiles": profiles,
+            "message": f"{len(data.profile_ids)} perfis atribuídos com sucesso"
+        }
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atribuir perfis: {str(e)}")
+
+
+@router.get("/users/{user_id}/profiles", response_model=Dict[str, Any])
+async def get_user_profiles_endpoint(
+    user_id: int,
+    scope: str = Query("global", description="Escopo: global, tenant, project"),
+    scope_id: Optional[str] = Query(None, description="ID do tenant ou projeto"),
+    include_inactive: bool = Query(False, description="Incluir perfis inativos"),
+    db=Depends(get_db),
+    current_user: TokenData = Depends(require_admin)
+):
+    """
+    Lista perfis atribuídos a um usuário
+
+    Query params:
+    - scope: Escopo dos perfis (global, tenant, project)
+    - scope_id: ID do tenant ou projeto (se scope != global)
+    - include_inactive: Incluir perfis inativos
+
+    Requer: role admin
+    """
+    try:
+        profiles = get_user_profiles(
+            user_id=user_id,
+            scope=scope,
+            scope_id=scope_id,
+            include_inactive=include_inactive,
+            db=db
+        )
+
+        return {
+            "user_id": user_id,
+            "scope": scope,
+            "scope_id": scope_id,
+            "profile_count": len(profiles),
+            "profiles": profiles
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar perfis: {str(e)}")
+
+
+@router.delete("/users/{user_id}/profiles/{profile_id}", response_model=Dict[str, Any])
+async def remove_user_profile_endpoint(
+    user_id: int,
+    profile_id: str,
+    scope: str = Query("global", description="Escopo: global, tenant, project"),
+    scope_id: Optional[str] = Query(None, description="ID do tenant ou projeto"),
+    db=Depends(get_db),
+    current_user: TokenData = Depends(require_admin)
+):
+    """
+    Remove um perfil específico de um usuário
+
+    Regras:
+    - Admin não pode remover seu próprio perfil de administrador
+    - Admin não pode remover perfis de SUPER_ADMIN
+
+    Requer: role admin
+    """
+    try:
+        # Validar que não está tentando se auto-demover
+        if user_id == current_user.user_id and profile_id in ["super_admin", "admin"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Você não pode remover seu próprio perfil de administrador"
+            )
+
+        # Validar hierarquia
+        if current_user.role == "ADMIN" and profile_id == "super_admin":
+            raise HTTPException(
+                status_code=403,
+                detail="ADMIN não pode remover perfis de SUPER_ADMIN"
+            )
+
+        # Remover perfil
+        success = remove_user_profile(
+            user_id=user_id,
+            profile_id=profile_id,
+            scope=scope,
+            scope_id=scope_id,
+            db=db
+        )
+
+        if not success:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Perfil '{profile_id}' não encontrado para este usuário"
+            )
+
+        return {
+            "success": True,
+            "message": f"Perfil '{profile_id}' removido com sucesso"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao remover perfil: {str(e)}")
+
+
+def _can_assign_profiles(current_user: TokenData, profile_ids: List[str], db) -> bool:
+    """
+    Valida se current_user pode atribuir os profiles solicitados
+
+    Regras:
+    - SUPER_ADMIN pode atribuir qualquer perfil
+    - ADMIN pode atribuir perfis com level >= 10 (não pode criar SUPER_ADMIN)
+    """
+    user_role = current_user.role
+
+    if user_role == "SUPER_ADMIN":
+        return True  # Pode atribuir qualquer perfil
+
+    if user_role == "ADMIN":
+        # Buscar os perfis solicitados
+        from factory.database.models import Profile
+        profiles = db.query(Profile).filter(Profile.profile_id.in_(profile_ids)).all()
+
+        # ADMIN não pode atribuir SUPER_ADMIN
+        for profile in profiles:
+            if profile.profile_id == "super_admin":
+                return False
+            if profile.level < 10:  # Níveis reservados
+                return False
+
+        return True
+
+    return False  # Outros roles não podem atribuir perfis
 
 
 # =============================================================================

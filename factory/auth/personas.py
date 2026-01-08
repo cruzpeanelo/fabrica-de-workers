@@ -101,12 +101,39 @@ class Permission:
 
 class PersonaType(str, Enum):
     """Tipos de persona no sistema"""
+    # Platform/Tenant
     SUPER_ADMIN = "super_admin"      # Platform level
     ADMIN = "admin"                   # Tenant level
-    PROJECT_MANAGER = "project_manager"
+
+    # Management (NEW - Issue #TBD)
+    PRODUCT_MANAGER = "product_manager"      # Gestao de produto
+    PRODUCT_OWNER = "product_owner"          # Dono do produto (backlog)
+    PROJECT_MANAGER = "project_manager"      # Gerente de projeto (mantido para compatibilidade)
+
+    # Technical Leadership
     TECH_LEAD = "tech_lead"
-    DEVELOPER = "developer"
-    QA_ENGINEER = "qa_engineer"
+
+    # Development (NEW - Issue #TBD - Especializacoes)
+    DEV_FRONTEND = "dev_frontend"            # Desenvolvedor frontend
+    DEV_BACKEND = "dev_backend"              # Desenvolvedor backend
+    DEV_MOBILE = "dev_mobile"                # Desenvolvedor mobile
+    DEV_FULLSTACK = "dev_fullstack"          # Desenvolvedor fullstack
+    DEVELOPER = "developer"                   # Desenvolvedor generico (mantido para compatibilidade)
+
+    # QA (NEW - Issue #TBD - Especializacoes)
+    QA_MANUAL = "qa_manual"                  # QA manual
+    QA_AUTOMATION = "qa_automation"          # QA automacao
+    QA_ENGINEER = "qa_engineer"              # QA generico (mantido para compatibilidade)
+
+    # Process & Documentation (NEW - Issue #TBD)
+    BPM_ANALYST = "bpm_analyst"              # Analista de processos
+    DOCUMENTADOR = "documentador"             # Documentador tecnico
+
+    # Design & Analysis (NEW - Issue #TBD)
+    DESIGNER = "designer"                     # Designer UX/UI
+    BUSINESS_ANALYST = "business_analyst"     # Analista de negocios
+
+    # Other
     STAKEHOLDER = "stakeholder"
     VIEWER = "viewer"
     API_CLIENT = "api_client"        # Para integracao via API
@@ -286,6 +313,7 @@ class PersonaRegistry:
             permissions=[
                 Permission(Resource.PROJECTS, Action.READ),
                 Permission(Resource.STORIES, Action.READ),
+                Permission(Resource.STORIES, Action.CREATE),  # Issue #fix: DEV pode criar stories
                 Permission(Resource.STORIES, Action.UPDATE),
                 Permission(Resource.TASKS, Action.MANAGE),
                 Permission(Resource.DOCUMENTS, Action.MANAGE),
@@ -340,7 +368,11 @@ class PersonaRegistry:
             description="Gestor de projeto com controle total do projeto",
             permissions=[
                 Permission(Resource.PROJECTS, Action.MANAGE),
-                Permission(Resource.STORIES, Action.MANAGE),
+                # Issue #fix: PM pode criar/editar stories mas NAO deletar
+                Permission(Resource.STORIES, Action.CREATE),
+                Permission(Resource.STORIES, Action.READ),
+                Permission(Resource.STORIES, Action.UPDATE),
+                # PM NAO tem DELETE de stories - apenas ADMIN+
                 Permission(Resource.TASKS, Action.MANAGE),
                 Permission(Resource.DOCUMENTS, Action.MANAGE),
                 Permission(Resource.METRICS, Action.MANAGE),
@@ -356,7 +388,7 @@ class PersonaRegistry:
                 "manage_docs", "manage_team", "view_reports",
                 "export_reports", "manage_sprints", "manage_epics"
             ],
-            restrictions={"scope": "project"}  # Apenas no escopo do projeto
+            restrictions={"scope": "tenant"}  # Issue #fix: PM deve acessar projetos do tenant
         )
         self._personas[PersonaType.PROJECT_MANAGER] = project_manager
 
@@ -518,7 +550,7 @@ class PermissionChecker:
                 if not tenant_id:
                     # Issue #353 FIX: If multi-tenant not configured, allow ADMIN access
                     # This is a graceful degradation when tenant tables don't exist
-                    if persona_type in [PersonaType.ADMIN, PersonaType.SUPER_ADMIN, PersonaType.PLATFORM_ADMIN]:
+                    if persona_type in [PersonaType.ADMIN, PersonaType.SUPER_ADMIN]:
                         logger.info(
                             f"[Issue #353 FIX] Allowing {persona_type.value} access without tenant_id "
                             f"(multi-tenant not configured). resource={resource} action={action}"
@@ -540,6 +572,101 @@ class PermissionChecker:
                     return False
 
         return True
+
+    def check_user_permission(
+        self,
+        user,
+        resource: str,
+        action: str,
+        context: Dict[str, Any] = None
+    ) -> bool:
+        """
+        Verifica se um usuario tem permissao considerando MULTIPLOS perfis
+
+        Este metodo usa o novo sistema de multiplos perfis por usuario.
+        Logica:
+        1. Obtem perfis ativos do usuario (global + projeto se context fornecido)
+        2. Calcula UNION de permissoes de todos os perfis
+        3. Verifica se a permissao esta na uniao
+
+        Args:
+            user: Objeto User (from factory.database.models)
+            resource: Recurso sendo acessado
+            action: Acao sendo realizada
+            context: Contexto adicional (tenant_id, project_id, etc)
+
+        Returns:
+            True se tem permissao
+
+        Example:
+            from factory.auth.personas import permission_checker
+
+            if permission_checker.check_user_permission(user, "stories", "create"):
+                # Permitir criacao de story
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Extrair scope do context
+        scope = "global"
+        scope_id = None
+
+        if context:
+            if "project_id" in context:
+                scope = "project"
+                scope_id = context["project_id"]
+            elif "tenant_id" in context:
+                scope = "tenant"
+                scope_id = context["tenant_id"]
+
+        # Usar metodo do User para obter todas as permissoes
+        all_permissions = user.get_all_permissions(scope, scope_id)
+
+        # Verificar permissao
+        perm_key = f"{resource}:{action}"
+
+        # Permissao exata
+        if perm_key in all_permissions:
+            return True
+
+        # Wildcard de recurso
+        if f"{resource}:*" in all_permissions:
+            return True
+
+        # Wildcard total (super admin)
+        if "*:*" in all_permissions:
+            return True
+
+        # Wildcard "manage" - permite CRUD em qualquer resource
+        if "*:manage" in all_permissions:
+            if action in ["create", "read", "update", "delete"]:
+                return True
+
+        # "manage" inclui CRUD para recurso específico
+        if f"{resource}:manage" in all_permissions:
+            if action in ["create", "read", "update", "delete"]:
+                return True
+
+        # FALLBACK: Verificar usando old system (user.role)
+        # Para compatibilidade com codigo legado que ainda usa user.role
+        if hasattr(user, 'role') and user.role:
+            try:
+                from factory.auth.personas import get_persona_for_role
+                persona = get_persona_for_role(user.role)
+                if persona and persona.has_permission(resource, action):
+                    logger.info(
+                        f"[Multi-Profile] Permission granted via legacy role: "
+                        f"user={user.username} role={user.role} resource={resource} action={action}"
+                    )
+                    return True
+            except Exception as e:
+                logger.warning(f"[Multi-Profile] Error checking legacy role: {e}")
+
+        logger.warning(
+            f"[Multi-Profile] Permission denied: user={user.username} "
+            f"resource={resource} action={action} permissions={list(all_permissions)[:10]}"
+        )
+        return False
 
     def get_allowed_actions(
         self,
@@ -738,12 +865,22 @@ def get_persona_for_role(role: str) -> Optional[Persona]:
         "OWNER": PersonaType.ADMIN,
         "TENANT_ADMIN": PersonaType.ADMIN,
 
+        # Product Manager (NEW - Issue #TBD)
+        "PRODUCT_MANAGER": PersonaType.PRODUCT_MANAGER,
+        "PRODUCTMANAGER": PersonaType.PRODUCT_MANAGER,
+
+        # Product Owner (NEW - Issue #TBD)
+        "PRODUCT_OWNER": PersonaType.PRODUCT_OWNER,
+        "PRODUCTOWNER": PersonaType.PRODUCT_OWNER,
+        "PO": PersonaType.PRODUCT_OWNER,
+
         # Project Manager
         "PROJECT_MANAGER": PersonaType.PROJECT_MANAGER,
+        "PROJECTMANAGER": PersonaType.PROJECT_MANAGER,
         "MANAGER": PersonaType.PROJECT_MANAGER,
         "PM": PersonaType.PROJECT_MANAGER,
-        "PRODUCT_MANAGER": PersonaType.PROJECT_MANAGER,
         "SCRUM_MASTER": PersonaType.PROJECT_MANAGER,
+        "SCRUMMASTER": PersonaType.PROJECT_MANAGER,
         "AGILE_COACH": PersonaType.PROJECT_MANAGER,
 
         # Tech Lead
@@ -754,7 +891,31 @@ def get_persona_for_role(role: str) -> Optional[Persona]:
         "SENIOR_DEVELOPER": PersonaType.TECH_LEAD,
         "ARCHITECT": PersonaType.TECH_LEAD,
 
-        # Developer
+        # Dev Frontend (NEW - Issue #TBD)
+        "DEV_FRONTEND": PersonaType.DEV_FRONTEND,
+        "DEVFRONTEND": PersonaType.DEV_FRONTEND,
+        "FRONTEND": PersonaType.DEV_FRONTEND,
+        "FRONTEND_DEVELOPER": PersonaType.DEV_FRONTEND,
+
+        # Dev Backend (NEW - Issue #TBD)
+        "DEV_BACKEND": PersonaType.DEV_BACKEND,
+        "DEVBACKEND": PersonaType.DEV_BACKEND,
+        "BACKEND": PersonaType.DEV_BACKEND,
+        "BACKEND_DEVELOPER": PersonaType.DEV_BACKEND,
+
+        # Dev Mobile (NEW - Issue #TBD)
+        "DEV_MOBILE": PersonaType.DEV_MOBILE,
+        "DEVMOBILE": PersonaType.DEV_MOBILE,
+        "MOBILE": PersonaType.DEV_MOBILE,
+        "MOBILE_DEVELOPER": PersonaType.DEV_MOBILE,
+
+        # Dev Fullstack (NEW - Issue #TBD)
+        "DEV_FULLSTACK": PersonaType.DEV_FULLSTACK,
+        "DEVFULLSTACK": PersonaType.DEV_FULLSTACK,
+        "FULLSTACK": PersonaType.DEV_FULLSTACK,
+        "FULLSTACK_DEVELOPER": PersonaType.DEV_FULLSTACK,
+
+        # Developer (generic)
         "DEVELOPER": PersonaType.DEVELOPER,
         "DEV": PersonaType.DEVELOPER,
         "ENGINEER": PersonaType.DEVELOPER,
@@ -762,7 +923,19 @@ def get_persona_for_role(role: str) -> Optional[Persona]:
         "MEMBER": PersonaType.DEVELOPER,
         "CONTRIBUTOR": PersonaType.DEVELOPER,
 
-        # QA Engineer
+        # QA Manual (NEW - Issue #TBD)
+        "QA_MANUAL": PersonaType.QA_MANUAL,
+        "QAMANUAL": PersonaType.QA_MANUAL,
+        "MANUAL_TESTER": PersonaType.QA_MANUAL,
+        "MANUALTESTER": PersonaType.QA_MANUAL,
+
+        # QA Automation (NEW - Issue #TBD)
+        "QA_AUTOMATION": PersonaType.QA_AUTOMATION,
+        "QAAUTOMATION": PersonaType.QA_AUTOMATION,
+        "AUTOMATION_TESTER": PersonaType.QA_AUTOMATION,
+        "TEST_AUTOMATION": PersonaType.QA_AUTOMATION,
+
+        # QA Engineer (generic)
         "QA_ENGINEER": PersonaType.QA_ENGINEER,
         "QA": PersonaType.QA_ENGINEER,
         "TESTER": PersonaType.QA_ENGINEER,
@@ -770,11 +943,33 @@ def get_persona_for_role(role: str) -> Optional[Persona]:
         "QUALITY_ASSURANCE": PersonaType.QA_ENGINEER,
         "TEST_ENGINEER": PersonaType.QA_ENGINEER,
 
+        # BPM Analyst (NEW - Issue #TBD)
+        "BPM_ANALYST": PersonaType.BPM_ANALYST,
+        "BPMANALYST": PersonaType.BPM_ANALYST,
+        "BPM": PersonaType.BPM_ANALYST,
+        "PROCESS_ANALYST": PersonaType.BPM_ANALYST,
+
+        # Documentador (NEW - Issue #TBD)
+        "DOCUMENTADOR": PersonaType.DOCUMENTADOR,
+        "DOCUMENTATION": PersonaType.DOCUMENTADOR,
+        "DOC_WRITER": PersonaType.DOCUMENTADOR,
+        "TECHNICAL_WRITER": PersonaType.DOCUMENTADOR,
+
+        # Designer (NEW - Issue #TBD)
+        "DESIGNER": PersonaType.DESIGNER,
+        "UX_DESIGNER": PersonaType.DESIGNER,
+        "UI_DESIGNER": PersonaType.DESIGNER,
+        "UX": PersonaType.DESIGNER,
+        "UI": PersonaType.DESIGNER,
+
+        # Business Analyst (NEW - Issue #TBD)
+        "BUSINESS_ANALYST": PersonaType.BUSINESS_ANALYST,
+        "BUSINESSANALYST": PersonaType.BUSINESS_ANALYST,
+        "BA": PersonaType.BUSINESS_ANALYST,
+        "ANALYST": PersonaType.BUSINESS_ANALYST,
+
         # Stakeholder
         "STAKEHOLDER": PersonaType.STAKEHOLDER,
-        "BUSINESS_ANALYST": PersonaType.STAKEHOLDER,
-        "PRODUCT_OWNER": PersonaType.STAKEHOLDER,
-        "PO": PersonaType.STAKEHOLDER,
         "CLIENT": PersonaType.STAKEHOLDER,
         "CUSTOMER": PersonaType.STAKEHOLDER,
 
