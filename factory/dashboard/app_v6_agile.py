@@ -302,6 +302,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Admin API router not available: {e}")
 
+# Profile Management API Routes (Multiple Profiles System)
+try:
+    from factory.api.profile_routes import router as profile_router
+    app.include_router(profile_router)
+    print("[Dashboard] Profile Management API router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Profile Management API router not available: {e}")
+
 # Portal API Routes (Issue #113 - Multi-level Admin Portal)
 try:
     from factory.api.portal_routes import platform_router, tenant_router, project_router
@@ -412,6 +420,14 @@ try:
     print("[API] Webhook routes loaded: /api/webhooks/*")
 except ImportError as e:
     print(f"[API] Webhook routes not available: {e}")
+
+# Input Routes - Voice, Document, WhatsApp, Omnichannel (Issue #131)
+try:
+    from factory.api.input_routes import router as input_router
+    app.include_router(input_router, prefix="/api/v1")
+    print("[API] Input routes loaded: /api/v1/inputs/voice, /api/v1/inputs/document, /api/v1/inputs/whatsapp, /api/v1/inputs/hub")
+except ImportError as e:
+    print(f"[API] Input routes not available: {e}")
 
 # Worker Monitoring Dashboard (Issue #88)
 try:
@@ -1335,8 +1351,42 @@ def update_story(story_id: str, data: StoryUpdate):
 
 
 @app.delete("/api/stories/{story_id}")
-def delete_story(story_id: str):
-    """Remove story"""
+def delete_story(story_id: str, request: Request):
+    """
+    Remove story
+
+    Issue #fix: Apenas ADMIN e SUPER_ADMIN podem deletar stories
+    """
+    import jwt
+    from factory.config import JWT_SECRET_KEY, JWT_ALGORITHM
+
+    # Verificar autenticacao e role
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+
+        token = auth_header.replace("Bearer ", "")
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_role = payload.get("role", "").upper()
+
+        # Apenas ADMIN+ pode deletar stories
+        allowed_roles = ["SUPER_ADMIN", "ADMIN", "PLATFORM_ADMIN", "SUPERADMIN", "ADMINISTRATOR"]
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied. Only ADMIN can delete stories. Your role: {user_role}"
+            )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"[Stories] Auth check failed: {e}")
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     db = SessionLocal()
     try:
         repo = StoryRepository(db)
@@ -3839,8 +3889,41 @@ def get_activity(limit: int = 50, project_id: str = None):
 # =============================================================================
 
 @app.get("/api/tenants")
-def list_tenants(current_tenant: Optional[str] = Cookie(None)):
-    """Lista tenants disponiveis para o usuario atual"""
+def list_tenants(request: Request, current_tenant: Optional[str] = Cookie(None)):
+    """
+    Lista tenants disponiveis para o usuario atual
+
+    Issue #fix: Apenas SUPER_ADMIN pode listar todos os tenants
+    """
+    import jwt
+    from factory.config import JWT_SECRET_KEY, JWT_ALGORITHM
+
+    # Verificar autenticacao e role
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+
+        token = auth_header.replace("Bearer ", "")
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        user_role = payload.get("role", "").upper()
+
+        # Apenas SUPER_ADMIN pode listar todos os tenants
+        if user_role not in ["SUPER_ADMIN", "PLATFORM_ADMIN", "SUPERADMIN"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access denied. Only SUPER_ADMIN can list all tenants. Your role: {user_role}"
+            )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"[Tenants] Auth check failed: {e}")
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     db = SessionLocal()
     try:
         tenants = db.query(Tenant).filter(Tenant.status == 'active').all()
@@ -5194,6 +5277,13 @@ def get_visual_builder_template(project_id: str) -> str:
                     {{ id: 'crud', name: 'CRUD' }},
                     {{ id: 'profile', name: 'Perfil' }}
                 ]);
+
+                // ========== AUTH HELPER ==========
+                const getAuthHeaders = () => {{
+                    const token = localStorage.getItem('auth_token');
+                    return token ? {{ 'Authorization': `Bearer ${{token}}` }} : {{}};
+                }};
+
                 const promptExamples = ref([
                     'Crie um formulario de login com email e senha',
                     'Preciso de uma tabela de usuarios com nome, email e status',
@@ -5229,7 +5319,7 @@ def get_visual_builder_template(project_id: str) -> str:
                 // Load component library
                 const loadLibrary = async () => {{
                     try {{
-                        const res = await fetch('/api/canvas/library/components');
+                        const res = await fetch('/api/canvas/library/components', { headers: getAuthHeaders() });
                         componentLibrary.value = await res.json();
                     }} catch (e) {{
                         console.error('Error loading library:', e);
@@ -5240,7 +5330,7 @@ def get_visual_builder_template(project_id: str) -> str:
                 const initCanvas = async () => {{
                     try {{
                         // Try to get existing canvas
-                        const listRes = await fetch(`/api/canvas/project/${{projectId}}`);
+                        const listRes = await fetch(`/api/canvas/project/${{projectId}}`, { headers: getAuthHeaders() });
                         const canvases = await listRes.json();
 
                         if (canvases.length > 0) {{
@@ -5264,7 +5354,7 @@ def get_visual_builder_template(project_id: str) -> str:
                 const loadCanvas = async () => {{
                     if (!canvasId.value) return;
                     try {{
-                        const res = await fetch(`/api/canvas/${{canvasId.value}}`);
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}`, { headers: getAuthHeaders() });
                         const data = await res.json();
                         canvasComponents.value = Object.values(data.components || {{}});
                         canvasWidth.value = data.canvas_width;
@@ -5280,7 +5370,7 @@ def get_visual_builder_template(project_id: str) -> str:
                 const updateHistoryStatus = async () => {{
                     if (!canvasId.value) return;
                     try {{
-                        const res = await fetch(`/api/canvas/${{canvasId.value}}/history-status`);
+                        const res = await fetch(`/api/canvas/${{canvasId.value}}/history-status`, { headers: getAuthHeaders() });
                         const status = await res.json();
                         canUndo.value = status.can_undo;
                         canRedo.value = status.can_redo;
@@ -10573,8 +10663,336 @@ HTML_TEMPLATE = """
 
             <!-- MAIN CONTENT - KANBAN -->
             <main class="flex-1 overflow-x-auto bg-gray-50 p-4 main-content">
-                <!-- Issue #219: Empty State - No Project Selected -->
-                <div v-if="!selectedProjectId" class="empty-state" data-testid="empty-state-no-project">
+                <!-- Views that work WITHOUT project selection -->
+                <!-- ADMIN VIEW (for /admin URL) - No project required -->
+                <div v-if="currentView === 'admin'" class="admin-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h1 class="text-xl font-bold text-gray-800 mb-6">Painel de Administracao</h1>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="bg-gray-50 rounded-lg p-4 hover:shadow-md transition cursor-pointer">
+                                <h3 class="font-semibold text-gray-700 mb-2">Usuarios</h3>
+                                <p class="text-sm text-gray-500">Gerenciar usuarios e permissoes</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-semibold text-gray-700 mb-2">Projetos</h3>
+                                <p class="text-sm text-gray-500">{{ projects.length }} projetos ativos</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-semibold text-gray-700 mb-2">Configuracoes</h3>
+                                <p class="text-sm text-gray-500">Configuracoes do sistema</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETTINGS VIEW (for /settings URL) - No project required -->
+                <div v-else-if="currentView === 'settings'" class="settings-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h1 class="text-xl font-bold text-gray-800 mb-6">Configuracoes</h1>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Modo Escuro</h3>
+                                    <p class="text-sm text-gray-500">Alternar entre tema claro e escuro</p>
+                                </div>
+                                <button @click="toggleDarkMode"
+                                        :class="['px-4 py-2 rounded-lg text-sm font-medium',
+                                                 isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700']">
+                                    {{ isDarkMode ? 'Escuro' : 'Claro' }}
+                                </button>
+                            </div>
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium text-gray-800">Idioma</h3>
+                                    <p class="text-sm text-gray-500">Selecionar idioma da interface</p>
+                                </div>
+                                <button @click="toggleLocale"
+                                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                                    {{ currentLocale === 'pt_BR' ? 'Portugues' : 'English' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROFILE VIEW (for /profile URL) - No project required -->
+                <div v-else-if="currentView === 'profile'" class="profile-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h1 class="text-xl font-bold text-gray-800 mb-6">Meu Perfil</h1>
+                        <div class="flex items-center gap-6 mb-6">
+                            <div class="w-20 h-20 bg-[#003B4A] rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                                {{ (currentUser?.username || 'U').charAt(0).toUpperCase() }}
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-800">{{ currentUser?.username || 'Usuario' }}</h2>
+                                <p class="text-sm text-gray-500">{{ currentUser?.role || 'Role' }}</p>
+                                <p class="text-sm text-gray-500">Tenant: {{ currentUser?.tenant_id || currentTenant || '-' }}</p>
+                            </div>
+                        </div>
+                        <div class="border-t pt-4">
+                            <button @click="logout" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                                Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECURITY VIEW (for /security URL) - No project required -->
+                <div v-else-if="currentView === 'security'" class="security-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h1 class="text-xl font-bold text-gray-800 mb-6">Seguranca</h1>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <h3 class="font-medium text-gray-800 mb-2">Autenticacao de Dois Fatores (MFA)</h3>
+                                <p class="text-sm text-gray-500 mb-2">Adicione uma camada extra de seguranca</p>
+                                <button class="bg-[#003B4A] text-white px-4 py-2 rounded-lg text-sm">Configurar MFA</button>
+                            </div>
+                            <div class="p-4 bg-gray-50 rounded-lg">
+                                <h3 class="font-medium text-gray-800 mb-2">API Keys</h3>
+                                <p class="text-sm text-gray-500 mb-2">Gerenciar suas chaves de API</p>
+                                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Ver API Keys</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROJECTS VIEW (for /projects URL) - No project required -->
+                <div v-else-if="currentView === 'projects'" class="projects-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h1 class="text-xl font-bold text-gray-800">Projetos</h1>
+                            <button @click="showProjectWizard = true; wizardCurrentStep = 0; wizardData = { projectType: '', name: '', description: '', firstFeature: '' }"
+                                    class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm">
+                                + Novo Projeto
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div v-for="project in projects" :key="project.project_id"
+                                 class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer"
+                                 @click="selectedProjectId = project.project_id; loadProjectData(); currentView = 'kanban'">
+                                <h3 class="font-semibold text-gray-800 mb-2">{{ project.name }}</h3>
+                                <p class="text-sm text-gray-500 mb-2">{{ project.description || 'Sem descricao' }}</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{{ project.project_type }}</span>
+                                </div>
+                            </div>
+                            <div v-if="projects.length === 0" class="col-span-full text-center py-8 text-gray-500">
+                                Nenhum projeto encontrado. Crie um novo projeto!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STORIES LIST VIEW (for /stories URL) -->
+                <div v-else-if="currentView === 'stories'" class="stories-list-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h1 class="text-xl font-bold text-gray-800">Lista de Stories</h1>
+                            <button @click="openNewStoryModal()" data-testid="btn-nova-story-list"
+                                    class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm flex items-center gap-2">
+                                <span>+</span> Nova Story
+                            </button>
+                        </div>
+                        <div class="flex gap-2 mb-4 flex-wrap">
+                            <select v-model="filterPriority" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
+                                <option value="">Todas Prioridades</option>
+                                <option value="urgent">Urgente</option>
+                                <option value="high">Alta</option>
+                                <option value="medium">Media</option>
+                                <option value="low">Baixa</option>
+                            </select>
+                            <select v-model="filterStatus" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
+                                <option value="">Todos Status</option>
+                                <option value="backlog">Backlog</option>
+                                <option value="ready">Ready</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="review">Review</option>
+                                <option value="testing">Testing</option>
+                                <option value="done">Done</option>
+                            </select>
+                            <input v-model="searchQuery" type="text" placeholder="Buscar por titulo..."
+                                   class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-64">
+                        </div>
+                        <div v-if="!selectedProjectId" class="text-center py-8 text-gray-500">
+                            Selecione um projeto na barra lateral para ver as stories.
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto" v-if="selectedProjectId">
+                        <table class="w-full bg-white rounded-lg shadow-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">ID</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Titulo</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Prioridade</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Pontos</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Acoes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="story in allStoriesFiltered" :key="story.story_id"
+                                    class="border-t border-gray-100 hover:bg-gray-50 cursor-pointer"
+                                    @click="selectStory(story)">
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ story.story_id }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-800">{{ story.title }}</div>
+                                        <div class="text-xs text-gray-500 truncate max-w-md">{{ story.persona }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span :class="['px-2 py-1 text-xs rounded-full', getStatusClass(story.status)]">
+                                            {{ story.status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span :class="['text-xs font-medium', getPriorityColor(story.priority)]">
+                                            {{ story.priority }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ story.story_points || '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        <button @click.stop="editStoryInline(story)" class="text-blue-600 hover:text-blue-800 text-sm">
+                                            Editar
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="allStoriesFiltered.length === 0">
+                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                        Nenhuma story encontrada. Crie uma nova story!
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- BACKLOG VIEW (for /backlog URL) -->
+                <div v-else-if="currentView === 'backlog'" class="backlog-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h1 class="text-xl font-bold text-gray-800">Product Backlog</h1>
+                            <div class="flex gap-2">
+                                <button @click="showPlanningPokerModal = true"
+                                        class="bg-[#003B4A] text-white px-4 py-2 rounded-lg hover:opacity-90 transition font-medium text-sm">
+                                    Planning Poker
+                                </button>
+                                <button @click="openNewStoryModal()"
+                                        class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm">
+                                    + Nova Story
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="!selectedProjectId" class="text-center py-8 text-gray-500">
+                            Selecione um projeto na barra lateral para ver o backlog.
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto space-y-2" v-if="selectedProjectId">
+                        <div v-for="(story, idx) in backlogStories" :key="story.story_id"
+                             class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition cursor-pointer"
+                             @click="selectStory(story)">
+                            <div class="flex items-start gap-4">
+                                <span class="text-gray-400 font-medium">#{{ idx + 1 }}</span>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-800">{{ story.title }}</div>
+                                    <div class="text-sm text-gray-500 mt-1">{{ story.persona }}</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span :class="['text-xs font-medium px-2 py-1 rounded', getPriorityColor(story.priority)]">
+                                        {{ story.priority }}
+                                    </span>
+                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                                        {{ story.story_points || '?' }} pts
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="backlogStories.length === 0" class="text-center py-8 text-gray-500">
+                            Backlog vazio. Adicione stories para comecar!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SPRINTS VIEW (for /sprints URL) -->
+                <div v-else-if="currentView === 'sprints'" class="sprints-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h1 class="text-xl font-bold text-gray-800">Gerenciamento de Sprints</h1>
+                            <button @click="showNewSprintModal = true"
+                                    class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm">
+                                + Novo Sprint
+                            </button>
+                        </div>
+                        <div v-if="!selectedProjectId" class="text-center py-8 text-gray-500">
+                            Selecione um projeto na barra lateral para ver os sprints.
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto" v-if="selectedProjectId">
+                        <div class="grid gap-4">
+                            <div v-for="sprint in sprints" :key="sprint.sprint_id"
+                                 class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-semibold text-gray-800">{{ sprint.title }}</h3>
+                                    <span :class="['px-2 py-1 text-xs rounded-full',
+                                                   sprint.status === 'active' ? 'bg-green-100 text-green-700' :
+                                                   sprint.status === 'completed' ? 'bg-gray-100 text-gray-600' :
+                                                   'bg-blue-100 text-blue-700']">
+                                        {{ sprint.status }}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-500 mb-2">
+                                    {{ sprint.start_date }} - {{ sprint.end_date }}
+                                </div>
+                                <div class="flex items-center gap-4 text-sm">
+                                    <span>Capacidade: {{ sprint.capacity }} pts</span>
+                                    <span>Stories: {{ sprint.stories?.length || 0 }}</span>
+                                </div>
+                            </div>
+                            <div v-if="sprints.length === 0" class="text-center py-8 text-gray-500">
+                                Nenhum sprint criado. Crie um sprint para comecar!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS VIEW (for /analytics URL) -->
+                <div v-else-if="currentView === 'analytics'" class="analytics-view flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <h1 class="text-xl font-bold text-gray-800 mb-6">Analytics do Projeto</h1>
+                        <div v-if="!selectedProjectId" class="text-center py-8 text-gray-500">
+                            Selecione um projeto na barra lateral para ver analytics.
+                        </div>
+                        <div v-else>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                                <div class="bg-blue-50 rounded-lg p-4">
+                                    <div class="text-2xl font-bold text-blue-600">{{ totalStories }}</div>
+                                    <div class="text-sm text-gray-600">Total Stories</div>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-4">
+                                    <div class="text-2xl font-bold text-green-600">{{ doneStories }}</div>
+                                    <div class="text-sm text-gray-600">Concluidas</div>
+                                </div>
+                                <div class="bg-yellow-50 rounded-lg p-4">
+                                    <div class="text-2xl font-bold text-yellow-600">{{ inProgressStories }}</div>
+                                    <div class="text-sm text-gray-600">Em Progresso</div>
+                                </div>
+                                <div class="bg-purple-50 rounded-lg p-4">
+                                    <div class="text-2xl font-bold text-purple-600">{{ totalPoints }}</div>
+                                    <div class="text-sm text-gray-600">Story Points</div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button @click="showAnalyticsModal = true; loadAnalytics()"
+                                        class="bg-[#003B4A] text-white px-6 py-3 rounded-lg hover:opacity-90 transition font-medium">
+                                    Ver Analytics Detalhado
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue #219: Empty State - No Project Selected (only for Kanban view) -->
+                <div v-else-if="!selectedProjectId && currentView === 'kanban'" class="empty-state" data-testid="empty-state-no-project">
                     <div class="empty-state-illustration">
                         <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <circle cx="60" cy="60" r="50" fill="#E5E7EB" class="dark:fill-gray-700"/>
@@ -10607,7 +11025,7 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                     <div class="empty-state-actions">
-                        <button @click="openProjectWizard" class="empty-state-btn empty-state-btn-primary">
+                        <button @click="showProjectWizard = true; wizardCurrentStep = 0; wizardData = { projectType: '', name: '', description: '', firstFeature: '' }" class="empty-state-btn empty-state-btn-primary">
                             <span>+</span> Novo Projeto
                         </button>
                     </div>
@@ -10701,7 +11119,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <!-- TECHNICAL VIEW (Kanban) -->
+                <!-- TECHNICAL VIEW (Kanban) - Default -->
                 <div v-else class="flex flex-col h-full">
                     <!-- Barra de Filtros -->
                     <div class="flex items-center gap-3 mb-4 flex-wrap filter-bar">
@@ -12280,6 +12698,139 @@ HTML_TEMPLATE = """
                     <button @click="createStory"
                             class="px-4 py-2 bg-[#FF6C00] text-white rounded-lg hover:bg-orange-600">
                         Criar Story
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Editar Story -->
+        <div v-if="showEditStoryModal"
+             class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+             data-testid="modal-edit-story-overlay"
+             @click.self="showEditStoryModal = false">
+            <div class="bg-white rounded-lg w-[700px] max-h-[90vh] overflow-y-auto dark:bg-gray-800"
+                 data-testid="modal-edit-story-content"
+                 @click.stop>
+                <div class="p-4 border-b border-gray-200 bg-[#003B4A] text-white rounded-t-lg flex justify-between items-center">
+                    <h2 class="text-lg font-semibold" data-testid="modal-edit-story-title">Editar User Story</h2>
+                    <button @click="showEditStoryModal = false"
+                            class="text-white/80 hover:text-white"
+                            data-testid="modal-edit-story-close">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label for="edit-story-title" class="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Titulo *</label>
+                        <input id="edit-story-title" v-model="editingStory.title" type="text"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                               placeholder="Ex: Implementar login com email">
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label for="edit-story-persona" class="block text-sm font-medium text-gray-700 mb-1">Como um</label>
+                            <input id="edit-story-persona" v-model="editingStory.persona" type="text"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                   placeholder="usuario do sistema">
+                        </div>
+                        <div>
+                            <label for="edit-story-action" class="block text-sm font-medium text-gray-700 mb-1">Eu quero</label>
+                            <input id="edit-story-action" v-model="editingStory.action" type="text"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                   placeholder="fazer login">
+                        </div>
+                        <div>
+                            <label for="edit-story-benefit" class="block text-sm font-medium text-gray-700 mb-1">Para que</label>
+                            <input id="edit-story-benefit" v-model="editingStory.benefit" type="text"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                   placeholder="acesse minhas informacoes">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="edit-story-description" class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                        <textarea id="edit-story-description" v-model="editingStory.description" rows="3"
+                                  class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                  placeholder="Detalhes adicionais..."></textarea>
+                    </div>
+
+                    <div>
+                        <label for="edit-story-criteria" class="block text-sm font-medium text-gray-700 mb-1">Criterios de Aceite (um por linha)</label>
+                        <textarea id="edit-story-criteria" v-model="editStoryCriteria" rows="3"
+                                  class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                                  placeholder="Usuario pode fazer login com email&#10;Senha deve ter minimo 8 caracteres"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-4">
+                        <div>
+                            <label for="edit-story-points" class="block text-sm font-medium text-gray-700 mb-1">Story Points</label>
+                            <select id="edit-story-points" v-model="editingStory.story_points" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option :value="0">0</option>
+                                <option :value="1">1</option>
+                                <option :value="2">2</option>
+                                <option :value="3">3</option>
+                                <option :value="5">5</option>
+                                <option :value="8">8</option>
+                                <option :value="13">13</option>
+                                <option :value="21">21</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-story-priority" class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                            <select id="edit-story-priority" v-model="editingStory.priority" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="low">Baixa</option>
+                                <option value="medium">Media</option>
+                                <option value="high">Alta</option>
+                                <option value="urgent">Urgente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-story-complexity" class="block text-sm font-medium text-gray-700 mb-1">Complexidade</label>
+                            <select id="edit-story-complexity" v-model="editingStory.complexity" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="low">Baixa</option>
+                                <option value="medium">Media</option>
+                                <option value="high">Alta</option>
+                                <option value="very_high">Muito Alta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-story-category" class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                            <select id="edit-story-category" v-model="editingStory.category" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="feature">Feature</option>
+                                <option value="bug">Bug</option>
+                                <option value="tech_debt">Tech Debt</option>
+                                <option value="spike">Spike</option>
+                                <option value="improvement">Melhoria</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="edit-story-epic" class="block text-sm font-medium text-gray-700 mb-1">Epic</label>
+                            <select id="edit-story-epic" v-model="editingStory.epic_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="">Nenhum</option>
+                                <option v-for="e in epics" :key="e.epic_id" :value="e.epic_id">{{ e.title }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-story-sprint" class="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
+                            <select id="edit-story-sprint" v-model="editingStory.sprint_id" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <option value="">Nenhum</option>
+                                <option v-for="s in sprints" :key="s.sprint_id" :value="s.sprint_id">{{ s.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 flex justify-end gap-3">
+                    <button @click="showEditStoryModal = false"
+                            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button @click="updateStory"
+                            class="px-4 py-2 bg-[#003B4A] text-white rounded-lg hover:bg-opacity-90">
+                        Salvar Alteracoes
                     </button>
                 </div>
             </div>
@@ -14198,6 +14749,12 @@ HTML_TEMPLATE = """
             const currentUserId = computed(() => currentUser.value?.username || 'user');
             const currentUserName = computed(() => currentUser.value?.name || 'User');
 
+            // ========== AUTH HELPER ==========
+            const getAuthHeaders = () => {
+                const token = localStorage.getItem('auth_token');
+                return token ? { 'Authorization': `Bearer ${token}` } : {};
+            };
+
             // ========== TENANT SELECTOR (Multi-Tenancy) ==========
             const userTenants = ref([]);
             const selectedTenantId = ref('');
@@ -14208,9 +14765,13 @@ HTML_TEMPLATE = """
 
             const loadTenants = async () => {
                 try {
-                    const res = await fetch('/api/tenants');
+                    const res = await fetch('/api/tenants', {
+                        headers: getAuthHeaders()
+                    });
                     userTenants.value = await res.json();
-                    const currentRes = await fetch('/api/tenant/current');
+                    const currentRes = await fetch('/api/tenant/current', {
+                        headers: getAuthHeaders()
+                    });
                     const current = await currentRes.json();
                     if (current.tenant_id) {
                         selectedTenantId.value = current.tenant_id;
@@ -14228,7 +14789,7 @@ HTML_TEMPLATE = """
                 try {
                     await fetch('/api/tenant/select', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                         body: JSON.stringify({ tenant_id: selectedTenantId.value })
                     });
                     await loadProjects();
@@ -14410,7 +14971,9 @@ HTML_TEMPLATE = """
                         params.set('project_id', selectedProjectId.value);
                     }
 
-                    const res = await fetch('/api/search?' + params.toString());
+                    const res = await fetch('/api/search?' + params.toString(), {
+                        headers: getAuthHeaders()
+                    });
                     if (res.ok) {
                         globalSearchResults.value = await res.json();
                         saveSearchHistory(query);
@@ -14525,7 +15088,7 @@ HTML_TEMPLATE = """
                             await loadProjectData();
                         }
                         // Find and select story
-                        const storyData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        const storyData = await fetch('/api/stories/' + item.story_id, { headers: getAuthHeaders() }).then(r => r.json());
                         if (storyData) {
                             selectedStory.value = storyData;
                             activeTab.value = 'Detalhes';
@@ -14534,7 +15097,7 @@ HTML_TEMPLATE = """
 
                     case 'task':
                         // Load story that contains the task
-                        const taskStoryData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        const taskStoryData = await fetch('/api/stories/' + item.story_id, { headers: getAuthHeaders() }).then(r => r.json());
                         if (taskStoryData) {
                             if (taskStoryData.project_id !== selectedProjectId.value) {
                                 selectedProjectId.value = taskStoryData.project_id;
@@ -14547,7 +15110,7 @@ HTML_TEMPLATE = """
 
                     case 'doc':
                         // Load story that contains the doc
-                        const docStoryData = await fetch('/api/stories/' + item.story_id).then(r => r.json());
+                        const docStoryData = await fetch('/api/stories/' + item.story_id, { headers: getAuthHeaders() }).then(r => r.json());
                         if (docStoryData) {
                             if (docStoryData.project_id !== selectedProjectId.value) {
                                 selectedProjectId.value = docStoryData.project_id;
@@ -14637,7 +15200,7 @@ HTML_TEMPLATE = """
 
             const loadDeployProviders = async () => {
                 try {
-                    const res = await fetch('/api/deploy/providers');
+                    const res = await fetch('/api/deploy/providers', { headers: getAuthHeaders() });
                     deployProviders.value = await res.json();
                     if (deployProviders.value.length > 0) {
                         selectedDeployProvider.value = deployProviders.value.find(p => p.configured) || deployProviders.value[0];
@@ -14684,7 +15247,7 @@ HTML_TEMPLATE = """
 
                 const poll = async () => {
                     try {
-                        const res = await fetch(`/api/deploy/${deploymentId}`);
+                        const res = await fetch(`/api/deploy/${deploymentId}`, { headers: getAuthHeaders() });
                         const data = await res.json();
 
                         deployStatus.value = data;
@@ -14786,7 +15349,7 @@ HTML_TEMPLATE = """
                 if (!selectedProjectId.value) return;
 
                 try {
-                    const res = await fetch(`/api/domains/project/${selectedProjectId.value}/list`);
+                    const res = await fetch(`/api/domains/project/${selectedProjectId.value}/list`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         projectDomains.value = await res.json();
                     }
@@ -14829,7 +15392,7 @@ HTML_TEMPLATE = """
                 if (!selectedProjectId.value) return;
 
                 try {
-                    const res = await fetch(`/api/github-sync/status/${selectedProjectId.value}`);
+                    const res = await fetch(`/api/github-sync/status/${selectedProjectId.value}`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         gitSyncStatus.value = await res.json();
                     }
@@ -14977,7 +15540,7 @@ HTML_TEMPLATE = """
                 if (!selectedProjectId.value) return;
 
                 try {
-                    const res = await fetch(`/api/github-sync/versions/${selectedProjectId.value}?limit=20`);
+                    const res = await fetch(`/api/github-sync/versions/${selectedProjectId.value}?limit=20`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         gitVersions.value = await res.json();
                     }
@@ -15238,6 +15801,7 @@ HTML_TEMPLATE = """
 
             // ========== ISSUE #135 - EXECUTIVE DASHBOARD ==========
             const viewMode = ref('technical'); // 'technical' or 'executive'
+            const currentView = ref('kanban'); // 'kanban', 'stories', 'backlog', 'sprints', 'analytics', 'admin', 'settings', 'profile'
             const showTechnicalLogs = ref(false);
             const recentActivityLogs = ref([]);
 
@@ -15337,6 +15901,18 @@ HTML_TEMPLATE = """
                 return opt?.title || type;
             };
 
+            // Open Project Wizard
+            const openProjectWizard = () => {
+                wizardCurrentStep.value = 0;
+                wizardData.value = {
+                    projectType: '',
+                    name: '',
+                    description: '',
+                    firstFeature: ''
+                };
+                showProjectWizard.value = true;
+            };
+
             const createProjectFromWizard = async () => {
                 try {
                     // Create project
@@ -15399,7 +15975,7 @@ HTML_TEMPLATE = """
             const loadIntegrationsStatus = async () => {
                 integrationsLoading.value = true;
                 try {
-                    const res = await fetch('/api/integrations/status');
+                    const res = await fetch('/api/integrations/status', { headers: getAuthHeaders() });
                     if (res.ok) {
                         const data = await res.json();
                         integrationsStatus.value = {
@@ -15443,7 +16019,7 @@ HTML_TEMPLATE = """
 
             const loadIntegrationConfigs = async () => {
                 try {
-                    const res = await fetch('/api/integrations/config');
+                    const res = await fetch('/api/integrations/config', { headers: getAuthHeaders() });
                     if (res.ok) {
                         const data = await res.json();
                         if (data.github) integrationConfigs.value.github = { ...integrationConfigs.value.github, ...data.github };
@@ -15507,7 +16083,7 @@ HTML_TEMPLATE = """
 
             const loadSecurityData = async () => {
                 try {
-                    const res = await fetch('/api/security/data');
+                    const res = await fetch('/api/security/data', { headers: getAuthHeaders() });
                     if (res.ok) {
                         securityData.value = await res.json();
                     }
@@ -15637,7 +16213,7 @@ HTML_TEMPLATE = """
             const revokeAllSessions = async () => {
                 if (!confirm('Encerrar todas as outras sessoes?')) return;
                 try {
-                    const res = await fetch('/api/security/sessions/revoke-all', { method: 'POST' });
+                    const res = await fetch('/api/security/sessions/revoke-all', { method: 'POST', headers: getAuthHeaders() });
                     if (res.ok) {
                         await loadSecurityData();
                         addToast('success', 'Encerradas', 'Todas as outras sessoes foram encerradas');
@@ -15847,6 +16423,13 @@ HTML_TEMPLATE = """
             // Issue #294: Define explicit column order for Kanban board
             const kanbanStatuses = ['backlog', 'ready', 'in_progress', 'review', 'testing', 'done'];
 
+            // UX Fix: Persist selected project in localStorage
+            watch(selectedProjectId, (newVal) => {
+                if (newVal) {
+                    localStorage.setItem('selected_project_id', newVal);
+                }
+            });
+
             // Issue #237: WIP Limits
             const wipLimits = ref({
                 backlog: null,
@@ -15909,7 +16492,68 @@ HTML_TEMPLATE = """
             const searchInput = ref(null);
             const filterPriority = ref('');
             const filterAssignee = ref('');
+            const filterStatus = ref('');
             const groupBy = ref('');
+
+            // Computed: All stories filtered (for /stories view)
+            const allStoriesFiltered = computed(() => {
+                let stories = [];
+                // Collect all stories from storyBoard
+                Object.values(storyBoard.value).forEach(columnStories => {
+                    if (Array.isArray(columnStories)) {
+                        stories = stories.concat(columnStories);
+                    }
+                });
+                // Apply filters
+                if (filterStatus.value) {
+                    stories = stories.filter(s => s.status === filterStatus.value);
+                }
+                if (filterPriority.value) {
+                    stories = stories.filter(s => s.priority === filterPriority.value);
+                }
+                if (searchQuery.value) {
+                    const query = searchQuery.value.toLowerCase();
+                    stories = stories.filter(s =>
+                        s.title?.toLowerCase().includes(query) ||
+                        s.persona?.toLowerCase().includes(query)
+                    );
+                }
+                return stories;
+            });
+
+            // Computed: Backlog stories only (for /backlog view)
+            const backlogStories = computed(() => {
+                return storyBoard.value.backlog || [];
+            });
+
+            // Helper: Get status CSS class
+            const getStatusClass = (status) => {
+                const classes = {
+                    'backlog': 'bg-gray-100 text-gray-700',
+                    'ready': 'bg-blue-100 text-blue-700',
+                    'in_progress': 'bg-yellow-100 text-yellow-700',
+                    'review': 'bg-purple-100 text-purple-700',
+                    'testing': 'bg-orange-100 text-orange-700',
+                    'done': 'bg-green-100 text-green-700'
+                };
+                return classes[status] || 'bg-gray-100 text-gray-700';
+            };
+
+            // Helper: Get priority color
+            const getPriorityColor = (priority) => {
+                const colors = {
+                    'urgent': 'text-red-600 bg-red-50',
+                    'high': 'text-orange-600 bg-orange-50',
+                    'medium': 'text-yellow-600 bg-yellow-50',
+                    'low': 'text-green-600 bg-green-50'
+                };
+                return colors[priority] || 'text-gray-600 bg-gray-50';
+            };
+
+            // Helper: Edit story inline
+            const editStoryInline = (story) => {
+                selectedStory.value = story;
+            };
 
             // Mobile State
             const mobileMenuOpen = ref(false);
@@ -16172,6 +16816,7 @@ HTML_TEMPLATE = """
 
             // Modals
             const showNewStoryModal = ref(false);
+            const showEditStoryModal = ref(false);
             const showNewTaskModal = ref(false);
             const showNewEpicModal = ref(false);
             const showNewSprintModal = ref(false);
@@ -16195,9 +16840,6 @@ HTML_TEMPLATE = """
                 scale_type: 'fibonacci',
                 story_ids: []
             });
-
-            // Issue #308: Modal open method - will be properly initialized after all refs are defined
-            let openNewStoryModal = null;
 
             // Issue #155: Voice Input for Story Creation
             const voiceRecording = ref(false);
@@ -16478,7 +17120,7 @@ HTML_TEMPLATE = """
 
             const loadTaskTimeEntries = async (taskId) => {
                 try {
-                    const response = await fetch('/api/story-tasks/' + taskId + '/time');
+                    const response = await fetch('/api/story-tasks/' + taskId + '/time', { headers: getAuthHeaders() });
                     if (response.ok) {
                         const entries = await response.json();
                         taskTimeEntries.value[taskId] = entries;
@@ -16511,7 +17153,9 @@ HTML_TEMPLATE = """
 
             const checkActiveTimer = async () => {
                 try {
-                    const response = await fetch('/api/time/active?user_id=' + (currentUser.value?.username || 'user'));
+                    const response = await fetch('/api/time/active?user_id=' + (currentUser.value?.username || 'user'), {
+                        headers: getAuthHeaders()
+                    });
                     if (response.ok) {
                         const entry = await response.json();
                         if (entry) {
@@ -16539,7 +17183,7 @@ HTML_TEMPLATE = """
             const loadStoryComments = async () => {
                 if (!selectedStory.value) return;
                 try {
-                    const response = await fetch(`/api/comments/story/${selectedStory.value.story_id}`);
+                    const response = await fetch(`/api/comments/story/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     if (response.ok) {
                         const data = await response.json();
                         storyComments.value = data.comments || [];
@@ -16629,6 +17273,12 @@ HTML_TEMPLATE = """
                 epic_id: '', sprint_id: ''
             });
             const newStoryCriteria = ref('');
+            const editingStory = ref({
+                story_id: '', title: '', description: '', persona: '', action: '', benefit: '',
+                story_points: 3, priority: 'medium', complexity: 'medium', category: 'feature',
+                epic_id: '', sprint_id: '', acceptance_criteria: []
+            });
+            const editStoryCriteria = ref('');
             const newTask = ref({ title: '', description: '', task_type: 'development', estimated_hours: 0 });
             const newEpic = ref({ title: '', description: '', color: '#003B4A' });
             const newSprint = ref({ name: '', goal: '', capacity: 0 });
@@ -16641,12 +17291,12 @@ HTML_TEMPLATE = """
             const selectedTemplate = ref('');
             const availableTemplates = ref([]);
             const templatesLoading = ref(false);
-            const showTemplateSelector = ref(true);
+            const showTemplateSelector = ref(false); // UX Fix: Don't show template selector by default
 
-            // Issue #308: Initialize modal open function after all refs are defined
-            openNewStoryModal = () => {
+            // Issue #308: Initialize modal open function
+            const openNewStoryModal = () => {
                 // Reset form state
-                showTemplateSelector.value = true;
+                showTemplateSelector.value = false; // UX Fix: Don't show template selector by default
                 selectedTemplate.value = null;
                 newStory.value = {
                     title: '', description: '', persona: '', action: '', benefit: '',
@@ -16664,7 +17314,9 @@ HTML_TEMPLATE = """
             const loadTemplates = async () => {
                 templatesLoading.value = true;
                 try {
-                    const response = await fetch('/api/templates');
+                    const response = await fetch('/api/templates', {
+                        headers: getAuthHeaders()
+                    });
                     if (response.ok) {
                         availableTemplates.value = await response.json();
                     }
@@ -16993,8 +17645,18 @@ HTML_TEMPLATE = """
 
             // Methods
             const loadProjects = async () => {
-                const res = await fetch('/api/projects');
+                const token = localStorage.getItem('auth_token');
+                const res = await fetch('/api/projects', {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
                 projects.value = await res.json();
+
+                // UX Fix: Restore selected project from localStorage
+                const savedProjectId = localStorage.getItem('selected_project_id');
+                if (savedProjectId && projects.value.some(p => p.project_id === savedProjectId)) {
+                    selectedProjectId.value = savedProjectId;
+                }
+
                 // Issue #294: Auto-select first project if none selected
                 if (!selectedProjectId.value && projects.value.length > 0) {
                     selectedProjectId.value = projects.value[0].project_id;
@@ -17002,23 +17664,53 @@ HTML_TEMPLATE = """
                 // Load project data after selecting
                 if (selectedProjectId.value) {
                     await loadProjectData();
+                    // UX Fix: Ensure Vue re-renders before Kanban loads
+                    await nextTick();
                 }
             };
 
             const loadProjectData = async () => {
                 if (!selectedProjectId.value) return;
 
-                // Load story board
-                const boardRes = await fetch(`/api/projects/${selectedProjectId.value}/story-board`);
-                storyBoard.value = await boardRes.json();
+                try {
+                    // Load story board
+                    const boardRes = await fetch(`/api/projects/${selectedProjectId.value}/story-board`, {
+                        headers: getAuthHeaders()
+                    });
+                    if (boardRes.ok) {
+                        storyBoard.value = await boardRes.json();
+                    } else {
+                        console.error('Failed to load story board:', await boardRes.text());
+                        storyBoard.value = {};
+                    }
 
-                // Load epics
-                const epicsRes = await fetch(`/api/projects/${selectedProjectId.value}/epics`);
-                epics.value = await epicsRes.json();
+                    // Load epics
+                    const epicsRes = await fetch(`/api/projects/${selectedProjectId.value}/epics`, {
+                        headers: getAuthHeaders()
+                    });
+                    if (epicsRes.ok) {
+                        epics.value = await epicsRes.json();
+                    } else {
+                        console.error('Failed to load epics:', await epicsRes.text());
+                        epics.value = [];
+                    }
 
-                // Load sprints
-                const sprintsRes = await fetch(`/api/projects/${selectedProjectId.value}/sprints`);
-                sprints.value = await sprintsRes.json();
+                    // Load sprints
+                    const sprintsRes = await fetch(`/api/projects/${selectedProjectId.value}/sprints`, {
+                        headers: getAuthHeaders()
+                    });
+                    if (sprintsRes.ok) {
+                        sprints.value = await sprintsRes.json();
+                    } else {
+                        console.error('Failed to load sprints:', await sprintsRes.text());
+                        sprints.value = [];
+                    }
+                } catch (error) {
+                    console.error('Error loading project data:', error);
+                    storyBoard.value = {};
+                    epics.value = [];
+                    sprints.value = [];
+                }
 
                 // Issue #237: Load WIP Config
                 await loadWipConfig();
@@ -17199,7 +17891,7 @@ HTML_TEMPLATE = """
                                 try {
                                     await fetch(`/api/stories/${storyId}/move`, {
                                         method: 'PATCH',
-                                        headers: { 'Content-Type': 'application/json' },
+                                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                                         body: JSON.stringify({ status: newStatus, order: newOrder })
                                     });
                                     addToast('success', translateTerm('story', true) + ' movida', storyId + ' -> ' + getColumnTitle(newStatus));
@@ -17287,7 +17979,9 @@ HTML_TEMPLATE = """
             const loadWipConfig = async () => {
                 if (!selectedProjectId.value) return;
                 try {
-                    const res = await fetch(`/api/kanban/policies/${selectedProjectId.value}`);
+                    const res = await fetch(`/api/kanban/policies/${selectedProjectId.value}`, {
+                        headers: getAuthHeaders()
+                    });
                     if (res.ok) {
                         const policy = await res.json();
                         wipLimits.value = policy.wip_limits || wipLimits.value;
@@ -17308,7 +18002,7 @@ HTML_TEMPLATE = """
                 try {
                     const res = await fetch('/api/kanban/policies', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             project_id: selectedProjectId.value,
                             wip_limits: wipLimits.value,
@@ -17336,11 +18030,11 @@ HTML_TEMPLATE = """
             };
 
             const openStoryDetail = async (story) => {
-                const res = await fetch(`/api/stories/${story.story_id}`);
+                const res = await fetch(`/api/stories/${story.story_id}`, { headers: getAuthHeaders() });
                 selectedStory.value = await res.json();
 
                 // Load designs
-                const designsRes = await fetch(`/api/stories/${story.story_id}/designs`);
+                const designsRes = await fetch(`/api/stories/${story.story_id}/designs`, { headers: getAuthHeaders() });
                 selectedStory.value.designs = await designsRes.json();
 
                 // Load comments - Issue #225
@@ -17384,7 +18078,7 @@ HTML_TEMPLATE = """
                                 formData.append('audio', audioBlob, 'voice_input.webm');
                                 formData.append('language', 'pt-BR');
 
-                                const res = await fetch('/api/v1/inputs/voice', {
+                                const res = await fetch('/api/v1/inputs/voice', { headers: getAuthHeaders(),
                                     method: 'POST',
                                     body: formData
                                 });
@@ -17448,7 +18142,7 @@ HTML_TEMPLATE = """
                     const formData = new FormData();
                     formData.append('file', file);
 
-                    const res = await fetch('/api/v1/inputs/document', {
+                    const res = await fetch('/api/v1/inputs/document', { headers: getAuthHeaders(),
                         method: 'POST',
                         body: formData
                     });
@@ -17491,9 +18185,13 @@ HTML_TEMPLATE = """
                         storyData.acceptance_criteria = newStoryCriteria.value.split('\\n').filter(c => c.trim());
                     }
 
+                    const token = localStorage.getItem('auth_token');
                     const res = await fetch('/api/stories', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify(storyData)
                     });
 
@@ -17531,7 +18229,7 @@ HTML_TEMPLATE = """
                     newTask.value = { title: '', description: '', task_type: 'development', estimated_hours: 0 };
 
                     // Reload story
-                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     selectedStory.value = await storyRes.json();
                     loadProjectData();
                 } catch (e) {
@@ -17547,7 +18245,7 @@ HTML_TEMPLATE = """
                     body: JSON.stringify({ status: newStatus })
                 });
 
-                const res = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                const res = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                 selectedStory.value = await res.json();
                 loadProjectData();
 
@@ -17603,7 +18301,7 @@ HTML_TEMPLATE = """
 
             const loadPokerSessions = async () => {
                 try {
-                    const res = await fetch('/api/planning-poker/sessions');
+                    const res = await fetch('/api/planning-poker/sessions', { headers: getAuthHeaders() });
                     if (res.ok) {
                         const data = await res.json();
                         pokerSessions.value = data.sessions || [];
@@ -17651,7 +18349,7 @@ HTML_TEMPLATE = """
                     });
 
                     // Get session details
-                    const res = await fetch(`/api/planning-poker/sessions/${sessionId}`);
+                    const res = await fetch(`/api/planning-poker/sessions/${sessionId}`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         activePokerSession.value = await res.json();
                         myVote.value = null;
@@ -17684,7 +18382,7 @@ HTML_TEMPLATE = """
                     currentPokerStory.value = story;
                 } else {
                     try {
-                        const res = await fetch(`/api/stories/${activePokerSession.value.current_story_id}`);
+                        const res = await fetch(`/api/stories/${activePokerSession.value.current_story_id}`, { headers: getAuthHeaders() });
                         if (res.ok) {
                             currentPokerStory.value = await res.json();
                         }
@@ -17697,7 +18395,7 @@ HTML_TEMPLATE = """
             const loadPokerVotes = async () => {
                 if (!activePokerSession.value) return;
                 try {
-                    const res = await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/votes?story_id=${activePokerSession.value.current_story_id}`);
+                    const res = await fetch(`/api/planning-poker/sessions/${activePokerSession.value.session_id}/votes?story_id=${activePokerSession.value.current_story_id}`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         const data = await res.json();
                         const votesMap = {};
@@ -17837,7 +18535,7 @@ HTML_TEMPLATE = """
                     showNewDocModal.value = false;
                     newDoc.value = { title: '', doc_type: 'technical', content: '', test_instructions: '' };
 
-                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     selectedStory.value = await storyRes.json();
                 } catch (e) {
                     addToast('error', 'Erro ao criar documentacao', 'Verifique os dados e tente novamente');
@@ -17858,7 +18556,7 @@ HTML_TEMPLATE = """
                     if (res.ok) {
                         const created = await res.json();
                         addToast('success', 'Documentacao gerada', created.title);
-                        const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                        const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                         selectedStory.value = await storyRes.json();
                     } else {
                         throw new Error('Erro ao gerar documentacao');
@@ -17979,7 +18677,7 @@ HTML_TEMPLATE = """
                         showCodeReviewModal.value = true;
                         // Reload story to update task
                         if (selectedStory.value) {
-                            const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                            const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                             if (storyRes.ok) {
                                 selectedStory.value = await storyRes.json();
                             }
@@ -18027,8 +18725,101 @@ HTML_TEMPLATE = """
             };
 
             const editStory = () => {
-                // TODO: Implement edit modal
-                addToast('info', 'Em desenvolvimento', 'Funcionalidade de edicao em breve');
+                if (!selectedStory.value) {
+                    addToast('error', 'Nenhuma story selecionada', 'Abra uma story para edita-la');
+                    return;
+                }
+
+                // Copy selected story data to editing form
+                editingStory.value = {
+                    story_id: selectedStory.value.story_id,
+                    title: selectedStory.value.title || '',
+                    description: selectedStory.value.description || '',
+                    persona: selectedStory.value.persona || '',
+                    action: selectedStory.value.action || '',
+                    benefit: selectedStory.value.benefit || '',
+                    story_points: selectedStory.value.story_points || 3,
+                    priority: selectedStory.value.priority || 'medium',
+                    complexity: selectedStory.value.complexity || 'medium',
+                    category: selectedStory.value.category || 'feature',
+                    epic_id: selectedStory.value.epic_id || '',
+                    sprint_id: selectedStory.value.sprint_id || '',
+                    acceptance_criteria: selectedStory.value.acceptance_criteria || []
+                };
+
+                // Convert acceptance criteria array to text
+                editStoryCriteria.value = editingStory.value.acceptance_criteria.join('\\n');
+
+                // Open modal
+                showEditStoryModal.value = true;
+            };
+
+            const updateStory = async () => {
+                if (!editingStory.value.story_id) {
+                    addToast('error', 'Erro', 'ID da story nao encontrado');
+                    return;
+                }
+
+                if (!editingStory.value.title) {
+                    addToast('error', 'Titulo obrigatorio', 'Preencha o titulo da story');
+                    return;
+                }
+
+                try {
+                    // Convert criteria text to array
+                    const acceptance_criteria = editStoryCriteria.value
+                        .split('\\n')
+                        .map(c => c.trim())
+                        .filter(c => c);
+
+                    // Prepare payload
+                    const payload = {
+                        title: editingStory.value.title,
+                        description: editingStory.value.description || '',
+                        persona: editingStory.value.persona || '',
+                        action: editingStory.value.action || '',
+                        benefit: editingStory.value.benefit || '',
+                        story_points: editingStory.value.story_points || 0,
+                        priority: editingStory.value.priority || 'medium',
+                        complexity: editingStory.value.complexity || 'medium',
+                        category: editingStory.value.category || 'feature',
+                        epic_id: editingStory.value.epic_id || null,
+                        sprint_id: editingStory.value.sprint_id || null,
+                        acceptance_criteria: acceptance_criteria
+                    };
+
+                    // Make PUT request with auth headers
+                    const res = await fetch(`/api/stories/${editingStory.value.story_id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...getAuthHeaders()
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const updated = await res.json();
+                        addToast('success', 'Story atualizada', `${updated.story_id}: ${updated.title}`);
+
+                        // Close modal
+                        showEditStoryModal.value = false;
+
+                        // Update selectedStory if it was the one being edited
+                        if (selectedStory.value && selectedStory.value.story_id === updated.story_id) {
+                            selectedStory.value = updated;
+                        }
+
+                        // Reload data
+                        loadProjectData();
+                    } else {
+                        const error = await res.json();
+                        addToast('error', 'Erro ao atualizar', error.detail || 'Tente novamente');
+                    }
+                } catch (e) {
+                    console.error('Update story error:', e);
+                    addToast('error', 'Erro de conexao', 'Verifique sua conexao');
+                }
             };
 
             const uploadFile = async (event) => {
@@ -18040,13 +18831,13 @@ HTML_TEMPLATE = """
                     formData.append('file', file);
                     formData.append('story_id', selectedStory.value.story_id);
 
-                    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                    const res = await fetch('/api/upload', { method: 'POST', body: formData, headers: getAuthHeaders() });
 
                     if (res.ok) {
                         addToast('success', 'Arquivo enviado', file.name);
                     }
 
-                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     selectedStory.value = await storyRes.json();
                 } catch (e) {
                     addToast('error', 'Erro no upload', 'Nao foi possivel enviar o arquivo');
@@ -18116,7 +18907,7 @@ HTML_TEMPLATE = """
                     addToast('success', 'Arquivo enviado', file.name);
 
                     // Refresh story files
-                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     selectedStory.value = await storyRes.json();
 
                     // Remove from queue after 2 seconds
@@ -18208,7 +18999,7 @@ HTML_TEMPLATE = """
                 try {
                     await fetch('/api/attachments/' + file.attachment_id, { method: 'DELETE' });
                     addToast('success', 'Arquivo excluido', file.original_filename);
-                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`);
+                    const storyRes = await fetch(`/api/stories/${selectedStory.value.story_id}`, { headers: getAuthHeaders() });
                     selectedStory.value = await storyRes.json();
                 } catch (e) {
                     addToast('error', 'Erro ao excluir', e.message);
@@ -18222,7 +19013,7 @@ HTML_TEMPLATE = """
 
             // Chat
             const loadChatHistory = async () => {
-                const res = await fetch(`/api/chat/history?project_id=${selectedProjectId.value}&limit=50`);
+                const res = await fetch(`/api/chat/history?project_id=${selectedProjectId.value}&limit=50`, { headers: getAuthHeaders() });
                 chatHistory.value = await res.json();
                 nextTick(() => scrollChatToBottom());
             };
@@ -18632,7 +19423,7 @@ Data: ${new Date().toISOString()}`;
                 if (loadingActivities.value || !selectedProjectId.value) return;
                 loadingActivities.value = true;
                 try {
-                    const response = await fetch(`/api/projects/${selectedProjectId.value}/activities?limit=20&offset=${activityPage.value * 20}`);
+                    const response = await fetch(`/api/projects/${selectedProjectId.value}/activities?limit=20&offset=${activityPage.value * 20}`, { headers: getAuthHeaders() });
                     if (response.ok) {
                         const data = await response.json();
                         if (data.length < 20) hasMoreActivities.value = false;
@@ -18823,7 +19614,10 @@ Data: ${new Date().toISOString()}`;
                     'Excluir Story',
                     async () => {
                         try {
-                            const res = await fetch('/api/stories/' + story.story_id, { method: 'DELETE' });
+                            const res = await fetch('/api/stories/' + story.story_id, {
+                                method: 'DELETE',
+                                headers: getAuthHeaders()
+                            });
                             if (res.ok) {
                                 addToast('success', 'Story excluida', story.story_id + ' foi removida');
                                 selectedStory.value = null;
@@ -18846,11 +19640,11 @@ Data: ${new Date().toISOString()}`;
                     'Excluir Task',
                     async () => {
                         try {
-                            const res = await fetch('/api/story-tasks/' + task.task_id, { method: 'DELETE' });
+                            const res = await fetch('/api/story-tasks/' + task.task_id, { method: 'DELETE', headers: getAuthHeaders() });
                             if (res.ok) {
                                 addToast('success', 'Task excluida', task.task_id + ' foi removida');
                                 // Reload story
-                                const storyRes = await fetch('/api/stories/' + selectedStory.value.story_id);
+                                const storyRes = await fetch('/api/stories/' + selectedStory.value.story_id, { headers: getAuthHeaders() });
                                 selectedStory.value = await storyRes.json();
                                 loadProjectData();
                             } else {
@@ -19007,6 +19801,7 @@ Data: ${new Date().toISOString()}`;
                     // Issue #291: All modal overlays - close and return
                     if (showShortcutsModal.value) { showShortcutsModal.value = false; return; }
                     if (showNewStoryModal.value) { showNewStoryModal.value = false; return; }
+                    if (showEditStoryModal.value) { showEditStoryModal.value = false; return; }
                     if (showNewTaskModal.value) { showNewTaskModal.value = false; return; }
                     if (showNewEpicModal.value) { showNewEpicModal.value = false; return; }
                     if (showNewSprintModal.value) { showNewSprintModal.value = false; return; }
@@ -19129,14 +19924,14 @@ Data: ${new Date().toISOString()}`;
                 try {
                     await fetch('/api/stories/' + story.story_id + '/move', {
                         method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                         body: JSON.stringify({ status: newStatus })
                     });
                     addToast('success', translateTerm('story', true) + ' movida', story.story_id + ' -> ' + getColumnTitle(newStatus));
                     markOnboardingStepDone('move_story'); // Issue #132
                     loadProjectData();
                     // Update selected story
-                    const res = await fetch('/api/stories/' + story.story_id);
+                    const res = await fetch('/api/stories/' + story.story_id, { headers: getAuthHeaders() });
                     selectedStory.value = await res.json();
                 } catch (e) {
                     addToast('error', 'Erro ao mover', 'Nao foi possivel mover a ' + translateTerm('story'));
@@ -19294,7 +20089,7 @@ Process ${data.status}`);
                     if (!selectedProjectId.value) return;
 
                     try {
-                        const res = await fetch(`/api/projects/${selectedProjectId.value}/terminal/output`);
+                        const res = await fetch(`/api/projects/${selectedProjectId.value}/terminal/output`, { headers: getAuthHeaders() });
                         const data = await res.json();
 
                         if (data.output) {
@@ -19344,6 +20139,43 @@ Process ${data.status}`);
 
             // Init
             onMounted(() => {
+                // URL Detection - Define currentView based on URL path
+                const path = window.location.pathname;
+                if (path === '/executive') {
+                    viewMode.value = 'executive';
+                    currentView.value = 'executive';
+                } else if (path === '/kanban' || path === '/board' || path === '/') {
+                    currentView.value = 'kanban';
+                } else if (path === '/stories') {
+                    currentView.value = 'stories';
+                } else if (path === '/backlog') {
+                    currentView.value = 'backlog';
+                } else if (path === '/sprints') {
+                    currentView.value = 'sprints';
+                } else if (path === '/analytics') {
+                    currentView.value = 'analytics';
+                } else if (path === '/admin') {
+                    // Issue #FIX: Client-side RBAC check for /admin
+                    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                    const userRole = userData.role || localStorage.getItem('user_role') || 'DEVELOPER';
+                    const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN', 'TENANT_ADMIN', 'ADMINISTRATOR'];
+                    if (adminRoles.includes(userRole.toUpperCase())) {
+                        currentView.value = 'admin';
+                    } else {
+                        console.warn('[RBAC] Access denied to /admin for role:', userRole);
+                        window.location.href = '/?error=admin_access_denied';
+                    }
+                } else if (path === '/settings') {
+                    currentView.value = 'settings';
+                } else if (path === '/profile') {
+                    currentView.value = 'profile';
+                } else if (path === '/projects') {
+                    currentView.value = 'projects';
+                } else if (path === '/security') {
+                    currentView.value = 'security';
+                }
+                console.log('[SPA Router] Path:', path, '-> currentView:', currentView.value);
+
                 initTerminal();
                 loadTenants(); // Load tenants first - Multi-Tenancy
                 loadProjects();
@@ -19379,7 +20211,7 @@ Process ${data.status}`);
                 if (!selectedProjectId.value) return;
                 previewLoading.value = true;
                 try {
-                    const res = await fetch(`/api/projects/${selectedProjectId.value}/preview`);
+                    const res = await fetch(`/api/projects/${selectedProjectId.value}/preview`, { headers: getAuthHeaders() });
                     if (res.ok) {
                         previewData.value = await res.json();
                     }
@@ -19530,7 +20362,7 @@ Process ${data.status}`);
                     const [prodRes, insightsRes, velocityRes] = await Promise.all([
                         fetch(`/api/analytics/productivity?project_id=${selectedProjectId.value}&days=${analyticsDays.value}`),
                         fetch(`/api/analytics/insights?project_id=${selectedProjectId.value}`),
-                        fetch(`/api/analytics/velocity-history?project_id=${selectedProjectId.value}`)
+                        fetch(`/api/analytics/velocity-history?project_id=${selectedProjectId.value}`, { headers: getAuthHeaders() })
                     ]);
                     if (prodRes.ok) analyticsData.value = await prodRes.json();
                     if (insightsRes.ok) analyticsInsights.value = await insightsRes.json();
@@ -19668,7 +20500,7 @@ Process ${data.status}`);
 
             return {
                 // Current User (Authentication)
-                currentUser, currentUserId, currentUserName,
+                currentUser, currentUserId, currentUserName, getAuthHeaders,
                 // Analytics (Issue #65 + Issue #157 Charts)
                 showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics, velocityHistory,
                 // Project Preview Dashboard (Issue #73)
@@ -19695,14 +20527,14 @@ Process ${data.status}`);
                 showDocViewer, docViewerData, closeDocViewer, toggleDocEditMode, saveDocContent,
                 // Issue #214 - Multi-language i18n
                 currentLocale, translations, t, businessTerms, translateTerm, setLocale, toggleLocale,
-                // Issue #135 - Executive Dashboard
-                viewMode, showTechnicalLogs, recentActivityLogs,
+                // Issue #135 - Executive Dashboard + SPA Router
+                viewMode, currentView, showTechnicalLogs, recentActivityLogs,
                 currentProjectName, projectReadyToTest, projectProgressPercent,
                 projectHealthStatus, projectHealthColor, donePoints, estimatedDaysRemaining, projectPhases,
                 // Issue #134 - Wizard Components
                 showProjectWizard, showIntegrationWizard, wizardCurrentStep, wizardData,
                 wizardSteps, projectTypeOptions, availableIntegrations,
-                canProceedWizard, getProjectTypeName, createProjectFromWizard, selectIntegration,
+                canProceedWizard, getProjectTypeName, openProjectWizard, createProjectFromWizard, selectIntegration,
                 // Integrations Dashboard
                 showIntegrationsModal, integrationsLoading, integrationsStatus,
                 loadIntegrationsStatus, openIntegrationConfig,
@@ -19734,8 +20566,11 @@ Process ${data.status}`);
                 chatLoading, chatPageContext, chatQuickActions, chatSuggestions,
                 chatContextLabel, chatWelcomeMessage, chatPlaceholder,
                 executeQuickAction, clearChatHistory, updateChatContext,
-                showNewStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
-                openNewStoryModal, // Issue #308: method for better Vue reactivity
+                showNewStoryModal, showEditStoryModal, showNewTaskModal, showNewEpicModal, showNewSprintModal, showNewDocModal,
+                showNewDesignModal, showDesignEditor, // Missing modal refs
+                selectedStory, // Story detail panel
+                openNewStoryModal, editStory, updateStory, // Story actions
+                editingStory, editStoryCriteria, // Edit story form data
                 // Planning Poker (Issue #244)
                 showPlanningPokerModal, showCreatePokerSession, pokerSessions, activePokerSession,
                 currentPokerStory, myVote, pokerVotes, pokerStats, selectedPokerEstimate,
@@ -19764,7 +20599,8 @@ Process ${data.status}`);
                 newStory, newStoryCriteria, newTask, newEpic, newSprint, newDoc,
                 totalStories, doneStories, inProgressStories, totalPoints,
                 filteredStoryBoard, filteredStoriesCount, searchQuery, searchInput, toasts,
-                filterPriority, filterAssignee, clearFilters,
+                filterPriority, filterAssignee, filterStatus, clearFilters,
+                allStoriesFiltered, backlogStories, getStatusClass, getPriorityColor, editStoryInline,
                 loadProjectData, getColumnTitle, getColumnPoints, getEpicName,
                 openStoryDetail, createStory, createTask, toggleTaskComplete,
                 createEpic, createSprint, createDoc, editStory, uploadFile, filterByEpic,
@@ -19907,6 +20743,12 @@ def index():
     """Pagina principal - Dashboard Agile"""
     return HTML_TEMPLATE
 
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_page():
+    """Dashboard - Alias para a pagina principal"""
+    return HTML_TEMPLATE
+
+
 
 @app.get("/integrations", response_class=HTMLResponse)
 def integrations_page():
@@ -19915,9 +20757,43 @@ def integrations_page():
 
 
 # Issue #283: Missing page routes - SPA routes that return the main HTML
+# Issue #FIX: Added RBAC check for /admin - only ADMIN and SUPER_ADMIN can access
 @app.get("/admin", response_class=HTMLResponse)
-def admin_page():
-    """Admin Panel - SPA route"""
+def admin_page(request: Request):
+    """Admin Panel - SPA route (requires ADMIN or SUPER_ADMIN role)"""
+    from fastapi.responses import RedirectResponse
+    from jose import jwt, JWTError
+    import os
+
+    user_role = None
+
+    # Try to get token from cookie (browser) or Authorization header (API)
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "")
+
+    if token:
+        try:
+            # Decode JWT to get user role (use same key as login endpoint)
+            secret_key = os.getenv("JWT_SECRET_KEY", "plataforma-e-secret-key-change-in-production")
+            payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+            user_role = payload.get("role", "").upper()
+        except JWTError:
+            # Invalid token - redirect to login
+            return RedirectResponse(url="/login", status_code=302)
+
+    if not user_role:
+        # Not authenticated - redirect to login
+        return RedirectResponse(url="/login", status_code=302)
+
+    # Check if user has admin permission
+    allowed_roles = ["SUPER_ADMIN", "ADMIN", "PLATFORM_ADMIN", "TENANT_ADMIN", "ADMINISTRATOR"]
+    if user_role not in allowed_roles:
+        # User doesn't have admin permission - redirect to dashboard with error
+        return RedirectResponse(url="/?error=access_denied", status_code=302)
+
     return HTML_TEMPLATE
 
 
@@ -20176,8 +21052,8 @@ def login_page():
 
 # Auth API endpoint
 @app.post("/api/auth/login")
-async def api_login(request: LoginRequest):
-    """Login and return JWT token with tenant info"""
+async def api_login(request: LoginRequest, response: Response):
+    """Login and return JWT token with tenant info (also sets cookie for page auth)"""
     from datetime import timedelta
     try:
         from passlib.context import CryptContext
@@ -20221,6 +21097,16 @@ async def api_login(request: LoginRequest):
             }
 
             access_token = jwt.encode(token_data, SECRET_KEY, algorithm="HS256")
+
+            # Issue #FIX: Set cookie for page authentication (RBAC for /admin)
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                max_age=86400,  # 24 hours
+                httponly=True,
+                samesite="lax",
+                secure=False  # Set to True in production with HTTPS
+            )
 
             return {
                 "access_token": access_token,
