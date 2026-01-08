@@ -934,3 +934,260 @@ class RBACService:
         """
         user = self.db.query(User).filter(User.id == user_id).first()
         return user and user.role == "ADMIN"
+
+
+# =============================================================================
+# MULTI-PROFILE SYSTEM (Issue #TBD - Multiple Profiles per User)
+# =============================================================================
+
+def assign_profiles(
+    user_id: int,
+    profile_ids: List[str],
+    scope: str = "global",
+    scope_id: Optional[str] = None,
+    assigned_by: Optional[int] = None,
+    db=None
+) -> Dict[str, Any]:
+    """
+    Atribui multiplos perfis a um usuario
+
+    Este é o metodo principal para gerenciar perfis de usuarios no novo sistema.
+    Substitui perfis existentes no mesmo escopo pelos novos.
+
+    Args:
+        user_id: ID do usuario
+        profile_ids: Lista de profile_ids para atribuir (ex: ["dev_frontend", "qa_manual"])
+        scope: 'global', 'tenant', 'project'
+        scope_id: ID do tenant ou projeto (obrigatorio para scope != 'global')
+        assigned_by: ID do usuario que esta atribuindo (para auditoria)
+        db: Sessao do banco (opcional, cria nova se nao fornecida)
+
+    Returns:
+        Dict com resultado da operacao
+
+    Raises:
+        ValueError: Se usuario ou perfis nao encontrados
+
+    Example:
+        # Atribuir perfis globais
+        assign_profiles(user_id=5, profile_ids=["dev_frontend", "qa_manual"])
+
+        # Atribuir perfis em projeto especifico (override)
+        assign_profiles(
+            user_id=5,
+            profile_ids=["tech_lead"],
+            scope="project",
+            scope_id="PRJ-001"
+        )
+    """
+    from factory.database.models import Profile, UserProfile
+
+    # Criar sessao se nao fornecida
+    own_db = db is None
+    if own_db:
+        db = SessionLocal()
+
+    try:
+        # Verificar se usuario existe
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError(f"Usuario {user_id} nao encontrado")
+
+        # Validar scope_id
+        if scope in ["tenant", "project"] and not scope_id:
+            raise ValueError(f"scope_id e obrigatorio para scope '{scope}'")
+
+        # Verificar se todos os perfis existem
+        profiles = db.query(Profile).filter(
+            Profile.profile_id.in_(profile_ids),
+            Profile.is_active == True
+        ).all()
+
+        if len(profiles) != len(profile_ids):
+            found_ids = {p.profile_id for p in profiles}
+            missing_ids = set(profile_ids) - found_ids
+            raise ValueError(f"Perfis nao encontrados: {', '.join(missing_ids)}")
+
+        # Remove perfis antigos do mesmo escopo
+        deleted = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id,
+            UserProfile.scope == scope,
+            UserProfile.scope_id == scope_id if scope_id else UserProfile.scope_id.is_(None)
+        ).delete(synchronize_session=False)
+
+        # Adiciona novos perfis
+        created = []
+        for idx, profile_id in enumerate(profile_ids):
+            user_profile = UserProfile(
+                user_id=user_id,
+                profile_id=profile_id,
+                scope=scope,
+                scope_id=scope_id,
+                is_primary=(idx == 0),  # Primeiro perfil e o primario
+                active=True,
+                assigned_by=assigned_by,
+                assigned_at=datetime.utcnow()
+            )
+            db.add(user_profile)
+            created.append(profile_id)
+
+        db.commit()
+
+        return {
+            "user_id": user_id,
+            "scope": scope,
+            "scope_id": scope_id,
+            "profiles_removed": deleted,
+            "profiles_added": created,
+            "primary_profile": profile_ids[0] if profile_ids else None
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise
+    finally:
+        if own_db:
+            db.close()
+
+
+def get_user_profiles(
+    user_id: int,
+    scope: str = "global",
+    scope_id: Optional[str] = None,
+    include_inactive: bool = False,
+    db=None
+) -> List[Dict[str, Any]]:
+    """
+    Retorna perfis de um usuario
+
+    Args:
+        user_id: ID do usuario
+        scope: 'global', 'tenant', 'project' (None = todos)
+        scope_id: ID do tenant ou projeto
+        include_inactive: Se True, inclui perfis inativos
+        db: Sessao do banco (opcional)
+
+    Returns:
+        Lista de dicts com dados dos perfis
+
+    Example:
+        # Perfis globais
+        profiles = get_user_profiles(user_id=5)
+
+        # Perfis de um projeto
+        profiles = get_user_profiles(user_id=5, scope="project", scope_id="PRJ-001")
+
+        # Todos os perfis (qualquer escopo)
+        profiles = get_user_profiles(user_id=5, scope=None)
+    """
+    from factory.database.models import UserProfile
+
+    # Criar sessao se nao fornecida
+    own_db = db is None
+    if own_db:
+        db = SessionLocal()
+
+    try:
+        # Query base
+        query = db.query(UserProfile).filter(UserProfile.user_id == user_id)
+
+        # Filtrar por scope se especificado
+        if scope is not None:
+            query = query.filter(UserProfile.scope == scope)
+
+            # Filtrar por scope_id se fornecido
+            if scope_id:
+                query = query.filter(UserProfile.scope_id == scope_id)
+            else:
+                query = query.filter(UserProfile.scope_id.is_(None))
+
+        # Filtrar ativos
+        if not include_inactive:
+            query = query.filter(UserProfile.active == True)
+
+        # Executar query
+        user_profiles = query.all()
+
+        # Converter para dicts
+        result = []
+        for up in user_profiles:
+            # Verificar se ainda e valido (expires_at)
+            if not include_inactive and not up.is_valid():
+                continue
+
+            result.append(up.to_dict())
+
+        return result
+
+    finally:
+        if own_db:
+            db.close()
+
+
+def remove_user_profile(
+    user_id: int,
+    profile_id: str,
+    scope: str = "global",
+    scope_id: Optional[str] = None,
+    db=None
+) -> bool:
+    """
+    Remove um perfil especifico de um usuario
+
+    Args:
+        user_id: ID do usuario
+        profile_id: ID do perfil a remover
+        scope: 'global', 'tenant', 'project'
+        scope_id: ID do tenant ou projeto
+        db: Sessao do banco (opcional)
+
+    Returns:
+        True se removido, False se nao encontrado
+
+    Example:
+        # Remover perfil global
+        remove_user_profile(user_id=5, profile_id="qa_manual")
+
+        # Remover perfil de projeto
+        remove_user_profile(
+            user_id=5,
+            profile_id="tech_lead",
+            scope="project",
+            scope_id="PRJ-001"
+        )
+    """
+    from factory.database.models import UserProfile
+
+    own_db = db is None
+    if own_db:
+        db = SessionLocal()
+
+    try:
+        # Buscar UserProfile
+        query = db.query(UserProfile).filter(
+            UserProfile.user_id == user_id,
+            UserProfile.profile_id == profile_id,
+            UserProfile.scope == scope
+        )
+
+        if scope_id:
+            query = query.filter(UserProfile.scope_id == scope_id)
+        else:
+            query = query.filter(UserProfile.scope_id.is_(None))
+
+        user_profile = query.first()
+
+        if not user_profile:
+            return False
+
+        db.delete(user_profile)
+        db.commit()
+
+        return True
+
+    except Exception as e:
+        db.rollback()
+        raise
+    finally:
+        if own_db:
+            db.close()

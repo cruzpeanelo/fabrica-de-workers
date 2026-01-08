@@ -847,8 +847,20 @@ class StoryRepository:
 
         # Gera story_id automaticamente se nao fornecido
         if "story_id" not in story_data:
-            count = self.db.query(Story).count()
-            story_data["story_id"] = f"STR-{count + 1:04d}"
+            # Fix: Usar MAX ID ao invés de COUNT para evitar duplicatas
+            from sqlalchemy import func
+            max_id_result = self.db.query(func.max(Story.story_id)).scalar()
+            if max_id_result:
+                # Extrai número do ID (ex: "STR-0420" -> 420)
+                try:
+                    max_num = int(max_id_result.replace("STR-", ""))
+                    story_data["story_id"] = f"STR-{max_num + 1:04d}"
+                except (ValueError, AttributeError):
+                    # Fallback para UUID se ID tem formato inválido
+                    import uuid
+                    story_data["story_id"] = f"STR-{uuid.uuid4().hex[:8].upper()}"
+            else:
+                story_data["story_id"] = "STR-0001"
 
         # Define kanban_order como ultimo da coluna
         if "kanban_order" not in story_data:
