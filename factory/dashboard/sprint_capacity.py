@@ -20,6 +20,7 @@ Endpoints:
 """
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, timedelta
@@ -855,7 +856,7 @@ def register_sprint_capacity(app: FastAPI):
     # -------------------------------------------------------------------------
     # GET /capacity - Pagina HTML de capacidade
     # -------------------------------------------------------------------------
-    @app.get("/capacity", response_class="HTMLResponse", tags=["Sprint Capacity"])
+    @app.get("/capacity", response_class=HTMLResponse, tags=["Sprint Capacity"])
     async def capacity_page():
         """
         Pagina de visualizacao de capacidade do time.

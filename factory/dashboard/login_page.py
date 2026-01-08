@@ -516,7 +516,7 @@ LOGIN_PAGE_HTML = """
 
                     try {
                         // Call login endpoint
-                        const response = await fetch('/api/v1/auth/login', {
+                        const response = await fetch('/api/auth/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -534,9 +534,17 @@ LOGIN_PAGE_HTML = """
 
                         // Store token
                         authToken.value = data.access_token;
-                        userData.value = data.user;
+                        // Issue #FIX: Store user data correctly (API returns role at top level, not nested)
+                        const userInfo = {
+                            username: data.username,
+                            role: data.role,
+                            tenant_id: data.tenant_id,
+                            tenant_ids: data.tenant_ids
+                        };
+                        userData.value = userInfo;
                         localStorage.setItem('auth_token', data.access_token);
-                        localStorage.setItem('user_data', JSON.stringify(data.user));
+                        localStorage.setItem('user_data', JSON.stringify(userInfo));
+                        localStorage.setItem('user_role', data.role);  // Also store role separately for RBAC
 
                         // Get user's tenants
                         try {
@@ -549,7 +557,7 @@ LOGIN_PAGE_HTML = """
                                 userTenants.value = tenantsData.tenants || [];
 
                                 // Redirect based on number of tenants
-                                if (data.user?.role === 'SUPER_ADMIN') {
+                                if (data.role === 'SUPER_ADMIN') {
                                     // Super admin goes to platform portal
                                     localStorage.setItem('current_tenant', userTenants.value[0]?.tenant_id || 'BELGO-001');
                                     window.location.href = '/platform';
@@ -571,13 +579,13 @@ LOGIN_PAGE_HTML = """
                                 // Tenants endpoint failed - redirect with default tenant
                                 console.warn('Tenants endpoint returned error, redirecting with default');
                                 localStorage.setItem('current_tenant', 'BELGO-001');
-                                window.location.href = data.user?.role === 'SUPER_ADMIN' ? '/platform' : '/';
+                                window.location.href = data.role === 'SUPER_ADMIN' ? '/platform' : '/';
                             }
                         } catch (tenantError) {
                             // Tenants fetch failed - redirect anyway with default tenant
                             console.error('Failed to fetch tenants:', tenantError);
                             localStorage.setItem('current_tenant', 'BELGO-001');
-                            window.location.href = data.user?.role === 'SUPER_ADMIN' ? '/platform' : '/';
+                            window.location.href = data.role === 'SUPER_ADMIN' ? '/platform' : '/';
                         }
 
                     } catch (error) {
