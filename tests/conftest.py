@@ -706,3 +706,98 @@ def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
+
+# =============================================================================
+# PLAYWRIGHT E2E FIXTURES (Multiple Profiles Testing)
+# =============================================================================
+
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
+from tests.helpers.auth_helper import AuthHelper
+from tests.helpers.api_helper import APIHelper
+from tests.helpers.data_helper import DataHelper
+from tests.page_objects.login_page import LoginPage
+from tests.page_objects.admin_users_page import AdminUsersPage
+
+
+@pytest.fixture(scope="session")
+async def browser():
+    """Launch browser visible (headless=False) for E2E tests"""
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=False,
+            slow_mo=300,  # 300ms entre ações para visualização
+            channel="msedge"  # Usar Edge se disponível
+        )
+        yield browser
+        await browser.close()
+
+
+@pytest.fixture
+async def context(browser: Browser):
+    """Create browser context"""
+    context = await browser.new_context(
+        viewport={"width": 1920, "height": 1080},
+        user_agent="Playwright E2E Tests"
+    )
+    yield context
+    await context.close()
+
+
+@pytest.fixture
+async def page(context: BrowserContext):
+    """Create page"""
+    page = await context.new_page()
+    yield page
+    await page.close()
+
+
+@pytest.fixture
+async def auth_helper():
+    """Create auth helper with API session"""
+    helper = AuthHelper()
+    await helper.setup()
+    yield helper
+    await helper.teardown()
+
+
+@pytest.fixture
+def data_helper():
+    """Create data generator helper"""
+    return DataHelper()
+
+
+@pytest.fixture
+def login_page(page: Page):
+    """Create login page object"""
+    return LoginPage(page)
+
+
+@pytest.fixture
+def admin_users_page(page: Page):
+    """Create admin users page object"""
+    return AdminUsersPage(page)
+
+
+@pytest.fixture
+def api_helper(auth_helper: AuthHelper):
+    """Create API helper"""
+    return APIHelper(auth_helper)
+
+
+@pytest.fixture
+async def admin_session(auth_helper: AuthHelper, login_page: LoginPage, page: Page):
+    """Login as ADMIN and return authenticated session"""
+    # Login via UI
+    await login_page.goto()
+    await login_page.login("belgo_admin", "Belgo@Admin#2025")
+
+    # Login via API para obter token
+    success, data = await auth_helper.login("belgo_admin", "Belgo@Admin#2025")
+    assert success, "Admin login failed"
+
+    yield {
+        "auth": auth_helper,
+        "user_data": data.get("user"),
+        "page": page
+    }

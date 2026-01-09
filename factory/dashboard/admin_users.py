@@ -594,6 +594,100 @@ def generate_admin_users_html(tenant_id: str) -> str:
             gap: 8px;
         }}
 
+        /* Profiles Multi-select */
+        .profile-checkbox {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }}
+
+        .profile-checkbox:hover {{
+            background-color: #f3f4f6;
+        }}
+
+        .profile-checkbox input[type="checkbox"] {{
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }}
+
+        .profile-checkbox span:nth-child(2) {{
+            flex: 1;
+            font-size: 14px;
+            color: #374151;
+        }}
+
+        .profile-category {{
+            margin-bottom: 16px;
+        }}
+
+        /* Profile Level Badges */
+        .badge-level-0 {{
+            background-color: #ef4444;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-level-10 {{
+            background-color: #f97316;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-level-25,
+        .badge-level-28,
+        .badge-level-30,
+        .badge-level-35 {{
+            background-color: #3b82f6;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-level-40,
+        .badge-level-45,
+        .badge-level-50,
+        .badge-level-55 {{
+            background-color: #8b5cf6;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-level-60,
+        .badge-level-65 {{
+            background-color: #10b981;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
+        .badge-level-100 {{
+            background-color: #6b7280;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }}
+
         /* Responsive */
         @media (max-width: 768px) {{
             .stats-row {{
@@ -732,12 +826,143 @@ def generate_admin_users_html(tenant_id: str) -> str:
                         <div class="form-help">Minimo 8 caracteres</div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Role no Tenant</label>
+                        <label class="form-label">Role no Tenant (Legacy)</label>
                         <select class="form-select" id="create-role">
                             <option value="member">Member</option>
                             <option value="admin">Admin</option>
                             <option value="viewer">Viewer</option>
                         </select>
+                        <div class="form-help">Mantido por compatibilidade. Use Perfis abaixo.</div>
+                    </div>
+
+                    <!-- NOVO: Multi-select de Perfis -->
+                    <div class="form-group">
+                        <label class="form-label">Perfis * (Multiplos)</label>
+                        <div class="form-help">Selecione um ou mais perfis. Permissoes serao acumuladas.</div>
+
+                        <div class="profiles-grid" style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                            <!-- Plataforma -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Plataforma</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="super_admin" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Super Admin</span>
+                                    <span class="badge badge-level-0">Level 0</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="admin" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Admin</span>
+                                    <span class="badge badge-level-10">Level 10</span>
+                                </label>
+                            </div>
+
+                            <!-- Gestão -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Gestao</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="product_manager" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Product Manager</span>
+                                    <span class="badge badge-level-25">Level 25</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="product_owner" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Product Owner</span>
+                                    <span class="badge badge-level-28">Level 28</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="project_manager" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Project Manager</span>
+                                    <span class="badge badge-level-30">Level 30</span>
+                                </label>
+                            </div>
+
+                            <!-- Desenvolvimento -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Desenvolvimento</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="dev_frontend" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Dev Frontend</span>
+                                    <span class="badge badge-level-50">Level 50</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="dev_backend" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Dev Backend</span>
+                                    <span class="badge badge-level-50">Level 50</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="dev_mobile" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Dev Mobile</span>
+                                    <span class="badge badge-level-50">Level 50</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="dev_fullstack" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Dev Fullstack</span>
+                                    <span class="badge badge-level-50">Level 50</span>
+                                </label>
+                            </div>
+
+                            <!-- Qualidade -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Qualidade</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="qa_manual" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>QA Manual</span>
+                                    <span class="badge badge-level-60">Level 60</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="qa_automation" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>QA Automation</span>
+                                    <span class="badge badge-level-60">Level 60</span>
+                                </label>
+                            </div>
+
+                            <!-- Processo & Documentação -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Processo & Documentacao</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="bpm_analyst" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>BPM Analyst</span>
+                                    <span class="badge badge-level-45">Level 45</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="documentador" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Documentador</span>
+                                    <span class="badge badge-level-65">Level 65</span>
+                                </label>
+                            </div>
+
+                            <!-- Outros -->
+                            <div class="profile-category">
+                                <h4 style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin: 8px 0;">Outros</h4>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="tech_lead" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Tech Lead</span>
+                                    <span class="badge badge-level-40">Level 40</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="designer" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Designer</span>
+                                    <span class="badge badge-level-55">Level 55</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="business_analyst" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Business Analyst</span>
+                                    <span class="badge badge-level-35">Level 35</span>
+                                </label>
+                                <label class="profile-checkbox">
+                                    <input type="checkbox" value="viewer" class="profile-input" onchange="updatePermissionsPreview()">
+                                    <span>Viewer</span>
+                                    <span class="badge badge-level-100">Level 100</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview de Permissões -->
+                    <div class="form-group" id="permissions-preview-container" style="display: none;">
+                        <label class="form-label">Permissoes que serao concedidas:</label>
+                        <div id="permissions-preview" style="max-height: 150px; overflow-y: auto; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 8px; font-size: 12px;">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -1002,6 +1227,10 @@ def generate_admin_users_html(tenant_id: str) -> str:
             const password = document.getElementById('create-password').value;
             const role = document.getElementById('create-role').value;
 
+            // Obter perfis selecionados
+            const selectedProfiles = Array.from(document.querySelectorAll('.profile-input:checked'))
+                .map(input => input.value);
+
             if (!username || !email || !password) {{
                 alert('Preencha todos os campos obrigatorios');
                 return;
@@ -1012,7 +1241,13 @@ def generate_admin_users_html(tenant_id: str) -> str:
                 return;
             }}
 
+            if (selectedProfiles.length === 0) {{
+                alert('Selecione ao menos um perfil');
+                return;
+            }}
+
             try {{
+                // 1. Criar usuario
                 const res = await fetch(`/api/v1/admin/users?tenant_id=${{TENANT_ID}}`, {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -1022,10 +1257,29 @@ def generate_admin_users_html(tenant_id: str) -> str:
                 const data = await res.json();
 
                 if (res.ok) {{
-                    alert('Usuario criado com sucesso!');
-                    closeCreateModal();
-                    loadUsers();
-                    loadStats();
+                    const userId = data.user.id;
+
+                    // 2. Atribuir perfis
+                    const profilesRes = await fetch(`/api/v1/admin/users/${{userId}}/profiles`, {{
+                        method: 'POST',
+                        headers: {{'Content-Type': 'application/json'}},
+                        body: JSON.stringify({{
+                            profile_ids: selectedProfiles,
+                            scope: 'global'
+                        }})
+                    }});
+
+                    if (profilesRes.ok) {{
+                        alert('Usuario criado com sucesso com ' + selectedProfiles.length + ' perfis!');
+                        closeCreateModal();
+                        loadUsers();
+                        loadStats();
+                    }} else {{
+                        const profilesData = await profilesRes.json();
+                        alert('Usuario criado mas erro ao atribuir perfis: ' + (profilesData.detail || 'Erro desconhecido'));
+                        closeCreateModal();
+                        loadUsers();
+                    }}
                 }} else {{
                     alert(data.detail || 'Erro ao criar usuario');
                 }}
@@ -1140,6 +1394,52 @@ def generate_admin_users_html(tenant_id: str) -> str:
                 alert('Erro ao alterar status do usuario');
                 console.error(error);
             }}
+        }}
+
+        // Mapa de permissões por perfil (simplificado para preview)
+        const PROFILE_PERMISSIONS = {{
+            'super_admin': ['*:*'],
+            'admin': ['*:manage'],
+            'product_manager': ['stories:*', 'epics:*', 'roadmap:*', 'analytics:read'],
+            'product_owner': ['backlog:manage', 'stories:prioritize', 'stories:create', 'planning_poker:*'],
+            'project_manager': ['projects:*', 'sprints:*', 'stories:*', 'tasks:*', 'reports:*'],
+            'dev_frontend': ['code:frontend:*', 'stories:read', 'stories:update', 'tasks:*', 'components:*'],
+            'dev_backend': ['code:backend:*', 'stories:read', 'stories:update', 'tasks:*', 'api:*', 'database:manage'],
+            'dev_mobile': ['code:mobile:*', 'stories:read', 'stories:update', 'tasks:*'],
+            'dev_fullstack': ['code:*', 'stories:read', 'stories:update', 'tasks:*', 'api:*'],
+            'qa_manual': ['tests:manual:*', 'bugs:*', 'stories:test', 'test_cases:*'],
+            'qa_automation': ['tests:automation:*', 'ci_cd:read', 'test_results:*', 'bugs:*'],
+            'bpm_analyst': ['processes:*', 'workflows:*', 'automation:*', 'integrations:*'],
+            'documentador': ['documentation:*', 'stories:read', 'wiki:*', 'knowledge_base:*'],
+            'tech_lead': ['code:*', 'code_review:*', 'architecture:*', 'technical_decisions:*'],
+            'designer': ['designs:*', 'prototypes:*', 'stories:read', 'ux_research:*'],
+            'business_analyst': ['requirements:*', 'stories:create', 'stories:read', 'analytics:read'],
+            'viewer': ['*:read']
+        }};
+
+        function updatePermissionsPreview() {{
+            const selectedProfiles = Array.from(document.querySelectorAll('.profile-input:checked'))
+                .map(input => input.value);
+
+            const previewContainer = document.getElementById('permissions-preview-container');
+            const previewDiv = document.getElementById('permissions-preview');
+
+            if (selectedProfiles.length === 0) {{
+                previewContainer.style.display = 'none';
+                return;
+            }}
+
+            // Calcular UNION de permissões
+            const allPermissions = new Set();
+            selectedProfiles.forEach(profileId => {{
+                const perms = PROFILE_PERMISSIONS[profileId] || [];
+                perms.forEach(p => allPermissions.add(p));
+            }});
+
+            // Renderizar preview
+            const permsList = Array.from(allPermissions).sort();
+            previewDiv.innerHTML = permsList.map(p => `<code style="background-color: #e5e7eb; padding: 2px 6px; border-radius: 4px; margin: 2px; display: inline-block;">${{p}}</code>`).join(' ');
+            previewContainer.style.display = 'block';
         }}
     </script>
 </body>

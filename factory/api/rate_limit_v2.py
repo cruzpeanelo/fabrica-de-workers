@@ -580,6 +580,10 @@ class TieredRateLimitMiddleware(BaseHTTPMiddleware):
         Uses dedicated limits from AUTH_ENDPOINT_LIMITS that apply regardless
         of environment mode (dev/prod) to prevent brute force attacks.
         """
+        # Issue #FIX: Skip auth rate limiting in QA_MODE for automated testing
+        if IS_QA_MODE and os.getenv("SKIP_AUTH_RATE_LIMIT", "").lower() in ("true", "1", "yes"):
+            return True, {"auth_rate_limited": False, "qa_bypass": True}
+
         # Get strict limits for this auth endpoint
         limits = AUTH_ENDPOINT_LIMITS.get(path, {"per_minute": 5, "per_day": 100})
         per_minute = limits.get("per_minute", 5)

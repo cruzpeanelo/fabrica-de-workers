@@ -189,6 +189,18 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
         "/sprints",
         "/onboarding",
         "/help",
+        # Issue #530: Additional SPA pages (frontend handles auth)
+        "/projects",
+        "/analytics",
+        "/admin",
+        "/dashboard",  # Dashboard page (SPA - frontend handles auth)
+        "/platform",  # Issue #fix: Platform portal for SUPER_ADMIN
+        "/ai-chat",
+        "/executive",
+        "/capacity",
+        "/notification-center",
+        "/profile",
+        "/settings",
         # Issue #474: PWA files must be public
         "/manifest.json",
         "/sw.js",
@@ -638,6 +650,28 @@ class GlobalTenantMiddleware(BaseHTTPMiddleware):
                 },
                 headers={"X-Error-Code": "TENANT_NOT_FOUND"}
             )
+
+        # Issue #SEC-004: Validar ownership do tenant
+        # Apenas SUPER_ADMIN/PLATFORM_ADMIN pode switch para qualquer tenant
+        # ADMIN regular so pode switch para tenants que e membro
+        super_admin_roles = ["SUPER_ADMIN", "PLATFORM_ADMIN", "SUPERADMIN"]
+        if user_role.upper() not in super_admin_roles:
+            # ADMIN regular - verificar se e membro do target tenant
+            user_id = user_data.get("user_id")
+            is_member = await self._validate_tenant_membership(switch_tenant_id, user_id)
+            if not is_member:
+                logger.warning(
+                    f"Tenant switch denied: user={user_data.get('username')} "
+                    f"role={user_role} tried to switch to {switch_tenant_id} without membership"
+                )
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "You are not a member of the target tenant. Only SUPER_ADMIN can switch to any tenant.",
+                        "code": "NOT_MEMBER_OF_TARGET"
+                    },
+                    headers={"X-Error-Code": "NOT_MEMBER_OF_TARGET"}
+                )
 
         # Store original tenant and set switched flag
         set_original_tenant(current_tenant)

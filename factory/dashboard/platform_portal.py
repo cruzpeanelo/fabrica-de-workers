@@ -8,11 +8,47 @@ HTML page for Platform Owner (Super Admin) to manage the entire platform.
 Author: Plataforma E - Terminal 4
 """
 
+import os
 import logging
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from jose import jwt, JWTError
 
 logger = logging.getLogger(__name__)
+
+
+def check_super_admin_access(request: Request):
+    """Check if current user is SUPER_ADMIN. Returns RedirectResponse if not authorized."""
+    user_role = None
+
+    # Try to get token from cookie (browser) or Authorization header (API)
+    token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "")
+
+    if token:
+        try:
+            # Decode JWT to get user role
+            secret_key = os.getenv("JWT_SECRET_KEY", "plataforma-e-secret-key-change-in-production")
+            payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+            user_role = payload.get("role", "").upper()
+        except JWTError:
+            # Invalid token - redirect to login
+            return RedirectResponse(url="/login", status_code=302)
+
+    if not user_role:
+        # Not authenticated - redirect to login
+        return RedirectResponse(url="/login", status_code=302)
+
+    # Check if user has SUPER_ADMIN permission (only SUPER_ADMIN can access /platform)
+    if user_role != "SUPER_ADMIN":
+        # User doesn't have super admin permission - redirect to dashboard with error
+        logger.warning(f"[Platform Portal] Access denied for role: {user_role}")
+        return RedirectResponse(url="/?error=platform_access_denied", status_code=302)
+
+    return None  # Access granted
 
 
 def register_platform_portal(app):
@@ -21,29 +57,44 @@ def register_platform_portal(app):
     @app.get("/platform", response_class=HTMLResponse)
     async def platform_portal_page(request: Request):
         """Platform Portal for Super Admin"""
+        redirect = check_super_admin_access(request)
+        if redirect:
+            return redirect
         return get_platform_portal_html()
 
     @app.get("/platform/tenants", response_class=HTMLResponse)
     async def platform_tenants_page(request: Request):
         """Tenants management page"""
+        redirect = check_super_admin_access(request)
+        if redirect:
+            return redirect
         return get_platform_portal_html()
 
     @app.get("/platform/settings", response_class=HTMLResponse)
     async def platform_settings_page(request: Request):
         """Platform settings page"""
+        redirect = check_super_admin_access(request)
+        if redirect:
+            return redirect
         return get_platform_portal_html()
 
     @app.get("/platform/modules", response_class=HTMLResponse)
     async def platform_modules_page(request: Request):
         """Modules configuration page"""
+        redirect = check_super_admin_access(request)
+        if redirect:
+            return redirect
         return get_platform_portal_html()
 
     @app.get("/platform/billing", response_class=HTMLResponse)
     async def platform_billing_page(request: Request):
         """Platform billing overview page"""
+        redirect = check_super_admin_access(request)
+        if redirect:
+            return redirect
         return get_platform_portal_html()
 
-    logger.info("[Platform Portal] Pages registered at /platform/*")
+    logger.info("[Platform Portal] Pages registered at /platform/* (SUPER_ADMIN only)")
 
 
 def get_platform_portal_html():
@@ -643,7 +694,10 @@ def get_platform_portal_html():
 
                 async function loadOverview() {
                     try {
-                        const res = await fetch('/api/platform/overview');
+                        const token = localStorage.getItem('auth_token');
+                        const res = await fetch('/api/platform/overview', {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                         const data = await res.json();
                         if (data.success) {
                             overview.value = data.overview;
@@ -655,7 +709,10 @@ def get_platform_portal_html():
 
                 async function loadTenants() {
                     try {
-                        const res = await fetch('/api/platform/tenants');
+                        const token = localStorage.getItem('auth_token');
+                        const res = await fetch('/api/platform/tenants', {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                         const data = await res.json();
                         if (data.success) {
                             tenants.value = data.tenants;
@@ -667,7 +724,10 @@ def get_platform_portal_html():
 
                 async function loadModules() {
                     try {
-                        const res = await fetch('/api/platform/modules');
+                        const token = localStorage.getItem('auth_token');
+                        const res = await fetch('/api/platform/modules', {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                         const data = await res.json();
                         if (data.success) {
                             modules.value = data.modules;
@@ -679,7 +739,10 @@ def get_platform_portal_html():
 
                 async function loadBilling() {
                     try {
-                        const res = await fetch('/api/platform/billing/overview');
+                        const token = localStorage.getItem('auth_token');
+                        const res = await fetch('/api/platform/billing/overview', {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        });
                         const data = await res.json();
                         if (data.success) {
                             billing.value = data.billing;

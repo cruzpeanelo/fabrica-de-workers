@@ -193,7 +193,7 @@ class E2ETestSuite:
         """Navega para dashboard principal."""
         await self.page.goto(f"{BASE_URL}/")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_timeout(2000)
+        await self.page.wait_for_timeout(4000)  # Wait for Vue fallback (3s)
 
         await self.screenshot("04_dashboard_home")
 
@@ -209,7 +209,7 @@ class E2ETestSuite:
         """Navega para Kanban board."""
         await self.page.goto(f"{BASE_URL}/kanban")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_timeout(2000)
+        await self.page.wait_for_timeout(4000)  # Wait for Vue fallback (3s)
 
         await self.screenshot("05_kanban_board")
 
@@ -227,7 +227,7 @@ class E2ETestSuite:
         """Navega para lista de stories."""
         await self.page.goto(f"{BASE_URL}/stories")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_timeout(2000)
+        await self.page.wait_for_timeout(4000)  # Wait for Vue fallback (3s)
 
         await self.screenshot("06_stories_list")
 
@@ -242,7 +242,7 @@ class E2ETestSuite:
         """Navega para gerenciamento de sprints."""
         await self.page.goto(f"{BASE_URL}/sprints")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_timeout(2000)
+        await self.page.wait_for_timeout(4000)  # Wait for Vue fallback (3s)
 
         await self.screenshot("07_sprints_page")
 
@@ -257,7 +257,7 @@ class E2ETestSuite:
         """Navega para analytics."""
         await self.page.goto(f"{BASE_URL}/analytics")
         await self.page.wait_for_load_state("networkidle")
-        await self.page.wait_for_timeout(2000)
+        await self.page.wait_for_timeout(4000)  # Wait for Vue fallback (3s)
 
         await self.screenshot("08_analytics_page")
 

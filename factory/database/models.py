@@ -761,6 +761,173 @@ class User(Base):
             return True
         return self.quotas.get(quota_name, 0) > 0
 
+    # =============================================================================
+    # MULTI-PROFILE METHODS (Issue #TBD - Multiple Profiles per User)
+    # =============================================================================
+
+    def get_active_profiles(self, scope: str = "global", scope_id: Optional[str] = None) -> list:
+        """
+        Retorna perfis ativos do usuario para um escopo especifico
+
+        Args:
+            scope: 'global', 'tenant', 'project'
+            scope_id: ID do tenant ou projeto (se aplicavel)
+
+        Returns:
+            Lista de objetos Profile ativos
+
+        Example:
+            # Perfis globais
+            profiles = user.get_active_profiles("global")
+
+            # Perfis de um projeto especifico
+            profiles = user.get_active_profiles("project", "PRJ-001")
+        """
+        # Filtrar user_profiles_new (relationship com UserProfile)
+        user_profiles = getattr(self, 'user_profiles_new', [])
+
+        # Filtrar por scope e active=True
+        active_profiles = []
+        for up in user_profiles:
+            if not up.is_valid():  # Verifica active e expires_at
+                continue
+
+            # Filtrar por scope
+            if scope and up.scope != scope:
+                continue
+
+            # Filtrar por scope_id se fornecido
+            if scope_id and up.scope_id != scope_id:
+                continue
+
+            # Adicionar o perfil
+            if up.profile:
+                active_profiles.append(up.profile)
+
+        return active_profiles
+
+    def get_all_permissions(self, scope: str = "global", scope_id: Optional[str] = None) -> set:
+        """
+        Retorna UNION de permissoes de todos os perfis ativos do usuario
+
+        Logica de Override:
+        - Se escopo for "project" e existirem perfis de projeto: usa APENAS perfis de projeto
+        - Caso contrario: usa perfis globais
+
+        Args:
+            scope: 'global', 'tenant', 'project'
+            scope_id: ID do tenant ou projeto (se aplicavel)
+
+        Returns:
+            Set de permissoes (resource:action strings)
+
+        Example:
+            # Permissoes globais
+            perms = user.get_all_permissions("global")
+            # {'stories:read', 'stories:update', 'code:frontend:*', ...}
+
+            # Permissoes em projeto especifico (override)
+            perms = user.get_all_permissions("project", "PRJ-001")
+            # {'code_review:*', 'architecture:*', ...}  (perfis de tech_lead)
+        """
+        all_permissions = set()
+
+        # Obter perfis globais
+        global_profiles = self.get_active_profiles("global")
+        for profile in global_profiles:
+            if profile.permissions:
+                all_permissions.update(profile.permissions)
+
+        # Override de projeto (se existir)
+        if scope == "project" and scope_id:
+            project_profiles = self.get_active_profiles("project", scope_id)
+            if project_profiles:
+                # Se existem perfis de projeto, usa APENAS eles (override)
+                all_permissions = set()
+                for profile in project_profiles:
+                    if profile.permissions:
+                        all_permissions.update(profile.permissions)
+
+        # Override de tenant (se existir)
+        if scope == "tenant" and scope_id:
+            tenant_profiles = self.get_active_profiles("tenant", scope_id)
+            if tenant_profiles:
+                # Adiciona permissoes de tenant aos globais
+                for profile in tenant_profiles:
+                    if profile.permissions:
+                        all_permissions.update(profile.permissions)
+
+        return all_permissions
+
+    def has_permission(self, resource: str, action: str, context: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Verifica se usuario tem uma permissao especifica
+
+        Args:
+            resource: nome do recurso (ex: 'stories', 'projects')
+            action: acao (ex: 'read', 'create', 'update', 'delete')
+            context: contexto adicional (ex: {'project_id': 'PRJ-001'})
+
+        Returns:
+            True se tem permissao, False caso contrario
+
+        Example:
+            if user.has_permission('stories', 'create'):
+                # Permitir criacao de story
+
+            if user.has_permission('code', 'frontend:create', {'project_id': 'PRJ-001'}):
+                # Permitir criacao de codigo frontend no projeto
+        """
+        # Extrair scope do contexto
+        scope = "global"
+        scope_id = None
+
+        if context:
+            if "project_id" in context:
+                scope = "project"
+                scope_id = context["project_id"]
+            elif "tenant_id" in context:
+                scope = "tenant"
+                scope_id = context["tenant_id"]
+
+        # Obter todas as permissoes
+        all_perms = self.get_all_permissions(scope, scope_id)
+
+        # Verificar permissao
+        perm_key = f"{resource}:{action}"
+
+        # Permissao exata
+        if perm_key in all_perms:
+            return True
+
+        # Wildcard de recurso
+        if f"{resource}:*" in all_perms:
+            return True
+
+        # Wildcard total (super admin)
+        if "*:*" in all_perms:
+            return True
+
+        # "manage" inclui CRUD
+        if f"{resource}:manage" in all_perms:
+            if action in ["create", "read", "update", "delete"]:
+                return True
+
+        return False
+
+    def get_primary_profile(self) -> Optional[Any]:
+        """
+        Retorna o perfil primario do usuario (usado para exibicao de "cargo")
+
+        Returns:
+            Profile object ou None
+        """
+        user_profiles = getattr(self, 'user_profiles_new', [])
+        for up in user_profiles:
+            if up.is_primary and up.is_valid():
+                return up.profile
+        return None
+
     def __repr__(self):
         return f"<User {self.username} [{self.role}]>"
 
@@ -2525,6 +2692,176 @@ class UserRole(Base):
     def __repr__(self):
         scope = f" in {self.project_id}" if self.project_id else " (global)"
         return f"<UserRole user={self.user_id} role={self.role_id}{scope}>"
+
+
+# =============================================================================
+# MULTI-PROFILE SYSTEM (Issue #TBD - Multiple Profiles per User)
+# =============================================================================
+
+class Profile(Base):
+    """
+    Modelo para Perfis (Profiles)
+    Substitui/complementa o sistema de Roles com suporte a multiplos perfis por usuario
+
+    Diferenca vs Role:
+    - Profile é mais granular (Dev Frontend, Dev Backend, QA Manual, etc)
+    - Usuario pode ter MULTIPLOS perfis simultaneos (permissoes acumulam)
+    - Profiles tem categorias (Management, Development, QA, etc)
+    """
+    __tablename__ = "profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    profile_id = Column(String(50), unique=True, nullable=False, index=True)
+
+    # Dados
+    name = Column(String(100), nullable=False)
+    profile_type = Column(String(50), nullable=False)  # mesmo que profile_id (ex: "dev_frontend")
+    category = Column(String(50), nullable=False, index=True)  # management, development, qa, process, etc
+    description = Column(Text, nullable=True)
+
+    # Hierarquia
+    level = Column(Integer, default=50)  # 0=highest (super_admin), 100=lowest (viewer)
+    parent_profile_id = Column(String(50), ForeignKey("profiles.profile_id"), nullable=True)
+
+    # Permissoes (JSON array de resource:action strings)
+    permissions = Column(JSON, default=list)
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_system = Column(Boolean, default=False)  # Profile do sistema (nao pode ser deletado)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relacionamentos
+    parent = relationship("Profile", remote_side=[profile_id], backref="children")
+    user_profiles = relationship("UserProfile", back_populates="profile", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "profile_id": self.profile_id,
+            "name": self.name,
+            "profile_type": self.profile_type,
+            "category": self.category,
+            "description": self.description,
+            "level": self.level,
+            "parent_profile_id": self.parent_profile_id,
+            "permissions": self.permissions or [],
+            "is_active": self.is_active,
+            "is_system": self.is_system,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+    def has_permission(self, resource: str, action: str) -> bool:
+        """Verifica se o profile tem a permissao especificada"""
+        if not self.permissions:
+            return False
+
+        permission_key = f"{resource}:{action}"
+
+        # Verificar permissao exata
+        if permission_key in self.permissions:
+            return True
+
+        # Verificar wildcard (ex: stories:* permite todas acoes em stories)
+        if f"{resource}:*" in self.permissions:
+            return True
+
+        # Verificar permissao total (admin)
+        if "*:*" in self.permissions:
+            return True
+
+        # Verificar "manage" (inclui create, read, update, delete)
+        if f"{resource}:manage" in self.permissions:
+            if action in ["create", "read", "update", "delete"]:
+                return True
+
+        return False
+
+    def __repr__(self):
+        return f"<Profile {self.name} [level={self.level}, category={self.category}]>"
+
+
+class UserProfile(Base):
+    """
+    Modelo para Associacao Usuario-Profile (Many-to-Many)
+
+    Permite atribuir MULTIPLOS perfis a um usuario, com escopos:
+    - global: perfil aplicado em todos os contextos
+    - tenant: perfil aplicado apenas em um tenant especifico
+    - project: perfil aplicado apenas em um projeto especifico (override de global)
+
+    Exemplo:
+    - User "joao" tem profile "dev_frontend" (global)
+    - User "joao" tem profile "tech_lead" (project=PRJ-001)
+    - No projeto PRJ-001, joao tem permissoes de tech_lead
+    - Nos outros projetos, joao tem permissoes de dev_frontend
+    """
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Relacionamentos
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    profile_id = Column(String(50), ForeignKey("profiles.profile_id"), nullable=False, index=True)
+
+    # Escopo (global, tenant, project)
+    scope = Column(String(20), default="global", nullable=False, index=True)
+    scope_id = Column(String(50), nullable=True, index=True)  # tenant_id ou project_id
+
+    # Perfil primario (usado para exibicao de "cargo" do usuario)
+    is_primary = Column(Boolean, default=False)
+
+    # Status
+    active = Column(Boolean, default=True, nullable=False)
+
+    # Atribuido por
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+    # Expiracao opcional (para perfis temporarios)
+    expires_at = Column(DateTime, nullable=True)
+
+    # Relacionamentos ORM
+    user = relationship("User", foreign_keys=[user_id], backref="user_profiles_new")
+    profile = relationship("Profile", back_populates="user_profiles")
+    assigner = relationship("User", foreign_keys=[assigned_by])
+
+    # Constraint: usuario nao pode ter o mesmo perfil duplicado no mesmo escopo
+    __table_args__ = (
+        UniqueConstraint('user_id', 'profile_id', 'scope', 'scope_id', name='uq_user_profile_scope'),
+        Index('ix_user_profiles_scope', 'user_id', 'scope', 'active'),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "profile_id": self.profile_id,
+            "scope": self.scope,
+            "scope_id": self.scope_id,
+            "is_primary": self.is_primary,
+            "active": self.active,
+            "assigned_by": self.assigned_by,
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "profile": self.profile.to_dict() if self.profile else None
+        }
+
+    def is_valid(self) -> bool:
+        """Verifica se a atribuicao ainda e valida"""
+        if not self.active:
+            return False
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return False
+        return True
+
+    def __repr__(self):
+        scope_str = f"{self.scope}:{self.scope_id}" if self.scope_id else self.scope
+        primary_str = " (PRIMARY)" if self.is_primary else ""
+        return f"<UserProfile user={self.user_id} profile={self.profile_id} scope={scope_str}{primary_str}>"
 
 
 class AuditLog(Base):
