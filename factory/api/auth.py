@@ -358,6 +358,9 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
     exp: Optional[datetime] = None
+    tenant_id: Optional[str] = None
+    tenant_ids: Optional[List[str]] = None
+    user_id: Optional[int] = None
 
 
 class UserCreate(BaseModel):
@@ -493,7 +496,10 @@ def decode_token(token: str) -> TokenData:
             return TokenData(
                 username=username,
                 role=role,
-                exp=datetime.fromtimestamp(exp) if exp else None
+                exp=datetime.fromtimestamp(exp) if exp else None,
+                tenant_id=payload.get("tenant_id"),
+                tenant_ids=payload.get("tenant_ids"),
+                user_id=payload.get("user_id")
             )
 
         except JWTError as e:

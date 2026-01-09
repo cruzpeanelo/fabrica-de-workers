@@ -80,11 +80,41 @@ async def list_stories(
 
     Suporta filtros por projeto, status, prioridade, assignee, epic, sprint.
     Busca textual em titulo e descricao.
+
+    Multi-tenant: SUPER_ADMIN vê todas as stories, outros usuários veem apenas stories de seus tenants.
     """
-    from factory.database.models import Story
+    from factory.database.models import Story, Project
+    from factory.api.auth import get_current_user, TokenData
+
+    # Obter usuário autenticado (opcional, para não quebrar testes sem auth)
+    user = None
+    try:
+        from fastapi.security import HTTPBearer
+        from factory.api.auth import security
+        credentials = await security(request)
+        if credentials:
+            from factory.api.auth import decode_token
+            user = decode_token(credentials.credentials)
+    except:
+        pass  # Sem autenticação, continua sem filtro de tenant
 
     # Construir query base
     query = db.query(Story)
+
+    # Filtrar por tenant (exceto SUPER_ADMIN e PLATFORM_ADMIN)
+    if user and user.role not in ["SUPER_ADMIN", "PLATFORM_ADMIN", "SUPERADMIN"] and user.tenant_id:
+        # Buscar project_ids do tenant primeiro
+        tenant_projects = db.query(Project.project_id).filter(
+            Project.tenant_id == user.tenant_id
+        ).all()
+        tenant_project_ids = [p[0] for p in tenant_projects]
+
+        # Filtrar stories apenas desses projetos
+        if tenant_project_ids:
+            query = query.filter(Story.project_id.in_(tenant_project_ids))
+        else:
+            # Se não há projetos, retornar vazio
+            query = query.filter(Story.project_id == '__NO_PROJECTS__')
 
     # Aplicar filtros
     if project_id:

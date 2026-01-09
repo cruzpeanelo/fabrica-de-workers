@@ -210,6 +210,14 @@ try:
 except ImportError as e:
     print(f"[Dashboard] Health checks router not available: {e}")
 
+# Profile Management API (Multiple Profiles System)
+try:
+    from factory.api.profile_routes import router as profile_router
+    app.include_router(profile_router)
+    print("[Dashboard] Profile Management API loaded")
+except ImportError as e:
+    print(f"[Dashboard] Profile Management API not available: {e}")
+
 # Issue #378: Prometheus Metrics and Observability
 try:
     from factory.api.metrics import router as metrics_router, setup_metrics
@@ -218,6 +226,14 @@ try:
     print("[Dashboard] Metrics router loaded (Prometheus)")
 except ImportError as e:
     print(f"[Dashboard] Metrics router not available: {e}")
+
+# Analytics API Router (Opcao 3 - Advanced Features)
+try:
+    from factory.api.analytics_routes import router as analytics_router
+    app.include_router(analytics_router)
+    print("[Dashboard] Analytics router loaded")
+except ImportError as e:
+    print(f"[Dashboard] Analytics router not available: {e}")
 
 # Project Preview API Router (Issue #73)
 try:
@@ -5754,7 +5770,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma E - Dashboard Agile</title>
+    <title>TEST VERSION 2026-01-08 17:45 - Plataforma E</title>
 
     <!-- PWA Meta Tags (Issue #259) -->
     <meta name="theme-color" content="#003B4A">
@@ -9561,6 +9577,14 @@ HTML_TEMPLATE = """
                                 <span style="font-size:13px;font-weight:500;">{{ currentTenantName }}</span>
                             </div>
                         </div>
+                        <!-- Fallback: Show tenant from currentUser if API fails -->
+                        <div v-else-if="currentTenant" class="hide-on-mobile" style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:rgba(255,255,255,0.1);border-radius:8px;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <div style="display:flex;flex-direction:column;">
+                                <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.7;">Tenant</span>
+                                <span style="font-size:13px;font-weight:500;">{{ currentTenant }}</span>
+                            </div>
+                        </div>
 
                         <!-- Projeto Selecionado -->
                         <select v-model="selectedProjectId" @change="loadProjectData"
@@ -9800,6 +9824,7 @@ HTML_TEMPLATE = """
 
                         <!-- Nova Story (Issue #308: Fixed - explicit function call with parentheses) -->
                         <button @click="openNewStoryModal()"
+                                v-if="canCreateStory.value"
                                 class="bg-[#FF6C00] hover:bg-orange-600 px-4 py-1.5 rounded text-sm font-medium transition"
                                 data-testid="btn-nova-story">
                             + Nova {{ translateTerm('story') }}
@@ -10790,7 +10815,9 @@ HTML_TEMPLATE = """
                     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
                         <div class="flex items-center justify-between mb-4">
                             <h1 class="text-xl font-bold text-gray-800">Lista de Stories</h1>
-                            <button @click="openNewStoryModal()" data-testid="btn-nova-story-list"
+                            <button @click="openNewStoryModal()"
+                                    v-if="canCreateStory.value"
+                                    data-testid="btn-nova-story-list"
                                     class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm flex items-center gap-2">
                                 <span>+</span> Nova Story
                             </button>
@@ -10878,6 +10905,7 @@ HTML_TEMPLATE = """
                                     Planning Poker
                                 </button>
                                 <button @click="openNewStoryModal()"
+                                        v-if="canCreateStory.value"
                                         class="bg-[#FF6C00] text-white px-4 py-2 rounded-lg hover:bg-[#e55f00] transition font-medium text-sm">
                                     + Nova Story
                                 </button>
@@ -11433,6 +11461,7 @@ HTML_TEMPLATE = """
                                     Adicione sua primeira story
                                 </p>
                                 <button @click="openNewStoryModal()"
+                                        v-if="canCreateStory.value"
                                         class="empty-state-btn empty-state-btn-primary text-xs px-3 py-1.5">
                                     + Nova Story
                                 </button>
@@ -11466,7 +11495,9 @@ HTML_TEMPLATE = """
                             Crie sua primeira User Story para comecar a organizar o trabalho do projeto.
                         </p>
                         <div class="empty-state-actions">
-                            <button @click="openNewStoryModal()" class="empty-state-btn empty-state-btn-primary">
+                            <button @click="openNewStoryModal()"
+                                    v-if="canCreateStory.value"
+                                    class="empty-state-btn empty-state-btn-primary">
                                 <span>+</span> Criar primeira Story
                             </button>
                             <button @click="showShortcuts = true" class="empty-state-btn empty-state-btn-secondary">
@@ -11789,10 +11820,14 @@ HTML_TEMPLATE = """
                         <!-- Botoes de Acao -->
                         <div class="pt-4 space-y-2">
                             <button @click="editStory"
+                                    v-if="canUpdate(selectedStory)"
+                                    data-test-id="edit-story-btn"
                                     class="w-full bg-[#003B4A] text-white py-2 rounded-lg hover:bg-opacity-90 transition">
                                 Editar Story
                             </button>
                             <button @click="deleteStoryWithConfirm(selectedStory)"
+                                    v-if="canDelete(selectedStory)"
+                                    data-test-id="delete-story-btn"
                                     class="w-full bg-white text-red-600 border border-red-300 py-2 rounded-lg hover:bg-red-50 transition">
                                 Excluir Story
                             </button>
@@ -13810,7 +13845,10 @@ HTML_TEMPLATE = """
             </button>
 
             <div class="fab-menu" :class="{ 'open': fabMenuOpen }" role="menu">
-                <button class="fab-item" role="menuitem" @click="fabAction('story')">
+                <button class="fab-item"
+                        role="menuitem"
+                        @click="fabAction('story')"
+                        v-if="canCreateStory.value">
                     <span class="fab-item-icon">📄</span>
                     <span class="fab-item-label">Nova Story</span>
                     <span class="fab-item-shortcut">⇧⌘S</span>
@@ -14681,7 +14719,7 @@ HTML_TEMPLATE = """
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <span>Menu</span>
                 </div>
-                <div class="mobile-nav-item" @click="openNewStoryModal()" data-testid="mobile-btn-nova-story">
+                <div v-if="canCreateStory.value" class="mobile-nav-item" @click="openNewStoryModal()" data-testid="mobile-btn-nova-story">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     <span>Nova Story</span>
                 </div>
@@ -14698,7 +14736,9 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+    console.log('[DEBUG] Script tag started - TOP OF FILE');
     const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+    console.log('[DEBUG] Vue destructured successfully');
 
     // Issue #221: Click-outside directive for global search
     const clickOutsideDirective = {
@@ -14717,6 +14757,7 @@ HTML_TEMPLATE = """
 
     const app = createApp({
         setup() {
+            console.log('[DEBUG] Setup function started!');
             // State
             const projects = ref([]);
             const terminalCommand = ref('');
@@ -14755,9 +14796,59 @@ HTML_TEMPLATE = """
                 return token ? { 'Authorization': `Bearer ${token}` } : {};
             };
 
+            // ========== RBAC HELPERS ==========
+            console.log('[DEBUG] Chegou na seção RBAC HELPERS');
+            // ✅ FIX: Criar ref REATIVA para perfis (para que computed detecte mudanças)
+            const userProfiles = ref([]);
+
+            // Carregar perfis do localStorage no mounted
+            const loadUserProfilesFromStorage = () => {
+                try {
+                    const profilesJson = localStorage.getItem('user_profiles');
+                    userProfiles.value = profilesJson ? JSON.parse(profilesJson) : [];
+                    console.log('[RBAC] Perfis carregados:', userProfiles.value);
+                } catch (e) {
+                    console.error('[RBAC] Erro ao carregar perfis:', e);
+                    userProfiles.value = [];
+                }
+            };
+
+            const getUserProfiles = () => {
+                return userProfiles.value;
+            };
+
+            // ✅ FIX: Converter para computed() para detectar mudanças em userProfiles
+            console.log('[RBAC] Definindo canCreateStory computed...');
+            const canCreateStory = computed(() => {
+                const profiles = userProfiles.value;
+                // Viewers NÃO podem criar stories
+                const allowedProfiles = ['super_admin', 'admin', 'product_manager', 'product_owner', 'project_manager', 'business_analyst'];
+                const can = profiles.some(p => allowedProfiles.includes(p.profile_type || p.profile_id || p));
+                console.log('[RBAC] canCreateStory avaliado:', can, '| perfis:', profiles.map(p => p.profile_type || p.profile_id));
+                return can;
+            });
+            console.log('[RBAC] canCreateStory computed definido!');
+
+            // ✅ FIX: canUpdate e canDelete são funções normais que LEEM o ref reativo
+            // Quando chamadas no template, Vue detecta acesso a userProfiles.value e reage
+            const canUpdate = (story = {}) => {
+                const profiles = userProfiles.value;
+                // Viewers NÃO podem editar stories
+                const allowedProfiles = ['super_admin', 'admin', 'product_manager', 'product_owner', 'project_manager', 'tech_lead', 'dev_frontend', 'dev_backend', 'dev_mobile', 'dev_fullstack'];
+                return profiles.some(p => allowedProfiles.includes(p.profile_type || p.profile_id || p));
+            };
+
+            const canDelete = (story = {}) => {
+                const profiles = userProfiles.value;
+                // Apenas admin, super_admin e project_manager podem deletar
+                const allowedProfiles = ['super_admin', 'admin', 'project_manager'];
+                return profiles.some(p => allowedProfiles.includes(p.profile_type || p.profile_id || p));
+            };
+
             // ========== TENANT SELECTOR (Multi-Tenancy) ==========
             const userTenants = ref([]);
             const selectedTenantId = ref('');
+            const currentTenant = ref(localStorage.getItem('current_tenant') || ''); // Fallback tenant indicator
             const currentTenantName = computed(() => {
                 const tenant = userTenants.value.find(t => t.tenant_id === selectedTenantId.value);
                 return tenant ? tenant.name : '';
@@ -16454,16 +16545,37 @@ HTML_TEMPLATE = """
             // Issue #280: Enhanced contextual AI chat
             const chatLoading = ref(false);
             const chatPageContext = ref('kanban');
-            const chatQuickActions = ref([
+            // ✅ FIX: Usar refs intermediárias para permitir atualizações dinâmicas
+            const _chatQuickActionsBase = ref([
                 { label: 'Nova Story', action: 'criar nova story', icon: '+' },
                 { label: 'Status', action: 'status do projeto', icon: 'i' },
                 { label: 'Ajuda', action: 'o que voce pode fazer', icon: '?' }
             ]);
-            const chatSuggestions = ref([
+            const chatQuickActions = computed(() => {
+                // Filtrar baseado em RBAC
+                return _chatQuickActionsBase.value.filter(action => {
+                    // Se é "Nova Story", só mostrar se pode criar
+                    if (action.label === 'Nova Story') {
+                        return canCreateStory.value;
+                    }
+                    return true;
+                });
+            });
+            const _chatSuggestionsBase = ref([
                 'Listar todas as stories',
                 'Criar uma nova story',
                 'Qual o status do projeto?'
             ]);
+            const chatSuggestions = computed(() => {
+                // Filtrar baseado em RBAC
+                return _chatSuggestionsBase.value.filter(suggestion => {
+                    // Se é "Criar nova story", só mostrar se pode criar
+                    if (suggestion.toLowerCase().includes('criar') && suggestion.toLowerCase().includes('story')) {
+                        return canCreateStory.value;
+                    }
+                    return true;
+                });
+            });
 
             // Computed properties for contextual chat - Issue #280
             const chatContextLabel = computed(() => {
@@ -19100,24 +19212,24 @@ HTML_TEMPLATE = """
             const updateChatContext = () => {
                 if (selectedStory.value) {
                     chatPageContext.value = 'story-detail';
-                    chatQuickActions.value = [
+                    _chatQuickActionsBase.value = [
                         { label: 'Executar', action: `executar story ${selectedStory.value.story_id}`, icon: '>' },
                         { label: 'Tasks', action: `listar tasks de ${selectedStory.value.story_id}`, icon: '#' },
                         { label: 'Docs', action: `gerar documentacao para ${selectedStory.value.story_id}`, icon: 'D' }
                     ];
-                    chatSuggestions.value = [
+                    _chatSuggestionsBase.value = [
                         `Qual o status de ${selectedStory.value.story_id}?`,
                         `Gerar testes para ${selectedStory.value.story_id}`,
                         `Mover ${selectedStory.value.story_id} para testing`
                     ];
                 } else {
                     chatPageContext.value = 'kanban';
-                    chatQuickActions.value = [
+                    _chatQuickActionsBase.value = [
                         { label: 'Nova Story', action: 'criar nova story', icon: '+' },
                         { label: 'Status', action: 'status do projeto', icon: 'i' },
                         { label: 'Ajuda', action: 'o que voce pode fazer', icon: '?' }
                     ];
-                    chatSuggestions.value = [
+                    _chatSuggestionsBase.value = [
                         'Listar todas as stories',
                         'Criar uma nova story',
                         'Qual o status do projeto?'
@@ -20139,6 +20251,9 @@ Process ${data.status}`);
 
             // Init
             onMounted(() => {
+                // ✅ FIX: Carregar perfis do localStorage (RBAC)
+                loadUserProfilesFromStorage();
+
                 // URL Detection - Define currentView based on URL path
                 const path = window.location.pathname;
                 if (path === '/executive') {
@@ -20501,6 +20616,8 @@ Process ${data.status}`);
             return {
                 // Current User (Authentication)
                 currentUser, currentUserId, currentUserName, getAuthHeaders,
+                // RBAC Permissions
+                userProfiles, loadUserProfilesFromStorage, getUserProfiles, canCreateStory, canUpdate, canDelete,
                 // Analytics (Issue #65 + Issue #157 Charts)
                 showAnalyticsModal, analyticsData, analyticsInsights, analyticsLoading, analyticsDays, loadAnalytics, velocityHistory,
                 // Project Preview Dashboard (Issue #73)
@@ -20656,7 +20773,7 @@ Process ${data.status}`);
                 canPreviewFile, formatUploadDate, countFilesByType,
                 filteredUploadFiles, previewFile, deleteUploadedFile,
                 // Tenant Selector (Multi-Tenancy)
-                userTenants, selectedTenantId, currentTenantName,
+                userTenants, selectedTenantId, currentTenant, currentTenantName,
                 loadTenants, onTenantChange
             };
         }
@@ -21063,7 +21180,7 @@ async def api_login(request: LoginRequest, response: Response):
 
         db = SessionLocal()
         try:
-            from factory.database.models import User, TenantMember
+            from factory.database.models import User, TenantMember, UserProfile, Profile
             user = db.query(User).filter(User.username == request.username).first()
 
             if not user:
@@ -21082,6 +21199,27 @@ async def api_login(request: LoginRequest, response: Response):
             # Get primary tenant (first one or default)
             tenant_ids = [m.tenant_id for m in memberships]
             primary_tenant = tenant_ids[0] if tenant_ids else None
+
+            # Get user's profiles (RBAC)
+            user_profiles_objs = db.query(UserProfile).filter(
+                UserProfile.user_id == user.id,
+                UserProfile.active == True
+            ).all()
+
+            # Build profiles list with details using ORM relationship
+            profiles_list = []
+            for up in user_profiles_objs:
+                # Use ORM relationship instead of manual query
+                profile = up.profile  # This uses the SQLAlchemy relationship
+                if profile:
+                    profiles_list.append({
+                        "profile_id": profile.profile_id,
+                        "profile_type": profile.profile_type,
+                        "name": profile.name,
+                        "category": profile.category,
+                        "scope": up.scope,
+                        "scope_id": up.scope_id
+                    })
 
             # Create JWT token with tenant info
             SECRET_KEY = os.getenv("JWT_SECRET_KEY", "plataforma-e-secret-key-change-in-production")
@@ -21115,6 +21253,7 @@ async def api_login(request: LoginRequest, response: Response):
                 "role": user.role,
                 "tenant_id": primary_tenant,
                 "tenant_ids": tenant_ids,
+                "user_profiles": profiles_list,  # ✅ FIX: Retorna perfis para RBAC
                 "expires_at": expire.isoformat()
             }
         finally:
