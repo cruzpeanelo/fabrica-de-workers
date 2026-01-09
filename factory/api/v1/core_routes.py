@@ -88,15 +88,14 @@ async def list_stories(
 
     # Obter usuário autenticado (opcional, para não quebrar testes sem auth)
     user = None
-    try:
-        from fastapi.security import HTTPBearer
-        from factory.api.auth import security
-        credentials = await security(request)
-        if credentials:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "")
+        try:
             from factory.api.auth import decode_token
-            user = decode_token(credentials.credentials)
-    except:
-        pass  # Sem autenticação, continua sem filtro de tenant
+            user = decode_token(token)
+        except:
+            pass  # Token inválido, continua sem autenticação
 
     # Construir query base
     query = db.query(Story)
